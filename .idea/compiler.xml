@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="my-tanahua-sso" />
+        <module name="my-tanhua-dubbo-interface" />
+        <module name="my-tanhua-dubbo-service" />
+        <module name="my-tanhua-elasticsearch" />
+        <module name="my-tanhua-recommend" />
+        <module name="my-tanhua-server" />
+        <module name="my-tanhua-spark" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="my-tanahua-sso" target="1.5" />
+      <module name="my-tanhua" target="1.5" />
+      <module name="my-tanhua-dubbo" target="1.5" />
+      <module name="my-tanhua-dubbo-interface" target="1.5" />
+      <module name="my-tanhua-dubbo-service" target="1.5" />
+      <module name="my-tanhua-elasticsearch" target="1.5" />
+      <module name="my-tanhua-recommend" target="1.5" />
+      <module name="my-tanhua-server" target="1.5" />
+      <module name="my-tanhua-spark" target="1.5" />
+    </bytecodeTargetLevel>
+  </component>
+</project>
