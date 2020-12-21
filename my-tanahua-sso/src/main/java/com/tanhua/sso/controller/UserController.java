@@ -15,6 +15,7 @@ import java.util.Map;
 /**
  * 用户登录
  */
+@SuppressWarnings("unchecked")
 @RequestMapping("user")
 @RestController
 public class UserController {
@@ -43,10 +44,9 @@ public class UserController {
                 Boolean isNew = Boolean.valueOf(ss[0]);
                 String tokenStr = ss[1];
 
-                Map<String, Object> result = new HashMap<>();
+                Map<String, Object> result = new HashMap<String, Object>();
                 result.put("isNew", isNew);
                 result.put("token", tokenStr);
-
                 return ResponseEntity.ok(result);
             }
         } catch (Exception e) {

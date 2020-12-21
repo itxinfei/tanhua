@@ -11,10 +11,9 @@
 
     <artifactId>my-tanhua-dubbo</artifactId>
     <packaging>pom</packaging>
+
     <modules>
         <module>my-tanhua-dubbo-interface</module>
         <module>my-tanhua-dubbo-service</module>
     </modules>
-
-
 </project>
