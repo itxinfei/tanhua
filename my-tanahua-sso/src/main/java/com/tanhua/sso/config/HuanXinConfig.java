@@ -10,11 +10,9 @@ import org.springframework.context.annotation.PropertySource;
 @ConfigurationProperties(prefix = "tanhua.huanxin")
 @Data
 public class HuanXinConfig {
-
     private String url;
     private String orgName;
     private String appName;
     private String clientId;
     private String clientSecret;
-
 }

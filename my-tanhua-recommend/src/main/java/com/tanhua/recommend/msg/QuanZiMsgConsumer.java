@@ -16,7 +16,6 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
-import java.io.IOException;
 
 @Component
 @RocketMQMessageListener(topic = "tanhua-quanzi",
@@ -55,15 +54,15 @@ public class QuanZiMsgConsumer implements RocketMQListener<String> {
                     Publish publish = this.mongoTemplate.findById(new ObjectId(publishId), Publish.class);
                     int length = StringUtils.length(publish.getText());
 
-                    if(length > 0 && length <= 50){
+                    if (length > 0 && length <= 50) {
                         score = 1;
-                    }else if(length > 50 && length <= 100){
+                    } else if (length > 50 && length <= 100) {
                         score = 2;
-                    }else{
+                    } else {
                         score = 3;
                     }
 
-                    if(!CollectionUtils.isEmpty(publish.getMedias())){
+                    if (!CollectionUtils.isEmpty(publish.getMedias())) {
                         score += publish.getMedias().size();
                     }
 
@@ -104,7 +103,7 @@ public class QuanZiMsgConsumer implements RocketMQListener<String> {
 
             // 将数据写入到MongoDB
             String collectName = "recommend_quanzi_" + new DateTime().toString("yyyyMMdd");
-            this.mongoTemplate.save(recommendQuanZi,collectName );
+            this.mongoTemplate.save(recommendQuanZi, collectName);
 
         } catch (Exception e) {
             LOGGER.error("消息处理失败! msg = " + msg);

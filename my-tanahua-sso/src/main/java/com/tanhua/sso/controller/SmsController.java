@@ -18,6 +18,11 @@ public class SmsController {
 
     @Autowired
     private SmsService smsService;
+    /**
+     * 这里计划使用阿里的短信平台
+     */
+//    @Autowired
+//    private AliSmsService aliSmsService;
 
     /**
      * 发送验证码接口
@@ -26,21 +31,23 @@ public class SmsController {
      * @return
      */
     @PostMapping("login")
-    public ResponseEntity<Object> sendCheckCode(@RequestBody Map<String,Object> param){
-        ErrorResult.ErrorResultBuilder builder = ErrorResult.builder().errCode("000000").errMessage("短信发送失败");
-        String phone = String.valueOf(param.get("phone"));
-        Map<String, Object> sendCheckCode = this.smsService.sendCheckCode(phone);
-        int code = ((Integer)(sendCheckCode.get("code"))).intValue();
-        if(code == 3){
-            // 发送成功
-            return ResponseEntity.ok(null);
-        }else if(code == 1){
-            // 发送失败，上一次发送的验证码还未失效
-            String msg = sendCheckCode.get("msg").toString();
-            builder.errCode("000001").errMessage(msg);
-        }
+    public ResponseEntity<Object> sendCheckCode(@RequestBody Map<String, Object> param) {
+        ErrorResult.ErrorResultBuilder resultBuilder = ErrorResult.builder().errCode("000000").errMessage("发送短信验证码失败");
+        try {
+            String phone = String.valueOf(param.get("phone"));
+            System.out.println("登录业务逻辑开始，后台收到用户的手机号：" + phone);
 
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(builder.build());
+            Map<String, Object> sendCheckCode = this.smsService.sendCheckCode(phone);
+            int code = ((Integer) sendCheckCode.get("code")).intValue();
+            if (code == 3) {
+                return ResponseEntity.ok(null);
+            } else if (code == 1) {
+                resultBuilder.errCode("000001").errMessage(sendCheckCode.get("msg").toString());
+            }
+        } catch (Exception e) {
+
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resultBuilder.build());
     }
 
 }

@@ -1,9 +1,7 @@
 package com.tanhua.sso.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sun.corba.se.spi.ior.ObjectKey;
 import com.tanhua.sso.mapper.UserMapper;
 import com.tanhua.sso.pojo.User;
 import io.jsonwebtoken.Jwts;
@@ -13,12 +11,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.messaging.MessagingException;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import java.time.Duration;
 import java.util.Date;
 import java.util.HashMap;
@@ -30,10 +27,10 @@ public class UserService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UserService.class);
 
-    @Autowired
+    @Resource
     private RedisTemplate<String, String> redisTemplate;
 
-    @Autowired
+    @Resource
     private UserMapper userMapper;
 
     @Value("${jwt.secret}")
@@ -41,10 +38,10 @@ public class UserService {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    @Autowired
+    @Resource
     private RocketMQTemplate rocketMQTemplate;
 
-    @Autowired
+    @Resource
     private HuanXinService huanXinService;
 
     /**
@@ -55,38 +52,40 @@ public class UserService {
      * @return 如果校验成功返回token，失败返回null
      */
     public String login(String mobile, String code) {
+        Boolean isNew = false; //默认是已注册
         //校验验证码是否正确
         String redisKey = "CHECK_CODE_" + mobile;
         String value = this.redisTemplate.opsForValue().get(redisKey);
+        //判断为空
         if (StringUtils.isEmpty(value)) {
             //验证码失效
+            System.out.println("验证码失效");
             return null;
         }
-
+        //验证码输入错误
         if (!StringUtils.equals(value, code)) {
             // 验证码输入错误
+            System.out.println("验证码输入错误");
             return null;
         }
 
         // 验证码正确,删除之前的验证码
         this.redisTemplate.delete(redisKey);
 
-        Boolean isNew = false; //默认是已注册
-
         //校验该手机号是否已经注册，如果没有注册，需要注册一个账号，如果已经注册，直接登录
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("mobile", mobile);
+        //查询手机号是否存在
         User user = this.userMapper.selectOne(queryWrapper);
+        System.out.println("数据库里的用户：" + user.toString());
         if (null == user) {
             // 该手机号未注册
             user = new User();
             user.setMobile(mobile);
-            // 默认密码
+            // 默认密码：123456
             user.setPassword(DigestUtils.md5Hex("123456"));
             this.userMapper.insert(user);
-
             isNew = true;
-
             //注册用户到环信平台
             this.huanXinService.register(user.getId());
         }
@@ -95,6 +94,7 @@ public class UserService {
         claims.put("mobile", mobile);
         claims.put("id", user.getId());
 
+        System.out.println("开始生成token");
         // 生成token
         String token = Jwts.builder()
                 .setClaims(claims) //设置响应数据体
@@ -102,7 +102,7 @@ public class UserService {
                 .compact();
 
         try {
-            // 将token存储到redis中
+            System.out.println("将token存储到redis中");
             String redisTokenKey = "TOKEN_" + token;
             String redisTokenValue = MAPPER.writeValueAsString(user);
             this.redisTemplate.opsForValue().set(redisTokenKey, redisTokenValue, Duration.ofHours(1));
@@ -121,10 +121,15 @@ public class UserService {
         } catch (Exception e) {
             LOGGER.error("发送消息出错", e);
         }
-
         return isNew + "|" + token;
     }
 
+    /**
+     * 根据token查询用户
+     *
+     * @param token
+     * @return
+     */
     public User queryUserByToken(String token) {
         try {
             String redisTokenKey = "TOKEN_" + token;
@@ -141,16 +146,22 @@ public class UserService {
         return null;
     }
 
-    public Boolean updateNewMobile(Long id, String newPhone){
+    /**
+     * 更新手机号
+     *
+     * @param id
+     * @param newPhone
+     * @return
+     */
+    public Boolean updateNewMobile(Long id, String newPhone) {
         //校验新手机号是否已经注册
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("mobile", newPhone);
         User oldUser = this.userMapper.selectOne(queryWrapper);
-        if(null != oldUser){
+        if (null != oldUser) {
             // 该手机号已经注册
             return false;
         }
-
         User user = new User();
         user.setId(id);
         user.setMobile(newPhone);

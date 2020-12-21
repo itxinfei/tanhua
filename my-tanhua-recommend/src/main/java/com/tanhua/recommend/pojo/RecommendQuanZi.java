@@ -9,7 +9,6 @@ import org.bson.types.ObjectId;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RecommendQuanZi {
-
     private ObjectId id;
     private Long userId;// 用户id
     private Long publishId; //动态id，需要转化为Long类型

@@ -12,7 +12,6 @@ import org.springframework.context.annotation.PropertySource;
 @ConfigurationProperties(prefix = "aliyun")
 @Data
 public class AliyunConfig {
-
     private String endpoint;
     private String accessKeyId;
     private String accessKeySecret;
@@ -23,5 +22,4 @@ public class AliyunConfig {
     public OSSClient oSSClient() {
         return new OSSClient(endpoint, accessKeyId, accessKeySecret);
     }
-
 }
