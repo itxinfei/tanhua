@@ -9,7 +9,6 @@ import org.bson.types.ObjectId;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RecommendVideo {
-
     private ObjectId id;
     private Long userId;// 用户id
     private Long videoId; //视频id，需要转化为Long类型

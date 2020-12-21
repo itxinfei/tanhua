@@ -10,18 +10,19 @@ public class TestJWT {
 
     public static void main(String[] args) {
 
-        String secret = "itcast";
+        String secret = "pangzhao";
 
         Map<String, Object> claims = new HashMap<String, Object>();
         claims.put("mobile", "12345789");
         claims.put("id", "2");
+        System.out.println("数据体:" + claims.toString());
 
         // 生成token
         String jwt = Jwts.builder()
                 .setClaims(claims) //设置响应数据体
                 .signWith(SignatureAlgorithm.HS256, secret) //设置加密方法和加密盐
                 .compact();
-
+        System.out.println("这是jwt");
         System.out.println(jwt); //eyJhbGciOiJIUzI1NiJ9.eyJtb2JpbGUiOiIxMjM0NTc4OSIsImlkIjoiMiJ9.VivsfLzrsKFOJo_BdGIf6cKY_7wr2jMOMOIGaFt_tps
 
         // 通过token解析数据

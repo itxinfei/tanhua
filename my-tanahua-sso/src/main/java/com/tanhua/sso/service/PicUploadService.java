@@ -12,6 +12,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 
+/**
+ * 上传到阿里云oss
+ */
+
 @Service
 public class PicUploadService {
 

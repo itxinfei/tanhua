@@ -2,12 +2,13 @@ package com.tanhua.sso.enums;
 
 import com.baomidou.mybatisplus.core.enums.IEnum;
 
+/**
+ * 用户的性别用枚举进行表示
+ */
 public enum SexEnum implements IEnum<Integer> {
-
-    MAN(1,"男"),
-    WOMAN(2,"女"),
-    UNKNOWN(3,"未知");
-
+    MAN(1, "男"),
+    WOMAN(2, "女"),
+    UNKNOWN(3, "未知");
     private int value;
     private String desc;
 

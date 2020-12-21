@@ -9,7 +9,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserInfo extends BasePojo {
-
     private Long id;
     private Long userId; //用户id
     private String nickName; //昵称
@@ -24,5 +23,4 @@ public class UserInfo extends BasePojo {
     private String industry; //行业
     private String income; //收入
     private String marriage; //婚姻状态
-
 }
