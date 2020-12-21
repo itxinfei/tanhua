@@ -3,7 +3,16 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.1.0.RELEASE</version>
+    </parent>
+    <groupId>cn.itcast.tanhua</groupId>
+    <artifactId>my-tanhua</artifactId>
+    <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
+    <description>探花交友</description>
 
     <modules>
         <module>my-tanahua-sso</module>
@@ -13,16 +22,6 @@
         <module>my-tanhua-spark</module>
         <module>my-tanhua-elasticsearch</module>
     </modules>
-
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.1.0.RELEASE</version>
-    </parent>
-
-    <groupId>cn.itcast.tanhua</groupId>
-    <artifactId>my-tanhua</artifactId>
-    <version>1.0-SNAPSHOT</version>
 
     <!-- 集中定义依赖版本号 -->
     <properties>
@@ -68,7 +67,6 @@
                 <artifactId>mysql-connector-java</artifactId>
                 <version>${mysql.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>org.mongodb</groupId>
                 <artifactId>mongodb-driver-sync</artifactId>
