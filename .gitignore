@@ -25,12 +25,5 @@
 hs_err_pid*
 
 *.iml
-.idea/workspace.xml
-my-tanahua-sso/target/
-my-tanhua-dubbo/my-tanhua-dubbo-interface/target/
-my-tanhua-dubbo/my-tanhua-dubbo-service/target/
-my-tanhua-elasticsearch/target/
-my-tanhua-recommend/target/
-my-tanhua-server/target/
-my-tanhua-spark/target/
+target/
 .idea/
