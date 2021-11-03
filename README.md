@@ -1,4 +1,3 @@
-### 探花交友
 ![](th.jpg)
 
 <p align="center">
@@ -71,13 +70,13 @@
 
 ![输入图片说明](https://images.gitee.com/uploads/images/2020/1221/130130_ee91cb12_800553.png "屏幕截图.png")
 
-#### 技术解决方案
+技术解决方案
 - 使用 Elasticsearch geo实现附近的人的解决方案
 - 使用 Spark + Mllib实现智能推荐的解决方案
 - 使用 MongoDB进行海量数据的存储的解决方案
 - 使用采用分布式文件系统存储小视频数据的解决方案
 - 使用虹软开放平台进行人脸识别的解决方案
-#### 技术亮点
+技术亮点
 - 采用 Elasticsearch geo实现地理位置查询
 - 采用 RocketMQ作为消息服务中间件
 - 采用 MongoDB进行海量数据的存储
