@@ -3,16 +3,17 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.1.0.RELEASE</version>
-    </parent>
     <groupId>cn.itcast.tanhua</groupId>
     <artifactId>my-tanhua</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>探花交友</description>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.1.0.RELEASE</version>
+    </parent>
 
     <modules>
         <module>my-tanahua-sso</module>
@@ -136,7 +137,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.0.0</version>
-          </plugin>
+            </plugin>
         </plugins>
     </build>
 </project>
