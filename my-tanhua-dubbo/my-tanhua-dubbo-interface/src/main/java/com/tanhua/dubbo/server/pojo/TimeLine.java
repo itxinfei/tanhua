@@ -21,7 +21,7 @@ public class TimeLine implements java.io.Serializable {
     private ObjectId id;
 
     private Long userId; // 好友id
-    private ObjectId publishId; //发布id
+    private ObjectId publishId; //发布项目id
 
     private Long date; //发布的时间
 
