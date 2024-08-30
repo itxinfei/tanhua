@@ -106,6 +106,7 @@ public class TodayBestService {
         List<RecommendUser> records = pageInfo.getRecords();
 
         // 如果未查询到，需要使用默认推荐列表
+        // TODO 默认推荐列表可以考虑用个缓存
         if (CollectionUtils.isEmpty(records)) {
             String[] ss = StringUtils.split(defaultRecommendUsers, ',');
             for (String s : ss) {
