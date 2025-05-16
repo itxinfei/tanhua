@@ -3,23 +3,22 @@
   <strong>一款基于大数据智能推荐的陌生人社交平台</strong>
 
   <em>支持即时通讯、动态分享、附近的人查找、智能匹配等核心功能</em>
+
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-2.1.0.RELEASE-brightgreen)
+![MyBatis Plus](https://img.shields.io/badge/MyBatis%20Plus-3.1.1-blue)
+![Lombok](https://img.shields.io/badge/Lombok-1.18.4-yellow)
+![MySQL](https://img.shields.io/badge/MySQL-5.1.47-orange)
+![MongoDB](https://img.shields.io/badge/MongoDB-3.9.1-green)
+![RocketMQ](https://img.shields.io/badge/RocketMQ-4.3.2-red)
+![Jackson](https://img.shields.io/badge/Jackson-2.9.9-purple)
+![Druid](https://img.shields.io/badge/Druid-1.0.9-lightgrey)
+![Commons Lang3](https://img.shields.io/badge/Commons%20Lang3-3.7-blueviolet)
+![Commons IO](https://img.shields.io/badge/Commons%20IO-2.8.0-yellowgreen)
+![JDK](https://img.shields.io/badge/JDK-1.8+-brightgreen)
+![Maven](https://img.shields.io/badge/Maven-3.x+-orange)
+
 </div>
 
-<p align="center">
-  <a href="http://mail.qq.com/cgi-bin/qm_share?t=qm_mailme&email=f0hLSE9OTkdHTT8ODlEcEBI">
-    <img alt="邮箱联系" src="https://img.shields.io/badge/mail-747011882@qq.com-red">
-  </a> 
-
-  <a href="#">
-    <img alt="JDK版本" src="https://img.shields.io/badge/JDK-1.8%2B-brightgreen">
-  </a> 
-  <a href="#">
-    <img alt="Maven版本" src="https://img.shields.io/badge/maven-3.6.3%2B-yellowgreen">
-  </a>
-  <a href="#">
-    <img alt="开源协议" src="https://img.shields.io/badge/license-Apache-green">
-  </a> 
-</p>
 
 
 ## 🧩 一、项目简介
@@ -48,9 +47,13 @@
 <div align="center">
 
 ![屏幕截图1](https://broadscope-dialogue-new.oss-cn-beijing.aliyuncs.com/output/20250516/810edfcbc3a5382a02eb264b72834b1b.png?Expires=1778924223&OSSAccessKeyId=LTAI5tL97mBYzVcjkG1cUyin&Signature=io42D%2ForOXIAWmPSoGVYN%2BySGAk%3D)
+
 ![屏幕截图2](https://broadscope-dialogue-new.oss-cn-beijing.aliyuncs.com/output/20250516/8cac6dff264e496a0372fbd3d448a954.png?Expires=1778924224&OSSAccessKeyId=LTAI5tL97mBYzVcjkG1cUyin&Signature=J9oCy8G7qAP7M%2Bb617K3jlvXcpI%3D)
+
 ![屏幕截图3](https://broadscope-dialogue-new.oss-cn-beijing.aliyuncs.com/output/20250516/2d62c85e34bc30e873d0449565c73102.png?Expires=1778924224&OSSAccessKeyId=LTAI5tL97mBYzVcjkG1cUyin&Signature=sRt%2FH6dUf5GG75bpv39ebkce2q8%3D)
+
 ![屏幕截图4](https://broadscope-dialogue-new.oss-cn-beijing.aliyuncs.com/output/20250516/52977066b68b611f018ca183d9e82c93.png?Expires=1778924224&OSSAccessKeyId=LTAI5tL97mBYzVcjkG1cUyin&Signature=1rE0oNVYD4K4A%2B1FxjVlG6M7%2Fho%3D)
+
 ![屏幕截图5](https://broadscope-dialogue-new.oss-cn-beijing.aliyuncs.com/output/20250516/bac9dc6d5b85949d8c7df0663d1dc55a.png?Expires=1778924224&OSSAccessKeyId=LTAI5tL97mBYzVcjkG1cUyin&Signature=Ow8bcWVXWyIZz6fi4ef6LWN8jro%3D)
 
 </div>
