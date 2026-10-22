@@ -31,6 +31,9 @@ public class HttpServiceProxyConfig {
     @Value("${xfjy.user.service.url:http://127.0.0.1:18090}")
     private String userServiceUrl;
 
+    @Value("${xfjy.circle.service.url:http://127.0.0.1:18084}")
+    private String circleServiceUrl;
+
     @Bean
     public HttpServiceProxyFactory httpServiceProxyFactory() {
         return buildFactory(dubboServiceUrl);
@@ -39,6 +42,11 @@ public class HttpServiceProxyConfig {
     @Bean
     public HttpServiceProxyFactory userServiceProxyFactory() {
         return buildFactory(userServiceUrl);
+    }
+
+    @Bean
+    public HttpServiceProxyFactory circleServiceProxyFactory() {
+        return buildFactory(circleServiceUrl);
     }
 
     private HttpServiceProxyFactory buildFactory(String baseUrl) {
@@ -51,11 +59,6 @@ public class HttpServiceProxyConfig {
     }
 
     // ---- 数据服务（18083）----
-
-    @Bean
-    public QuanZiApi quanZiApi(HttpServiceProxyFactory factory) {
-        return factory.createClient(QuanZiApi.class);
-    }
 
     @Bean
     public RecommendUserApi recommendUserApi(HttpServiceProxyFactory factory) {
@@ -92,5 +95,12 @@ public class HttpServiceProxyConfig {
     @Bean
     public VisitorsApi visitorsApi(@Qualifier("userServiceProxyFactory") HttpServiceProxyFactory factory) {
         return factory.createClient(VisitorsApi.class);
+    }
+
+    // ---- 圈子动态服务（18084）----
+
+    @Bean
+    public QuanZiApi quanZiApi(@Qualifier("circleServiceProxyFactory") HttpServiceProxyFactory factory) {
+        return factory.createClient(QuanZiApi.class);
     }
 }

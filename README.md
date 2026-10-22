@@ -71,6 +71,7 @@ xfjy/
 ├── xfjy-gateway/               # ★ 统一入口网关（8080，Spring Cloud Gateway）
 ├── xfjy-sso/                   # ★ 认证服务（18080，验证码登录/注册，Sa-Token + Redis）
 ├── xfjy-user-service/          # ★ 用户关系服务（18090，Mongo：好友/喜欢/访客，阶段二）
+├── xfjy-circle-service/        # ★ 圈子动态服务（18084，Mongo：动态/评论/时间线，阶段三）
 ├── xfjy-server/                # ★ 主业务服务（18081）
 │   └── 用户资料/推荐/圈子/视频/IM/设置 + 管理后台接口 + Sa-Token 认证
 ├── xfjy-service/               # ★ 后端数据服务
@@ -111,6 +112,7 @@ xfjy/
 | xfjy-sso | 18080 | 单点登录（手机号+验证码，Sa-Token + Redis 会话，已入库） |
 | xfjy-server | 18081 | 主业务 + 管理后台 |
 | xfjy-user-service | 18090 | 用户关系服务（Mongo：好友/喜欢/访客，阶段二拆出） |
+| xfjy-circle-service | 18084 | 圈子动态服务（Mongo：动态/评论/时间线，阶段三拆出） |
 | xfjy-service-core | 18083 | MongoDB 数据服务 |
 | xfjy-elasticsearch | — | 附近的人 |
 | xfjy-recommend | — | MQ 评分消费者 |

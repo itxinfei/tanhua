@@ -31,6 +31,9 @@ xfjy:
   user:
     service:
       url: http://127.0.0.1:18090  # 用户关系服务（好友/喜欢/访客）
+  circle:
+    service:
+      url: http://127.0.0.1:18084  # 圈子动态服务（动态/评论/时间线）
   sso:
     url: http://127.0.0.1:18080
     default:
