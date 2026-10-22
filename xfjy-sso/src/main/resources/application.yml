@@ -1,0 +1,32 @@
+server:
+  port: 18080
+
+spring:
+  application:
+    name: xfjy-sso
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/mytanhua?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root
+    password: root
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+
+# MyBatis Plus
+mybatis-plus:
+  global-config:
+    banner: false
+    db-config:
+      table-prefix: tb_
+      id-type: auto
+
+# Sa-Token（用户端会话，Redis 存储，全部服务共享校验）
+sa-token:
+  token-name: Authorization
+  timeout: 604800        # 7 天
+  is-concurrent: true
+  is-share: true         # 同一账号多端共享一个 token
+  token-style: uuid
+  is-log: false

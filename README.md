@@ -68,6 +68,8 @@
 ```
 xfjy/
 ├── pom.xml                     # 根 pom：SB 4.1.1 parent + 依赖版本集中管理
+├── xfjy-gateway/               # ★ 统一入口网关（8080，Spring Cloud Gateway）
+├── xfjy-sso/                   # ★ 认证服务（18080，验证码登录/注册，Sa-Token + Redis）
 ├── xfjy-server/                # ★ 主业务服务（18081）
 │   └── 用户资料/推荐/圈子/视频/IM/设置 + 管理后台接口 + Sa-Token 认证
 ├── xfjy-service/               # ★ 后端数据服务
@@ -104,7 +106,8 @@ xfjy/
 
 | 服务 | 端口 | 职责 |
 |------|------|------|
-| xfjy-sso（外部） | 18080 | 单点登录（手机号+验证码，JWT 签发）——**尚未纳入本仓库** |
+| xfjy-gateway | 8080 | 统一入口网关（Spring Cloud Gateway，路由/限流/跨域） |
+| xfjy-sso | 18080 | 单点登录（手机号+验证码，Sa-Token + Redis 会话，已入库） |
 | xfjy-server | 18081 | 主业务 + 管理后台 |
 | xfjy-service-core | 18083 | MongoDB 数据服务 |
 | xfjy-elasticsearch | — | 附近的人 |
