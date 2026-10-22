@@ -1,0 +1,13 @@
+server:
+  port: 18085
+
+spring:
+  application:
+    name: xfjy-video-service
+  data:
+    mongodb:
+      uri: mongodb://127.0.0.1:27017/xfjy
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0

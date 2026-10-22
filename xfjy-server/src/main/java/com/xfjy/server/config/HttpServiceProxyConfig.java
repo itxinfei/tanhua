@@ -34,6 +34,9 @@ public class HttpServiceProxyConfig {
     @Value("${xfjy.circle.service.url:http://127.0.0.1:18084}")
     private String circleServiceUrl;
 
+    @Value("${xfjy.video.service.url:http://127.0.0.1:18085}")
+    private String videoServiceUrl;
+
     @Bean
     public HttpServiceProxyFactory httpServiceProxyFactory() {
         return buildFactory(dubboServiceUrl);
@@ -47,6 +50,11 @@ public class HttpServiceProxyConfig {
     @Bean
     public HttpServiceProxyFactory circleServiceProxyFactory() {
         return buildFactory(circleServiceUrl);
+    }
+
+    @Bean
+    public HttpServiceProxyFactory videoServiceProxyFactory() {
+        return buildFactory(videoServiceUrl);
     }
 
     private HttpServiceProxyFactory buildFactory(String baseUrl) {
@@ -63,11 +71,6 @@ public class HttpServiceProxyConfig {
     @Bean
     public RecommendUserApi recommendUserApi(HttpServiceProxyFactory factory) {
         return factory.createClient(RecommendUserApi.class);
-    }
-
-    @Bean
-    public VideoApi videoApi(HttpServiceProxyFactory factory) {
-        return factory.createClient(VideoApi.class);
     }
 
     @Bean
@@ -102,5 +105,12 @@ public class HttpServiceProxyConfig {
     @Bean
     public QuanZiApi quanZiApi(@Qualifier("circleServiceProxyFactory") HttpServiceProxyFactory factory) {
         return factory.createClient(QuanZiApi.class);
+    }
+
+    // ---- 小视频服务（18085）----
+
+    @Bean
+    public VideoApi videoApi(@Qualifier("videoServiceProxyFactory") HttpServiceProxyFactory factory) {
+        return factory.createClient(VideoApi.class);
     }
 }
