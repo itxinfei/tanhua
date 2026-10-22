@@ -45,13 +45,19 @@
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-spring-boot4-starter</artifactId>
         </dependency>
+        <!-- MyBatis Plus 分页插件（3.5.9+拆分到独立模块） -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser</artifactId>
+            <version>${mybatis-plus.version}</version>
+        </dependency>
         <!-- MySQL驱动（SB4管理版本） -->
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
         </dependency>
 
-        <!-- RocketMQ（版本由根pom管理2.3.1） -->
+        <!-- RocketMQ（版本由根pom管理2.3.6） -->
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-spring-boot-starter</artifactId>
@@ -62,6 +68,12 @@
             <groupId>com.aliyun.oss</groupId>
             <artifactId>aliyun-sdk-oss</artifactId>
             <version>3.18.5</version>
+        </dependency>
+
+        <!-- Sa-Token 认证鉴权（版本由根pom管理） -->
+        <dependency>
+            <groupId>cn.dev33</groupId>
+            <artifactId>sa-token-spring-boot4-starter</artifactId>
         </dependency>
 
         <!-- 工具包 -->

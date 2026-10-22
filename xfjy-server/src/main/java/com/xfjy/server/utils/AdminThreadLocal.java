@@ -17,4 +17,8 @@ public class AdminThreadLocal {
     public static Admin get() {
         return LOCAL.get();
     }
+
+    public static void remove() {
+        LOCAL.remove();
+    }
 }
