@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: xfjy-dubbo-service
+    name: xfjy-service-core
   profiles:
     active: local
   data:

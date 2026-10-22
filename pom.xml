@@ -17,7 +17,7 @@
     </parent>
 
     <modules>
-        <module>xfjy-dubbo</module>
+        <module>xfjy-service</module>
         <module>xfjy-server</module>
         <module>xfjy-recommend</module>
         <module>xfjy-spark</module>
@@ -83,12 +83,12 @@
             <!-- 内部模块 -->
             <dependency>
                 <groupId>cn.xfjy</groupId>
-                <artifactId>xfjy-dubbo-interface</artifactId>
+                <artifactId>xfjy-service-interface</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>cn.xfjy</groupId>
-                <artifactId>xfjy-dubbo-service</artifactId>
+                <artifactId>xfjy-service-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>
