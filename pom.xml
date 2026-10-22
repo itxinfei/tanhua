@@ -21,6 +21,7 @@
         <module>xfjy-sso</module>
         <module>xfjy-user-service</module>
         <module>xfjy-circle-service</module>
+        <module>xfjy-video-service</module>
         <module>xfjy-service</module>
         <module>xfjy-server</module>
         <module>xfjy-recommend</module>

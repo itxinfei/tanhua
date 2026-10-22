@@ -34,6 +34,9 @@ xfjy:
   circle:
     service:
       url: http://127.0.0.1:18084  # 圈子动态服务（动态/评论/时间线）
+  video:
+    service:
+      url: http://127.0.0.1:18085  # 小视频服务（视频/关注作者）
   sso:
     url: http://127.0.0.1:18080
     default:
