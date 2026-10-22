@@ -1,0 +1,43 @@
+server:
+  port: 18081
+
+spring:
+  application:
+    name: xfjy-server
+  profiles:
+    active: local
+  servlet:
+    multipart:
+      max-file-size: 30MB
+      max-request-size: 30MB
+  jackson:
+    default-property-inclusion: non_null
+  cache:
+    type: redis
+
+# MyBatis Plus
+mybatis-plus:
+  type-enums-package: com.xfjy.server.enums
+  global-config:
+    db-config:
+      table-prefix: tb_
+      id-type: auto
+
+# HTTP Service Client（替代Dubbo，调用dubbo-service的REST接口）
+xfjy:
+  dubbo:
+    service:
+      url: http://127.0.0.1:18083
+  sso:
+    url: http://127.0.0.1:18080
+    default:
+      user: 2
+      recommend:
+        users: 1,2,3,4,5,6,7,8,9,10
+
+# RocketMQ
+rocketmq:
+  name-server: 127.0.0.1:9876
+  producer:
+    group: xfjy
+    send-message-timeout: 3000

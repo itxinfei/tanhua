@@ -28,7 +28,7 @@ hs_err_pid*
 target/
 .idea/
 /.idea
-/my-tanhua-spark/target
+/xfjy-spark/target
 ### Java template
 # Compiled class file
 *.class

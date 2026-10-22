@@ -1,0 +1,25 @@
+server:
+  port: 18082
+
+spring:
+  application:
+    name: xfjy-recommend
+  data:
+    mongodb:
+      uri: mongodb://127.0.0.1:27017/xfjy
+    redis:
+      host: 172.168.20.221
+      port: 6379
+      database: 0
+      timeout: 10s
+      lettuce:
+        pool:
+          max-wait: 5000ms
+          max-idle: 100
+          min-idle: 10
+
+# RocketMQ
+rocketmq:
+  name-server: 172.168.20.221:9876
+  producer:
+    group: xfjy-recommend
