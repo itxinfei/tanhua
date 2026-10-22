@@ -3,40 +3,35 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>cn.itcast.tanhua</groupId>
-    <artifactId>my-tanhua</artifactId>
+    <groupId>cn.xfjy</groupId>
+    <artifactId>xfjy</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <description>探花交友</description>
+    <description>心飞交友</description>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.1.0.RELEASE</version>
+        <version>4.1.1</version>
+        <relativePath/>
     </parent>
 
     <modules>
-        <module>my-tanahua-sso</module>
-        <module>my-tanhua-dubbo</module>
-        <module>my-tanhua-server</module>
-        <module>my-tanhua-recommend</module>
-        <module>my-tanhua-spark</module>
-        <module>my-tanhua-elasticsearch</module>
+        <module>xfjy-dubbo</module>
+        <module>xfjy-server</module>
+        <module>xfjy-recommend</module>
+        <module>xfjy-spark</module>
+        <module>xfjy-elasticsearch</module>
     </modules>
 
     <!-- 集中定义依赖版本号 -->
     <properties>
-        <mysql.version>5.1.47</mysql.version>
-        <jackson.version>2.9.9</jackson.version>
-        <druid.version>1.0.9</druid.version>
-        <servlet-api.version>2.5</servlet-api.version>
-        <jsp-api.version>2.0</jsp-api.version>
-        <joda-time.version>2.5</joda-time.version>
-        <commons-lang3.version>3.7</commons-lang3.version>
-        <commons-io.version>2.8.0</commons-io.version>
-        <mybatis.version>3.2.8</mybatis.version>
-        <mybatis.mybatis-plus>3.1.1</mybatis.mybatis-plus>
-        <lombok.version>1.18.4</lombok.version>
+        <java.version>25</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <mybatis-plus.version>3.5.17</mybatis-plus.version>
+        <rocketmq-spring.version>2.3.6</rocketmq-spring.version>
+        <commons-io.version>2.22.0</commons-io.version>
+        <commons-codec.version>1.23.0</commons-codec.version>
     </properties>
 
     <!--通用依赖-->
@@ -46,97 +41,63 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.12</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <dependencyManagement>
         <dependencies>
-            <!-- mybatis-plus插件依赖 -->
+            <!-- MyBatis Plus SB4专用starter -->
             <dependency>
                 <groupId>com.baomidou</groupId>
-                <artifactId>mybatis-plus</artifactId>
-                <version>${mybatis.mybatis-plus}</version>
+                <artifactId>mybatis-plus-spring-boot4-starter</artifactId>
+                <version>${mybatis-plus.version}</version>
             </dependency>
-            <!-- MySql -->
+            <!-- RocketMQ -->
             <dependency>
-                <groupId>mysql</groupId>
-                <artifactId>mysql-connector-java</artifactId>
-                <version>${mysql.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.mongodb</groupId>
-                <artifactId>mongodb-driver-sync</artifactId>
-                <version>3.9.1</version>
-            </dependency>
-            <dependency>
-                <groupId>org.projectlombok</groupId>
-                <artifactId>lombok</artifactId>
-                <optional>true</optional>
-                <version>${lombok.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-lang3</artifactId>
-                <version>${commons-lang3.version}</version>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-spring-boot-starter</artifactId>
+                <version>${rocketmq-spring.version}</version>
             </dependency>
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
                 <version>${commons-io.version}</version>
             </dependency>
-            <!--RocketMQ相关依赖-->
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-spring-boot-starter</artifactId>
-                <version>2.0.2</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-client</artifactId>
-                <version>4.3.2</version>
-            </dependency>
-            <!-- Jackson Json处理工具包 -->
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.alibaba</groupId>
-                <artifactId>druid</artifactId>
-                <version>${druid.version}</version>
-            </dependency>
             <dependency>
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
-                <version>1.11</version>
+                <version>${commons-codec.version}</version>
+            </dependency>
+            <!-- 内部模块 -->
+            <dependency>
+                <groupId>cn.xfjy</groupId>
+                <artifactId>xfjy-dubbo-interface</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.xfjy</groupId>
+                <artifactId>xfjy-dubbo-service</artifactId>
+                <version>${project.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
 
     <build>
         <plugins>
-            <!-- java编译插件 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.2</version>
                 <configuration>
-                    <skip>true</skip>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
                     <encoding>UTF-8</encoding>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.0.0</version>
             </plugin>
         </plugins>
     </build>

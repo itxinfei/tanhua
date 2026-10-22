@@ -1,0 +1,157 @@
+<template>
+  <view class="settings-page">
+    <!-- 账号与安全 -->
+    <view class="group">
+      <text class="group-title">账号与安全</text>
+      <view class="item" @click="goPhone">
+        <text class="label">手机号</text>
+        <text class="value">{{ phoneMasked || '未绑定' }}</text>
+        <text class="arrow">›</text>
+      </view>
+      <view class="item" @click="goVerify">
+        <text class="label">实名认证</text>
+        <text class="value" :class="{ verified: isVerified }">{{ isVerified ? '已认证' : '未认证' }}</text>
+        <text class="arrow">›</text>
+      </view>
+      <view class="item" @click="goBlacklist">
+        <text class="label">黑名单</text>
+        <text class="arrow">›</text>
+      </view>
+    </view>
+
+    <!-- 通知设置 -->
+    <view class="group">
+      <text class="group-title">通知设置</text>
+      <view class="item" v-for="s in notificationSettings" :key="s.key">
+        <text class="label">{{ s.label }}</text>
+        <switch :checked="s.value" color="#ff5e8e" @change="toggleNotification(s.key, $event)" />
+      </view>
+    </view>
+
+    <!-- 隐私 -->
+    <view class="group">
+      <text class="group-title">隐私</text>
+      <view class="item">
+        <text class="label">显示距离</text>
+        <switch :checked="showDistance" color="#ff5e8e" @change="showDistance = ($event as any).detail.value" />
+      </view>
+    </view>
+
+    <!-- 通用 -->
+    <view class="group">
+      <text class="group-title">通用</text>
+      <view class="item" @click="clearCache">
+        <text class="label">清除缓存</text>
+        <text class="value">{{ cacheSize }}</text>
+      </view>
+      <view class="item" @click="showAbout">
+        <text class="label">关于心飞</text>
+        <text class="value">v1.0.0</text>
+      </view>
+    </view>
+
+    <!-- 退出登录 -->
+    <button class="logout-btn" @click="handleLogout">退出登录</button>
+
+    <!-- 注销账号 -->
+    <view class="delete-account" @click="handleDeleteAccount">
+      <text>注销账号</text>
+    </view>
+  </view>
+</template>
+
+<script setup lang="ts">
+import { ref, computed } from "vue";
+import { useUserStore } from "@/store/user";
+
+const userStore = useUserStore();
+const phoneMasked = computed(() => userStore.userInfo ? '138****8888' : '');
+const isVerified = computed(() => userStore.userInfo?.verified || false);
+const showDistance = ref(true);
+const cacheSize = ref('0MB');
+
+const notificationSettings = ref([
+  { key: 'match', label: '匹配成功通知', value: true },
+  { key: 'like', label: '被喜欢通知', value: true },
+  { key: 'comment', label: '评论通知', value: true },
+  { key: 'announcement', label: '系统公告', value: false },
+]);
+
+function toggleNotification(key: string, e: any) {
+  const s = notificationSettings.value.find(n => n.key === key);
+  if (s) s.value = e.detail.value;
+  // TODO: 对接 PUT /users/settings/notifications
+}
+
+function goPhone() { uni.showToast({ title: '换绑手机开发中', icon: 'none' }); }
+function goVerify() { uni.showToast({ title: '实名认证开发中', icon: 'none' }); }
+function goBlacklist() { uni.showToast({ title: '黑名单开发中', icon: 'none' }); }
+
+function clearCache() {
+  uni.showModal({
+    title: '清除缓存',
+    content: `将清除 ${cacheSize.value} 缓存数据`,
+    success: (res) => {
+      if (res.confirm) {
+        uni.clearStorageSync();
+        cacheSize.value = '0MB';
+        uni.showToast({ title: '清除成功', icon: 'success' });
+      }
+    },
+  });
+}
+
+function showAbout() {
+  uni.showModal({ title: '心飞交友', content: '版本 v1.0.0\n心飞为你飞，遇见对的人', showCancel: false });
+}
+
+function handleLogout() {
+  uni.showModal({
+    title: '退出登录',
+    content: '确定要退出登录吗？',
+    success: (res) => {
+      if (res.confirm) userStore.logout();
+    },
+  });
+}
+
+function handleDeleteAccount() {
+  uni.showModal({
+    title: '注销账号',
+    content: '注销后账号数据将保留30天，之后永久删除。确定要注销吗？',
+    confirmText: '确定注销',
+    confirmColor: '#ff3b30',
+    success: (res) => {
+      if (res.confirm) {
+        // TODO: 对接注销接口 + 验证码校验
+        uni.showToast({ title: '注销功能开发中', icon: 'none' });
+      }
+    },
+  });
+}
+</script>
+
+<style lang="scss" scoped>
+.settings-page { min-height: 100vh; background: #f5f5f5; padding: 16rpx 0 80rpx; }
+
+.group { background: #fff; margin: 0 0 24rpx; padding: 8rpx 32rpx;
+  .group-title { font-size: 24rpx; color: #999; padding: 16rpx 0 8rpx; display: block; }
+  .item { display: flex; align-items: center; padding: 24rpx 0; border-bottom: 1rpx solid #f5f5f5;
+    &:last-child { border-bottom: none; }
+    .label { flex: 1; font-size: 28rpx; color: #333; }
+    .value { font-size: 26rpx; color: #999; margin-right: 8rpx; }
+    .value.verified { color: #ff5e8e; }
+    .arrow { font-size: 28rpx; color: #ccc; }
+  }
+}
+
+.logout-btn {
+  margin: 32rpx; height: 88rpx; line-height: 88rpx;
+  background: #fff; color: #ff3b30; font-size: 30rpx;
+  border-radius: 44rpx; border: none;
+}
+
+.delete-account { text-align: center; padding: 24rpx;
+  text { font-size: 24rpx; color: #ccc; }
+}
+</style>

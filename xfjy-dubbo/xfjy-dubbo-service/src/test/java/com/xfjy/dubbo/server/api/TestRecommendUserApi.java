@@ -1,0 +1,27 @@
+package com.xfjy.dubbo.server.api;
+
+import com.xfjy.dubbo.server.pojo.RecommendUser;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+@SpringBootTest
+public class TestRecommendUserApi {
+
+    @Autowired
+    private RecommendUserApi recommendUserApi;
+
+    @Test
+    public void testQueryWithMaxScore() {
+        RecommendUser recommendUser = this.recommendUserApi.queryWithMaxScore(1L);
+        System.out.println(recommendUser);
+    }
+
+    @Test
+    public void testList(){
+        System.out.println(this.recommendUserApi.queryPageInfo(1L, 1, 5));
+        System.out.println(this.recommendUserApi.queryPageInfo(1L, 2, 5));
+        System.out.println(this.recommendUserApi.queryPageInfo(1L, 3, 5));
+    }
+
+}

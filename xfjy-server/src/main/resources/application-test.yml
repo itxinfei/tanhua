@@ -1,0 +1,33 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://172.17.0.144:3306/xfjy?useUnicode=true&characterEncoding=utf8&autoReconnect=true&allowMultiQueries=true&useSSL=false&serverTimezone=Asia/Shanghai
+    username: root
+    password: root
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  data:
+    redis:
+      host: 172.17.0.144
+      port: 6379
+      timeout: 10s
+      lettuce:
+        pool:
+          max-wait: 5000ms
+          max-idle: 100
+          min-idle: 10
+
+xfjy:
+  sso:
+    url: http://172.17.0.144:18080
+    default:
+      user: 2
+  cache:
+    enable: false
+
+rocketmq:
+  name-server: 172.17.0.144:9876

@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: xfjy-elasticsearch
+  elasticsearch:
+    uris: http://172.168.20.221:9200
+    connection-timeout: 5s
+    socket-timeout: 30s
+
+server:
+  port: 18084
+
+logging:
+  level:
+    com.xfjy.es: debug
