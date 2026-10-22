@@ -1,130 +1,140 @@
 <div align="center">
-  <h1>🌸 探花交友平台</h1>
-  <strong>一款基于大数据智能推荐的陌生人社交平台</strong>
+  <h1>🌸 心飞交友（xfjy）</h1>
+  <strong>基于大数据智能推荐的陌生人社交平台</strong>
 
-  <em>支持即时通讯、动态分享、附近的人查找、智能匹配等核心功能</em>
+  <em>即时通讯 · 动态圈子 · 附近的人 · 探花匹配 · 智能推荐</em>
 
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-2.1.0.RELEASE-brightgreen)
-![MyBatis Plus](https://img.shields.io/badge/MyBatis%20Plus-3.1.1-blue)
-![Lombok](https://img.shields.io/badge/Lombok-1.18.4-yellow)
-![MySQL](https://img.shields.io/badge/MySQL-5.1.47-orange)
-![MongoDB](https://img.shields.io/badge/MongoDB-3.9.1-green)
-![RocketMQ](https://img.shields.io/badge/RocketMQ-4.3.2-red)
-![Jackson](https://img.shields.io/badge/Jackson-2.9.9-purple)
-![Druid](https://img.shields.io/badge/Druid-1.0.9-lightgrey)
-![Commons Lang3](https://img.shields.io/badge/Commons%20Lang3-3.7-blueviolet)
-![Commons IO](https://img.shields.io/badge/Commons%20IO-2.8.0-yellowgreen)
-![JDK](https://img.shields.io/badge/JDK-1.8+-brightgreen)
-![Maven](https://img.shields.io/badge/Maven-3.x+-orange)
-
-</div>
-
-
-
-## 🧩 一、项目简介
-
-探花交友是一款面向年轻人的陌生人社交平台，支持以下核心功能：
-
-- 📍 搜索附近的人  
-- 💬 实时在线聊天（集成环信 IM）  
-- 📰 查看好友动态  
-- 🤖 基于 Spark + MLlib 的智能推荐系统  
-- 📷 支持图文、小视频上传与展示  
-- 📸 虹软人脸识别技术应用  
-
-用户可以通过兴趣标签、地理位置、行为偏好等多维度数据进行智能匹配，提升交友质量与粘性。
-
-
-### 🔗 在线体验  
-🔗 [PC端后台管理地址](https://tanhua-admin.itheima.net/#/login)  
-👉 推荐使用 Chrome 浏览器访问
-
-
----
-
-## 📷 平台截图预览
-
-<div align="center">
-
-![屏幕截图1](https://broadscope-dialogue-new.oss-cn-beijing.aliyuncs.com/output/20250516/810edfcbc3a5382a02eb264b72834b1b.png?Expires=1778924223&OSSAccessKeyId=LTAI5tL97mBYzVcjkG1cUyin&Signature=io42D%2ForOXIAWmPSoGVYN%2BySGAk%3D)
-
-![屏幕截图2](https://broadscope-dialogue-new.oss-cn-beijing.aliyuncs.com/output/20250516/8cac6dff264e496a0372fbd3d448a954.png?Expires=1778924224&OSSAccessKeyId=LTAI5tL97mBYzVcjkG1cUyin&Signature=J9oCy8G7qAP7M%2Bb617K3jlvXcpI%3D)
-
-![屏幕截图3](https://broadscope-dialogue-new.oss-cn-beijing.aliyuncs.com/output/20250516/2d62c85e34bc30e873d0449565c73102.png?Expires=1778924224&OSSAccessKeyId=LTAI5tL97mBYzVcjkG1cUyin&Signature=sRt%2FH6dUf5GG75bpv39ebkce2q8%3D)
-
-![屏幕截图4](https://broadscope-dialogue-new.oss-cn-beijing.aliyuncs.com/output/20250516/52977066b68b611f018ca183d9e82c93.png?Expires=1778924224&OSSAccessKeyId=LTAI5tL97mBYzVcjkG1cUyin&Signature=1rE0oNVYD4K4A%2B1FxjVlG6M7%2Fho%3D)
-
-![屏幕截图5](https://broadscope-dialogue-new.oss-cn-beijing.aliyuncs.com/output/20250516/bac9dc6d5b85949d8c7df0663d1dc55a.png?Expires=1778924224&OSSAccessKeyId=LTAI5tL97mBYzVcjkG1cUyin&Signature=Ow8bcWVXWyIZz6fi4ef6LWN8jro%3D)
-
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.1-brightgreen)
+![JDK](https://img.shields.io/badge/JDK-25-orange)
+![MyBatis Plus](https://img.shields.io/badge/MyBatis%20Plus-3.5.17-blue)
+![Sa-Token](https://img.shields.io/badge/Sa--Token-1.46.0-red)
+![Spark](https://img.shields.io/badge/Spark%20MLlib-4.2.0-yellow)
+![MongoDB](https://img.shields.io/badge/MongoDB-SB4%20Starter-green)
+![RocketMQ](https://img.shields.io/badge/RocketMQ-2.3.6-red)
+![Vue](https://img.shields.io/badge/Vue-3.5-42b883)
+![Element Plus](https://img.shields.io/badge/Element%20Plus-2.14-blue)
+![uni-app](https://img.shields.io/badge/uni--app-Vue3-purple)
+![Vite](https://img.shields.io/badge/Vite-8%20%2F%205-646cff)
 </div>
 
 ---
 
-## 🎯 二、项目背景
+## 一、项目简介
 
-随着移动互联网的发展，社交需求从熟人关系逐渐延伸至陌生人领域。探花交友平台顺应趋势，聚焦年轻群体，满足其在情感交流、兴趣分享、拓展社交圈等方面的需求。
+心飞交友是一款面向年轻群体的陌生人社交平台，核心功能：
 
----
-
-## 👥 三、目标用户群体
-
-| 用户类型 | 特征描述 |
-|----------|-----------|
-| **上班群体** | 热衷分享生活、建立人设，通过社交扩大交际圈 |
-| **学生群体** | 追求个性表达，寻找志同道合的朋友 |
-| **文艺群体** | 有独特爱好，希望通过分享结识同类 |
-| **沟通弱势群体** | 渴望有效且安全的社交方式解决沟通难题 |
+- 📍 **附近的人**：Elasticsearch Geo 地理位置搜索
+- 🤝 **探花匹配**：卡片滑动 + 陌生人问题破冰
+- 📰 **圈子动态**：图文动态、点赞、评论
+- 🎬 **小视频**：上传、推荐、播放
+- 💬 **实时聊天**：集成环信 IM
+- 🤖 **智能推荐**：Spark MLlib 协同过滤离线计算 + RocketMQ 实时评分
 
 ---
 
-## ⚙️ 四、技术方案
+## 二、技术栈
 
-### 后端架构
-- Spring Boot + SpringMVC + MyBatis + MyBatis Plus
-- Dubbo 微服务框架
-- Redis 缓存集群
-- MongoDB 海量数据存储
-- Elasticsearch Geo 查询实现「附近的人」
-- Spark + MLlib 构建智能推荐引擎
-- RocketMQ 异步消息队列
-- 第三方服务：
-  - 环信 IM：即时通讯模块
-  - 阿里云 OSS：文件存储
-  - CDN：加速静态资源加载
-  - 虹软开放平台：人脸识别功能
+### 后端
 
----
+| 层次 | 技术 | 版本 |
+|------|------|------|
+| 语言 | JDK | 25 |
+| 框架 | Spring Boot | 4.1.1 |
+| 认证鉴权 | Sa-Token（sa-token-spring-boot4-starter） | 1.46.0 |
+| 持久层-关系 | MyBatis-Plus + mybatis-plus-jsqlparser + mysql-connector-j | 3.5.17 |
+| 持久层-文档 | spring-data-mongodb | SB4 托管 |
+| 持久层-搜索 | spring-data-elasticsearch | SB4 托管 |
+| 缓存 | Spring Cache + Lettuce Redis | SB4 托管 |
+| 消息队列 | rocketmq-spring-boot-starter | 2.3.6 |
+| 服务间通信 | HTTP Service Clients（@HttpExchange + RestClient，替代 Dubbo） | — |
+| 对象存储 | aliyun-sdk-oss | 3.18.5 |
+| 即时通讯 | 环信 IM（REST + SDK） | — |
+| 人脸/地图 | 百度 AI 开放平台 | — |
+| 离线推荐 | Apache Spark MLlib + mongo-spark-connector | 4.2.0 / 11.1.0 |
+| 工具 | Lombok / commons-io / commons-codec | 2.22.0 / 1.23.0 |
 
-### 核心技术解决方案
+### 前端
 
-| 功能模块 | 技术方案 |
-|----------|-----------|
-| 附近的人 | Elasticsearch geo 地理位置查询 |
-| 智能推荐 | Spark + MLlib 构建推荐模型 |
-| 海量数据存储 | MongoDB 存储用户信息和动态数据 |
-| 小视频处理 | 分布式文件系统 + CDN 加速 |
-| 人脸识别 | 虹软 SDK 集成人脸检测与识别 |
-
----
-
-### ✨ 技术亮点
-
-- 使用 **Elasticsearch geo** 实现精准的地理定位搜索  
-- 基于 **Spark + MLlib** 的协同过滤算法实现个性化推荐  
-- 利用 **CDN** 提升静态资源与视频加载速度  
-- 使用 **MongoDB** 解决海量非结构化数据存储问题  
-- 采用 **Apache Dubbo** 实现微服务架构解耦  
-- **Redis 集群** 支撑高并发缓存操作  
-- **RocketMQ** 保证异步任务的可靠性与高性能  
+| 端 | 技术 | 版本 |
+|------|------|------|
+| 管理端 | Vue + Element Plus + ECharts + Pinia + Vue Router + Axios + Vite + TypeScript | 3.5.44 / 2.14.7 / 6.1.0 / 4.1.0 / 4.6.4 / 1.20.0 / 8.3.5 / 6.0.3 |
+| 用户端 | uni-app + Vue + uview-plus + Pinia + vue-i18n + dayjs + Sass | 3.0.0-alpha / 3.5.44 / 3.8.130 / 4.1.0 / 11.4.16 / 1.11.23 / 1.106.1 |
+| 用户端构建 | Vite（受 DCloud 版本钳制）+ TypeScript + vue-tsc | 5.2.8 / 5.9 / 3.3.13 |
 
 ---
 
-## 📁 五、项目源码 & 社区支持
+## 三、目录结构说明
 
-### 🔗 项目链接 & 社区支持  
+```
+xfjy/
+├── pom.xml                     # 根 pom：SB 4.1.1 parent + 依赖版本集中管理
+├── xfjy-server/                # ★ 主业务服务（18081）
+│   └── 用户资料/推荐/圈子/视频/IM/设置 + 管理后台接口 + Sa-Token 认证
+├── xfjy-dubbo/                 # ★ 后端数据服务
+│   ├── xfjy-dubbo-interface/   #   内部 HTTP 接口定义（已无 Dubbo，纯 HTTP Service Clients）
+│   └── xfjy-dubbo-service/     #   MongoDB 数据读写 + ID 生成（18083）
+├── xfjy-elasticsearch/         # ★ 地理位置服务：ES 附近的人搜索
+├── xfjy-recommend/             # ★ 推荐评分消费者：RocketMQ 消息 → MongoDB 评分存储
+├── xfjy-spark/                 # ★ 离线推荐计算：MLlib 协同过滤（Spark 4.2，Java 编写）
+├── xfjy-admin/                 # ★ 管理后台前端（Vue3 + Element Plus + Vite 8）
+├── xfjy-app/                   # ★ 用户端前端（uni-app 多端：H5/小程序/App）
+├── docs/                       # 文档：需求文档、重构规划、数据库脚本 mytanhua.sql、logo
+└── .creative-design/           # Logo 生成的一次性脚本（check_alpha.py 等）
+```
 
-![微信公众号二维码](docs/%E5%BF%83%E9%A3%9E%E4%B8%BA%E4%BD%A0%E9%A3%9E.jpg)
+### 各目录职责与处置建议
 
-🚀 项目地址：[https://gitee.com/itxinfei/mytanhua](https://gitee.com/itxinfei/mytanhua)  
-👥 QQ交流群：[661543188](https://qm.qq.com/cgi-bin/qm/qr?k=gNgch-wCkfUu-QbI7DZSudrax2BN7vY0&jump_from=webapi&authKey=QHSRnxQvu+h5S3AXGn/DSHrVPiFQAYEk6bSlCE1lS276SFjQAUagV4FG7bHf0OSM)  
-📧 邮箱支持：[747011882@qq.com](http://mail.qq.com/cgi-bin/qm_share?t=qm_mailme&email=f0hLSE9OTkdHTT8ODlEcEBI)  
+| 目录 | 职责 | 状态/建议 |
+|------|------|------|
+| `xfjy-server` | 主业务 HTTP 服务，含管理后台 Admin 系列接口 | ✅ 保持 |
+| `xfjy-dubbo` | interface（接口定义）+ service（MongoDB 数据服务） | 🔧 **需重构**：已无 Dubbo，建议重命名为 `xfjy-service` / `xfjy-api`，消除误导 |
+| `xfjy-elasticsearch` | ES Geo 查询（UserLocation） | ✅ 保持 |
+| `xfjy-recommend` | MQ 消费者，写推荐评分 | ✅ 保持 |
+| `xfjy-spark` | 离线批量推荐计算 | ✅ 保持；运行时需 Spark 冒烟验证 |
+| `xfjy-admin` | 管理后台前端 | ✅ 保持（技术栈已是最新） |
+| `xfjy-app` | 用户端多端应用 | ⚠️ 受 DCloud alpha 版本钳制，正式构建前关注正式版 |
+| `docs/` | 需求/规划文档、SQL | ✅ 保持 |
+| `.creative-design/` | Logo 生成的临时脚本 | 🗑️ **可删除**（产物已入库 docs/logo，脚本无复用价值） |
+| `.joycode/` | 旧编辑器的记忆/规则目录 | 🗑️ **可删除**（与本项目构建无关，或加入 .gitignore） |
+| `docs/心飞为你飞.jpg` | 旧版推广二维码 | 🗑️ **可删除**（README 已不再引用） |
+
+---
+
+## 四、架构总览
+
+| 服务 | 端口 | 职责 |
+|------|------|------|
+| xfjy-sso（外部） | 18080 | 单点登录（手机号+验证码，JWT 签发）——**尚未纳入本仓库** |
+| xfjy-server | 18081 | 主业务 + 管理后台 |
+| xfjy-dubbo-service | 18083 | MongoDB 数据服务 |
+| xfjy-elasticsearch | — | 附近的人 |
+| xfjy-recommend | — | MQ 评分消费者 |
+| xfjy-spark | — | 离线推荐（定时任务） |
+
+**数据链路**：用户行为 → xfjy-server → RocketMQ → xfjy-recommend → MongoDB 评分表 → Spark 定时 ALS 计算 → 推荐列表 → Redis 缓存 → 接口消费。
+
+---
+
+## 五、快速开始
+
+```bash
+# 后端（JDK 25 + Maven 3.9+）
+mvn clean compile
+
+# 管理后台前端
+cd xfjy-admin && npm install && npm run dev
+
+# 用户端（H5）
+cd xfjy-app && npm install && npm run dev:h5
+```
+
+依赖的中间件：MySQL、Redis、MongoDB、Elasticsearch、RocketMQ；外部服务：环信 IM、阿里云 OSS、百度 AI、SSO（18080）。
+
+---
+
+## 六、文档
+
+- 📄 [需求文档](docs/需求文档.md)
+- 📄 [项目重构规划](docs/项目重构规划.md)
+- 📄 [升级任务计划](docs/升级任务计划.md)
+- 🗄️ [数据库脚本](docs/mytanhua.sql)

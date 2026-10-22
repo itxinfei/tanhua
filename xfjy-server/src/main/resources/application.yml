@@ -35,6 +35,17 @@ xfjy:
       recommend:
         users: 1,2,3,4,5,6,7,8,9,10
 
+# Sa-Token 认证鉴权（管理后台）
+sa-token:
+  token-name: Authorization
+  token-prefix: Bearer
+  timeout: 86400        # token有效期（秒），24小时
+  active-timeout: -1    # 不自动续签（拦截器侧按需校验）
+  is-concurrent: true
+  is-share: false
+  token-style: uuid
+  is-log: false
+
 # RocketMQ
 rocketmq:
   name-server: 127.0.0.1:9876

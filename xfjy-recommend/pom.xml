@@ -32,7 +32,7 @@
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
 
-        <!-- RocketMQ（版本由根pom管理2.3.1） -->
+        <!-- RocketMQ（版本由根pom管理 2.3.6） -->
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-spring-boot-starter</artifactId>
