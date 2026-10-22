@@ -28,6 +28,9 @@ xfjy:
   dubbo:
     service:
       url: http://127.0.0.1:18083
+  user:
+    service:
+      url: http://127.0.0.1:18090  # 用户关系服务（好友/喜欢/访客）
   sso:
     url: http://127.0.0.1:18080
     default:

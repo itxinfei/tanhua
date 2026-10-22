@@ -19,6 +19,7 @@
     <modules>
         <module>xfjy-gateway</module>
         <module>xfjy-sso</module>
+        <module>xfjy-user-service</module>
         <module>xfjy-service</module>
         <module>xfjy-server</module>
         <module>xfjy-recommend</module>
