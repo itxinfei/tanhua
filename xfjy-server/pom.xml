@@ -15,7 +15,7 @@
         <!-- 内部接口模块（HTTP Service Clients 接口定义） -->
         <dependency>
             <groupId>cn.xfjy</groupId>
-            <artifactId>xfjy-dubbo-interface</artifactId>
+            <artifactId>xfjy-service-interface</artifactId>
             <version>${project.version}</version>
         </dependency>
 

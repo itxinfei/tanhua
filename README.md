@@ -70,9 +70,9 @@ xfjy/
 ├── pom.xml                     # 根 pom：SB 4.1.1 parent + 依赖版本集中管理
 ├── xfjy-server/                # ★ 主业务服务（18081）
 │   └── 用户资料/推荐/圈子/视频/IM/设置 + 管理后台接口 + Sa-Token 认证
-├── xfjy-dubbo/                 # ★ 后端数据服务
-│   ├── xfjy-dubbo-interface/   #   内部 HTTP 接口定义（已无 Dubbo，纯 HTTP Service Clients）
-│   └── xfjy-dubbo-service/     #   MongoDB 数据读写 + ID 生成（18083）
+├── xfjy-service/               # ★ 后端数据服务
+│   ├── xfjy-service-interface/ #   内部 HTTP 接口定义（@HttpExchange）
+│   └── xfjy-service-core/      #   MongoDB 数据读写 + ID 生成（18083）
 ├── xfjy-elasticsearch/         # ★ 地理位置服务：ES 附近的人搜索
 ├── xfjy-recommend/             # ★ 推荐评分消费者：RocketMQ 消息 → MongoDB 评分存储
 ├── xfjy-spark/                 # ★ 离线推荐计算：MLlib 协同过滤（Spark 4.2，Java 编写）
@@ -87,7 +87,7 @@ xfjy/
 | 目录 | 职责 | 状态/建议 |
 |------|------|------|
 | `xfjy-server` | 主业务 HTTP 服务，含管理后台 Admin 系列接口 | ✅ 保持 |
-| `xfjy-dubbo` | interface（接口定义）+ service（MongoDB 数据服务） | 🔧 **需重构**：已无 Dubbo，建议重命名为 `xfjy-service` / `xfjy-api`，消除误导 |
+| `xfjy-service` | interface（HTTP 接口定义）+ core（MongoDB 数据服务） | ✅ 保持（已由 xfjy-dubbo 重命名，消除历史包袱） |
 | `xfjy-elasticsearch` | ES Geo 查询（UserLocation） | ✅ 保持 |
 | `xfjy-recommend` | MQ 消费者，写推荐评分 | ✅ 保持 |
 | `xfjy-spark` | 离线批量推荐计算 | ✅ 保持；运行时需 Spark 冒烟验证 |
@@ -106,7 +106,7 @@ xfjy/
 |------|------|------|
 | xfjy-sso（外部） | 18080 | 单点登录（手机号+验证码，JWT 签发）——**尚未纳入本仓库** |
 | xfjy-server | 18081 | 主业务 + 管理后台 |
-| xfjy-dubbo-service | 18083 | MongoDB 数据服务 |
+| xfjy-service-core | 18083 | MongoDB 数据服务 |
 | xfjy-elasticsearch | — | 附近的人 |
 | xfjy-recommend | — | MQ 评分消费者 |
 | xfjy-spark | — | 离线推荐（定时任务） |
