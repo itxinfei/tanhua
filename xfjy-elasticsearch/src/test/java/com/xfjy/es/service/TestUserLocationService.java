@@ -2,59 +2,100 @@ package com.xfjy.es.service;
 
 import com.xfjy.es.pojo.UserLocationES;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
+import org.springframework.data.elasticsearch.client.elc.NativeQuery;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.SearchHit;
+import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.data.elasticsearch.core.geo.GeoPoint;
 
-@SpringBootTest
-class TestUserLocationService {
+import java.util.List;
 
-    @Autowired
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+/**
+ * UserLocationService 单元测试（纯 Mockito，不依赖 Elasticsearch 实例，可离线运行）
+ */
+@ExtendWith(MockitoExtension.class)
+public class TestUserLocationService {
+
+    @Mock
+    private ElasticsearchOperations elasticsearchOperations;
+
+    @InjectMocks
     private UserLocationService userLocationService;
 
     @Test
-    void testUpdateUserLocation() {
-        this.userLocationService.updateUserLocation(1L, 121.512253, 31.24094, "金茂大厦");
-        this.userLocationService.updateUserLocation(2L, 121.506377, 31.245105, "东方明珠广播电视塔");
-        this.userLocationService.updateUserLocation(10L, 121.508815, 31.243844, "陆家嘴地铁站");
-        this.userLocationService.updateUserLocation(12L, 121.511999, 31.239185, "上海中心大厦");
-        this.userLocationService.updateUserLocation(25L, 121.493444, 31.240513, "上海市公安局");
-        this.userLocationService.updateUserLocation(27L, 121.494108, 31.247011, "上海外滩美术馆");
-        this.userLocationService.updateUserLocation(30L, 121.462452, 31.253463, "上海火车站");
-        this.userLocationService.updateUserLocation(32L, 121.81509, 31.157478, "上海浦东国际机场");
-        this.userLocationService.updateUserLocation(34L, 121.327908, 31.20033, "虹桥火车站");
-        this.userLocationService.updateUserLocation(38L, 121.490155, 31.277476, "鲁迅公园");
-        this.userLocationService.updateUserLocation(40L, 121.425511, 31.227831, "中山公园");
-        this.userLocationService.updateUserLocation(43L, 121.594194, 31.207786, "张江高科");
+    void testUpdateUserLocation_whenNotExist_thenSaveAndReturnTrue() {
+        when(elasticsearchOperations.get(anyString(), any())).thenReturn(null);
+        when(elasticsearchOperations.save(any(UserLocationES.class))).thenReturn(new UserLocationES());
+
+        boolean result = userLocationService.updateUserLocation(1L, 121.512253, 31.24094, "金茂大厦");
+        assertTrue(result);
     }
 
     @Test
-    void testQueryByUserId() {
-        UserLocationES userLocationES = this.userLocationService.queryByUserId(1L);
-        System.out.println(userLocationES);
+    void testUpdateUserLocation_whenExist_thenUpdateAndReturnTrue() {
+        UserLocationES existing = new UserLocationES();
+        existing.setUserId(1L);
+        existing.setUpdated(1000L);
+        when(elasticsearchOperations.get(anyString(), any())).thenReturn(existing);
+        when(elasticsearchOperations.update(any(), any())).thenReturn(null);
+
+        boolean result = userLocationService.updateUserLocation(1L, 121.5, 31.2, "东方明珠广播电视塔");
+        assertTrue(result);
     }
 
     @Test
-    void testQuery() {
-        Page<UserLocationES> userLocationPage = this.userLocationService.queryUserFromLocation(121.512253, 31.24094, 1000d, 1, 100);
-        userLocationPage.forEach(userLocationES -> {
-            System.out.println(userLocationES);
-            double distance = haversine(31.24094, 121.512253,
-                    userLocationES.getLocation().getLat(), userLocationES.getLocation().getLon());
-            System.out.println("距离我 : " + String.format("%.1f", distance) + "米");
-        });
+    void testQueryByUserId_found() {
+        UserLocationES ul = new UserLocationES();
+        ul.setUserId(1L);
+        ul.setAddress("金茂大厦");
+        when(elasticsearchOperations.get(eq("1"), eq(UserLocationES.class))).thenReturn(ul);
+
+        UserLocationES result = userLocationService.queryByUserId(1L);
+        assertNotNull(result);
+        assertEquals("金茂大厦", result.getAddress());
     }
 
-    /**
-     * Haversine公式计算两点间距离（米）
-     */
-    private double haversine(double lat1, double lon1, double lat2, double lon2) {
-        double R = 6371000; // 地球半径（米）
-        double dLat = Math.toRadians(lat2 - lat1);
-        double dLon = Math.toRadians(lon2 - lon1);
-        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    @Test
+    void testQueryByUserId_notFound() {
+        when(elasticsearchOperations.get(anyString(), any())).thenReturn(null);
+
+        assertNull(userLocationService.queryByUserId(99L));
+    }
+
+    @Test
+    void testQueryUserFromLocation() {
+        UserLocationES ul = new UserLocationES();
+        ul.setUserId(10L);
+        ul.setLocation(new GeoPoint(31.24, 121.51));
+
+        SearchHit<UserLocationES> hit = mock(SearchHit.class);
+        when(hit.getContent()).thenReturn(ul);
+
+        SearchHits<UserLocationES> hits = mock(SearchHits.class);
+        when(hits.getSearchHits()).thenReturn(List.of(hit));
+        when(hits.getTotalHits()).thenReturn(1L);
+
+        when(elasticsearchOperations.search(any(NativeQuery.class), eq(UserLocationES.class))).thenReturn(hits);
+
+        Page<UserLocationES> page = userLocationService.queryUserFromLocation(121.512253, 31.24094, 1000d, 1, 100);
+        assertNotNull(page);
+        assertEquals(1L, page.getTotalElements());
+        assertEquals(1, page.getContent().size());
+        assertEquals(10L, page.getContent().get(0).getUserId());
     }
 }

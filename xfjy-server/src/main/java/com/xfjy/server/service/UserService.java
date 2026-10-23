@@ -3,6 +3,8 @@ package com.xfjy.server.service;
 import tools.jackson.databind.json.JsonMapper;
 import com.xfjy.server.pojo.User;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -10,6 +12,8 @@ import org.springframework.web.client.RestTemplate;
 
 @Service
 public class UserService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserService.class);
 
     @Autowired
     private RestTemplate restTemplate;
@@ -32,7 +36,7 @@ public class UserService {
             try {
                 return MAPPER.readValue(jsonData, User.class);
             } catch (Exception e) {
-                e.printStackTrace();
+                LOGGER.error("Token查询用户失败, token={}", token, e);
             }
         }
         return null;

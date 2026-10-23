@@ -1,6 +1,8 @@
 package com.xfjy.server.controller;
 
 import com.xfjy.server.service.AdminReportService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +17,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("admin/reports")
 public class AdminReportController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AdminReportController.class);
 
     @Autowired
     private AdminReportService adminReportService;
@@ -31,7 +35,7 @@ public class AdminReportController {
         try {
             return ResponseEntity.ok(this.adminReportService.queryReportPage(page, pageSize, status, targetType));
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -48,7 +52,7 @@ public class AdminReportController {
             }
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -66,7 +70,7 @@ public class AdminReportController {
             return success ? ResponseEntity.ok().build()
                     : ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -89,7 +93,7 @@ public class AdminReportController {
             }
             return ResponseEntity.ok(count);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

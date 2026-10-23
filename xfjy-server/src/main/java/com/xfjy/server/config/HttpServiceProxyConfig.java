@@ -1,15 +1,15 @@
 package com.xfjy.server.config;
 
-import com.xfjy.dubbo.server.api.ESUserLocationApi;
-import com.xfjy.dubbo.server.api.HuanXinApi;
-import com.xfjy.dubbo.server.api.QuanZiApi;
-import com.xfjy.dubbo.server.api.RecommendUserApi;
-import com.xfjy.dubbo.server.api.UserInfoApi;
-import com.xfjy.dubbo.server.api.UserLikeApi;
-import com.xfjy.dubbo.server.api.UserLocationApi;
-import com.xfjy.dubbo.server.api.UsersApi;
-import com.xfjy.dubbo.server.api.VideoApi;
-import com.xfjy.dubbo.server.api.VisitorsApi;
+import com.xfjy.service.api.ESUserLocationApi;
+import com.xfjy.service.api.HuanXinApi;
+import com.xfjy.service.api.QuanZiApi;
+import com.xfjy.service.api.RecommendUserApi;
+import com.xfjy.service.api.UserInfoApi;
+import com.xfjy.service.api.UserLikeApi;
+import com.xfjy.service.api.UserLocationApi;
+import com.xfjy.service.api.UsersApi;
+import com.xfjy.service.api.VideoApi;
+import com.xfjy.service.api.VisitorsApi;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

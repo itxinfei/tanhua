@@ -2,7 +2,7 @@ package com.xfjy.recommend.msg;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
-import com.xfjy.dubbo.server.pojo.Publish;
+import com.xfjy.service.pojo.Publish;
 import com.xfjy.recommend.pojo.RecommendQuanZi;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;

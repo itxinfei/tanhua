@@ -3,13 +3,13 @@ package com.xfjy.server.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.aliyun.oss.OSSClient;
 import com.xfjy.server.config.AliyunConfig;
-import com.xfjy.dubbo.server.api.QuanZiApi;
-import com.xfjy.dubbo.server.api.UserInfoApi;
-import com.xfjy.dubbo.server.api.VideoApi;
-import com.xfjy.dubbo.server.pojo.UserInfo;
-import com.xfjy.dubbo.server.pojo.Video;
-import com.xfjy.dubbo.server.vo.PageInfo;
-import com.xfjy.dubbo.server.vo.UserInfoQueryParam;
+import com.xfjy.service.api.QuanZiApi;
+import com.xfjy.service.api.UserInfoApi;
+import com.xfjy.service.api.VideoApi;
+import com.xfjy.service.pojo.UserInfo;
+import com.xfjy.service.pojo.Video;
+import com.xfjy.service.vo.PageInfo;
+import com.xfjy.service.vo.UserInfoQueryParam;
 import com.xfjy.server.pojo.User;
 import com.xfjy.server.utils.UserThreadLocal;
 import com.xfjy.server.vo.PageResult;
@@ -18,6 +18,8 @@ import com.xfjy.server.vo.VideoVo;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -26,6 +28,8 @@ import java.util.List;
 
 @Service
 public class VideoService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(VideoService.class);
 
     @Autowired
     private VideoApi videoApi;
@@ -70,7 +74,7 @@ public class VideoService {
 
             return this.videoApi.saveVideo(video);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("视频处理异常", e);
         }
 
         return null;

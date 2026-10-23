@@ -2,6 +2,8 @@ package com.xfjy.es.controller;
 
 import com.xfjy.es.pojo.UserLocationES;
 import com.xfjy.es.service.UserLocationService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -14,6 +16,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("es/user/location")
 public class UserLocationController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserLocationController.class);
 
     @Autowired
     private UserLocationService userLocationService;
@@ -33,7 +37,7 @@ public class UserLocationController {
                 return ResponseEntity.ok().build();
             }
         } catch (NumberFormatException e) {
-            e.printStackTrace();
+            LOGGER.error("ES地理位置接口异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -50,7 +54,7 @@ public class UserLocationController {
             }
             return ResponseEntity.ok(userLocationES);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("ES地理位置接口异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -70,7 +74,7 @@ public class UserLocationController {
             Page<UserLocationES> userLocationES = this.userLocationService.queryUserFromLocation(longitude, latitude, distance, page, pageSize);
             return ResponseEntity.ok(userLocationES.getContent());
         } catch (NumberFormatException e) {
-            e.printStackTrace();
+            LOGGER.error("ES地理位置接口异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }

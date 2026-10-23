@@ -1,14 +1,14 @@
 package com.xfjy.server.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import com.xfjy.dubbo.server.api.QuanZiApi;
-import com.xfjy.dubbo.server.api.UserInfoApi;
-import com.xfjy.dubbo.server.api.VisitorsApi;
-import com.xfjy.dubbo.server.pojo.Publish;
-import com.xfjy.dubbo.server.pojo.UserInfo;
-import com.xfjy.dubbo.server.pojo.Visitors;
-import com.xfjy.dubbo.server.vo.PageInfo;
-import com.xfjy.dubbo.server.vo.UserInfoQueryParam;
+import com.xfjy.service.api.QuanZiApi;
+import com.xfjy.service.api.UserInfoApi;
+import com.xfjy.service.api.VisitorsApi;
+import com.xfjy.service.pojo.Publish;
+import com.xfjy.service.pojo.UserInfo;
+import com.xfjy.service.pojo.Visitors;
+import com.xfjy.service.vo.PageInfo;
+import com.xfjy.service.vo.UserInfoQueryParam;
 import com.xfjy.server.pojo.User;
 import com.xfjy.server.utils.RelativeDateFormat;
 import com.xfjy.server.utils.UserThreadLocal;

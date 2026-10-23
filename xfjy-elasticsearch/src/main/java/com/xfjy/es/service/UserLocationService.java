@@ -5,6 +5,8 @@ import co.elastic.clients.elasticsearch._types.SortOptions;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import com.xfjy.es.pojo.UserLocationES;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -25,6 +27,8 @@ import java.util.Map;
 
 @Service
 public class UserLocationService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserLocationService.class);
 
     @Autowired
     private ElasticsearchOperations elasticsearchOperations;
@@ -63,7 +67,7 @@ public class UserLocationService {
             }
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("ES地理位置服务异常", e);
         }
         return false;
     }

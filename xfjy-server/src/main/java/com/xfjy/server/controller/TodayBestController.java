@@ -5,6 +5,8 @@ import com.xfjy.server.vo.NearUserVo;
 import com.xfjy.server.vo.PageResult;
 import com.xfjy.server.vo.RecommendUserQueryParam;
 import com.xfjy.server.vo.TodayBest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +18,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("xfjy")
 public class TodayBestController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(TodayBestController.class);
 
     @Autowired
     private TodayBestService todayBestService;
@@ -42,7 +46,7 @@ public class TodayBestController {
             TodayBest todayBest = this.todayBestService.queryTodayBest(userId);
             return ResponseEntity.ok(todayBest);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -59,7 +63,7 @@ public class TodayBestController {
             String question = this.todayBestService.queryQuestion(userId);
             return ResponseEntity.ok(question);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -79,7 +83,7 @@ public class TodayBestController {
                 return ResponseEntity.ok(null);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -98,7 +102,7 @@ public class TodayBestController {
             List<NearUserVo> list = this.todayBestService.queryNearUser(gender, distance);
             return ResponseEntity.ok(list);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -115,7 +119,7 @@ public class TodayBestController {
             List<TodayBest> list = this.todayBestService.queryCardsList();
             return ResponseEntity.ok(list);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -132,7 +136,7 @@ public class TodayBestController {
             this.todayBestService.likeUser(likeUserId);
             return ResponseEntity.ok(null);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -149,7 +153,7 @@ public class TodayBestController {
             this.todayBestService.disLikeUser(likeUserId);
             return ResponseEntity.ok(null);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
