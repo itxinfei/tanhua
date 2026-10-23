@@ -15,7 +15,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
+
+import java.time.Duration;
 
 @Component
 @RocketMQMessageListener(topic = "xfjy-video",
@@ -29,6 +32,9 @@ public class VideoMsgConsumer implements RocketMQListener<String> {
     @Autowired
     private MongoTemplate mongoTemplate;
 
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
     @Override
     public void onMessage(String msg) {
         try {
@@ -37,6 +43,15 @@ public class VideoMsgConsumer implements RocketMQListener<String> {
             Long userId = jsonNode.get("userId").asLong();
             Long vid = jsonNode.get("vid").asLong();
             Integer type = jsonNode.get("type").asInt();
+            Long date = jsonNode.has("date") ? jsonNode.get("date").asLong() : System.currentTimeMillis();
+
+            // 幂等去重：同一事件（vid+userId+type+date）只处理一次，TTL 24h
+            String dedupKey = "mq:dedup:video:" + vid + ":" + userId + ":" + type + ":" + date;
+            Boolean first = this.stringRedisTemplate.opsForValue().setIfAbsent(dedupKey, "1", Duration.ofHours(24));
+            if (Boolean.FALSE.equals(first)) {
+                LOGGER.info("视频评分重复消息已忽略, key={}", dedupKey);
+                return;
+            }
 
             //1-发动态，2-点赞，3-取消点赞，4-评论
             RecommendVideo recommendVideo = new RecommendVideo();

@@ -10,7 +10,7 @@ spring:
     mongodb:
       uri: mongodb://127.0.0.1:27017/xfjy
 
-# ES服务地址（ES模块的HTTP接口，附近的人查询）
+# ES服务地址（xfjy-elasticsearch 模块的HTTP接口，附近的人查询）
 es:
   server:
-    url: http://172.168.20.221/es/
+    url: http://127.0.0.1:18088/es/
