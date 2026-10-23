@@ -6,4 +6,4 @@ spring:
 
 es:
   server:
-    url: http://172.17.0.144:18084/es/
+    url: http://172.17.0.144:18088/es/
