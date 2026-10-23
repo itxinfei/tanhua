@@ -10,6 +10,7 @@ type: project
 - ✅ 阶段一~四完成：gateway(8080)/sso(18080)/user(18090)/match(18082)/circle(18084)/video(18085)/message(18086)/recommend(18087)/elasticsearch(18088)/server(18081编排)
 - ✅ 健康体检(ec3b9dc)：sso库名xfjy统一+profile旧IP修复；MySQL/Mongo全xfjy、RocketMQ统一127.0.0.1:9876
 - ✅ 深度体检(680d0a5+301cbaa)：TokenInterceptor ThreadLocal泄漏修复+75处printStackTrace清零(SLF4J)+域服务包名重构(dubbo.server→service)
+- ✅ 功能就绪矩阵5项非IM待办清零(60e1500)：①圈子补偿回滚②动态真实距离/评论数③推荐列表缓存④视频签名/关注真实化⑤年龄/城市筛选启用(UserInfoQueryParam+user-service)
 - ⬜ 远期：server拆空后删除(编排层+管理后台)；P1 pay-service；环信REST真实对接；Nacos接入
 
 **Why:** 编排层(BFF)——前端统一gateway→server，server契约调用各域服务不直连；MQ消费幂等Redis SETNX(业务键+时间戳,TTL 24h)。
