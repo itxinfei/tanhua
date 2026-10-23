@@ -5,6 +5,8 @@ import com.xfjy.server.vo.Movements;
 import com.xfjy.server.vo.PageResult;
 import com.xfjy.server.vo.VisitorsVo;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +18,8 @@ import java.util.List;
 @RequestMapping("movements")
 @RestController
 public class MovementsController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(MovementsController.class);
 
     @Autowired
     private MovementsService movementsService;
@@ -43,7 +47,7 @@ public class MovementsController {
                 return ResponseEntity.ok(null);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -62,7 +66,7 @@ public class MovementsController {
             PageResult pageResult = this.movementsService.queryUserPublishList(page, pageSize);
             return ResponseEntity.ok(pageResult);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -81,7 +85,7 @@ public class MovementsController {
             PageResult pageResult = this.movementsService.queryRecommendPublishList(page, pageSize);
             return ResponseEntity.ok(pageResult);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -101,7 +105,7 @@ public class MovementsController {
                 return ResponseEntity.ok(count);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -121,7 +125,7 @@ public class MovementsController {
                 return ResponseEntity.ok(count);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -141,7 +145,7 @@ public class MovementsController {
                 return ResponseEntity.ok(count);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -161,7 +165,7 @@ public class MovementsController {
                 return ResponseEntity.ok(count);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -184,7 +188,7 @@ public class MovementsController {
                 return ResponseEntity.ok(movements);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -200,7 +204,7 @@ public class MovementsController {
             List<VisitorsVo> list = this.movementsService.queryVisitorsList();
             return ResponseEntity.ok(list);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -218,7 +222,7 @@ public class MovementsController {
             PageResult pageResult = this.movementsService.queryAlbumList(userId, page, pageSize);
             return ResponseEntity.ok(pageResult);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }

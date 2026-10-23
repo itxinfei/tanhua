@@ -2,16 +2,16 @@ package com.xfjy.server.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import tools.jackson.databind.json.JsonMapper;
-import com.xfjy.dubbo.server.api.ESUserLocationApi;
-import com.xfjy.dubbo.server.api.HuanXinApi;
-import com.xfjy.dubbo.server.api.UserInfoApi;
-import com.xfjy.dubbo.server.api.UserLikeApi;
-import com.xfjy.dubbo.server.enums.SexEnum;
-import com.xfjy.dubbo.server.pojo.RecommendUser;
-import com.xfjy.dubbo.server.pojo.UserInfo;
-import com.xfjy.dubbo.server.vo.PageInfo;
-import com.xfjy.dubbo.server.vo.UserInfoQueryParam;
-import com.xfjy.dubbo.server.vo.UserLocationVo;
+import com.xfjy.service.api.ESUserLocationApi;
+import com.xfjy.service.api.HuanXinApi;
+import com.xfjy.service.api.UserInfoApi;
+import com.xfjy.service.api.UserLikeApi;
+import com.xfjy.service.enums.SexEnum;
+import com.xfjy.service.pojo.RecommendUser;
+import com.xfjy.service.pojo.UserInfo;
+import com.xfjy.service.vo.PageInfo;
+import com.xfjy.service.vo.UserInfoQueryParam;
+import com.xfjy.service.vo.UserLocationVo;
 import com.xfjy.server.pojo.Question;
 import com.xfjy.server.pojo.User;
 import com.xfjy.server.utils.UserThreadLocal;
@@ -23,6 +23,8 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -30,6 +32,8 @@ import java.util.*;
 
 @Service
 public class TodayBestService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(TodayBestService.class);
 
     @Autowired
     private UserService userService;
@@ -212,7 +216,7 @@ public class TodayBestService {
             this.huanXinApi.sendMessage(userId.toString(), msgStr);
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("今日佳人查询异常", e);
         }
 
         return false;

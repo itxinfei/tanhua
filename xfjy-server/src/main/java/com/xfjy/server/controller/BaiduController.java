@@ -1,6 +1,8 @@
 package com.xfjy.server.controller;
 
 import com.xfjy.server.service.BaiduService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +16,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("baidu")
 public class BaiduController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(BaiduController.class);
 
     @Autowired
     private BaiduService baiduService;
@@ -36,7 +40,7 @@ public class BaiduController {
                 return ResponseEntity.ok(null);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

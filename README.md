@@ -73,11 +73,12 @@ xfjy/
 ├── xfjy-user-service/          # ★ 用户关系服务（18090，Mongo：好友/喜欢/访客，阶段二）
 ├── xfjy-circle-service/        # ★ 圈子动态服务（18084，Mongo：动态/评论/时间线，阶段三）
 ├── xfjy-video-service/         # ★ 小视频服务（18085，Mongo：视频/关注作者，阶段三）
-├── xfjy-server/                # ★ 主业务服务（18081）
+├── xfjy-match-service/         # ★ 探花匹配服务（18082，Mongo：推荐用户/地理位置/附近的人，阶段三）
+├── xfjy-message-service/       # ★ 消息/IM 服务（18086，环信集成：好友注册/消息下发，阶段三）
+├── xfjy-server/                # ★ 主业务聚合服务（18081，边缘入口，内部直连各拆分服务）
 │   └── 用户资料/推荐/圈子/视频/IM/设置 + 管理后台接口 + Sa-Token 认证
-├── xfjy-service/               # ★ 后端数据服务
-│   ├── xfjy-service-interface/ #   内部 HTTP 接口定义（@HttpExchange）
-│   └── xfjy-service-core/      #   MongoDB 数据读写 + ID 生成（18083）
+├── xfjy-service/               # ★ 内部契约模块
+│   └── xfjy-service-interface/ #   内部 HTTP 接口定义（@HttpExchange，包名 com.xfjy.service.api）
 ├── xfjy-elasticsearch/         # ★ 地理位置服务：ES 附近的人搜索
 ├── xfjy-recommend/             # ★ 推荐评分消费者：RocketMQ 消息 → MongoDB 评分存储
 ├── xfjy-spark/                 # ★ 离线推荐计算：MLlib 协同过滤（Spark 4.2，Java 编写）
@@ -92,7 +93,12 @@ xfjy/
 | 目录 | 职责 | 状态/建议 |
 |------|------|------|
 | `xfjy-server` | 主业务 HTTP 服务，含管理后台 Admin 系列接口 | ✅ 保持 |
-| `xfjy-service` | interface（HTTP 接口定义）+ core（MongoDB 数据服务） | ✅ 保持（已由 xfjy-dubbo 重命名，消除历史包袱） |
+| `xfjy-service` | 仅 xfjy-service-interface：内部 HTTP 接口契约（@HttpExchange，包名 com.xfjy.service.api）；core 已退役 | ✅ 保持（包名已由 com.xfjy.dubbo.server 统一重命名为 com.xfjy.service） |
+| `xfjy-user-service` | 用户关系服务（Mongo：好友/喜欢/访客，阶段二拆出） | ✅ 保持 |
+| `xfjy-circle-service` | 圈子动态服务（Mongo：动态/评论/时间线，阶段三拆出） | ✅ 保持 |
+| `xfjy-video-service` | 小视频服务（Mongo：视频/关注作者，阶段三拆出） | ✅ 保持 |
+| `xfjy-match-service` | 探花匹配服务（推荐用户/地理位置/附近的人，阶段三拆出） | ✅ 保持 |
+| `xfjy-message-service` | 消息/IM 服务（环信集成：好友注册/消息下发，阶段三拆出） | ✅ 保持 |
 | `xfjy-elasticsearch` | ES Geo 查询（UserLocation） | ✅ 保持 |
 | `xfjy-recommend` | MQ 消费者，写推荐评分 | ✅ 保持 |
 | `xfjy-spark` | 离线批量推荐计算 | ✅ 保持；运行时需 Spark 冒烟验证 |
@@ -115,12 +121,15 @@ xfjy/
 | xfjy-user-service | 18090 | 用户关系服务（Mongo：好友/喜欢/访客，阶段二拆出） |
 | xfjy-circle-service | 18084 | 圈子动态服务（Mongo：动态/评论/时间线，阶段三拆出） |
 | xfjy-video-service | 18085 | 小视频服务（Mongo：视频/关注作者，阶段三拆出） |
-| xfjy-service-core | 18083 | MongoDB 数据服务 |
+| xfjy-match-service | 18082 | 探花匹配服务（推荐用户/地理位置/附近的人，阶段三拆出） |
+| xfjy-message-service | 18086 | 消息/IM 服务（环信集成：好友注册/消息下发，阶段三拆出） |
 | xfjy-elasticsearch | — | 附近的人 |
 | xfjy-recommend | — | MQ 评分消费者 |
 | xfjy-spark | — | 离线推荐（定时任务） |
 
 **数据链路**：用户行为 → xfjy-server → RocketMQ → xfjy-recommend → MongoDB 评分表 → Spark 定时 ALS 计算 → 推荐列表 → Redis 缓存 → 接口消费。
+
+**网关路由**：仅做边缘路由（sso + xfjy-server）。user/circle/video/match/message 等拆分服务由 xfjy-server 经 @HttpExchange 内部直连，不经网关。
 
 ---
 

@@ -3,6 +3,8 @@ package com.xfjy.server.controller;
 import org.apache.commons.lang3.StringUtils;
 import com.xfjy.server.service.VideoService;
 import com.xfjy.server.vo.PageResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +16,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("smallVideos")
 public class VideoController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(VideoController.class);
 
     @Autowired
     private VideoService videoService;
@@ -34,7 +38,7 @@ public class VideoController {
                 return ResponseEntity.ok(null);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -58,7 +62,7 @@ public class VideoController {
                 return ResponseEntity.ok(pageResult);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -162,7 +166,7 @@ public class VideoController {
                 return ResponseEntity.ok(null);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -178,7 +182,7 @@ public class VideoController {
                 return ResponseEntity.ok(null);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }

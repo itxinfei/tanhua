@@ -3,6 +3,8 @@ package com.xfjy.server.controller;
 import com.xfjy.server.service.CommentsService;
 import com.xfjy.server.service.MovementsService;
 import com.xfjy.server.vo.PageResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +15,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("comments")
 public class CommentsController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(CommentsController.class);
 
     @Autowired
     private CommentsService commentsService;
@@ -38,7 +42,7 @@ public class CommentsController {
                 return ResponseEntity.ok(pageResult);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -61,7 +65,7 @@ public class CommentsController {
                 return ResponseEntity.ok(null);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -80,7 +84,7 @@ public class CommentsController {
                 return ResponseEntity.ok(count);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -99,7 +103,7 @@ public class CommentsController {
                 return ResponseEntity.ok(count);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }

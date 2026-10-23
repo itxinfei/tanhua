@@ -5,6 +5,8 @@ import com.xfjy.server.vo.CountsVo;
 import com.xfjy.server.vo.PageResult;
 import com.xfjy.server.vo.SettingsVo;
 import com.xfjy.server.vo.UserInfoVo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +17,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("users")
 public class UsersController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(UsersController.class);
 
     @Autowired
     private UsersService usersService;
@@ -36,7 +40,7 @@ public class UsersController {
                 return ResponseEntity.ok(userInfoVo);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -55,7 +59,7 @@ public class UsersController {
                 return ResponseEntity.ok(null);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -73,7 +77,7 @@ public class UsersController {
                 return ResponseEntity.ok(countsVo);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -97,7 +101,7 @@ public class UsersController {
             PageResult pageResult = this.usersService.queryLikeList(Integer.valueOf(type), page, pageSize, nickname);
             return ResponseEntity.ok(pageResult);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -114,7 +118,7 @@ public class UsersController {
             this.usersService.disLike(userId);
             return ResponseEntity.ok(null);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -131,7 +135,7 @@ public class UsersController {
             this.usersService.likeFan(userId);
             return ResponseEntity.ok(null);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -149,7 +153,7 @@ public class UsersController {
                 return ResponseEntity.ok(settingsVo);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -166,7 +170,7 @@ public class UsersController {
             this.usersService.saveQuestions(content);
             return ResponseEntity.ok(null);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -185,7 +189,7 @@ public class UsersController {
             PageResult pageResult = this.usersService.queryBlacklist(page, pagesize);
             return ResponseEntity.ok(pageResult);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -201,7 +205,7 @@ public class UsersController {
             this.usersService.delBlacklist(userId);
             return ResponseEntity.ok(null);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
@@ -222,7 +226,7 @@ public class UsersController {
             this.usersService.updateNotification(likeNotification, pinglunNotification, gonggaoNotification);
             return ResponseEntity.ok(null);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }

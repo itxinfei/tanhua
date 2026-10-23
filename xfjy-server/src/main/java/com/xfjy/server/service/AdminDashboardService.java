@@ -1,9 +1,9 @@
 package com.xfjy.server.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.xfjy.dubbo.server.api.UserInfoApi;
-import com.xfjy.dubbo.server.pojo.UserInfo;
-import com.xfjy.dubbo.server.vo.UserInfoQueryParam;
+import com.xfjy.service.api.UserInfoApi;
+import com.xfjy.service.pojo.UserInfo;
+import com.xfjy.service.vo.UserInfoQueryParam;
 import com.xfjy.server.mapper.ReportMapper;
 import com.xfjy.server.mapper.ReviewMapper;
 import com.xfjy.server.mapper.UserMapper;

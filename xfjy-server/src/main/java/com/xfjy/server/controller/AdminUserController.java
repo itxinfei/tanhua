@@ -1,6 +1,8 @@
 package com.xfjy.server.controller;
 
 import com.xfjy.server.service.AdminUserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +16,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("admin/users")
 public class AdminUserController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AdminUserController.class);
 
     @Autowired
     private AdminUserService adminUserService;
@@ -32,7 +36,7 @@ public class AdminUserController {
             Map<String, Object> result = this.adminUserService.queryUserPage(page, pageSize, keyword, gender, status);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -49,7 +53,7 @@ public class AdminUserController {
             }
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -66,7 +70,7 @@ public class AdminUserController {
             return success ? ResponseEntity.ok().build()
                     : ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -81,7 +85,7 @@ public class AdminUserController {
             return success ? ResponseEntity.ok().build()
                     : ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -96,7 +100,7 @@ public class AdminUserController {
             return success ? ResponseEntity.ok().build()
                     : ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

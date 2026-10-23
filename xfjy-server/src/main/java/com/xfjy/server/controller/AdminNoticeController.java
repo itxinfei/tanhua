@@ -2,6 +2,8 @@ package com.xfjy.server.controller;
 
 import com.xfjy.server.pojo.Notice;
 import com.xfjy.server.service.AdminNoticeService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +17,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("admin/notices")
 public class AdminNoticeController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AdminNoticeController.class);
 
     @Autowired
     private AdminNoticeService adminNoticeService;
@@ -32,7 +36,7 @@ public class AdminNoticeController {
         try {
             return ResponseEntity.ok(this.adminNoticeService.queryNoticePage(page, pageSize, title, type, status));
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -49,7 +53,7 @@ public class AdminNoticeController {
             }
             return ResponseEntity.ok(notice);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -64,7 +68,7 @@ public class AdminNoticeController {
                     param.get("title"), param.get("content"), param.get("type"));
             return ResponseEntity.ok(notice);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -81,7 +85,7 @@ public class AdminNoticeController {
             return success ? ResponseEntity.ok().build()
                     : ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -96,7 +100,7 @@ public class AdminNoticeController {
             return success ? ResponseEntity.ok().build()
                     : ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -111,7 +115,7 @@ public class AdminNoticeController {
             return success ? ResponseEntity.ok().build()
                     : ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -126,7 +130,7 @@ public class AdminNoticeController {
             return success ? ResponseEntity.ok().build()
                     : ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("接口处理异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

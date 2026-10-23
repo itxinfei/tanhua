@@ -10,6 +10,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,6 +20,8 @@ import java.io.ByteArrayInputStream;
 
 @Service
 public class PicUploadService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PicUploadService.class);
 
     // 允许上传的格式
     private static final String[] IMAGE_TYPE = new String[]{".bmp", ".jpg",
@@ -59,7 +63,7 @@ public class PicUploadService {
             ossClient.putObject(aliyunConfig.getBucketName(), filePath, new
                     ByteArrayInputStream(uploadFile.getBytes()));
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("图片上传失败", e);
             //上传失败
             fileUploadResult.setStatus("error");
             return fileUploadResult;

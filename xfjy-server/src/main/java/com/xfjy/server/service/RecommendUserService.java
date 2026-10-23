@@ -1,9 +1,9 @@
 package com.xfjy.server.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import com.xfjy.dubbo.server.api.RecommendUserApi;
-import com.xfjy.dubbo.server.pojo.RecommendUser;
-import com.xfjy.dubbo.server.vo.PageInfo;
+import com.xfjy.service.api.RecommendUserApi;
+import com.xfjy.service.pojo.RecommendUser;
+import com.xfjy.service.vo.PageInfo;
 import com.xfjy.server.vo.TodayBest;
 import org.springframework.stereotype.Service;
 
