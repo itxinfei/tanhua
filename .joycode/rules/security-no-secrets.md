@@ -37,12 +37,19 @@ password: root
 ```
 **/aliyun.properties
 **/application-local.yml
-**/*secret*
-**/*credential*
+**/application-local.yaml
+**/.env
+**/.env.*
 **/*.pem
 **/*.p12
 **/*.keystore
+**/*.key
+**/*.jks
+**/*secret*
+**/*credential*
 **/secrets.yml
+!.joycode/          # 例外：项目规则文档不受通配规则影响
+!.joycode/**
 ```
 
 ## 四、AI辅助编程约束
