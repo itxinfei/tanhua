@@ -1,17 +1,19 @@
 package com.xfjy.server.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import tools.jackson.databind.json.JsonMapper;
-import com.xfjy.dubbo.server.api.UserLikeApi;
 import com.xfjy.dubbo.server.api.ESUserLocationApi;
+import com.xfjy.dubbo.server.api.HuanXinApi;
+import com.xfjy.dubbo.server.api.UserInfoApi;
+import com.xfjy.dubbo.server.api.UserLikeApi;
+import com.xfjy.dubbo.server.enums.SexEnum;
 import com.xfjy.dubbo.server.pojo.RecommendUser;
+import com.xfjy.dubbo.server.pojo.UserInfo;
 import com.xfjy.dubbo.server.vo.PageInfo;
+import com.xfjy.dubbo.server.vo.UserInfoQueryParam;
 import com.xfjy.dubbo.server.vo.UserLocationVo;
-import com.xfjy.server.enums.SexEnum;
 import com.xfjy.server.pojo.Question;
 import com.xfjy.server.pojo.User;
-import com.xfjy.server.pojo.UserInfo;
 import com.xfjy.server.utils.UserThreadLocal;
 import com.xfjy.server.vo.NearUserVo;
 import com.xfjy.server.vo.PageResult;
@@ -22,14 +24,7 @@ import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
 
@@ -40,16 +35,13 @@ public class TodayBestService {
     private UserService userService;
 
     @Autowired
-    private UserInfoService userInfoService;
+    private UserInfoApi userInfoApi;
 
     @Autowired
     private RecommendUserService recommendUserService;
 
     @Value("${xfjy.sso.default.user}")
     private Long defaultUserId;
-
-    @Value("${xfjy.sso.url}")
-    private String ssoUrl;
 
     @Value("${xfjy.sso.default.recommend.users}")
     private String defaultRecommendUsers;
@@ -60,7 +52,7 @@ public class TodayBestService {
     private static final JsonMapper MAPPER = new JsonMapper();
 
     @Autowired
-    private RestTemplate restTemplate;
+    private HuanXinApi huanXinApi;
 
     @Autowired
     private UserLikeApi userLikeApi;
@@ -86,7 +78,7 @@ public class TodayBestService {
         }
 
         // 补全用户信息
-        UserInfo userInfo = this.userInfoService.queryUserInfoById(todayBest.getId());
+        UserInfo userInfo = this.userInfoApi.queryUserInfoById(todayBest.getId());
         if (null != userInfo) {
             todayBest.setAge(userInfo.getAge());
             todayBest.setAvatar(userInfo.getLogo());
@@ -125,19 +117,19 @@ public class TodayBestService {
         }
 
 
-        QueryWrapper<UserInfo> queryWrapper = new QueryWrapper<>();
-        queryWrapper.in("user_id", userIds); //用户id
+        UserInfoQueryParam userInfoQueryParam = new UserInfoQueryParam();
+        userInfoQueryParam.setUserIds(userIds); //用户id
 
         if (queryParam.getAge() != null) {
-            //queryWrapper.lt("age", queryParam.getAge()); //年龄
+            //TODO 年龄条件待契约API扩展后启用
         }
 
         if (StringUtils.isNotEmpty(queryParam.getCity())) {
-            //queryWrapper.eq("city", queryParam.getCity()); //城市
+            //TODO 城市条件待契约API扩展后启用
         }
 
         //需要查询用户的信息，并且按照条件查询
-        List<UserInfo> userInfos = this.userInfoService.queryUserInfoList(queryWrapper);
+        List<UserInfo> userInfos = this.userInfoApi.queryUserInfoList(userInfoQueryParam);
         List<TodayBest> todayBests = new ArrayList<>();
         for (UserInfo userInfo : userInfos) {
             TodayBest todayBest = new TodayBest();
@@ -171,7 +163,7 @@ public class TodayBestService {
 
         TodayBest todayBest = new TodayBest();
         //补全信息
-        UserInfo userInfo = this.userInfoService.queryUserInfoById(userId);
+        UserInfo userInfo = this.userInfoApi.queryUserInfoById(userId);
         todayBest.setId(userId);
         todayBest.setAge(userInfo.getAge());
         todayBest.setAvatar(userInfo.getLogo());
@@ -205,7 +197,7 @@ public class TodayBestService {
      */
     public Boolean replyQuestion(Long userId, String reply) {
         User user = UserThreadLocal.get();
-        UserInfo userInfo = this.userInfoService.queryUserInfoById(user.getId());
+        UserInfo userInfo = this.userInfoApi.queryUserInfoById(user.getId());
 
         //构建消息内容
         Map<String, Object> msg = new HashMap<>();
@@ -216,25 +208,12 @@ public class TodayBestService {
 
         try {
             String msgStr = MAPPER.writeValueAsString(msg);
-
-            String targetUrl = this.ssoUrl + "/user/huanxin/messages";
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-            params.add("target", userId.toString());
-            params.add("msg", msgStr);
-
-            HttpEntity<MultiValueMap<String, String>> httpEntity = new HttpEntity<>(params, headers);
-
-            ResponseEntity<Void> responseEntity = this.restTemplate.postForEntity(targetUrl, httpEntity, Void.class);
-
-            return responseEntity.getStatusCode().value() == 200;
+            // 发送环信透传消息（契约调用 message-service）
+            this.huanXinApi.sendMessage(userId.toString(), msgStr);
+            return true;
         } catch (Exception e) {
             e.printStackTrace();
         }
-
 
         return false;
     }
@@ -257,16 +236,15 @@ public class TodayBestService {
             userIds.add(locationVo.getUserId());
         }
 
-        QueryWrapper<UserInfo> queryWrapper = new QueryWrapper<>();
-
-        queryWrapper.in("user_id", userIds);
+        UserInfoQueryParam userInfoQueryParam = new UserInfoQueryParam();
+        userInfoQueryParam.setUserIds(userIds);
         if (StringUtils.equalsIgnoreCase(gender, "man")) {
-            queryWrapper.eq("sex", SexEnum.MAN);
+            userInfoQueryParam.setSex(SexEnum.MAN.getValue());
         } else if (StringUtils.equalsIgnoreCase(gender, "woman")) {
-            queryWrapper.eq("sex", SexEnum.WOMAN);
+            userInfoQueryParam.setSex(SexEnum.WOMAN.getValue());
         }
 
-        List<UserInfo> userInfoList = this.userInfoService.queryUserInfoList(queryWrapper);
+        List<UserInfo> userInfoList = this.userInfoApi.queryUserInfoList(userInfoQueryParam);
 
         List<NearUserVo> result = new ArrayList<>();
         for (UserLocationVo locationVo : userLocationVoList) {
@@ -320,9 +298,9 @@ public class TodayBestService {
             userIds.add(recommendUser.getUserId());
         }
 
-        QueryWrapper<UserInfo> queryWrapper = new QueryWrapper<>();
-        queryWrapper.in("user_id", userIds);
-        List<UserInfo> userInfoList = this.userInfoService.queryUserInfoList(queryWrapper);
+        UserInfoQueryParam userInfoQueryParam = new UserInfoQueryParam();
+        userInfoQueryParam.setUserIds(userIds);
+        List<UserInfo> userInfoList = this.userInfoApi.queryUserInfoList(userInfoQueryParam);
 
         List<TodayBest> result = new ArrayList<>();
         for (UserInfo userInfo : userInfoList) {

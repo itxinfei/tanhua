@@ -1,1 +1,1 @@
-- [心飞交友全栈重构规划](project_fullstack_refactor.md) — 前端uni-app选型+后端升级成果+微服务化拆分进度（阶段一/二已完成）及阶段二遗留偏差决策
+- [心飞交友全栈重构规划](project_fullstack_refactor.md) — 微服务化四阶段拆分进度（阶段三进行中）+data-core退役决策+评分消息归属原则

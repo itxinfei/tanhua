@@ -1,14 +1,16 @@
 package com.xfjy.server.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.xfjy.dubbo.server.api.UserInfoApi;
 import com.xfjy.dubbo.server.api.UserLikeApi;
 import com.xfjy.dubbo.server.api.VisitorsApi;
+import com.xfjy.dubbo.server.enums.SexEnum;
+import com.xfjy.dubbo.server.pojo.UserInfo;
 import com.xfjy.dubbo.server.pojo.UserLike;
 import com.xfjy.dubbo.server.pojo.Visitors;
 import com.xfjy.dubbo.server.vo.PageInfo;
-import com.xfjy.server.enums.SexEnum;
+import com.xfjy.dubbo.server.vo.UserInfoQueryParam;
 import com.xfjy.server.pojo.*;
 import com.xfjy.server.utils.UserThreadLocal;
 import com.xfjy.server.vo.*;
@@ -25,7 +27,7 @@ import java.util.List;
 public class UsersService {
 
     @Autowired
-    private UserInfoService userInfoService;
+    private UserInfoApi userInfoApi;
 
     @Autowired
     private UserLikeApi userLikeApi;
@@ -54,7 +56,7 @@ public class UsersService {
             userId = Long.valueOf(huanxinID);
         }
 
-        UserInfo userInfo = this.userInfoService.queryUserInfoById(userId);
+        UserInfo userInfo = this.userInfoApi.queryUserInfoById(userId);
         if (null == userInfo) {
             return null;
         }
@@ -86,7 +88,7 @@ public class UsersService {
         userInfo.setIncome(StringUtils.replaceAll(userInfoVo.getIncome(), "K", ""));
         userInfo.setIndustry(userInfoVo.getProfession());
         userInfo.setMarriage(userInfoVo.getMarriage() == 1 ? "已婚" : "未婚");
-        return this.userInfoService.updateUserInfoByUserId(userInfo);
+        return this.userInfoApi.updateUserInfoByUserId(userInfo);
     }
 
     public CountsVo queryCounts() {
@@ -149,13 +151,13 @@ public class UsersService {
             return pageResult;
         }
 
-        QueryWrapper<UserInfo> queryWrapper = new QueryWrapper<>();
-        queryWrapper.in("user_id", userIds);
+        UserInfoQueryParam queryParam = new UserInfoQueryParam();
+        queryParam.setUserIds(userIds);
         if (StringUtils.isNotBlank(nickname)) {
-            queryWrapper.like("nick_name", nickname);
+            queryParam.setNickName(nickname);
         }
 
-        List<UserInfo> userInfoList = this.userInfoService.queryUserInfoList(queryWrapper);
+        List<UserInfo> userInfoList = this.userInfoApi.queryUserInfoList(queryParam);
 
         List<UserLikeListVo> userLikeListVos = new ArrayList<>();
         for (UserInfo userInfo : userInfoList) {
@@ -242,9 +244,9 @@ public class UsersService {
             userIds.add(record.getBlackUserId());
         }
 
-        QueryWrapper<UserInfo> queryWrapper = new QueryWrapper<>();
-        queryWrapper.in("user_id", userIds);
-        List<UserInfo> userInfoList = this.userInfoService.queryUserInfoList(queryWrapper);
+        UserInfoQueryParam queryParam = new UserInfoQueryParam();
+        queryParam.setUserIds(userIds);
+        List<UserInfo> userInfoList = this.userInfoApi.queryUserInfoList(queryParam);
 
         List<BlackListVo> blackListVoList = new ArrayList<>();
         for (UserInfo userInfo : userInfoList) {

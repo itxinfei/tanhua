@@ -1,11 +1,12 @@
 package com.xfjy.server.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.xfjy.dubbo.server.api.UserInfoApi;
+import com.xfjy.dubbo.server.pojo.UserInfo;
+import com.xfjy.dubbo.server.vo.UserInfoQueryParam;
 import com.xfjy.server.mapper.ReportMapper;
 import com.xfjy.server.mapper.ReviewMapper;
-import com.xfjy.server.mapper.UserInfoMapper;
 import com.xfjy.server.mapper.UserMapper;
-import com.xfjy.server.pojo.UserInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +25,7 @@ public class AdminDashboardService {
     private UserMapper userMapper;
 
     @Autowired
-    private UserInfoMapper userInfoMapper;
+    private UserInfoApi userInfoApi;
 
     @Autowired
     private ReviewMapper reviewMapper;
@@ -130,10 +131,12 @@ public class AdminDashboardService {
      * 性别比例
      */
     public Map<String, Object> genderRatio() {
-        Long male = this.userInfoMapper.selectCount(
-                new QueryWrapper<UserInfo>().eq("sex", 1));
-        Long female = this.userInfoMapper.selectCount(
-                new QueryWrapper<UserInfo>().eq("sex", 2));
+        UserInfoQueryParam maleParam = new UserInfoQueryParam();
+        maleParam.setSex(1);
+        Long male = (long) this.userInfoApi.queryUserInfoList(maleParam).size();
+        UserInfoQueryParam femaleParam = new UserInfoQueryParam();
+        femaleParam.setSex(2);
+        Long female = (long) this.userInfoApi.queryUserInfoList(femaleParam).size();
 
         Map<String, Object> result = new HashMap<>();
         result.put("male", male);
@@ -145,8 +148,7 @@ public class AdminDashboardService {
      * 年龄分布
      */
     public Map<String, Object> ageDistribution() {
-        List<UserInfo> allUsers = this.userInfoMapper.selectList(
-                new QueryWrapper<UserInfo>().select("age"));
+        List<UserInfo> allUsers = this.userInfoApi.queryUserInfoList(new UserInfoQueryParam());
 
         // 分段统计
         int[] buckets = new int[6]; //18以下/18-24/25-30/31-40/41-50/50以上

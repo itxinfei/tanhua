@@ -1,7 +1,6 @@
 package com.xfjy.server.controller;
 
 import com.xfjy.server.service.MovementsService;
-import com.xfjy.server.service.QuanziMQService;
 import com.xfjy.server.vo.Movements;
 import com.xfjy.server.vo.PageResult;
 import com.xfjy.server.vo.VisitorsVo;
@@ -20,9 +19,6 @@ public class MovementsController {
 
     @Autowired
     private MovementsService movementsService;
-
-    @Autowired
-    private QuanziMQService quanziMQService;
 
     /**
      * 发布动态
@@ -43,9 +39,6 @@ public class MovementsController {
         try {
             String publishId = this.movementsService.saveMovements(textContent, location, longitude, latitude, multipartFile);
             if (StringUtils.isNotEmpty(publishId)) {
-
-                //发送消息
-                this.quanziMQService.sendSavePublishMsg(publishId);
 
                 return ResponseEntity.ok(null);
             }
@@ -105,9 +98,6 @@ public class MovementsController {
             Long count = this.movementsService.likeComment(publishId);
             if (null != count) {
 
-                //发送消息
-                this.quanziMQService.sendLikePublishMsg(publishId);
-
                 return ResponseEntity.ok(count);
             }
         } catch (Exception e) {
@@ -127,9 +117,6 @@ public class MovementsController {
         try {
             Long count = this.movementsService.disLikeComment(publishId);
             if (null != count) {
-
-                //发送消息
-                this.quanziMQService.sendDisLikePublishMsg(publishId);
 
                 return ResponseEntity.ok(count);
             }
@@ -151,9 +138,6 @@ public class MovementsController {
             Long count = this.movementsService.loveComment(publishId);
             if (null != count) {
 
-                //发送消息
-                this.quanziMQService.sendLovePublishMsg(publishId);
-
                 return ResponseEntity.ok(count);
             }
         } catch (Exception e) {
@@ -173,9 +157,6 @@ public class MovementsController {
         try {
             Long count = this.movementsService.unLoveComment(publishId);
             if (null != count) {
-
-                //发送消息
-                this.quanziMQService.sendDisLovePublishMsg(publishId);
 
                 return ResponseEntity.ok(count);
             }
@@ -197,8 +178,8 @@ public class MovementsController {
             Movements movements = this.movementsService.queryMovementsById(publishId);
             if(null != movements){
 
-                //发送消息
-                this.quanziMQService.sendQueryPublishMsg(publishId);
+                //记录浏览（评分事件 type=2，由圈子服务内部发送消息）
+                this.movementsService.recordPublishView(publishId);
 
                 return ResponseEntity.ok(movements);
             }

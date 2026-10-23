@@ -59,4 +59,14 @@ public interface VideoApi {
     @PostExchange("/queryVideoListByPids")
     @PostMapping("/queryVideoListByPids")
     List<Video> queryVideoListByPids(@RequestBody List<Long> vids);
+
+    /**
+     * 记录视频操作评分事件（type：2-点赞，3-取消点赞，4-评论），
+     * 由视频服务内部发送 xfjy-video 消息（发布事件 type=1 在 saveVideo 内部直接发送）
+     */
+    @PostExchange("/recordVideoMsg")
+    @PostMapping("/recordVideoMsg")
+    Boolean recordVideoMsg(@RequestParam("userId") Long userId,
+                           @RequestParam("videoId") String videoId,
+                           @RequestParam("type") Integer type);
 }

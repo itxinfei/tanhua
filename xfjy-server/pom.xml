@@ -57,12 +57,6 @@
             <artifactId>mysql-connector-j</artifactId>
         </dependency>
 
-        <!-- RocketMQ（版本由根pom管理2.3.6） -->
-        <dependency>
-            <groupId>org.apache.rocketmq</groupId>
-            <artifactId>rocketmq-spring-boot-starter</artifactId>
-        </dependency>
-
         <!-- OSS对象存储（统一，移除FastDFS） -->
         <dependency>
             <groupId>com.aliyun.oss</groupId>
@@ -88,6 +82,11 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>commons-collections</groupId>
+            <artifactId>commons-collections</artifactId>
+            <version>3.2.2</version>
         </dependency>
 
         <dependency>

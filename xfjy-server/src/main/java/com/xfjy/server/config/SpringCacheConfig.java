@@ -13,7 +13,7 @@ import java.time.Duration;
  * <p>
  * 缓存策略：
  * - 默认TTL 1小时
- * - userInfo: 用户信息，按用户ID缓存（@Cacheable在UserInfoService中声明）
+ * - userInfo: 用户信息，按用户ID缓存（@Cacheable在xfjy-user-service的UserInfoApiImpl中声明）
  * - announcement: 公告列表，按分页参数缓存（@Cacheable在AnnouncementService中声明）
  */
 @Configuration

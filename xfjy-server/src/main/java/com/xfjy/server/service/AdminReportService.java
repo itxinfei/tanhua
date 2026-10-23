@@ -3,10 +3,10 @@ package com.xfjy.server.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.xfjy.dubbo.server.api.UserInfoApi;
+import com.xfjy.dubbo.server.pojo.UserInfo;
 import com.xfjy.server.mapper.ReportMapper;
-import com.xfjy.server.mapper.UserInfoMapper;
 import com.xfjy.server.pojo.Report;
-import com.xfjy.server.pojo.UserInfo;
 import com.xfjy.server.utils.AdminThreadLocal;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +24,7 @@ public class AdminReportService {
     private ReportMapper reportMapper;
 
     @Autowired
-    private UserInfoMapper userInfoMapper;
+    private UserInfoApi userInfoApi;
 
     /**
      * 分页查询举报列表
@@ -111,9 +111,7 @@ public class AdminReportService {
     }
 
     private void fillUserInfo(Map<String, Object> item, Long userId, String prefix) {
-        QueryWrapper<UserInfo> infoWrapper = new QueryWrapper<>();
-        infoWrapper.eq("user_id", userId);
-        UserInfo userInfo = this.userInfoMapper.selectOne(infoWrapper);
+        UserInfo userInfo = this.userInfoApi.queryByUserId(userId);
         if (userInfo != null) {
             item.put(prefix + "Nickname", userInfo.getNickName());
             item.put(prefix + "Avatar", userInfo.getLogo());

@@ -1,8 +1,10 @@
 package com.xfjy.server.config;
 
 import com.xfjy.dubbo.server.api.ESUserLocationApi;
+import com.xfjy.dubbo.server.api.HuanXinApi;
 import com.xfjy.dubbo.server.api.QuanZiApi;
 import com.xfjy.dubbo.server.api.RecommendUserApi;
+import com.xfjy.dubbo.server.api.UserInfoApi;
 import com.xfjy.dubbo.server.api.UserLikeApi;
 import com.xfjy.dubbo.server.api.UserLocationApi;
 import com.xfjy.dubbo.server.api.UsersApi;
@@ -19,14 +21,15 @@ import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 /**
  * HTTP Service Client 代理配置
  * 替代原 Dubbo @Reference 远程调用：
- * - 数据服务（xfjy-service-core，18083）：圈子/视频/推荐/位置等 Mongo 数据
- * - 用户关系服务（xfjy-user-service，18090）：好友/喜欢/访客等关系域数据（微服务化阶段二迁出）
+ * - 探花匹配服务（xfjy-match-service，18082）：推荐用户/地理位置/附近的人（阶段三迁出，data-core退役）
+ * - 用户关系服务（xfjy-user-service，18090）：好友/喜欢/访客等关系域数据（微服务化阶段二迁出）+ 用户资料（阶段三迁出）
+ * - 消息/IM服务（xfjy-message-service，18086）：环信集成——好友注册/消息下发（阶段三迁出，原sso HuanXinController契约化）
  */
 @Configuration
 public class HttpServiceProxyConfig {
 
-    @Value("${xfjy.dubbo.service.url:http://127.0.0.1:18083}")
-    private String dubboServiceUrl;
+    @Value("${xfjy.match.service.url:http://127.0.0.1:18082}")
+    private String matchServiceUrl;
 
     @Value("${xfjy.user.service.url:http://127.0.0.1:18090}")
     private String userServiceUrl;
@@ -37,9 +40,12 @@ public class HttpServiceProxyConfig {
     @Value("${xfjy.video.service.url:http://127.0.0.1:18085}")
     private String videoServiceUrl;
 
+    @Value("${xfjy.message.service.url:http://127.0.0.1:18086}")
+    private String messageServiceUrl;
+
     @Bean
-    public HttpServiceProxyFactory httpServiceProxyFactory() {
-        return buildFactory(dubboServiceUrl);
+    public HttpServiceProxyFactory matchServiceProxyFactory() {
+        return buildFactory(matchServiceUrl);
     }
 
     @Bean
@@ -57,6 +63,11 @@ public class HttpServiceProxyConfig {
         return buildFactory(videoServiceUrl);
     }
 
+    @Bean
+    public HttpServiceProxyFactory messageServiceProxyFactory() {
+        return buildFactory(messageServiceUrl);
+    }
+
     private HttpServiceProxyFactory buildFactory(String baseUrl) {
         RestClient restClient = RestClient.builder()
                 .baseUrl(baseUrl)
@@ -66,20 +77,20 @@ public class HttpServiceProxyConfig {
                 .build();
     }
 
-    // ---- 数据服务（18083）----
+    // ---- 探花匹配服务（18082）----
 
     @Bean
-    public RecommendUserApi recommendUserApi(HttpServiceProxyFactory factory) {
+    public RecommendUserApi recommendUserApi(@Qualifier("matchServiceProxyFactory") HttpServiceProxyFactory factory) {
         return factory.createClient(RecommendUserApi.class);
     }
 
     @Bean
-    public UserLocationApi userLocationApi(HttpServiceProxyFactory factory) {
+    public UserLocationApi userLocationApi(@Qualifier("matchServiceProxyFactory") HttpServiceProxyFactory factory) {
         return factory.createClient(UserLocationApi.class);
     }
 
     @Bean
-    public ESUserLocationApi esUserLocationApi(HttpServiceProxyFactory factory) {
+    public ESUserLocationApi esUserLocationApi(@Qualifier("matchServiceProxyFactory") HttpServiceProxyFactory factory) {
         return factory.createClient(ESUserLocationApi.class);
     }
 
@@ -100,6 +111,11 @@ public class HttpServiceProxyConfig {
         return factory.createClient(VisitorsApi.class);
     }
 
+    @Bean
+    public UserInfoApi userInfoApi(@Qualifier("userServiceProxyFactory") HttpServiceProxyFactory factory) {
+        return factory.createClient(UserInfoApi.class);
+    }
+
     // ---- 圈子动态服务（18084）----
 
     @Bean
@@ -112,5 +128,12 @@ public class HttpServiceProxyConfig {
     @Bean
     public VideoApi videoApi(@Qualifier("videoServiceProxyFactory") HttpServiceProxyFactory factory) {
         return factory.createClient(VideoApi.class);
+    }
+
+    // ---- 消息/IM服务（18086）----
+
+    @Bean
+    public HuanXinApi huanXinApi(@Qualifier("messageServiceProxyFactory") HttpServiceProxyFactory factory) {
+        return factory.createClient(HuanXinApi.class);
     }
 }

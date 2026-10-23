@@ -1,0 +1,16 @@
+server:
+  port: 18086
+
+spring:
+  application:
+    name: xfjy-message-service
+  profiles:
+    active: local
+
+# 环信 IM 服务端配置（REST API 对接）
+# TODO: 配置真实环信账号后启用 HuanXinApiImpl 中的 REST 调用逻辑
+huanxin:
+  appkey: xfjy#xfjy
+  client-id: TODO_CLIENT_ID
+  client-secret: TODO_CLIENT_SECRET
+  rest-host: https://a1.easemob.com

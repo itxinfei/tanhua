@@ -1,16 +1,18 @@
 package com.xfjy.server.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.xfjy.dubbo.server.api.HuanXinApi;
 import com.xfjy.dubbo.server.api.QuanZiApi;
+import com.xfjy.dubbo.server.api.UserInfoApi;
 import com.xfjy.dubbo.server.api.UsersApi;
 import com.xfjy.dubbo.server.pojo.Comment;
+import com.xfjy.dubbo.server.pojo.UserInfo;
 import com.xfjy.dubbo.server.pojo.Users;
 import com.xfjy.dubbo.server.vo.PageInfo;
+import com.xfjy.dubbo.server.vo.UserInfoQueryParam;
 import com.xfjy.server.pojo.Announcement;
 import com.xfjy.server.pojo.User;
-import com.xfjy.server.pojo.UserInfo;
 import com.xfjy.server.utils.UserThreadLocal;
 import com.xfjy.server.vo.Contacts;
 import com.xfjy.server.vo.MessageAnnouncement;
@@ -23,11 +25,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,13 +38,10 @@ public class IMService {
     private UsersApi usersApi;
 
     @Autowired
-    private RestTemplate restTemplate;
-
-    @Value("${xfjy.sso.url}")
-    private String ssoUrl;
+    private HuanXinApi huanXinApi;
 
     @Autowired
-    private UserInfoService userInfoService;
+    private UserInfoApi userInfoApi;
 
     @Autowired
     private QuanZiApi quanZiApi;
@@ -63,15 +59,10 @@ public class IMService {
         // 1、保存数据到MongoDB
         this.usersApi.saveUsers(users);
 
-        // 2、好友关系注册到环信
-        String url = ssoUrl + "user/huanxin/contacts/" + users.getUserId() + "/" + users.getFriendId();
-        ResponseEntity<Void> responseEntity = this.restTemplate.postForEntity(url, null, Void.class);
+        // 2、好友关系注册到环信（契约调用 message-service）
+        this.huanXinApi.registerContact(users.getUserId(), users.getFriendId());
 
-        if (responseEntity.getStatusCode().value() == 200) {
-            return true;
-        }
-
-        return false;
+        return true;
     }
 
     public PageResult queryContactsList(Integer page, Integer pageSize, String keyword) {
@@ -93,12 +84,12 @@ public class IMService {
         }
 
         //查询用户（好友）的信息
-        QueryWrapper<UserInfo> queryWrapper = new QueryWrapper<>();
-        queryWrapper.in("user_id", fUserIds);
+        UserInfoQueryParam queryParam = new UserInfoQueryParam();
+        queryParam.setUserIds(fUserIds);
         if (StringUtils.isNotEmpty(keyword)) {
-            queryWrapper.like("nick_name", keyword);
+            queryParam.setNickName(keyword);
         }
-        List<UserInfo> userInfoList = this.userInfoService.queryUserInfoList(queryWrapper);
+        List<UserInfo> userInfoList = this.userInfoApi.queryUserInfoList(queryParam);
 
         List<Contacts> contactsList = new ArrayList<>();
 
@@ -177,9 +168,9 @@ public class IMService {
             userIds.add(comment.getUserId());
         }
 
-        QueryWrapper<UserInfo> queryWrapper = new QueryWrapper<>();
-        queryWrapper.in("user_id", userIds);
-        List<UserInfo> userInfoList = this.userInfoService.queryUserInfoList(queryWrapper);
+        UserInfoQueryParam queryParam = new UserInfoQueryParam();
+        queryParam.setUserIds(userIds);
+        List<UserInfo> userInfoList = this.userInfoApi.queryUserInfoList(queryParam);
 
         List<MessageLike> messageLikeList = new ArrayList<>();
         for (Comment record : records) {

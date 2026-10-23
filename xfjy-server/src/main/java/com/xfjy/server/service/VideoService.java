@@ -1,15 +1,16 @@
 package com.xfjy.server.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.aliyun.oss.OSSClient;
 import com.xfjy.server.config.AliyunConfig;
 import com.xfjy.dubbo.server.api.QuanZiApi;
+import com.xfjy.dubbo.server.api.UserInfoApi;
 import com.xfjy.dubbo.server.api.VideoApi;
+import com.xfjy.dubbo.server.pojo.UserInfo;
 import com.xfjy.dubbo.server.pojo.Video;
 import com.xfjy.dubbo.server.vo.PageInfo;
+import com.xfjy.dubbo.server.vo.UserInfoQueryParam;
 import com.xfjy.server.pojo.User;
-import com.xfjy.server.pojo.UserInfo;
 import com.xfjy.server.utils.UserThreadLocal;
 import com.xfjy.server.vo.PageResult;
 import com.xfjy.server.vo.PicUploadResult;
@@ -33,7 +34,7 @@ public class VideoService {
     private PicUploadService picUploadService;
 
     @Autowired
-    private UserInfoService userInfoService;
+    private UserInfoApi userInfoApi;
 
     @Autowired
     private OSSClient ossClient;
@@ -149,9 +150,9 @@ public class VideoService {
         }
 
 
-        QueryWrapper<UserInfo> queryWrapper = new QueryWrapper();
-        queryWrapper.in("user_id", userIds);
-        List<UserInfo> userInfos = this.userInfoService.queryUserInfoList(queryWrapper);
+        UserInfoQueryParam queryParam = new UserInfoQueryParam();
+        queryParam.setUserIds(userIds);
+        List<UserInfo> userInfos = this.userInfoApi.queryUserInfoList(queryParam);
         for (VideoVo videoVo : videoVoList) {
             for (UserInfo userInfo : userInfos) {
                 if (videoVo.getUserId().longValue() == userInfo.getUserId().longValue()) {
@@ -201,6 +202,15 @@ public class VideoService {
         this.redisTemplate.delete(followUserKey);
 
         return true;
+    }
+
+    /**
+     * 记录视频操作评分事件（type：2-点赞，3-取消点赞，4-评论），
+     * 由视频服务内部发送 xfjy-video 消息
+     */
+    public void recordVideoMsg(String videoId, Integer type) {
+        User user = UserThreadLocal.get();
+        this.videoApi.recordVideoMsg(user.getId(), videoId, type);
     }
 
     private String getVideoFilePath(String sourceFileName) {

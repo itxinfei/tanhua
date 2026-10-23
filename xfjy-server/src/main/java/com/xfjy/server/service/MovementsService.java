@@ -1,14 +1,15 @@
 package com.xfjy.server.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xfjy.dubbo.server.api.QuanZiApi;
+import com.xfjy.dubbo.server.api.UserInfoApi;
 import com.xfjy.dubbo.server.api.VisitorsApi;
 import com.xfjy.dubbo.server.pojo.Publish;
+import com.xfjy.dubbo.server.pojo.UserInfo;
 import com.xfjy.dubbo.server.pojo.Visitors;
 import com.xfjy.dubbo.server.vo.PageInfo;
+import com.xfjy.dubbo.server.vo.UserInfoQueryParam;
 import com.xfjy.server.pojo.User;
-import com.xfjy.server.pojo.UserInfo;
 import com.xfjy.server.utils.RelativeDateFormat;
 import com.xfjy.server.utils.UserThreadLocal;
 import com.xfjy.server.vo.Movements;
@@ -37,7 +38,7 @@ public class MovementsService {
     private PicUploadService picUploadService;
 
     @Autowired
-    private UserInfoService userInfoService;
+    private UserInfoApi userInfoApi;
 
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
@@ -188,9 +189,9 @@ public class MovementsService {
         }
 
 
-        QueryWrapper<UserInfo> userInfoQueryWrapper = new QueryWrapper<>();
-        userInfoQueryWrapper.in("user_id", userIds);
-        List<UserInfo> userInfoList = this.userInfoService.queryUserInfoList(userInfoQueryWrapper);
+        UserInfoQueryParam queryParam = new UserInfoQueryParam();
+        queryParam.setUserIds(userIds);
+        List<UserInfo> userInfoList = this.userInfoApi.queryUserInfoList(queryParam);
 
         for (Movements movements : movementsList) {
             for (UserInfo userInfo : userInfoList) {
@@ -320,6 +321,14 @@ public class MovementsService {
         return movementsList.get(0);
     }
 
+    /**
+     * 记录动态浏览（评分事件 type=2，由圈子服务内部发送 xfjy-quanzi 消息）
+     */
+    public void recordPublishView(String publishId) {
+        User user = UserThreadLocal.get();
+        this.quanZiApi.recordPublishView(user.getId(), publishId);
+    }
+
     public List<VisitorsVo> queryVisitorsList() {
         User user = UserThreadLocal.get();
 
@@ -344,9 +353,9 @@ public class MovementsService {
             userIds.add(visitor.getVisitorUserId());
         }
 
-        QueryWrapper<UserInfo> queryWrapper = new QueryWrapper<>();
-        queryWrapper.in("user_id", userIds);
-        List<UserInfo> userInfoList = this.userInfoService.queryUserInfoList(queryWrapper);
+        UserInfoQueryParam queryParam = new UserInfoQueryParam();
+        queryParam.setUserIds(userIds);
+        List<UserInfo> userInfoList = this.userInfoApi.queryUserInfoList(queryParam);
 
         List<VisitorsVo> result = new ArrayList<>();
 
