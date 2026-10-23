@@ -122,6 +122,48 @@ public class HuanXinApiImpl implements HuanXinApi {
     }
 
     /**
+     * 获取环信用户级 token（grant_type=password 模式）
+     * 供前端 IM SDK 5.x login({userId, token}) 使用
+     *
+     * POST {restHost}/{org}/{app}/token
+     * body: { "grant_type": "password", "username": ..., "password": ... }
+     */
+    @Override
+    @PostMapping("/user-token")
+    public String getUserToken(@RequestParam("username") String username,
+                               @RequestParam("password") String password) {
+        try {
+            String url = buildUrl("token");
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            Map<String, String> body = new HashMap<>();
+            body.put("grant_type", "password");
+            body.put("username", username);
+            body.put("password", password);
+
+            ResponseEntity<String> resp = restTemplate.postForEntity(url,
+                    new HttpEntity<>(MAPPER.writeValueAsString(body), headers), String.class);
+            if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
+                log.error("[环信] 获取用户token失败, username={}, status={}", username, resp.getStatusCode());
+                return null;
+            }
+
+            JsonNode node = MAPPER.readTree(resp.getBody());
+            String accessToken = node.path("access_token").asString(null);
+            if (accessToken == null) {
+                log.error("[环信] 用户token响应缺少access_token: {}", resp.getBody());
+                return null;
+            }
+            log.info("[环信] 获取用户token成功, username={}", username);
+            return accessToken;
+        } catch (Exception e) {
+            log.error("[环信] 获取用户token异常, username={}", username, e);
+            return null;
+        }
+    }
+
+    /**
      * 获取环信应用级 token（client_credentials 模式），带缓存
      *
      * POST {restHost}/{org}/{app}/token

@@ -90,6 +90,24 @@
 			"style": {
 				"navigationBarTitleText": "设置"
 			}
+		},
+		{
+			"path": "pages/match/guide",
+			"style": {
+				"navigationBarTitleText": "完善资料"
+			}
+		},
+		{
+			"path": "pages/mine/friends",
+			"style": {
+				"navigationBarTitleText": "好友关系"
+			}
+		},
+		{
+			"path": "pages/mine/blacklist",
+			"style": {
+				"navigationBarTitleText": "黑名单"
+			}
 		}
 	],
 	"globalStyle": {

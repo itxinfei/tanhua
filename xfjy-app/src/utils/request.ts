@@ -4,7 +4,7 @@
  */
 
 // 后端服务地址（按环境切换）
-const BASE_URL: string =
+export const BASE_URL: string =
   import.meta.env.MODE === "production"
     ? "https://api.xfjy.com"
     : "http://localhost:8080"; // 统一走网关，由网关路由到 sso/server
@@ -125,5 +125,53 @@ export const put = <T = any>(url: string, data?: Record<string, any>) =>
 
 export const del = <T = any>(url: string) =>
   request<T>({ url, method: "DELETE" });
+
+/**
+ * 文件上传（multipart/form-data）
+ * 用于发布动态、发布视频等含文件的接口
+ *
+ * @param url       接口路径
+ * @param filePaths  本地文件路径列表
+ * @param fileField  文件字段名（与后端 @RequestParam 对应）
+ * @param formData   附加表单字段
+ * @returns 请求结果
+ */
+export function upload<T = any>(
+  url: string,
+  filePaths: string[],
+  fileField: string,
+  formData?: Record<string, any>
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const token = getToken();
+    const header: Record<string, string> = {};
+    if (token) {
+      header["Authorization"] = `Bearer ${token}`;
+    }
+
+    uni.uploadFile({
+      url: BASE_URL + url,
+      files: filePaths.map((filePath) => ({
+        name: fileField,
+        uri: filePath,
+      })),
+      formData,
+      header,
+      success: (res: any) => {
+        if (res.statusCode >= 400) {
+          uni.showToast({ title: `上传失败(${res.statusCode})`, icon: "none" });
+          reject(new Error(`HTTP ${res.statusCode}`));
+          return;
+        }
+        const body = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
+        resolve(body.data !== undefined ? body.data : (body as unknown as T));
+      },
+      fail: (err: any) => {
+        uni.showToast({ title: "网络异常，请检查网络", icon: "none" });
+        reject(err);
+      },
+    });
+  });
+}
 
 export default request;

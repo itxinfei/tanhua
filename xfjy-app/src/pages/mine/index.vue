@@ -17,23 +17,19 @@
         <text class="edit-arrow">›</text>
       </view>
 
-      <!-- 数据栏 -->
+      <!-- 数据栏（与后端 CountsVo 对齐：eachLoveCount/loveCount/fanCount） -->
       <view class="stats-row">
-        <view class="stat-item">
-          <text class="stat-num">{{ stats.dynamicCount }}</text>
-          <text class="stat-label">动态</text>
+        <view class="stat-item" @click="goFriends(FRIEND_TYPE.MUTUAL)">
+          <text class="stat-num">{{ counts.eachLoveCount }}</text>
+          <text class="stat-label">互相喜欢</text>
         </view>
-        <view class="stat-item">
-          <text class="stat-num">{{ stats.followCount }}</text>
-          <text class="stat-label">关注</text>
+        <view class="stat-item" @click="goFriends(FRIEND_TYPE.FOLLOW)">
+          <text class="stat-num">{{ counts.loveCount }}</text>
+          <text class="stat-label">我喜欢</text>
         </view>
-        <view class="stat-item">
-          <text class="stat-num">{{ stats.fansCount }}</text>
+        <view class="stat-item" @click="goFriends(FRIEND_TYPE.FANS)">
+          <text class="stat-num">{{ counts.fanCount }}</text>
           <text class="stat-label">粉丝</text>
-        </view>
-        <view class="stat-item">
-          <text class="stat-num">{{ stats.likeCount }}</text>
-          <text class="stat-label">获赞</text>
         </view>
       </view>
     </view>
@@ -53,28 +49,38 @@
     <!-- 功能列表 -->
     <view class="menu-group">
       <view class="menu-item" @click="goPage('/pages/mine/profile')">
-        <text class="menu-icon">📷</text>
-        <text class="menu-label">我的相册</text>
+        <text class="menu-icon">✏️</text>
+        <text class="menu-label">编辑资料</text>
         <text class="menu-arrow">›</text>
       </view>
-      <view class="menu-item" @click="goNotifications('visitors')">
+      <view class="menu-item" @click="goFriends(FRIEND_TYPE.MUTUAL)">
+        <text class="menu-icon">👥</text>
+        <text class="menu-label">我的好友</text>
+        <text class="menu-arrow">›</text>
+      </view>
+      <view class="menu-item" @click="goFriends(FRIEND_TYPE.VISITOR)">
         <text class="menu-icon">👁</text>
         <text class="menu-label">谁看过我</text>
         <text class="menu-arrow">›</text>
       </view>
-      <view class="menu-item" @click="goNotifications('like')">
+      <view class="menu-item" @click="goFriends(FRIEND_TYPE.FOLLOW)">
         <text class="menu-icon">♥</text>
         <text class="menu-label">我喜欢</text>
         <text class="menu-arrow">›</text>
       </view>
-      <view class="menu-item" @click="goNotifications('fans')">
-        <text class="menu-icon">👥</text>
+      <view class="menu-item" @click="goFriends(FRIEND_TYPE.FANS)">
+        <text class="menu-icon">🙋</text>
         <text class="menu-label">粉丝</text>
         <text class="menu-arrow">›</text>
       </view>
     </view>
 
     <view class="menu-group">
+      <view class="menu-item" @click="goPage('/pages/mine/blacklist')">
+        <text class="menu-icon">🚫</text>
+        <text class="menu-label">黑名单</text>
+        <text class="menu-arrow">›</text>
+      </view>
       <view class="menu-item" @click="goPage('/pages/mine/settings')">
         <text class="menu-icon">⚙</text>
         <text class="menu-label">设置</text>
@@ -88,16 +94,17 @@
 import { ref, computed } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import { useUserStore } from "@/store/user";
+import { getRelationCounts, FRIEND_TYPE, type RelationCounts } from "@/api/mine";
 
 const userStore = useUserStore();
 const userInfo = computed(() => userStore.userInfo);
 const statusBarHeight = ref(0);
 
-const stats = ref({
-  dynamicCount: 0,
-  followCount: 0,
-  fansCount: 0,
-  likeCount: 0,
+/** 关系统计（与后端 CountsVo 对齐） */
+const counts = ref<RelationCounts>({
+  eachLoveCount: 0,
+  loveCount: 0,
+  fanCount: 0,
 });
 
 function goProfile() {
@@ -112,14 +119,29 @@ function goPage(url: string) {
   uni.navigateTo({ url });
 }
 
-function goNotifications(type: string) {
-  uni.navigateTo({ url: `/pages/chat/notifications?type=${type}` });
+/**
+ * 跳转好友关系页
+ * @param type 关系类型：1互相关注 2我关注 3粉丝 4谁看过我
+ */
+function goFriends(type: string) {
+  uni.navigateTo({ url: `/pages/mine/friends?type=${type}` });
+}
+
+/**
+ * 加载关系统计
+ */
+async function loadCounts() {
+  try {
+    counts.value = await getRelationCounts();
+  } catch {
+    // 请求失败由 request 层统一 toast
+  }
 }
 
 onShow(() => {
   const sysInfo = uni.getSystemInfoSync();
   statusBarHeight.value = sysInfo.statusBarHeight || 20;
-  // TODO: 对接 GET /users/counts 加载统计数据
+  loadCounts();
 });
 </script>
 

@@ -6,13 +6,14 @@ spring:
     name: xfjy-video-service
   data:
     mongodb:
-      uri: mongodb://127.0.0.1:27017/xfjy
+      uri: mongodb://192.168.20.130:27017/xfjy
     redis:
-      host: 127.0.0.1
+      host: 192.168.20.130
       port: 6379
+      password: 123456
       database: 0
 
 rocketmq:
-  name-server: 127.0.0.1:9876
+  name-server: 192.168.20.130:9876
   producer:
     group: xfjy-video

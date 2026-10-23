@@ -2,7 +2,7 @@ spring:
   application:
     name: xfjy-elasticsearch
   elasticsearch:
-    uris: http://127.0.0.1:9200
+    uris: http://192.168.20.130:9200
     connection-timeout: 5s
     socket-timeout: 30s
 
