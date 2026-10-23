@@ -2,12 +2,12 @@ spring:
   application:
     name: xfjy-elasticsearch
   elasticsearch:
-    uris: http://172.168.20.221:9200
+    uris: http://127.0.0.1:9200
     connection-timeout: 5s
     socket-timeout: 30s
 
 server:
-  port: 18084
+  port: 18088
 
 logging:
   level:

@@ -1,5 +1,5 @@
 server:
-  port: 18082
+  port: 18087
 
 spring:
   application:
@@ -8,7 +8,7 @@ spring:
     mongodb:
       uri: mongodb://127.0.0.1:27017/xfjy
     redis:
-      host: 172.168.20.221
+      host: 127.0.0.1
       port: 6379
       database: 0
       timeout: 10s
@@ -18,8 +18,8 @@ spring:
           max-idle: 100
           min-idle: 10
 
-# RocketMQ
+# RocketMQ（与 circle/video 生产端同集群，消费 xfjy-quanzi / xfjy-video topic）
 rocketmq:
-  name-server: 172.168.20.221:9876
+  name-server: 127.0.0.1:9876
   producer:
     group: xfjy-recommend

@@ -17,8 +17,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
+
+import java.time.Duration;
 
 
 @Component
@@ -33,6 +36,9 @@ public class QuanZiMsgConsumer implements RocketMQListener<String> {
     @Autowired
     private MongoTemplate mongoTemplate;
 
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
     @Override
     public void onMessage(String msg) {
         try {
@@ -43,6 +49,14 @@ public class QuanZiMsgConsumer implements RocketMQListener<String> {
             Long date = jsonNode.get("date").asLong();
             Long userId = jsonNode.get("userId").asLong();
             Long pid = jsonNode.get("pid").asLong();
+
+            // 幂等去重：同一事件（publishId+userId+type+date）只处理一次，TTL 24h
+            String dedupKey = "mq:dedup:quanzi:" + publishId + ":" + userId + ":" + type + ":" + date;
+            Boolean first = this.stringRedisTemplate.opsForValue().setIfAbsent(dedupKey, "1", Duration.ofHours(24));
+            if (Boolean.FALSE.equals(first)) {
+                LOGGER.info("圈子评分重复消息已忽略, key={}", dedupKey);
+                return;
+            }
 
             RecommendQuanZi recommendQuanZi = new RecommendQuanZi();
             recommendQuanZi.setPublishId(pid);

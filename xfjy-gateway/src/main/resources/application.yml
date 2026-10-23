@@ -22,4 +22,7 @@ spring:
           uri: http://localhost:18081
           predicates:
             - Path=/users/**,/movements/**,/comments/**,/messages/**,/smallVideos/**,/huanxin/**,/baidu/**,/xfjy/**,/admin/**
-        # TODO 阶段二/三：新增 user-service 18081(拆出后改端口)、match 18082、circle 18084、video 18085、message 18086 路由
+        # 编排层(BFF)决策：前端业务请求统一经 gateway → server(18081)，server 通过 @HttpExchange 契约代理
+        # 调用各域服务(user 18090 / match 18082 / circle 18084 / video 18085 / message 18086)，
+        # gateway 不直连各域服务，避免跨域聚合逻辑散落到前端。接入 Nacos 后改为 lb://xfjy-server。
+        # 辅助服务：recommend 18087(评分计算) / elasticsearch 18088(附近的人ES查询)，仅内部调用不走网关。
