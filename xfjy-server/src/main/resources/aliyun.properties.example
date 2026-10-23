@@ -1,0 +1,8 @@
+# 阿里云OSS配置模板——复制为 aliyun.properties 并填入真实凭证
+# aliyun.properties 已加入 .gitignore，不会被提交到仓库
+# 凭证来源：阿里云控制台 -> AccessKey管理
+aliyun.endpoint = http://oss-cn-<region>.aliyuncs.com
+aliyun.accessKeyId = YOUR_ACCESS_KEY_ID
+aliyun.accessKeySecret = YOUR_ACCESS_KEY_SECRET
+aliyun.bucketName = your-bucket-name
+aliyun.urlPrefix = http://your-bucket-name.oss-cn-<region>.aliyuncs.com/
