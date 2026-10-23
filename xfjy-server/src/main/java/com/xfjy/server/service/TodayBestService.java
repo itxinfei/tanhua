@@ -101,13 +101,11 @@ public class TodayBestService {
         PageInfo<RecommendUser> pageInfo = this.recommendUserService.queryRecommendUserList(user.getId(), queryParam.getPage(), queryParam.getPagesize());
         List<RecommendUser> records = pageInfo.getRecords();
 
-        // 如果未查询到，需要使用默认推荐列表
-        // TODO 默认推荐列表可以考虑用个缓存
+        // 如果未查询到，需要使用默认推荐列表（解析结果已缓存，避免每次请求重复拆分配置字符串）
         if (CollectionUtils.isEmpty(records)) {
-            String[] ss = StringUtils.split(defaultRecommendUsers, ',');
-            for (String s : ss) {
+            for (Long defaultUserId : getDefaultRecommendUserIds()) {
                 RecommendUser recommendUser = new RecommendUser();
-                recommendUser.setUserId(Long.valueOf(s));
+                recommendUser.setUserId(defaultUserId);
                 recommendUser.setToUserId(user.getId());
                 recommendUser.setScore(RandomUtils.nextDouble(70, 98));
 
@@ -124,12 +122,14 @@ public class TodayBestService {
         UserInfoQueryParam userInfoQueryParam = new UserInfoQueryParam();
         userInfoQueryParam.setUserIds(userIds); //用户id
 
+        // 按年龄筛选（eq 精确匹配）
         if (queryParam.getAge() != null) {
-            //TODO 年龄条件待契约API扩展后启用
+            userInfoQueryParam.setAge(queryParam.getAge());
         }
 
+        // 按城市筛选（eq 精确匹配）
         if (StringUtils.isNotEmpty(queryParam.getCity())) {
-            //TODO 城市条件待契约API扩展后启用
+            userInfoQueryParam.setCity(queryParam.getCity());
         }
 
         //需要查询用户的信息，并且按照条件查询
@@ -354,5 +354,26 @@ public class TodayBestService {
     public Boolean disLikeUser(Long likeUserId) {
         User user = UserThreadLocal.get();
         return this.userLikeApi.deleteUserLike(user.getId(), likeUserId);
+    }
+
+    /**
+     * 默认推荐用户ID缓存（避免每次请求重复拆分配置字符串）
+     */
+    private volatile List<Long> defaultRecommendUserIdsCache;
+
+    private List<Long> getDefaultRecommendUserIds() {
+        if (defaultRecommendUserIdsCache == null) {
+            synchronized (this) {
+                if (defaultRecommendUserIdsCache == null) {
+                    List<Long> ids = new ArrayList<>();
+                    String[] ss = StringUtils.split(defaultRecommendUsers, ',');
+                    for (String s : ss) {
+                        ids.add(Long.valueOf(s));
+                    }
+                    defaultRecommendUserIdsCache = Collections.unmodifiableList(ids);
+                }
+            }
+        }
+        return defaultRecommendUserIdsCache;
     }
 }
