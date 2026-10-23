@@ -337,18 +337,26 @@ public class TodayBestService {
         }
     }
 
+    /**
+     * 喜欢用户（探花右滑/超级喜欢）
+     * 保存喜欢关系，若互相喜欢则自动注册为环信好友
+     *
+     * @param likeUserId 被喜欢的用户ID
+     * @return null=保存失败；true=互相喜欢（匹配成功）；false=单方面喜欢
+     */
     public Boolean likeUser(Long likeUserId) {
         User user = UserThreadLocal.get();
         String id = this.userLikeApi.saveUserLike(user.getId(), likeUserId);
         if (StringUtils.isEmpty(id)) {
-            return false;
+            return null;
         }
 
-        if (this.userLikeApi.isMutualLike(user.getId(), likeUserId)) {
-            //相互喜欢成为好友
+        boolean mutualLike = this.userLikeApi.isMutualLike(user.getId(), likeUserId);
+        if (mutualLike) {
+            // 相互喜欢成为好友（注册环信联系人）
             this.imService.contactUser(likeUserId);
         }
-        return true;
+        return mutualLike;
     }
 
     public Boolean disLikeUser(Long likeUserId) {

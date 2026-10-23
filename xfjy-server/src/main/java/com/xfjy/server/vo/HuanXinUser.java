@@ -10,5 +10,5 @@ import lombok.NoArgsConstructor;
 public class HuanXinUser {
 
     private String username;
-    private String password;
+    private String token;
 }

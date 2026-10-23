@@ -32,7 +32,7 @@
         <!-- 主图 -->
         <image
           class="card-image"
-          :src="card.photos[0] || card.avatar"
+          :src="card.avatar"
           mode="aspectFill"
         />
         <!-- 底部渐变遮罩 -->
@@ -42,13 +42,10 @@
           <view class="name-row">
             <text class="nickname">{{ card.nickname }}</text>
             <text class="age">{{ card.age }}</text>
-            <view v-if="card.verified" class="verified-badge">✓</view>
           </view>
-          <view class="meta-row">
-            <text v-if="card.city">{{ card.city }}</text>
-            <text v-if="card.distance"> · {{ formatDistance(card.distance) }}</text>
+          <view v-if="card.fateValue" class="meta-row">
+            <text>缘分值 {{ card.fateValue }}</text>
           </view>
-          <view v-if="card.signature" class="signature">{{ card.signature }}</view>
           <!-- 标签 -->
           <view v-if="card.tags && card.tags.length" class="tags">
             <text v-for="tag in card.tags.slice(0, 3)" :key="tag" class="tag">{{ tag }}</text>
@@ -105,11 +102,19 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { onShow } from "@dcloudio/uni-app";
-import { useMatchStore, type MatchCard, type MatchResult } from "@/store/match";
+import { useMatchStore } from "@/store/match";
+import { getCards, type TodayBest } from "@/api/match";
 import { useUserStore } from "@/store/user";
 
 const matchStore = useMatchStore();
 const userStore = useUserStore();
+
+/** 匹配成功弹窗数据（后端 love 接口无匹配结果返回，保留 UI 供后续消息推送触发） */
+interface MatchPopupData {
+  userId: number | string;
+  nickname: string;
+  avatar: string;
+}
 
 // 状态栏高度（自定义导航栏适配）
 const statusBarHeight = ref(0);
@@ -117,7 +122,7 @@ const currentCity = ref("北京");
 const showCityPicker = ref(false);
 
 // 卡片数据
-const cardList = ref<MatchCard[]>([]);
+const cardList = ref<TodayBest[]>([]);
 const loading = ref(false);
 
 // 滑动手势状态
@@ -129,7 +134,7 @@ const touchStartY = ref(0);
 const currentCardIndex = ref(0); // 当前顶部卡片在 cardList 中的索引
 
 // 匹配弹窗
-const matchPopup = ref<MatchResult | null>(null);
+const matchPopup = ref<MatchPopupData | null>(null);
 
 // 可见卡片（最多显示 3 张）
 const visibleCards = computed(() => {
@@ -211,15 +216,18 @@ async function swipeOut(action: "like" | "dislike" | "superlike") {
   dragX.value = flyX;
   dragY.value = action === "superlike" ? -800 : 50;
 
-  // 上报滑动
+  // 上报滑动，互相喜欢时弹出匹配成功窗
   try {
-    const result = await matchStore.doSwipe(card.id, action);
-    if (result) {
-      // 匹配成功！
-      matchPopup.value = result;
+    const matched = await matchStore.doSwipe(card.id, action);
+    if (matched) {
+      matchPopup.value = {
+        userId: card.id,
+        nickname: card.nickname,
+        avatar: card.avatar,
+      };
     }
   } catch {
-    // 静默处理
+    // 静默处理，不影响滑动手感
   }
 
   // 延迟移除卡片
@@ -267,20 +275,17 @@ function goNearby() {
   uni.navigateTo({ url: "/pages/match/nearby" });
 }
 
-// ===== 工具函数 =====
-function formatDistance(km: number): string {
-  if (km < 1) return `${Math.round(km * 1000)}m`;
-  return `${km.toFixed(1)}km`;
-}
-
 // ===== 数据加载 =====
 async function loadMoreCards() {
   if (loading.value) return;
   loading.value = true;
   try {
-    // TODO: 对接后端接口，当前使用模拟数据
-    // const newCards = await matchStore.loadCards();
-    // cardList.value.push(...newCards);
+    const newCards = await getCards();
+    if (newCards && newCards.length > 0) {
+      cardList.value.push(...newCards);
+    }
+  } catch {
+    // 请求失败由 request 层统一 toast
   } finally {
     loading.value = false;
   }
@@ -403,30 +408,12 @@ onShow(() => {
         font-size: 30rpx;
         color: rgba(255, 255, 255, 0.9);
       }
-
-      .verified-badge {
-        width: 32rpx;
-        height: 32rpx;
-        background: #ff5e8e;
-        border-radius: 50%;
-        color: #fff;
-        font-size: 20rpx;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
     }
 
     .meta-row {
       font-size: 26rpx;
       color: rgba(255, 255, 255, 0.8);
       margin-top: 8rpx;
-    }
-
-    .signature {
-      font-size: 26rpx;
-      color: rgba(255, 255, 255, 0.9);
-      margin-top: 12rpx;
     }
 
     .tags {

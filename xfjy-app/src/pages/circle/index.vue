@@ -28,35 +28,34 @@
           <image class="avatar" :src="item.avatar" mode="aspectFill" />
           <view class="user-info">
             <text class="nickname">{{ item.nickname }}</text>
-            <text class="meta">{{ item.time }} · {{ item.location || '未知位置' }}</text>
+            <text class="meta">{{ item.createDate }} · {{ item.location || '未知位置' }}</text>
           </view>
         </view>
         <!-- 文字内容 -->
-        <view v-if="item.content" class="post-content ellipsis-2">{{ item.content }}</view>
+        <view v-if="item.textContent" class="post-content ellipsis-2">{{ item.textContent }}</view>
         <!-- 九宫格图片 -->
-        <view v-if="item.images && item.images.length" class="image-grid" :class="`grid-${Math.min(item.images.length, 3)}`">
+        <view v-if="item.medias && item.medias.length" class="image-grid" :class="`grid-${Math.min(item.medias.length, 3)}`">
           <image
-            v-for="(img, i) in item.images.slice(0, 9)"
+            v-for="(img, i) in item.medias.slice(0, 9)"
             :key="i"
             class="grid-image"
             :src="img"
             mode="aspectFill"
-            @click="previewImage(item.images, i)"
+            @click="previewImage(item.medias, i)"
           />
         </view>
         <!-- 互动栏 -->
         <view class="action-row">
           <view class="action" @click="handleLike(item)">
-            <text :class="{ liked: item.liked }">{{ item.liked ? '❤️' : '🤍' }}</text>
-            <text class="count">{{ item.likeCount || '' }}</text>
+            <text :class="{ liked: item.hasLiked }">{{ item.hasLiked ? '❤️' : '🤍' }}</text>
+            <text class="count">{{ item.loveLikeCount || '' }}</text>
           </view>
           <view class="action" @click="goDetail(item)">
             <text>💬</text>
             <text class="count">{{ item.commentCount || '' }}</text>
           </view>
           <view class="action" @click="handleLove(item)">
-            <text :class="{ loved: item.loved }">🌟</text>
-            <text class="count">{{ item.loveCount || '' }}</text>
+            <text :class="{ loved: item.hasLoved }">{{ item.hasLoved ? '🌟' : '✨' }}</text>
           </view>
         </view>
       </view>
@@ -67,45 +66,46 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed } from "vue";
 import { onShow } from "@dcloudio/uni-app";
+import { useCircleStore } from "@/store/circle";
+import type { Movement } from "@/api/circle";
+
+const circleStore = useCircleStore();
 
 const tabs = [
-  { key: "friends", label: "好友" },
+  { key: "friend", label: "好友" },
   { key: "recommend", label: "推荐" },
-];
-const activeTab = ref("friends");
-const loading = ref(false);
-const page = ref(1);
+] as const;
 
-interface PostItem {
-  id: string;
-  nickname: string;
-  avatar: string;
-  content: string;
-  images: string[];
-  time: string;
-  location: string;
-  liked: boolean;
-  loved: boolean;
-  likeCount: number;
-  commentCount: number;
-  loveCount: number;
-}
-const feedList = ref<PostItem[]>([]);
+/** 当前 Tab */
+const activeTab = computed(() => circleStore.activeTab);
+/** 当前 Tab 的动态列表 */
+const feedList = computed<Movement[]>(() =>
+  circleStore.activeTab === "friend"
+    ? circleStore.friendMovements
+    : circleStore.recommendMovements
+);
+/** 加载状态 */
+const loading = computed(() => circleStore.loading);
 
-function switchTab(key: string) {
-  activeTab.value = key;
-  page.value = 1;
-  feedList.value = [];
-  loadFeed();
+/**
+ * 切换 Tab（目标 Tab 无数据时才加载）
+ */
+function switchTab(key: "friend" | "recommend") {
+  if (circleStore.activeTab === key) return;
+  circleStore.switchTab(key);
+  const targetList = key === "friend" ? circleStore.friendMovements : circleStore.recommendMovements;
+  if (targetList.length === 0) {
+    loadFeed();
+  }
 }
 
 function goPublish() {
   uni.navigateTo({ url: "/pages/circle/publish" });
 }
 
-function goDetail(item: PostItem) {
+function goDetail(item: Movement) {
   uni.navigateTo({ url: `/pages/circle/detail?id=${item.id}` });
 }
 
@@ -113,31 +113,56 @@ function previewImage(images: string[], index: number) {
   uni.previewImage({ urls: images, current: images[index] });
 }
 
-async function handleLike(item: PostItem) {
-  item.liked = !item.liked;
-  item.likeCount += item.liked ? 1 : -1;
-  // TODO: 对接 POST /movements/{id}/like | /movements/{id}/dislike
-}
-
-async function handleLove(item: PostItem) {
-  item.loved = !item.loved;
-  item.loveCount += item.loved ? 1 : -1;
-  // TODO: 对接 POST /movements/{id}/love | /movements/{id}/unlove
-}
-
-async function loadFeed() {
-  if (loading.value) return;
-  loading.value = true;
+/**
+ * 点赞/取消点赞（乐观更新由 store 处理）
+ */
+async function handleLike(item: Movement) {
   try {
-    // TODO: 对接 GET /movements（好友）或 GET /movements/recommend（推荐）
-  } finally {
-    loading.value = false;
+    await circleStore.toggleLike(item.id);
+  } catch {
+    // 请求失败由 request 层统一 toast
   }
 }
 
-function loadMore() {
-  page.value++;
-  loadFeed();
+/**
+ * 喜欢/取消喜欢（乐观更新由 store 处理）
+ */
+async function handleLove(item: Movement) {
+  try {
+    await circleStore.toggleLove(item.id);
+  } catch {
+    // 请求失败由 request 层统一 toast
+  }
+}
+
+/**
+ * 加载当前 Tab 首页动态
+ */
+async function loadFeed() {
+  try {
+    if (circleStore.activeTab === "friend") {
+      await circleStore.loadFriendMovements();
+    } else {
+      await circleStore.loadRecommendMovements();
+    }
+  } catch {
+    // 请求失败由 request 层统一 toast
+  }
+}
+
+/**
+ * 上拉加载更多
+ */
+async function loadMore() {
+  try {
+    if (circleStore.activeTab === "friend") {
+      await circleStore.loadMoreFriendMovements();
+    } else {
+      await circleStore.loadMoreRecommendMovements();
+    }
+  } catch {
+    // 请求失败由 request 层统一 toast
+  }
 }
 
 onShow(() => {

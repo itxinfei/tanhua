@@ -1,46 +1,37 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { getCards, swipeCard } from "@/api/match";
+import { getCards, loveUser, unloveUser, getTodayBest, type TodayBest } from "@/api/match";
 
-// 推荐卡片类型
-export interface MatchCard {
-  id: number | string;
-  nickname: string;
-  avatar: string;
-  gender: string;
-  age: number;
-  city: string;
-  distance: number; // 距离 km
-  signature: string;
-  photos: string[]; // 照片轮播
-  verified: boolean;
-  tags: string[]; // 个人标签
-}
+/** 每日免费滑动上限 */
+const MAX_FREE_SWIPE = 50;
 
-// 匹配成功信息
-export interface MatchResult {
-  matched: boolean;
-  userId: number | string;
-  nickname: string;
-  avatar: string;
-}
-
+/**
+ * 匹配模块状态管理
+ * 负责探花卡片加载、滑动上报、今日佳人缓存
+ */
 export const useMatchStore = defineStore("match", () => {
   // ===== state =====
-  const cards = ref<MatchCard[]>([]);
-  const todayBest = ref<MatchCard | null>(null);
+  /** 探花卡片列表 */
+  const cards = ref<TodayBest[]>([]);
+  /** 今日佳人 */
+  const todayBest = ref<TodayBest | null>(null);
+  /** 加载状态 */
   const loading = ref(false);
-  const swipeCount = ref(0); // 今日已滑动次数
-  const maxSwipe = ref(50); // 免费用户每日上限
+  /** 今日已滑动次数 */
+  const swipeCount = ref(0);
 
   // ===== actions =====
-  /** 加载推荐卡片 */
-  async function loadCards(): Promise<void> {
-    if (loading.value) return;
+  /**
+   * 加载探花卡片列表（追加模式）
+   * @returns 新加载的卡片列表
+   */
+  async function loadCards(): Promise<TodayBest[]> {
+    if (loading.value) return [];
     loading.value = true;
     try {
-      const res = await getCards();
-      cards.value = res;
+      const list = await getCards();
+      cards.value.push(...list);
+      return list;
     } finally {
       loading.value = false;
     }
@@ -48,27 +39,46 @@ export const useMatchStore = defineStore("match", () => {
 
   /**
    * 上报滑动动作
+   * like/superlike → love 接口；dislike → unlove 接口
    * @param userId 对方用户ID
-   * @param action like / dislike / superlike
-   * @returns 匹配结果（null 表示未匹配）
+   * @param action 滑动动作：like | dislike | superlike
+   * @returns true=互相喜欢（匹配成功）
    */
   async function doSwipe(
     userId: number | string,
     action: "like" | "dislike" | "superlike"
-  ): Promise<MatchResult | null> {
+  ): Promise<boolean> {
     swipeCount.value++;
-    const res = await swipeCard(userId, action);
-    return res.matched ? res : null;
+    if (action === "dislike") {
+      await unloveUser(userId);
+      return false;
+    }
+    return await loveUser(userId);
   }
 
-  /** 加载今日佳人 */
+  /**
+   * 加载今日佳人
+   */
   async function loadTodayBest(): Promise<void> {
-    // TODO: 对接 GET /match/todayBest
+    todayBest.value = await getTodayBest();
   }
 
-  /** 判断是否还有滑动次数 */
+  /**
+   * 判断是否还有免费滑动次数
+   * @returns true 表示可以继续滑动
+   */
   function canSwipe(): boolean {
-    return swipeCount.value < maxSwipe.value;
+    return swipeCount.value < MAX_FREE_SWIPE;
+  }
+
+  /**
+   * 重置状态（登出时调用）
+   */
+  function clear(): void {
+    cards.value = [];
+    todayBest.value = null;
+    swipeCount.value = 0;
+    loading.value = false;
   }
 
   return {
@@ -76,10 +86,10 @@ export const useMatchStore = defineStore("match", () => {
     todayBest,
     loading,
     swipeCount,
-    maxSwipe,
     loadCards,
     doSwipe,
     loadTodayBest,
     canSwipe,
+    clear,
   };
 });

@@ -37,4 +37,16 @@ public interface HuanXinApi {
     @PostMapping("/messages")
     void sendMessage(@RequestParam("target") String target,
                      @RequestParam("msg") String msg);
+
+    /**
+     * 获取环信用户级 token（供 IM SDK 5.x 登录使用）
+     *
+     * @param username 环信用户ID
+     * @param password 环信用户密码
+     * @return 用户级 access_token；获取失败返回 null
+     */
+    @PostExchange("/user-token")
+    @PostMapping("/user-token")
+    String getUserToken(@RequestParam("username") String username,
+                        @RequestParam("password") String password);
 }

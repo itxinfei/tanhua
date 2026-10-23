@@ -125,16 +125,18 @@ public class TodayBestController {
     }
 
     /**
-     * 喜欢
+     * 喜欢（探花右滑/超级喜欢）
      *
-     * @param likeUserId
-     * @return
+     * @param likeUserId 被喜欢的用户ID
+     * @return true=互相喜欢（匹配成功）；false=单方面喜欢
      */
     @GetMapping("{id}/love")
-    public ResponseEntity<Void> likeUser(@PathVariable("id") Long likeUserId) {
+    public ResponseEntity<Boolean> likeUser(@PathVariable("id") Long likeUserId) {
         try {
-            this.todayBestService.likeUser(likeUserId);
-            return ResponseEntity.ok(null);
+            Boolean matched = this.todayBestService.likeUser(likeUserId);
+            if (matched != null) {
+                return ResponseEntity.ok(matched);
+            }
         } catch (Exception e) {
             LOGGER.error("接口处理异常", e);
         }

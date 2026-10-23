@@ -17,20 +17,20 @@
         <text class="empty-text">还没有聊天，去匹配页滑动遇见新朋友吧</text>
       </view>
       <view
-        v-for="chat in chatList"
-        :key="chat.id"
+        v-for="contact in chatList"
+        :key="contact.userId"
         class="chat-item"
-        @click="goChatDetail(chat)"
+        @click="goChatDetail(contact)"
       >
-        <image class="avatar" :src="chat.avatar" mode="aspectFill" />
+        <image class="avatar" :src="contact.avatar" mode="aspectFill" />
         <view class="chat-info">
           <view class="top-row">
-            <text class="nickname">{{ chat.nickname }}</text>
-            <text class="time">{{ chat.lastTime }}</text>
+            <text class="nickname">{{ contact.nickname }}</text>
+            <text v-if="contact.age" class="time">{{ contact.age }}岁</text>
           </view>
           <view class="bottom-row">
-            <text class="last-msg ellipsis">{{ chat.lastMessage }}</text>
-            <view v-if="chat.unread > 0" class="unread-badge">{{ chat.unread > 99 ? '99+' : chat.unread }}</view>
+            <text class="last-msg ellipsis">{{ contact.lastMessage || contact.city || '打个招呼吧' }}</text>
+            <view v-if="contact.unreadCount > 0" class="unread-badge">{{ contact.unreadCount > 99 ? '99+' : contact.unreadCount }}</view>
           </view>
         </view>
       </view>
@@ -39,38 +39,108 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { onShow } from "@dcloudio/uni-app";
+import { getContacts, type Contact } from "@/api/chat";
+import { useChatStore, type NoticeType } from "@/store/chat";
+import { loginEasemob, getConversations } from "@/utils/easemob";
 
-// 通知入口
-const noticeItems = ref([
-  { type: "like", icon: "♥", label: "喜欢", unread: 0 },
-  { type: "comment", icon: "💬", label: "评论", unread: 0 },
-  { type: "love", icon: "🌟", label: "心动", unread: 0 },
-  { type: "announcement", icon: "📢", label: "公告", unread: 0 },
-]);
+const chatStore = useChatStore();
 
-// 聊天列表
-interface ChatItem {
-  id: string;
-  nickname: string;
-  avatar: string;
+/** 聊天列表项（联系人 + 环信会话摘要） */
+interface ChatListItem extends Contact {
   lastMessage: string;
-  lastTime: string;
-  unread: number;
+  unreadCount: number;
 }
-const chatList = ref<ChatItem[]>([]);
 
-function goNotifications(type: string) {
+/** 通知入口图标与文案配置 */
+const NOTICE_META: Record<NoticeType, { icon: string; label: string }> = {
+  like: { icon: "♥", label: "喜欢" },
+  comment: { icon: "💬", label: "评论" },
+  love: { icon: "🌟", label: "心动" },
+  announcement: { icon: "📢", label: "公告" },
+};
+
+/** 通知入口（未读数来自 store 本地存储方案） */
+const noticeItems = computed(() =>
+  (Object.keys(NOTICE_META) as NoticeType[]).map((type) => ({
+    type,
+    icon: NOTICE_META[type].icon,
+    label: NOTICE_META[type].label,
+    unread: chatStore.noticeUnreads[type],
+  }))
+);
+
+/** 聊天列表 */
+const chatList = ref<ChatListItem[]>([]);
+
+/**
+ * 初始化环信并合并会话摘要到联系人列表
+ * 登录失败静默降级，列表仅展示联系人基础信息
+ */
+async function initEasemobAndMerge(): Promise<void> {
+  try {
+    const credential = await chatStore.loadHuanXinUser();
+    const ok = await loginEasemob(credential.username, credential.token);
+    if (!ok) return;
+    const sessions = await getConversations();
+    const sessionMap = new Map(
+      sessions.map((s) => [s.conversationId, s])
+    );
+    chatList.value = chatList.value.map((item) => {
+      const session = sessionMap.get(item.userId);
+      return session
+        ? {
+            ...item,
+            lastMessage: session.lastMessage,
+            unreadCount: session.unreadCount,
+          }
+        : item;
+    });
+  } catch {
+    // 环信不可用，静默降级为纯联系人展示
+  }
+}
+
+/**
+ * 加载联系人列表并合并环信会话
+ */
+async function loadContacts(): Promise<void> {
+  try {
+    const res = await getContacts({ page: 1, pagesize: 50 });
+    chatList.value = (res.items || []).map((c) => ({
+      ...c,
+      lastMessage: "",
+      unreadCount: 0,
+    }));
+    await initEasemobAndMerge();
+  } catch {
+    // 请求失败由 request 层统一 toast
+  }
+}
+
+/**
+ * 跳转通知页并标记已读
+ * @param type 通知类型
+ */
+function goNotifications(type: string): void {
+  chatStore.markNoticeRead(type as NoticeType);
   uni.navigateTo({ url: `/pages/chat/notifications?type=${type}` });
 }
 
-function goChatDetail(chat: ChatItem) {
-  uni.navigateTo({ url: `/pages/chat/chat?userId=${chat.id}&nickname=${chat.nickname}` });
+/**
+ * 跳转聊天详情页
+ * @param contact 联系人
+ */
+function goChatDetail(contact: ChatListItem): void {
+  uni.navigateTo({
+    url: `/pages/chat/chat?userId=${contact.userId}&nickname=${encodeURIComponent(contact.nickname)}`,
+  });
 }
 
 onShow(() => {
-  // TODO: 对接 GET /messages/contacts 加载聊天列表
+  loadContacts();
+  chatStore.loadNoticeCounts();
 });
 </script>
 
