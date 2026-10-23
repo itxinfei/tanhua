@@ -11,3 +11,10 @@ spring:
       host: 127.0.0.1
       port: 6379
       database: 0
+
+# RocketMQ：圈子评分事件生产（xfjy-quanzi topic，消费方为 xfjy-recommend）
+rocketmq:
+  name-server: 127.0.0.1:9876
+  producer:
+    group: xfjy-circle
+    send-message-timeout: 3000

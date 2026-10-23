@@ -7,7 +7,10 @@ import com.mongodb.client.result.DeleteResult;
 import com.xfjy.dubbo.server.pojo.*;
 import com.xfjy.dubbo.server.service.IdService;
 import com.xfjy.dubbo.server.vo.PageInfo;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.bson.types.ObjectId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -17,17 +20,50 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/quanzi")
 public class QuanziApiImpl implements QuanZiApi {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(QuanziApiImpl.class);
 
     @Autowired
     private MongoTemplate mongoTemplate;
 
     @Autowired
     private IdService idService;
+
+    @Autowired
+    private RocketMQTemplate rocketMQTemplate;
+
+    /**
+     * 发送圈子评分消息（原 server 端 QuanziMQService 逻辑迁入，阶段三）
+     * 消息格式与消费方 xfjy-recommend 的 QuanZiMsgConsumer 保持兼容：type/publishId/date/userId/pid
+     *
+     * @param type    1-发动态，2-浏览动态，3-点赞，4-喜欢，5-评论，6-取消点赞，7-取消喜欢
+     * @param userId  操作人
+     * @param publish 动态对象（提供 publishId 与 pid；视频互动时为 null 不发送，与原行为一致）
+     */
+    private void sendScoringMsg(Integer type, Long userId, Publish publish) {
+        try {
+            if (publish == null || publish.getPid() == null) {
+                return;
+            }
+            Map<String, Object> msg = new HashMap<>();
+            msg.put("type", type);
+            msg.put("publishId", publish.getId().toHexString());
+            msg.put("date", System.currentTimeMillis());
+            msg.put("userId", userId);
+            msg.put("pid", publish.getPid());
+
+            this.rocketMQTemplate.convertAndSend("xfjy-quanzi", (Object) msg);
+        } catch (Exception e) {
+            LOGGER.error("圈子评分消息发送失败! type = " + type + ", userId = " + userId, e);
+        }
+    }
 
     @Override
     public String savePublish(Publish publish) {
@@ -73,6 +109,9 @@ public class QuanziApiImpl implements QuanZiApi {
                 this.mongoTemplate.save(timeLine, "quanzi_time_line_" + user.getFriendId());
 
             }
+
+            // 评分事件：发动态（type=1）
+            this.sendScoringMsg(1, publish.getUserId(), publish);
 
             return publish.getId().toHexString();
         } catch (Exception e) {
@@ -133,7 +172,13 @@ public class QuanziApiImpl implements QuanZiApi {
             return false;
         }
 
-        return this.saveComment(userId, publishId, 1, null);
+        boolean result = this.saveComment(userId, publishId, 1, null);
+        if (result) {
+            // 评分事件：点赞（type=3）
+            Publish publish = this.mongoTemplate.findById(new ObjectId(publishId), Publish.class);
+            this.sendScoringMsg(3, userId, publish);
+        }
+        return result;
     }
 
     @Override
@@ -145,7 +190,16 @@ public class QuanziApiImpl implements QuanZiApi {
         Query query = Query.query(criteria);
 
         DeleteResult deleteResult = this.mongoTemplate.remove(query, Comment.class);
-        return deleteResult.getDeletedCount() > 0;
+        boolean result = deleteResult.getDeletedCount() > 0;
+        if (result) {
+            // 评分事件：取消点赞（commentType=1→type=6）/ 取消喜欢（commentType=3→type=7）
+            Integer scoringType = (commentType == 1) ? 6 : (commentType == 3) ? 7 : null;
+            if (scoringType != null) {
+                Publish publish = this.mongoTemplate.findById(new ObjectId(publishId), Publish.class);
+                this.sendScoringMsg(scoringType, userId, publish);
+            }
+        }
+        return result;
     }
 
     @Override
@@ -160,7 +214,13 @@ public class QuanziApiImpl implements QuanZiApi {
             return false;
         }
 
-        return this.saveComment(userId, publishId, 3, null);
+        boolean result = this.saveComment(userId, publishId, 3, null);
+        if (result) {
+            // 评分事件：喜欢（type=4）
+            Publish publish = this.mongoTemplate.findById(new ObjectId(publishId), Publish.class);
+            this.sendScoringMsg(4, userId, publish);
+        }
+        return result;
     }
 
     @Override
@@ -188,6 +248,12 @@ public class QuanziApiImpl implements QuanZiApi {
             }
 
             this.mongoTemplate.save(comment);
+
+            // 评分事件：评论（type=5），仅文字评论（commentType=2）
+            // 点赞/喜欢由 saveLikeComment/saveLoveComment 各自发射，此处不重复
+            if (type == 2) {
+                this.sendScoringMsg(5, userId, publish);
+            }
 
             return true;
         } catch (Exception e) {
@@ -279,6 +345,14 @@ public class QuanziApiImpl implements QuanZiApi {
 
         pageInfo.setRecords(publishList);
         return pageInfo;
+    }
+
+    @Override
+    public boolean recordPublishView(Long userId, String publishId) {
+        // 评分事件：浏览动态（type=2）
+        Publish publish = this.mongoTemplate.findById(new ObjectId(publishId), Publish.class);
+        this.sendScoringMsg(2, userId, publish);
+        return true;
     }
 
 }

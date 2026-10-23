@@ -17,7 +17,6 @@ spring:
 
 # MyBatis Plus
 mybatis-plus:
-  type-enums-package: com.xfjy.server.enums
   global-config:
     db-config:
       table-prefix: tb_
@@ -25,9 +24,9 @@ mybatis-plus:
 
 # HTTP Service Client（替代Dubbo，调用dubbo-service的REST接口）
 xfjy:
-  dubbo:
+  match:
     service:
-      url: http://127.0.0.1:18083
+      url: http://127.0.0.1:18082  # 探花匹配服务（推荐用户/地理位置/附近的人）
   user:
     service:
       url: http://127.0.0.1:18090  # 用户关系服务（好友/喜欢/访客）
@@ -37,6 +36,9 @@ xfjy:
   video:
     service:
       url: http://127.0.0.1:18085  # 小视频服务（视频/关注作者）
+  message:
+    service:
+      url: http://127.0.0.1:18086  # 消息/IM服务（环信集成：好友注册/消息下发）
   sso:
     url: http://127.0.0.1:18080
     default:
@@ -54,10 +56,3 @@ sa-token:
   is-share: false
   token-style: uuid
   is-log: false
-
-# RocketMQ
-rocketmq:
-  name-server: 127.0.0.1:9876
-  producer:
-    group: xfjy
-    send-message-timeout: 3000

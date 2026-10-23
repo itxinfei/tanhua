@@ -3,10 +3,10 @@ package com.xfjy.server.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.xfjy.dubbo.server.api.UserInfoApi;
+import com.xfjy.dubbo.server.pojo.UserInfo;
 import com.xfjy.server.mapper.ReviewMapper;
-import com.xfjy.server.mapper.UserInfoMapper;
 import com.xfjy.server.pojo.Review;
-import com.xfjy.server.pojo.UserInfo;
 import com.xfjy.server.utils.AdminThreadLocal;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +24,7 @@ public class AdminReviewService {
     private ReviewMapper reviewMapper;
 
     @Autowired
-    private UserInfoMapper userInfoMapper;
+    private UserInfoApi userInfoApi;
 
     /**
      * 分页查询审核列表
@@ -125,9 +125,7 @@ public class AdminReviewService {
         item.put("rejectReason", review.getRejectReason());
 
         // 查询用户信息
-        QueryWrapper<UserInfo> infoWrapper = new QueryWrapper<>();
-        infoWrapper.eq("user_id", review.getUserId());
-        UserInfo userInfo = this.userInfoMapper.selectOne(infoWrapper);
+        UserInfo userInfo = this.userInfoApi.queryByUserId(review.getUserId());
         if (userInfo != null) {
             item.put("userNickname", userInfo.getNickName());
             item.put("userAvatar", userInfo.getLogo());

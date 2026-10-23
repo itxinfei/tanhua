@@ -1,7 +1,6 @@
 package com.xfjy.server.controller;
 
 import org.apache.commons.lang3.StringUtils;
-import com.xfjy.server.service.VideoMQService;
 import com.xfjy.server.service.VideoService;
 import com.xfjy.server.vo.PageResult;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,18 +24,12 @@ public class VideoController {
     @Autowired
     private CommentsController commentsController;
 
-    @Autowired
-    private VideoMQService videoMQService;
-
     @PostMapping
     public ResponseEntity<Void> saveVideo(@RequestParam(value = "videoThumbnail", required = false) MultipartFile picFile,
                                           @RequestParam(value = "videoFile", required = false) MultipartFile videoFile) {
         try {
             String id = this.videoService.saveVideo(picFile, videoFile);
             if (StringUtils.isNotEmpty(id)) {
-
-                //发送消息
-                this.videoMQService.videoMsg(id);
 
                 return ResponseEntity.ok(null);
             }
@@ -80,8 +73,8 @@ public class VideoController {
     public ResponseEntity<Long> likeComment(@PathVariable("id") String videoId) {
         ResponseEntity<Long> entity = this.movementsController.likeComment(videoId);
         if(entity.getStatusCode().is2xxSuccessful()){
-            //发送消息
-            this.videoMQService.likeVideoMsg(videoId);
+            //视频评分事件：点赞（type=2，由视频服务内部发送消息）
+            this.videoService.recordVideoMsg(videoId, 2);
         }
         return entity;
     }
@@ -98,8 +91,8 @@ public class VideoController {
         ResponseEntity<Long> entity = this.movementsController.disLikeComment(videoId);
 
         if(entity.getStatusCode().is2xxSuccessful()){
-            //发送消息
-            this.videoMQService.disLikeVideoMsg(videoId);
+            //视频评分事件：取消点赞（type=3，由视频服务内部发送消息）
+            this.videoService.recordVideoMsg(videoId, 3);
         }
 
         return entity;
@@ -130,8 +123,8 @@ public class VideoController {
         ResponseEntity<Void> entity = this.commentsController.saveComments(param);
 
         if(entity.getStatusCode().is2xxSuccessful()){
-            //发送消息
-            this.videoMQService.commentVideoMsg(videoId);
+            //视频评分事件：评论（type=4，由视频服务内部发送消息）
+            this.videoService.recordVideoMsg(videoId, 4);
         }
         return entity;
     }

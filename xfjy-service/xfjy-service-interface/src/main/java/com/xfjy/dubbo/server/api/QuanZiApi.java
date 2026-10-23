@@ -83,6 +83,14 @@ public interface QuanZiApi {
     Publish queryPublishById(@RequestParam("publishId") String publishId);
 
     /**
+     * 记录动态浏览（评分事件 type=2，由圈子服务内部发送 xfjy-quanzi 消息）
+     */
+    @PostExchange("/recordPublishView")
+    @PostMapping("/recordPublishView")
+    boolean recordPublishView(@RequestParam("userId") Long userId,
+                              @RequestParam("publishId") String publishId);
+
+    /**
      * 查询评论
      */
     @GetExchange("/queryCommentList")

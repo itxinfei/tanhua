@@ -22,6 +22,8 @@
         <module>xfjy-user-service</module>
         <module>xfjy-circle-service</module>
         <module>xfjy-video-service</module>
+        <module>xfjy-match-service</module>
+        <module>xfjy-message-service</module>
         <module>xfjy-service</module>
         <module>xfjy-server</module>
         <module>xfjy-recommend</module>
@@ -104,11 +106,6 @@
             <dependency>
                 <groupId>cn.xfjy</groupId>
                 <artifactId>xfjy-service-interface</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>cn.xfjy</groupId>
-                <artifactId>xfjy-service-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

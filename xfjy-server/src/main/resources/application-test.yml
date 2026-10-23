@@ -28,6 +28,3 @@ xfjy:
       user: 2
   cache:
     enable: false
-
-rocketmq:
-  name-server: 172.17.0.144:9876

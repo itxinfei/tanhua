@@ -3,10 +3,11 @@ package com.xfjy.server.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xfjy.server.mapper.UserInfoMapper;
+import com.xfjy.dubbo.server.api.UserInfoApi;
+import com.xfjy.dubbo.server.pojo.UserInfo;
+import com.xfjy.dubbo.server.vo.UserInfoQueryParam;
 import com.xfjy.server.mapper.UserMapper;
 import com.xfjy.server.pojo.User;
-import com.xfjy.server.pojo.UserInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -26,7 +27,7 @@ public class AdminUserService {
     private UserMapper userMapper;
 
     @Autowired
-    private UserInfoMapper userInfoMapper;
+    private UserInfoApi userInfoApi;
 
     /**
      * 分页查询用户列表
@@ -37,10 +38,9 @@ public class AdminUserService {
         // 根据性别筛选：先查出符合条件的用户ID集合
         if (StringUtils.isNotBlank(gender)) {
             Integer sexValue = "男".equals(gender) ? 1 : 2; //SexEnum: MAN=1, WOMAN=2
-            QueryWrapper<UserInfo> genderWrapper = new QueryWrapper<>();
-            genderWrapper.eq("sex", sexValue);
-            genderWrapper.select("user_id");
-            List<UserInfo> infoList = this.userInfoMapper.selectList(genderWrapper);
+            UserInfoQueryParam genderParam = new UserInfoQueryParam();
+            genderParam.setSex(sexValue);
+            List<UserInfo> infoList = this.userInfoApi.queryUserInfoList(genderParam);
             List<Long> userIds = infoList.stream().map(UserInfo::getUserId).collect(java.util.stream.Collectors.toList());
             if (userIds.isEmpty()) {
                 Map<String, Object> empty = new HashMap<>();
@@ -74,9 +74,7 @@ public class AdminUserService {
             item.put("lastActiveAt", user.getUpdated());
 
             // 查询用户详情
-            QueryWrapper<UserInfo> infoWrapper = new QueryWrapper<>();
-            infoWrapper.eq("user_id", user.getId());
-            UserInfo userInfo = this.userInfoMapper.selectOne(infoWrapper);
+            UserInfo userInfo = this.userInfoApi.queryByUserId(user.getId());
             if (userInfo != null) {
                 item.put("nickname", userInfo.getNickName());
                 item.put("avatar", userInfo.getLogo());
@@ -117,9 +115,7 @@ public class AdminUserService {
         item.put("freezeReason", user.getFreezeReason());
         item.put("createdAt", user.getCreated());
 
-        QueryWrapper<UserInfo> infoWrapper = new QueryWrapper<>();
-        infoWrapper.eq("user_id", userId);
-        UserInfo userInfo = this.userInfoMapper.selectOne(infoWrapper);
+        UserInfo userInfo = this.userInfoApi.queryByUserId(userId);
         if (userInfo != null) {
             item.put("nickname", userInfo.getNickName());
             item.put("avatar", userInfo.getLogo());
