@@ -26,5 +26,3 @@ xfjy:
     url: http://172.17.0.144:18080
     default:
       user: 2
-  cache:
-    enable: false
