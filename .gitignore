@@ -24,6 +24,26 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 
+### 敏感配置文件——禁止提交到仓库 ###
+# 阿里云OSS凭证（真实key仅本地保留，模板文件 aliyun.properties.example 可提交）
+**/aliyun.properties
+
+# 本地环境配置（可含真实密码，用环境变量占位符替代）
+**/application-local.yml
+
+# 任何含密钥/凭证命名的文件
+**/*secret*
+**/*credential*
+**/*.pem
+**/*.p12
+**/*.keystore
+**/secrets.yml
+
+# 例外：项目规则文档不受通配规则影响
+!.joycode/
+!.joycode/**
+
+
 *.iml
 target/
 .idea/
@@ -53,6 +73,26 @@ target/
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
+
+### 敏感配置文件——禁止提交到仓库 ###
+# 阿里云OSS凭证（真实key仅本地保留，模板文件 aliyun.properties.example 可提交）
+**/aliyun.properties
+
+# 本地环境配置（可含真实密码，用环境变量占位符替代）
+**/application-local.yml
+
+# 任何含密钥/凭证命名的文件
+**/*secret*
+**/*credential*
+**/*.pem
+**/*.p12
+**/*.keystore
+**/secrets.yml
+
+# 例外：项目规则文档不受通配规则影响
+!.joycode/
+!.joycode/**
+
 
 
 
