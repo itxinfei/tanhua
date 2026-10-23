@@ -16,8 +16,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.bson.Document;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -289,6 +292,44 @@ public class QuanziApiImpl implements QuanZiApi {
                 .and("commentType").is(type);
         Query query = Query.query(criteria);
         return this.mongoTemplate.count(query, Comment.class);
+    }
+
+    @Override
+    public Map<String, Long> queryCommentCountBatch(List<String> publishIds, Integer type) {
+        Map<String, Long> result = new HashMap<>();
+        if (CollectionUtils.isEmpty(publishIds)) {
+            return result;
+        }
+
+        List<ObjectId> objectIds = new ArrayList<>();
+        for (String pid : publishIds) {
+            try {
+                objectIds.add(new ObjectId(pid));
+            } catch (Exception e) {
+                LOGGER.warn("无效的publishId，批量查询时跳过: {}", pid);
+            }
+        }
+        if (objectIds.isEmpty()) {
+            return result;
+        }
+
+        // 聚合：match(publishId in + commentType) -> group(publishId).count()
+        Aggregation agg = Aggregation.newAggregation(
+                Aggregation.match(Criteria.where("publishId").in(objectIds)
+                        .and("commentType").is(type)),
+                Aggregation.group("publishId").count().as("count")
+        );
+
+        AggregationResults<Document> aggResults =
+                this.mongoTemplate.aggregate(agg, "quanzi_comment", Document.class);
+        for (Document doc : aggResults.getMappedResults()) {
+            Object idObj = doc.get("_id");
+            if (idObj instanceof ObjectId) {
+                result.put(((ObjectId) idObj).toHexString(), ((Number) doc.get("count")).longValue());
+            }
+        }
+
+        return result;
     }
 
     @Override

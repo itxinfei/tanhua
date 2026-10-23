@@ -167,6 +167,22 @@ public class MovementsService {
             }
         }
 
+        // 批量查询评论数（type=2 表示评论，一次远程调用替代循环内逐条调用，消除 N+1）
+        List<String> publishIds = new ArrayList<>();
+        for (Publish record : records) {
+            publishIds.add(record.getId().toHexString());
+        }
+        Map<String, Long> commentCountMap;
+        try {
+            commentCountMap = this.quanZiApi.queryCommentCountBatch(publishIds, 2);
+            if (commentCountMap == null) {
+                commentCountMap = Collections.emptyMap();
+            }
+        } catch (Exception e) {
+            log.warn("批量查询评论数失败，评论数将显示为0", e);
+            commentCountMap = Collections.emptyMap();
+        }
+
         for (Publish record : records) {
             Movements movements = new Movements();
 
@@ -213,8 +229,8 @@ public class MovementsService {
             }
             movements.setDistance(distance);
 
-            // 真实评论数（type=2 表示评论）
-            Long commentCount = this.quanZiApi.queryCommentCount(movements.getId(), 2);
+            // 真实评论数（type=2 表示评论，来自上方批量查询）
+            Long commentCount = commentCountMap.get(movements.getId());
             movements.setCommentCount(commentCount == null ? 0 : commentCount.intValue());
 
             movements.setCreateDate(RelativeDateFormat.format(new Date(record.getCreated()))); //发布时间，如10分钟前
