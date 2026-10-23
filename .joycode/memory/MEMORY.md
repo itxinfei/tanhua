@@ -1,1 +1,1 @@
-- [心飞交友全栈重构规划](project_fullstack_refactor.md) — 微服务化四阶段拆分进度（阶段三完成ad0d51e）+data-core已退役+评分消息归属原则
+- [心飞交友全栈重构规划](project_fullstack_refactor.md) — 微服务化四阶段拆分进度（阶段四收尾完成556c063）+编排层决策+幂等方案
