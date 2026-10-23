@@ -17,4 +17,8 @@ public class UserThreadLocal {
     public static User get() {
         return LOCAL.get();
     }
+
+    public static void remove() {
+        LOCAL.remove();
+    }
 }
