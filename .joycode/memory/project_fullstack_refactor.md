@@ -1,6 +1,6 @@
 ---
 name: 心飞交友全栈重构规划
-description: 微服务化四阶段拆分进度（阶段四收尾完成556c063）+编排层决策+幂等方案
+description: 微服务化四阶段拆分完成+健康体检通过(ec3b9dc)+编排层决策+幂等方案
 type: project
 ---
 
@@ -11,7 +11,8 @@ type: project
 - ✅ 阶段二(a4a48d9)：user-service(18090)
 - ✅ 阶段三(ad0d51e)：circle(18084)/video(18085)/match(18082)/message(18086)+data-core退役
 - ✅ 阶段四(556c063)：端口冲突修复+中间件地址统一+MQ消费幂等+gateway编排层注释
-- ⬜ 远期：server拆空后删除(现仍是编排层+管理后台)；P1新建pay-service
+- ✅ 健康体检(ec3b9dc)：sso库名mytanhua→xfjy+match profile旧IP/端口修复；全量扫描通过(MySQL/Mongo全xfjy库、RocketMQ统一127.0.0.1:9876、sso环信清理干净、前端配置匹配、无跨服务旧引用)
+- ⬜ 远期：server拆空后删除(现仍是编排层+管理后台)；P1新建pay-service；HuanXinApiImpl环信REST仍是TODO桩需真实对接；接入Nacos后gateway路由改lb://
 
 **拓扑**：gateway(8080)/sso(18080)/server(18081编排)/match(18082)/circle(18084)/video(18085)/message(18086)/recommend(18087)/elasticsearch(18088)/user(18090)
 

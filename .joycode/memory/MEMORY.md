@@ -1,1 +1,1 @@
-- [心飞交友全栈重构规划](project_fullstack_refactor.md) — 微服务化四阶段拆分进度（阶段四收尾完成556c063）+编排层决策+幂等方案
+- [心飞交友全栈重构规划](project_fullstack_refactor.md) — 微服务化四阶段拆分完成+健康体检通过(ec3b9dc)+编排层决策+幂等方案
