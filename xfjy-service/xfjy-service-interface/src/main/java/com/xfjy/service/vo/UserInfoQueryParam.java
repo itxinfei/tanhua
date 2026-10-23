@@ -31,4 +31,14 @@ public class UserInfoQueryParam implements java.io.Serializable {
      * 性别值（eq，1-男 2-女 3-未知，为空则不加 eq 条件）
      */
     private Integer sex;
+
+    /**
+     * 年龄（eq，为空则不加条件）
+     */
+    private Integer age;
+
+    /**
+     * 城市（eq，为空则不加条件）
+     */
+    private String city;
 }

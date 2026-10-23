@@ -128,12 +128,15 @@ public class VideoService {
             videoVo.setCover(record.getPicUrl());
             videoVo.setVideoUrl(record.getVideoUrl());
             videoVo.setId(record.getId().toHexString());
-            videoVo.setSignature("我就是我~"); //TODO 签名
+            // 签名：取用户标签作为个性签名（UserInfo 无独立签名字段，tags 为最接近的真实数据）
+            videoVo.setSignature(null); //先置空，下方匹配 UserInfo 后填充
 
             Long commentCount = this.quanZiApi.queryCommentCount(videoVo.getId(), 2);
             videoVo.setCommentCount(commentCount == null ? 0 : commentCount.intValue()); // 评论数
 
-            videoVo.setHasFocus(0); //TODO 是否关注
+            // 是否关注：查询 Redis 中已记录的关注关系
+            String focusKey = "VIDEO_FOLLOW_USER_" + user.getId() + "_" + record.getUserId();
+            videoVo.setHasFocus(this.redisTemplate.hasKey(focusKey) ? 1 : 0);
 
             String likeUserCommentKey = "QUANZI_COMMENT_LIKE_USER_" + user.getId() + "_" + videoVo.getId();
             videoVo.setHasLiked(this.redisTemplate.hasKey(likeUserCommentKey) ? 1 : 0); //是否点赞
@@ -163,6 +166,9 @@ public class VideoService {
 
                     videoVo.setNickname(userInfo.getNickName());
                     videoVo.setAvatar(userInfo.getLogo());
+                    // 签名：取用户标签，无标签时给默认文案
+                    String tags = userInfo.getTags();
+                    videoVo.setSignature(StringUtils.isNotEmpty(tags) ? tags : "这个人很懒，什么都没写");
 
                     break;
                 }

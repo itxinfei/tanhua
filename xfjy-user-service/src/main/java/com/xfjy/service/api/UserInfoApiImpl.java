@@ -50,6 +50,12 @@ public class UserInfoApiImpl implements UserInfoApi {
         if (queryParam.getSex() != null) {
             queryWrapper.eq("sex", queryParam.getSex());
         }
+        if (queryParam.getAge() != null) {
+            queryWrapper.eq("age", queryParam.getAge());
+        }
+        if (StringUtils.hasText(queryParam.getCity())) {
+            queryWrapper.eq("city", queryParam.getCity());
+        }
         return this.userInfoMapper.selectList(queryWrapper);
     }
 

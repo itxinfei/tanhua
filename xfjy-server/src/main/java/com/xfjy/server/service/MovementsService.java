@@ -1,6 +1,9 @@
 package com.xfjy.server.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.xfjy.service.api.ESUserLocationApi;
 import com.xfjy.service.api.QuanZiApi;
 import com.xfjy.service.api.UserInfoApi;
 import com.xfjy.service.api.VisitorsApi;
@@ -9,6 +12,7 @@ import com.xfjy.service.pojo.UserInfo;
 import com.xfjy.service.pojo.Visitors;
 import com.xfjy.service.vo.PageInfo;
 import com.xfjy.service.vo.UserInfoQueryParam;
+import com.xfjy.service.vo.UserLocationVo;
 import com.xfjy.server.pojo.User;
 import com.xfjy.server.utils.RelativeDateFormat;
 import com.xfjy.server.utils.UserThreadLocal;
@@ -42,6 +46,11 @@ public class MovementsService {
 
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
+
+    @Autowired
+    private ESUserLocationApi esUserLocationApi;
+
+    private static final Logger log = LoggerFactory.getLogger(MovementsService.class);
 
 
     /**
@@ -147,6 +156,17 @@ public class MovementsService {
         User user = UserThreadLocal.get();
         List<Movements> movementsList = new ArrayList<>();
         List<Long> userIds = new ArrayList<>();
+
+        // 查询当前登录用户地理位置，用于计算与发布者的真实距离（一次查询，循环内复用）
+        UserLocationVo viewerLocation = null;
+        if (user != null) {
+            try {
+                viewerLocation = this.esUserLocationApi.queryByUserId(user.getId());
+            } catch (Exception e) {
+                log.warn("查询当前用户地理位置失败，动态距离将不展示: userId={}", user.getId(), e);
+            }
+        }
+
         for (Publish record : records) {
             Movements movements = new Movements();
 
@@ -179,8 +199,24 @@ public class MovementsService {
                 movements.setLoveCount(0); //喜欢数
             }
 
-            movements.setDistance("1.2公里"); //TODO 距离
-            movements.setCommentCount(30); //TODO 评论数
+            // 真实距离：当前用户与发布者之间的 Geo 距离
+            String distance = null;
+            if (viewerLocation != null && StringUtils.isNotEmpty(record.getLongitude())
+                    && StringUtils.isNotEmpty(record.getLatitude())) {
+                try {
+                    double meters = haversine(viewerLocation.getLatitude(), viewerLocation.getLongitude(),
+                            Double.parseDouble(record.getLatitude()), Double.parseDouble(record.getLongitude()));
+                    distance = String.format("%.1f公里", meters / 1000.0);
+                } catch (NumberFormatException e) {
+                    log.warn("动态发布者经纬度解析失败: publishId={}", movements.getId(), e);
+                }
+            }
+            movements.setDistance(distance);
+
+            // 真实评论数（type=2 表示评论）
+            Long commentCount = this.quanZiApi.queryCommentCount(movements.getId(), 2);
+            movements.setCommentCount(commentCount == null ? 0 : commentCount.intValue());
+
             movements.setCreateDate(RelativeDateFormat.format(new Date(record.getCreated()))); //发布时间，如10分钟前
             movements.setTextContent(record.getText());
             movements.setImageContent(record.getMedias().toArray(new String[]{}));
@@ -394,5 +430,18 @@ public class MovementsService {
         }
         pageResult.setItems(this.fillValueToMovements(records));
         return pageResult;
+    }
+
+    /**
+     * Haversine 公式：计算两点间球面距离（单位：米）
+     */
+    private double haversine(double lat1, double lon1, double lat2, double lon2) {
+        double r = 6371000.0;
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return r * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 }

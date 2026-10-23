@@ -72,54 +72,74 @@ public class QuanziApiImpl implements QuanZiApi {
         if (publish.getUserId() == null) {
             return null;
         }
-        // ……等其他的逻辑类似
+
+        //填充数据
+        publish.setId(ObjectId.get());
+        publish.setCreated(System.currentTimeMillis()); //发布时间
+        publish.setSeeType(1); //查看权限
+
+        //增加自增长的pid
+        publish.setPid(this.idService.createId("publish", publish.getId().toHexString()));
+
+        //第一步：保存动态信息
+        this.mongoTemplate.save(publish);
+
+        //第二步：写入到自己的相册表中（失败则补偿回滚动态）
+        Album album = new Album();
+        album.setId(ObjectId.get());
+        album.setPublishId(publish.getId());//动态id
+        album.setCreated(System.currentTimeMillis());
 
         try {
-            //填充数据
-            publish.setId(ObjectId.get());
-            publish.setCreated(System.currentTimeMillis()); //发布时间
-            publish.setSeeType(1); //查看权限
-
-            //增加自增长的pid
-            publish.setPid(this.idService.createId("publish", publish.getId().toHexString()));
-
-            //保存动态信息
-            this.mongoTemplate.save(publish);
-
-            //写入到自己的相册表中
-            Album album = new Album();
-            album.setId(ObjectId.get());
-            album.setPublishId(publish.getId());//动态id
-            album.setCreated(System.currentTimeMillis());
-
-            //将相册对象写入到MongoDB??
             this.mongoTemplate.save(album, "quanzi_album_" + publish.getUserId());
+        } catch (Exception e) {
+            LOGGER.error("相册写入失败，补偿回滚动态: publishId={}", publish.getId(), e);
+            this.mongoTemplate.remove(publish);
+            return null;
+        }
 
-            //查询当前用户的好友数据，将动态数据写入到好友的时间线表中
-            Query query = Query.query(Criteria.where("userId").is(publish.getUserId()));
-            List<Users> users = this.mongoTemplate.find(query, Users.class);
+        //第三步：将动态写入好友的时间线表（失败则补偿回滚相册+动态+已写入的时间线）
+        Query query = Query.query(Criteria.where("userId").is(publish.getUserId()));
+        List<Users> users = this.mongoTemplate.find(query, Users.class);
+
+        //记录已写入的时间线（集合名与记录id），用于补偿回滚
+        List<ObjectId> savedTimeLineIds = new ArrayList<>();
+        List<String> savedTimeLineCollections = new ArrayList<>();
+
+        try {
             for (Users user : users) {
-
                 TimeLine timeLine = new TimeLine();
                 timeLine.setId(ObjectId.get());
                 timeLine.setUserId(publish.getUserId());
                 timeLine.setPublishId(publish.getId());
                 timeLine.setDate(System.currentTimeMillis());
 
-                this.mongoTemplate.save(timeLine, "quanzi_time_line_" + user.getFriendId());
-
+                String collection = "quanzi_time_line_" + user.getFriendId();
+                this.mongoTemplate.save(timeLine, collection);
+                savedTimeLineIds.add(timeLine.getId());
+                savedTimeLineCollections.add(collection);
             }
-
-            // 评分事件：发动态（type=1）
-            this.sendScoringMsg(1, publish.getUserId(), publish);
-
-            return publish.getId().toHexString();
         } catch (Exception e) {
-            LOGGER.error("圈子服务处理异常", e);
-            //TODO 事务回滚
+            LOGGER.error("时间线写入失败，补偿回滚相册+动态: publishId={}", publish.getId(), e);
+            //回滚已写入的时间线
+            for (int i = 0; i < savedTimeLineIds.size(); i++) {
+                this.mongoTemplate.remove(
+                        Query.query(Criteria.where("id").is(savedTimeLineIds.get(i))),
+                        TimeLine.class, savedTimeLineCollections.get(i));
+            }
+            //回滚相册
+            this.mongoTemplate.remove(
+                    Query.query(Criteria.where("id").is(album.getId())),
+                    Album.class, "quanzi_album_" + publish.getUserId());
+            //回滚动态
+            this.mongoTemplate.remove(publish);
+            return null;
         }
 
-        return null;
+        // 评分事件：发动态（type=1）——消息发送为尽力而为，不参与回滚
+        this.sendScoringMsg(1, publish.getUserId(), publish);
+
+        return publish.getId().toHexString();
     }
 
     @Override
