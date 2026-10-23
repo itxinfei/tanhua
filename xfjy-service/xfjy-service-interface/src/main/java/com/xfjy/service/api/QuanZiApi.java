@@ -12,6 +12,7 @@ import org.springframework.web.service.annotation.HttpExchange;
 import org.springframework.web.service.annotation.PostExchange;
 
 import java.util.List;
+import java.util.Map;
 
 @HttpExchange("/api/quanzi")
 public interface QuanZiApi {
@@ -74,6 +75,17 @@ public interface QuanZiApi {
     @GetMapping("/queryCommentCount")
     Long queryCommentCount(@RequestParam("publishId") String publishId,
                            @RequestParam("type") Integer type);
+
+    /**
+     * 批量查询评论数（消除列表页 N+1 远程调用）
+     * @param publishIds 动态id列表
+     * @param type 评论类型（1-点赞 2-评论 3-喜欢）
+     * @return publishId -> 评论数 映射，无数据的 publishId 不出现在结果中
+     */
+    @PostExchange("/queryCommentCountBatch")
+    @PostMapping("/queryCommentCountBatch")
+    Map<String, Long> queryCommentCountBatch(@RequestBody List<String> publishIds,
+                                             @RequestParam("type") Integer type);
 
     /**
      * 根据id查询

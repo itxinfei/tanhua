@@ -24,7 +24,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class VideoService {
@@ -121,6 +123,22 @@ public class VideoService {
         List<VideoVo> videoVoList = new ArrayList<>();
         List<Long> userIds = new ArrayList<>();
 
+        // 批量查询评论数（type=2 表示评论，一次远程调用替代循环内逐条调用，消除 N+1）
+        List<String> videoIds = new ArrayList<>();
+        for (Video record : records) {
+            videoIds.add(record.getId().toHexString());
+        }
+        Map<String, Long> commentCountMap;
+        try {
+            commentCountMap = this.quanZiApi.queryCommentCountBatch(videoIds, 2);
+            if (commentCountMap == null) {
+                commentCountMap = Collections.emptyMap();
+            }
+        } catch (Exception e) {
+            LOGGER.warn("批量查询视频评论数失败，评论数将显示为0", e);
+            commentCountMap = Collections.emptyMap();
+        }
+
         for (Video record : records) {
             VideoVo videoVo = new VideoVo();
 
@@ -131,8 +149,9 @@ public class VideoService {
             // 签名：取用户标签作为个性签名（UserInfo 无独立签名字段，tags 为最接近的真实数据）
             videoVo.setSignature(null); //先置空，下方匹配 UserInfo 后填充
 
-            Long commentCount = this.quanZiApi.queryCommentCount(videoVo.getId(), 2);
-            videoVo.setCommentCount(commentCount == null ? 0 : commentCount.intValue()); // 评论数
+            // 评论数（来自上方批量查询）
+            Long commentCount = commentCountMap.get(videoVo.getId());
+            videoVo.setCommentCount(commentCount == null ? 0 : commentCount.intValue());
 
             // 是否关注：查询 Redis 中已记录的关注关系
             String focusKey = "VIDEO_FOLLOW_USER_" + user.getId() + "_" + record.getUserId();
