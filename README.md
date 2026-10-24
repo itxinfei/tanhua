@@ -113,6 +113,71 @@ xfjy/
 
 ## 四、架构总览
 
+```mermaid
+flowchart TB
+    subgraph 客户端层
+        A1[管理后台前端<br/>Vue3 + Element Plus<br/>xfjy-admin]
+        A2[用户端<br/>uni-app 多端<br/>xfjy-app]
+    end
+
+    subgraph 入口与认证
+        B[网关 Gateway · 8080<br/>路由/限流/跨域]
+        C[SSO 认证 · 18080<br/>验证码登录/注册<br/>Sa-Token + Redis]
+    end
+
+    subgraph 主业务
+        D[主聚合服务 · 18081<br/>业务 + 管理后台接口<br/>xfjy-server]
+    end
+
+    subgraph 拆分服务
+        E1[用户关系 · 18090<br/>好友/喜欢/访客]
+        E2[圈子动态 · 18084<br/>动态/评论/时间线]
+        E3[小视频 · 18085<br/>视频/关注作者]
+        E4[探花匹配 · 18082<br/>推荐/附近的人]
+        E5[消息/IM · 18086<br/>环信集成]
+        E6[推荐评分消费者<br/>xfjy-recommend]
+    end
+
+    subgraph 数据与离线计算
+        F1[(MySQL<br/>MyBatis-Plus)]
+        F2[(Redis<br/>缓存/会话)]
+        F3[(MongoDB<br/>动态/关系/评分)]
+        F4[(Elasticsearch<br/>Geo 附近的人)]
+        F5[(RocketMQ<br/>行为→评分)]
+        F6[Spark MLlib<br/>离线 ALS 推荐<br/>xfjy-spark]
+    end
+
+    subgraph 外部服务
+        G1[环信 IM]
+        G2[阿里云 OSS]
+        G3[百度 AI]
+    end
+
+    A1 --> B
+    A2 --> B
+    B --> C
+    B --> D
+    D -- @HttpExchange 内部直连 --> E1
+    D --> E2
+    D --> E3
+    D --> E4
+    D --> E5
+    E6 --> F3
+    F6 --> F3
+    F5 --> E6
+    D --> F5
+    E1 --> F3
+    E2 --> F3
+    E3 --> F3
+    E4 --> F4
+    E4 --> F3
+    D --> F1
+    D --> F2
+    E5 --> G1
+    D --> G2
+    D --> G3
+```
+
 | 服务 | 端口 | 职责 |
 |------|------|------|
 | xfjy-gateway | 8080 | 统一入口网关（Spring Cloud Gateway，路由/限流/跨域） |

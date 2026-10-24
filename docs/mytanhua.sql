@@ -373,8 +373,8 @@ CREATE TABLE `tb_admin` (
   UNIQUE KEY `username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='管理员表';
 
--- 初始管理员：admin / admin123（MD5: 0192023a7bbd7b502b6e7c65e0f7cf89）
-INSERT INTO `tb_admin` VALUES ('1', 'admin', '0192023a7bbd7b502b6e7c65e0f7cf89', '超级管理员', NULL, 'SUPER_ADMIN', 'NORMAL', NOW(), NOW());
+-- 初始管理员：admin / admin123（MD5: 0192023a7bbd73250516f069df18b500）
+INSERT INTO `tb_admin` VALUES ('1', 'admin', '0192023a7bbd73250516f069df18b500', '超级管理员', NULL, 'SUPER_ADMIN', 'NORMAL', NOW(), NOW());
 
 -- ----------------------------
 -- Table structure for tb_notice（公告表-后台管理）
