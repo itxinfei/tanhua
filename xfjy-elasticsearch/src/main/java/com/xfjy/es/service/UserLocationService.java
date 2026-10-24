@@ -11,8 +11,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import jakarta.annotation.PostConstruct;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.IndexOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.document.Document;
@@ -32,6 +34,25 @@ public class UserLocationService {
 
     @Autowired
     private ElasticsearchOperations elasticsearchOperations;
+
+    /**
+     * 启动时确保索引存在：spring-data-elasticsearch 6.x 的 save/get 不会自动建索引，
+     * 索引缺失时 get() 会抛 NoSuchIndexException 导致写入静默失败。
+     * createWithMapping() 依据 @Field/@GeoPointField 注解生成映射（location 为 geo_point）。
+     */
+    @PostConstruct
+    public void initIndex() {
+        try {
+            IndexOperations indexOps = elasticsearchOperations.indexOps(UserLocationES.class);
+            if (!indexOps.exists()) {
+                indexOps.createWithMapping();
+                LOGGER.info("ES索引 xfjy_user_location 创建成功");
+            }
+        } catch (Exception e) {
+            // ES 不可用时不阻断服务启动，首次写入时由调用方感知异常
+            LOGGER.error("ES索引 xfjy_user_location 初始化失败", e);
+        }
+    }
 
     /**
      * 更新用户地理位置（不存在则新增，存在则更新）
