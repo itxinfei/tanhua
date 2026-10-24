@@ -30,8 +30,10 @@
       scroll-y
       @scrolltolower="loadMore"
     >
-      <view v-if="userList.length === 0 && !loading" class="empty">
-        <text class="empty-text">暂无数据</text>
+      <view v-if="userList.length === 0 && !loading" class="empty-state">
+        <view class="empty-icon"><text>👥</text></view>
+        <text class="empty-title">暂无数据</text>
+        <text class="empty-desc">去探花频道发现更多有缘人</text>
       </view>
 
       <view
@@ -253,20 +255,24 @@ function goDetail(userId: string): void {
 
 .list-scroll {
   flex: 1;
-  padding: 0 32rpx;
+  padding: 20rpx 24rpx;
 }
 
 .user-item {
   display: flex;
   align-items: center;
-  padding: 24rpx 0;
-  border-bottom: 1rpx solid #f0f0f0;
+  padding: 24rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 
   .user-avatar {
-    width: 96rpx;
-    height: 96rpx;
+    width: 100rpx;
+    height: 100rpx;
     border-radius: 50%;
     background: #f0f0f0;
+    border: 3rpx solid #fff0f5;
   }
 
   .user-info {
@@ -290,8 +296,8 @@ function goDetail(userId: string): void {
 
   .action-btn {
     font-size: 24rpx;
-    padding: 12rpx 24rpx;
-    border-radius: 24rpx;
+    padding: 12rpx 28rpx;
+    border-radius: 28rpx;
 
     &.cancel {
       color: #999;
@@ -300,19 +306,9 @@ function goDetail(userId: string): void {
 
     &.follow {
       color: #fff;
-      background: linear-gradient(90deg, #ff5e8e, #ff8fab);
+      background: linear-gradient(135deg, #ff5e8e, #ff8fab);
+      box-shadow: 0 4rpx 14rpx rgba(255, 94, 142, 0.3);
     }
-  }
-}
-
-.empty {
-  display: flex;
-  justify-content: center;
-  padding: 120rpx 0;
-
-  .empty-text {
-    font-size: 28rpx;
-    color: #999;
   }
 }
 
