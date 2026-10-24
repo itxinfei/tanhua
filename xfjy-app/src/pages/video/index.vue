@@ -23,20 +23,26 @@
 
           <!-- 右侧操作栏 -->
           <view class="side-bar">
-            <view class="side-btn" @click="handleLike(video)">
-              <text>{{ video.hasLiked ? '❤️' : '🤍' }}</text>
+            <view class="side-btn btn-feedback" @click="handleLike(video)">
+              <view class="icon-circle" :class="{ liked: video.hasLiked === 1 }">
+                <text class="icon-text">{{ video.hasLiked === 1 ? '♥' : '♡' }}</text>
+              </view>
               <text class="side-count">{{ video.likeCount }}</text>
             </view>
-            <view class="side-btn" @click="showComments(video)">
-              <text>💬</text>
+            <view class="side-btn btn-feedback" @click="showComments(video)">
+              <view class="icon-circle">
+                <text class="icon-text">💬</text>
+              </view>
               <text class="side-count">{{ video.commentCount }}</text>
             </view>
-            <view class="side-btn" @click="handleFocus(video)">
+            <view class="side-btn btn-feedback" @click="handleFocus(video)">
               <image class="side-avatar" :src="video.avatar" mode="aspectFill" />
               <view v-if="!video.hasFocus" class="follow-plus">+</view>
             </view>
-            <view class="side-btn" @click="handleShare">
-              <text>↗</text>
+            <view class="side-btn btn-feedback" @click="handleShare">
+              <view class="icon-circle">
+                <text class="icon-text">↗</text>
+              </view>
             </view>
           </view>
 
@@ -50,8 +56,14 @@
     </swiper>
 
     <!-- 空状态 -->
-    <view v-if="videoList.length === 0" class="empty">
-      <text class="empty-text">暂无视频</text>
+    <view v-if="videoList.length === 0" class="empty-overlay">
+      <view class="empty-state">
+        <view class="empty-icon">
+          <text>🎬</text>
+        </view>
+        <text class="empty-title">暂无视频</text>
+        <text class="empty-desc">精彩内容即将上线</text>
+      </view>
     </view>
   </view>
 </template>
@@ -214,11 +226,33 @@ onShow(() => {
     align-items: center;
     gap: 8rpx;
 
-    font-size: 52rpx;
+    .icon-circle {
+      width: 88rpx;
+      height: 88rpx;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease, background 0.2s ease;
+
+      &.liked {
+        background: rgba(255, 94, 142, 0.9);
+      }
+    }
+
+    .icon-text {
+      font-size: 44rpx;
+      color: #fff;
+      line-height: 1;
+    }
 
     .side-count {
       font-size: 24rpx;
       color: #fff;
+      text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.5);
     }
 
     .side-avatar {
@@ -241,6 +275,7 @@ onShow(() => {
       color: #fff;
       border-radius: 50%;
       font-size: 24rpx;
+      box-shadow: 0 4rpx 12rpx rgba(255, 94, 142, 0.5);
     }
   }
 }
@@ -268,16 +303,27 @@ onShow(() => {
   }
 }
 
-.empty {
+/* 空状态遮罩（黑底适配，覆盖全局 empty-state 颜色） */
+.empty-overlay {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 20;
 
-  .empty-text {
-    color: #666;
-    font-size: 28rpx;
+  .empty-state {
+    .empty-icon {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .empty-title {
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .empty-desc {
+      color: rgba(255, 255, 255, 0.5);
+    }
   }
 }
 </style>

@@ -1,5 +1,10 @@
 <template>
   <view class="login-page">
+    <!-- 漂浮装饰圆（增强品牌区氛围） -->
+    <view class="deco-circle deco-1 float" />
+    <view class="deco-circle deco-2 float" />
+    <view class="deco-circle deco-3 float" />
+
     <!-- 品牌区 -->
     <view class="brand">
       <image class="logo" src="/static/logo/logo-icon-transparent.png" mode="aspectFit" />
@@ -57,7 +62,7 @@
 
       <!-- 登录按钮 -->
       <button
-        class="login-btn"
+        class="login-btn btn-feedback"
         :disabled="!canLogin"
         :class="{ disabled: !canLogin }"
         @click="handleLogin"
@@ -74,6 +79,15 @@ import { useUserStore } from "@/store/user";
 
 const userStore = useUserStore();
 
+/** 验证码倒计时总时长（秒） */
+const COUNTDOWN_SECONDS = 60;
+/** 倒计时步进间隔（ms） */
+const COUNTDOWN_INTERVAL_MS = 1000;
+/** 验证码最短长度 */
+const MIN_CODE_LENGTH = 4;
+/** 手机号正则（中国大陆 1[3-9] 开头 11 位） */
+const PHONE_REGEX = /^1[3-9]\d{9}$/;
+
 // 表单状态
 const phone = ref("");
 const code = ref("");
@@ -82,9 +96,13 @@ const countdown = ref(0);
 const logging = ref(false);
 
 // 计算属性
-const phoneValid = computed(() => /^1[3-9]\d{9}$/.test(phone.value));
+const phoneValid = computed(() => PHONE_REGEX.test(phone.value));
 const canLogin = computed(
-  () => phoneValid.value && code.value.length >= 4 && agree.value && !logging.value
+  () =>
+    phoneValid.value &&
+    code.value.length >= MIN_CODE_LENGTH &&
+    agree.value &&
+    !logging.value
 );
 
 // 发送验证码
@@ -102,15 +120,15 @@ async function handleSendCode() {
   }
 }
 
-// 倒计时
+/** 启动验证码倒计时 */
 function startCountdown() {
-  countdown.value = 60;
+  countdown.value = COUNTDOWN_SECONDS;
   const timer = setInterval(() => {
     countdown.value--;
     if (countdown.value <= 0) {
       clearInterval(timer);
     }
-  }, 1000);
+  }, COUNTDOWN_INTERVAL_MS);
 }
 
 // 登录
@@ -137,6 +155,42 @@ async function handleLogin() {
   padding: 0 60rpx;
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 漂浮装饰圆 */
+.deco-circle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  pointer-events: none;
+
+  &.deco-1 {
+    width: 300rpx;
+    height: 300rpx;
+    top: 60rpx;
+    right: -80rpx;
+    animation-duration: 3.5s;
+  }
+
+  &.deco-2 {
+    width: 200rpx;
+    height: 200rpx;
+    top: 280rpx;
+    left: -60rpx;
+    animation-duration: 4s;
+    animation-delay: 0.5s;
+  }
+
+  &.deco-3 {
+    width: 120rpx;
+    height: 120rpx;
+    top: 140rpx;
+    left: 180rpx;
+    animation-duration: 3s;
+    animation-delay: 1s;
+  }
 }
 
 .brand {
@@ -190,6 +244,13 @@ async function handleLogin() {
     padding: 0 24rpx;
     font-size: 32rpx;
     background: #fafafa;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &:focus {
+      border-color: #ff5e8e;
+      box-shadow: 0 0 0 4rpx rgba(255, 94, 142, 0.12);
+      background: #fff;
+    }
   }
 
   .placeholder {
@@ -273,9 +334,11 @@ async function handleLogin() {
   font-weight: bold;
   border-radius: 48rpx;
   border: none;
+  box-shadow: 0 12rpx 32rpx rgba(255, 94, 142, 0.35);
 
   &.disabled {
     opacity: 0.5;
+    box-shadow: none;
   }
 }
 </style>

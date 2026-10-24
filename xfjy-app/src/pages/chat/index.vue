@@ -2,10 +2,12 @@
   <view class="chat-page">
     <!-- 通知入口 -->
     <view class="notice-bar">
-      <view class="notice-item" v-for="item in noticeItems" :key="item.type" @click="goNotifications(item.type)">
+      <view class="notice-item btn-feedback" v-for="item in noticeItems" :key="item.type" @click="goNotifications(item.type)">
         <view class="notice-icon-wrap">
-          <text class="notice-icon">{{ item.icon }}</text>
-          <view v-if="item.unread > 0" class="badge">{{ item.unread > 99 ? '99+' : item.unread }}</view>
+          <view class="notice-icon-bg" :style="{ background: item.color }">
+            <text class="notice-icon">{{ item.icon }}</text>
+          </view>
+          <view v-if="item.unread > 0" class="badge pulse">{{ item.unread > 99 ? '99+' : item.unread }}</view>
         </view>
         <text class="notice-label">{{ item.label }}</text>
       </view>
@@ -13,8 +15,12 @@
 
     <!-- 聊天列表 -->
     <view class="chat-list">
-      <view v-if="chatList.length === 0" class="empty">
-        <text class="empty-text">还没有聊天，去匹配页滑动遇见新朋友吧</text>
+      <view v-if="chatList.length === 0" class="empty-state">
+        <view class="empty-icon">
+          <text>💌</text>
+        </view>
+        <text class="empty-title">还没有聊天</text>
+        <text class="empty-desc">去匹配页滑动，遇见新朋友吧</text>
       </view>
       <view
         v-for="contact in chatList"
@@ -22,7 +28,10 @@
         class="chat-item"
         @click="goChatDetail(contact)"
       >
-        <image class="avatar" :src="contact.avatar" mode="aspectFill" />
+        <view class="avatar-wrap">
+          <image class="avatar" :src="contact.avatar" mode="aspectFill" />
+          <view v-if="contact.online" class="online-dot" />
+        </view>
         <view class="chat-info">
           <view class="top-row">
             <text class="nickname">{{ contact.nickname }}</text>
@@ -53,12 +62,15 @@ interface ChatListItem extends Contact {
   unreadCount: number;
 }
 
-/** 通知入口图标与文案配置 */
-const NOTICE_META: Record<NoticeType, { icon: string; label: string }> = {
-  like: { icon: "♥", label: "喜欢" },
-  comment: { icon: "💬", label: "评论" },
-  love: { icon: "🌟", label: "心动" },
-  announcement: { icon: "📢", label: "公告" },
+/** 通知入口图标、文案与背景色配置 */
+const NOTICE_META: Record<
+  NoticeType,
+  { icon: string; label: string; color: string }
+> = {
+  like: { icon: "♥", label: "喜欢", color: "#ff5e8e" },
+  comment: { icon: "💬", label: "评论", color: "#4a90d9" },
+  love: { icon: "★", label: "心动", color: "#ffd700" },
+  announcement: { icon: "📢", label: "公告", color: "#4cd964" },
 };
 
 /** 通知入口（未读数来自 store 本地存储方案） */
@@ -67,6 +79,7 @@ const noticeItems = computed(() =>
     type,
     icon: NOTICE_META[type].icon,
     label: NOTICE_META[type].label,
+    color: NOTICE_META[type].color,
     unread: chatStore.noticeUnreads[type],
   }))
 );
@@ -167,23 +180,35 @@ onShow(() => {
     .notice-icon-wrap {
       position: relative;
 
+      .notice-icon-bg {
+        width: 80rpx;
+        height: 80rpx;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
       .notice-icon {
-        font-size: 44rpx;
+        font-size: 36rpx;
+        color: #fff;
+        line-height: 1;
       }
 
       .badge {
         position: absolute;
-        top: -8rpx;
-        right: -16rpx;
+        top: -4rpx;
+        right: -8rpx;
         min-width: 32rpx;
         height: 32rpx;
         line-height: 32rpx;
         text-align: center;
         font-size: 20rpx;
         color: #fff;
-        background: #ff3b30;
+        background: linear-gradient(135deg, #ff3b30, #ff5e8e);
         border-radius: 16rpx;
         padding: 0 8rpx;
+        border: 2rpx solid #fff;
       }
     }
 
@@ -197,28 +222,32 @@ onShow(() => {
 .chat-list {
   background: #fff;
 
-  .empty {
-    display: flex;
-    justify-content: center;
-    padding: 120rpx 0;
-
-    .empty-text {
-      font-size: 28rpx;
-      color: #999;
-    }
-  }
-
   .chat-item {
     display: flex;
     align-items: center;
     padding: 24rpx 32rpx;
     border-bottom: 1rpx solid #f0f0f0;
 
+    .avatar-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+
     .avatar {
       width: 96rpx;
       height: 96rpx;
       border-radius: 50%;
-      flex-shrink: 0;
+    }
+
+    .online-dot {
+      position: absolute;
+      bottom: 2rpx;
+      right: 2rpx;
+      width: 24rpx;
+      height: 24rpx;
+      background: #4cd964;
+      border-radius: 50%;
+      border: 4rpx solid #fff;
     }
 
     .chat-info {
@@ -262,7 +291,7 @@ onShow(() => {
           text-align: center;
           font-size: 20rpx;
           color: #fff;
-          background: #ff3b30;
+          background: linear-gradient(135deg, #ff3b30, #ff5e8e);
           border-radius: 16rpx;
           padding: 0 8rpx;
           margin-left: 16rpx;

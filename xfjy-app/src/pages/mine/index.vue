@@ -1,7 +1,10 @@
 <template>
   <view class="mine-page">
     <!-- 头部背景区 -->
-    <view class="header" :style="{ paddingTop: statusBarHeight + 40 + 'px' }">
+    <view class="header" :style="{ paddingTop: statusBarHeight + HEADER_EXTRA_PADDING_PX + 'px' }">
+      <!-- 漂浮装饰圆 -->
+      <view class="deco-circle deco-1 float" />
+      <view class="deco-circle deco-2 float" />
       <view class="user-row" @click="goProfile">
         <image class="avatar" :src="userInfo?.avatar || '/static/logo/logo-icon-transparent.png'" mode="aspectFill" />
         <view class="user-info">
@@ -46,44 +49,22 @@
       <text class="vip-arrow">›</text>
     </view>
 
-    <!-- 功能列表 -->
-    <view class="menu-group">
-      <view class="menu-item" @click="goPage('/pages/mine/profile')">
-        <text class="menu-icon">✏️</text>
-        <text class="menu-label">编辑资料</text>
-        <text class="menu-arrow">›</text>
-      </view>
-      <view class="menu-item" @click="goFriends(FRIEND_TYPE.MUTUAL)">
-        <text class="menu-icon">👥</text>
-        <text class="menu-label">我的好友</text>
-        <text class="menu-arrow">›</text>
-      </view>
-      <view class="menu-item" @click="goFriends(FRIEND_TYPE.VISITOR)">
-        <text class="menu-icon">👁</text>
-        <text class="menu-label">谁看过我</text>
-        <text class="menu-arrow">›</text>
-      </view>
-      <view class="menu-item" @click="goFriends(FRIEND_TYPE.FOLLOW)">
-        <text class="menu-icon">♥</text>
-        <text class="menu-label">我喜欢</text>
-        <text class="menu-arrow">›</text>
-      </view>
-      <view class="menu-item" @click="goFriends(FRIEND_TYPE.FANS)">
-        <text class="menu-icon">🙋</text>
-        <text class="menu-label">粉丝</text>
-        <text class="menu-arrow">›</text>
-      </view>
-    </view>
-
-    <view class="menu-group">
-      <view class="menu-item" @click="goPage('/pages/mine/blacklist')">
-        <text class="menu-icon">🚫</text>
-        <text class="menu-label">黑名单</text>
-        <text class="menu-arrow">›</text>
-      </view>
-      <view class="menu-item" @click="goPage('/pages/mine/settings')">
-        <text class="menu-icon">⚙</text>
-        <text class="menu-label">设置</text>
+    <!-- 功能列表（表驱动渲染） -->
+    <view
+      v-for="(group, groupIndex) in menuGroups"
+      :key="groupIndex"
+      class="menu-group"
+    >
+      <view
+        v-for="item in group"
+        :key="item.label"
+        class="menu-item btn-feedback"
+        @click="item.action()"
+      >
+        <view class="menu-icon-bg" :style="{ background: item.color }">
+          <text class="menu-icon">{{ item.icon }}</text>
+        </view>
+        <text class="menu-label">{{ item.label }}</text>
         <text class="menu-arrow">›</text>
       </view>
     </view>
@@ -100,12 +81,78 @@ const userStore = useUserStore();
 const userInfo = computed(() => userStore.userInfo);
 const statusBarHeight = ref(0);
 
+/** 状态栏高度兜底值（px） */
+const DEFAULT_STATUS_BAR_HEIGHT_PX = 20;
+/** 头部额外顶部留白（px，状态栏下方间距） */
+const HEADER_EXTRA_PADDING_PX = 40;
+
 /** 关系统计（与后端 CountsVo 对齐） */
 const counts = ref<RelationCounts>({
   eachLoveCount: 0,
   loveCount: 0,
   fanCount: 0,
 });
+
+/** 菜单项配置（表驱动：图标/文案/色块颜色/点击行为） */
+interface MenuItemConfig {
+  icon: string;
+  label: string;
+  color: string;
+  action: () => void;
+}
+
+/** 社交关系菜单组 */
+const socialMenuItems: MenuItemConfig[] = [
+  {
+    icon: "✏️",
+    label: "编辑资料",
+    color: "#ff5e8e",
+    action: () => goPage("/pages/mine/profile"),
+  },
+  {
+    icon: "👥",
+    label: "我的好友",
+    color: "#4a90d9",
+    action: () => goFriends(FRIEND_TYPE.MUTUAL),
+  },
+  {
+    icon: "👁",
+    label: "谁看过我",
+    color: "#a78bfa",
+    action: () => goFriends(FRIEND_TYPE.VISITOR),
+  },
+  {
+    icon: "♥",
+    label: "我喜欢",
+    color: "#ff3b30",
+    action: () => goFriends(FRIEND_TYPE.FOLLOW),
+  },
+  {
+    icon: "🙋",
+    label: "粉丝",
+    color: "#4cd964",
+    action: () => goFriends(FRIEND_TYPE.FANS),
+  },
+];
+
+/** 系统设置菜单组 */
+const settingsMenuItems: MenuItemConfig[] = [
+  {
+    icon: "🚫",
+    label: "黑名单",
+    color: "#999999",
+    action: () => goPage("/pages/mine/blacklist"),
+  },
+  {
+    icon: "⚙",
+    label: "设置",
+    color: "#666666",
+    action: () => goPage("/pages/mine/settings"),
+  },
+];
+
+/** 全部菜单组（渲染顺序：社交 → 设置） */
+const menuGroups = [socialMenuItems, settingsMenuItems];
 
 function goProfile() {
   uni.navigateTo({ url: "/pages/mine/profile" });
@@ -140,7 +187,8 @@ async function loadCounts() {
 
 onShow(() => {
   const sysInfo = uni.getSystemInfoSync();
-  statusBarHeight.value = sysInfo.statusBarHeight || 20;
+  statusBarHeight.value =
+    sysInfo.statusBarHeight || DEFAULT_STATUS_BAR_HEIGHT_PX;
   loadCounts();
 });
 </script>
@@ -156,6 +204,33 @@ onShow(() => {
   background: linear-gradient(180deg, #ff5e8e 0%, #ff8fab 100%);
   padding: 0 32rpx 32rpx;
   border-radius: 0 0 40rpx 40rpx;
+  position: relative;
+  overflow: hidden;
+
+  /* 漂浮装饰圆 */
+  .deco-circle {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    pointer-events: none;
+
+    &.deco-1 {
+      width: 240rpx;
+      height: 240rpx;
+      top: 20rpx;
+      right: -60rpx;
+      animation-duration: 3.5s;
+    }
+
+    &.deco-2 {
+      width: 160rpx;
+      height: 160rpx;
+      top: 120rpx;
+      left: -40rpx;
+      animation-duration: 4s;
+      animation-delay: 0.8s;
+    }
+  }
 
   .user-row {
     display: flex;
@@ -262,9 +337,10 @@ onShow(() => {
   justify-content: space-between;
   margin: 24rpx 32rpx;
   padding: 28rpx 32rpx;
-  background: linear-gradient(135deg, #2c2c2c, #4a3b2a);
+  background: linear-gradient(135deg, #1a1a2e, #2c2c2c, #4a3b2a);
   border-radius: 24rpx;
-  border: 2rpx solid #ffd700;
+  border: 2rpx solid rgba(255, 215, 0, 0.6);
+  box-shadow: 0 8rpx 32rpx rgba(255, 215, 0, 0.15);
 
   .vip-left {
     display: flex;
@@ -312,9 +388,20 @@ onShow(() => {
       border-bottom: none;
     }
 
+    .menu-icon-bg {
+      width: 64rpx;
+      height: 64rpx;
+      border-radius: 16rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
     .menu-icon {
-      font-size: 36rpx;
-      width: 56rpx;
+      font-size: 32rpx;
+      color: #fff;
+      line-height: 1;
     }
 
     .menu-label {

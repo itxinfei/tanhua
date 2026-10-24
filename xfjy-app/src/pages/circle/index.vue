@@ -12,15 +12,19 @@
         <text>{{ tab.label }}</text>
       </view>
       <!-- 发布按钮 -->
-      <view class="publish-btn" @click="goPublish">
+      <view class="publish-btn btn-feedback" @click="goPublish">
         <text>+</text>
       </view>
     </view>
 
     <!-- 动态列表 -->
     <scroll-view scroll-y class="feed-list" @scrolltolower="loadMore">
-      <view v-if="feedList.length === 0" class="empty">
-        <text class="empty-text">暂无动态，快来发布第一条吧</text>
+      <view v-if="feedList.length === 0" class="empty-state">
+        <view class="empty-icon">
+          <text>📷</text>
+        </view>
+        <text class="empty-title">暂无动态</text>
+        <text class="empty-desc">快来发布第一条，分享你的生活</text>
       </view>
       <view v-for="item in feedList" :key="item.id" class="post-card">
         <!-- 头部 -->
@@ -34,9 +38,9 @@
         <!-- 文字内容 -->
         <view v-if="item.textContent" class="post-content ellipsis-2">{{ item.textContent }}</view>
         <!-- 九宫格图片 -->
-        <view v-if="item.medias && item.medias.length" class="image-grid" :class="`grid-${Math.min(item.medias.length, 3)}`">
+        <view v-if="item.medias && item.medias.length" class="image-grid" :class="`grid-${Math.min(item.medias.length, GRID_COLUMN_COUNT)}`">
           <image
-            v-for="(img, i) in item.medias.slice(0, 9)"
+            v-for="(img, i) in item.medias.slice(0, MAX_GRID_IMAGE_COUNT)"
             :key="i"
             class="grid-image"
             :src="img"
@@ -46,16 +50,16 @@
         </view>
         <!-- 互动栏 -->
         <view class="action-row">
-          <view class="action" @click="handleLike(item)">
-            <text :class="{ liked: item.hasLiked }">{{ item.hasLiked ? '❤️' : '🤍' }}</text>
+          <view class="action btn-feedback" @click="handleLike(item)">
+            <text class="action-icon" :class="{ liked: item.hasLiked, 'heart-beat': item.hasLiked }">{{ item.hasLiked ? '♥' : '♡' }}</text>
             <text class="count">{{ item.loveLikeCount || '' }}</text>
           </view>
-          <view class="action" @click="goDetail(item)">
-            <text>💬</text>
+          <view class="action btn-feedback" @click="goDetail(item)">
+            <text class="action-icon">💬</text>
             <text class="count">{{ item.commentCount || '' }}</text>
           </view>
-          <view class="action" @click="handleLove(item)">
-            <text :class="{ loved: item.hasLoved }">{{ item.hasLoved ? '🌟' : '✨' }}</text>
+          <view class="action btn-feedback" @click="handleLove(item)">
+            <text class="action-icon" :class="{ loved: item.hasLoved }">{{ item.hasLoved ? '★' : '☆' }}</text>
           </view>
         </view>
       </view>
@@ -72,6 +76,11 @@ import { useCircleStore } from "@/store/circle";
 import type { Movement } from "@/api/circle";
 
 const circleStore = useCircleStore();
+
+/** 九宫格图片最大展示数量 */
+const MAX_GRID_IMAGE_COUNT = 9;
+/** 九宫格列数 */
+const GRID_COLUMN_COUNT = 3;
 
 const tabs = [
   { key: "friend", label: "好友" },
@@ -222,6 +231,7 @@ onShow(() => {
     align-items: center;
     justify-content: center;
     border-radius: 50%;
+    box-shadow: 0 8rpx 24rpx rgba(255, 94, 142, 0.4);
   }
 }
 
@@ -235,6 +245,7 @@ onShow(() => {
   border-radius: 24rpx;
   padding: 24rpx;
   margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 
   .post-header {
     display: flex;
@@ -294,24 +305,26 @@ onShow(() => {
       display: flex;
       align-items: center;
       gap: 8rpx;
-      font-size: 28rpx;
+
+      .action-icon {
+        font-size: 36rpx;
+        color: #999;
+        line-height: 1;
+
+        &.liked {
+          color: #ff5e8e;
+        }
+
+        &.loved {
+          color: #ffd700;
+        }
+      }
 
       .count {
         font-size: 24rpx;
         color: #999;
       }
     }
-  }
-}
-
-.empty {
-  display: flex;
-  justify-content: center;
-  padding: 120rpx 0;
-
-  .empty-text {
-    font-size: 28rpx;
-    color: #999;
   }
 }
 
