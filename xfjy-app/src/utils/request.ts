@@ -7,7 +7,7 @@
 export const BASE_URL: string =
   import.meta.env.MODE === "production"
     ? "https://api.xfjy.com"
-    : "http://localhost:8080"; // 统一走网关，由网关路由到 sso/server
+    : "http://localhost:8090"; // 统一走网关(8090，避开8080端口占用)，由网关路由到 sso/server
 
 // 请求配置类型
 interface RequestOptions {
