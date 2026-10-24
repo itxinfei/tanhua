@@ -10,7 +10,7 @@
     <!-- 通知列表 -->
     <view v-for="item in list" :key="item.id" class="notice-item shadow-card btn-feedback" @click="goDetail(item)">
       <view class="avatar-wrap">
-        <image class="avatar" :src="item.avatar || '/static/logo/logo-icon-transparent.png'" mode="aspectFill" />
+        <image class="avatar" :src="item.avatar || '/static/logo/logo-icon-transparent.png'" mode="aspectFill" lazy-load />
         <view class="type-badge" :style="{ background: typeMeta.color }"><text>{{ typeMeta.icon }}</text></view>
       </view>
       <view class="info">
@@ -24,7 +24,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { onLoad, onShow } from "@dcloudio/uni-app";
+import { onLoad, onShow, onPullDownRefresh } from "@dcloudio/uni-app";
 
 /** 通知类型元数据（图标+颜色，与会话列表 NOTICE_META 保持一致） */
 const TYPE_META: Record<string, { icon: string; color: string }> = {
@@ -60,6 +60,15 @@ onLoad((options: any) => {
 
 onShow(() => {
   // TODO: 对接 GET /messages/likes | comments | loves | announcements
+});
+
+/** 下拉刷新（接口接入后重新拉取当前类型通知列表） */
+onPullDownRefresh(async () => {
+  try {
+    // TODO: 对接 GET /messages/{type} 重新拉取
+  } finally {
+    uni.stopPullDownRefresh();
+  }
 });
 </script>
 

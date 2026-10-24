@@ -1,7 +1,14 @@
 <template>
   <view class="blacklist-page">
     <!-- 列表 -->
-    <scroll-view class="list-scroll" scroll-y @scrolltolower="loadMore">
+    <scroll-view
+      class="list-scroll"
+      scroll-y
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="onRefresh"
+      @scrolltolower="loadMore"
+    >
       <view v-if="userList.length === 0 && !loading" class="empty-state">
         <view class="empty-icon"><text>🛡</text></view>
         <text class="empty-title">黑名单为空</text>
@@ -13,6 +20,7 @@
           class="user-avatar"
           :src="user.avatar || '/static/logo/logo-icon-transparent.png'"
           mode="aspectFill"
+          lazy-load
         />
         <view class="user-info">
           <text class="user-nickname">{{ user.nickname || '未设置昵称' }}</text>
@@ -50,6 +58,8 @@ const userList = ref<UserProfile[]>([]);
 const currentPage = ref(1);
 const hasMore = ref(true);
 const loading = ref(false);
+/** 下拉刷新中状态（驱动 scroll-view refresher） */
+const refreshing = ref(false);
 
 onMounted(() => {
   loadList();
@@ -66,6 +76,16 @@ async function loadList(): Promise<void> {
     hasMore.value = (result.items?.length || 0) >= DEFAULT_PAGE_SIZE;
   } finally {
     loading.value = false;
+  }
+}
+
+/** 下拉刷新：重新加载黑名单首页 */
+async function onRefresh(): Promise<void> {
+  refreshing.value = true;
+  try {
+    await loadList();
+  } finally {
+    refreshing.value = false;
   }
 }
 

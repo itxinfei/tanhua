@@ -10,7 +10,9 @@
 		{
 			"path": "pages/chat/index",
 			"style": {
-				"navigationBarTitleText": "消息"
+				"navigationBarTitleText": "消息",
+				"enablePullDownRefresh": true,
+				"backgroundTextStyle": "dark"
 			}
 		},
 		{
@@ -46,7 +48,9 @@
 		{
 			"path": "pages/match/nearby",
 			"style": {
-				"navigationBarTitleText": "附近的人"
+				"navigationBarTitleText": "附近的人",
+				"enablePullDownRefresh": true,
+				"backgroundTextStyle": "dark"
 			}
 		},
 		{
@@ -58,7 +62,9 @@
 		{
 			"path": "pages/chat/notifications",
 			"style": {
-				"navigationBarTitleText": "通知"
+				"navigationBarTitleText": "通知",
+				"enablePullDownRefresh": true,
+				"backgroundTextStyle": "dark"
 			}
 		},
 		{

@@ -18,13 +18,33 @@ onHide(() => {
 /* uview-plus 样式 */
 @import "uview-plus/index.scss";
 
-/* 全局公共样式 */
+/* ===== CSS 变量（深色模式基础版：跟随系统自动切换，页面硬编码色后续逐步迁移） ===== */
 page {
-  background-color: #f5f5f5;
+  --bg-page: #f5f5f5;
+  --bg-card: #ffffff;
+  --bg-icon-soft: #fff0f5;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --text-hint: #999999;
+  --border-color: #f0f0f0;
+
+  background-color: var(--bg-page);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
-  color: #333333;
+  color: var(--text-primary);
   font-size: 28rpx;
+}
+
+@media (prefers-color-scheme: dark) {
+  page {
+    --bg-page: #1a1a1a;
+    --bg-card: #2c2c2c;
+    --bg-icon-soft: #3a2a30;
+    --text-primary: #e8e8e8;
+    --text-secondary: #aaaaaa;
+    --text-hint: #777777;
+    --border-color: #3a3a3a;
+  }
 }
 
 /* 安全区域 */
@@ -107,7 +127,7 @@ page {
     width: 160rpx;
     height: 160rpx;
     border-radius: 50%;
-    background: #fff0f5;
+    background: var(--bg-icon-soft);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -118,13 +138,13 @@ page {
   .empty-title {
     font-size: 30rpx;
     font-weight: bold;
-    color: #666;
+    color: var(--text-secondary);
     margin-bottom: 8rpx;
   }
 
   .empty-desc {
     font-size: 24rpx;
-    color: #aaa;
+    color: var(--text-hint);
   }
 }
 
@@ -222,6 +242,33 @@ page {
   &:active {
     transform: scale(0.96);
     box-shadow: 0 4rpx 12rpx rgba(255, 94, 142, 0.25);
+  }
+}
+
+/* ===== 骨架屏工具类 ===== */
+
+/* 闪光扫描动画 */
+@keyframes shimmer {
+  0% {
+    background-position: -400rpx 0;
+  }
+  100% {
+    background-position: 400rpx 0;
+  }
+}
+
+/* 骨架占位块（灰底 + 横向闪光扫过） */
+.skeleton {
+  background: linear-gradient(90deg, #efefef 25%, #f5f5f5 50%, #efefef 75%);
+  background-size: 800rpx 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 12rpx;
+}
+
+@media (prefers-color-scheme: dark) {
+  .skeleton {
+    background: linear-gradient(90deg, #2c2c2c 25%, #3a3a3a 50%, #2c2c2c 75%);
+    background-size: 800rpx 100%;
   }
 }
 </style>
