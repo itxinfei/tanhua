@@ -312,7 +312,7 @@ onShow(() => {
 
 <style lang="scss" scoped>
 .match-page {
-  height: 100vh;
+  height: calc(100vh - var(--window-bottom, 0px));
   background: #f0f0f5;
   display: flex;
   flex-direction: column;

@@ -31,6 +31,10 @@ public class TokenInterceptor implements HandlerInterceptor {
         }
 
         String token = request.getHeader("Authorization");
+        // 兼容标准 Bearer 前缀：前端发 "Bearer xxx"，Redis 中存的是裸 token 值
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
         User user = this.userService.queryUserByToken(token);
         if(null == user){
             response.setStatus(401); //无权限
