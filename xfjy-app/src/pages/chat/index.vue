@@ -146,8 +146,9 @@ onShow(() => {
 
 <style lang="scss" scoped>
 .chat-page {
-  min-height: 100vh;
+  min-height: calc(100vh - var(--window-bottom, 0px));
   background: #f5f5f5;
+  padding-bottom: calc(var(--window-bottom, 0px) + 24rpx);
 }
 
 .notice-bar {
