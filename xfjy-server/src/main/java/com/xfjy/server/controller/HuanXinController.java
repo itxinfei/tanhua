@@ -27,9 +27,14 @@ public class HuanXinController {
         String password = DigestUtils.md5Hex(user.getId() + "_xfjy");
 
         // 用环信用户名密码换取用户级 token（IM SDK 5.x 仅支持 token 登录）
-        // 环信用户未注册或服务不可用时返回 null，前端 SDK 登录失败会静默降级
         String token = huanXinApi.getUserToken(username, password);
 
+        // 首次使用时环信侧无账号，懒注册后重试换取 token
+        if (token == null && huanXinApi.registerUser(username, password)) {
+            token = huanXinApi.getUserToken(username, password);
+        }
+
+        // token 仍为 null 时（环信服务不可用等），前端 SDK 登录失败会静默降级
         HuanXinUser huanXinUser = new HuanXinUser();
         huanXinUser.setUsername(username);
         huanXinUser.setToken(token);

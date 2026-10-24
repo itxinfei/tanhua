@@ -122,6 +122,55 @@ public class HuanXinApiImpl implements HuanXinApi {
     }
 
     /**
+     * 注册环信用户
+     * POST {restHost}/{org}/{app}/users，需应用级 token 鉴权
+     * body: { "username": ..., "password": ... }
+     * 幂等：400 且响应含 duplicate/exists/unique 视为用户已存在，返回 true
+     */
+    @Override
+    @PostMapping("/user-register")
+    public boolean registerUser(@RequestParam("username") String username,
+                                @RequestParam("password") String password) {
+        try {
+            String token = getAppToken();
+            if (token == null) {
+                log.warn("[环信] 获取token失败，跳过用户注册: {}", username);
+                return false;
+            }
+
+            String url = buildUrl("users");
+            HttpHeaders headers = authHeader(token);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            Map<String, String> body = new HashMap<>();
+            body.put("username", username);
+            body.put("password", password);
+
+            ResponseEntity<String> resp = restTemplate.postForEntity(url,
+                    new HttpEntity<>(MAPPER.writeValueAsString(body), headers), String.class);
+            if (resp.getStatusCode().is2xxSuccessful()) {
+                log.info("[环信] 用户注册成功: {}", username);
+                return true;
+            }
+
+            // 400 且含 duplicate/exists/unique → 用户已存在，幂等视为成功
+            String respBody = resp.getBody();
+            if (resp.getStatusCode().value() == 400 && respBody != null) {
+                String lower = respBody.toLowerCase();
+                if (lower.contains("duplicate") || lower.contains("exists") || lower.contains("unique")) {
+                    log.info("[环信] 用户已存在，视为注册成功: {}", username);
+                    return true;
+                }
+            }
+            log.warn("[环信] 用户注册失败: {}, status={}, body={}", username, resp.getStatusCode(), respBody);
+            return false;
+        } catch (Exception e) {
+            log.error("[环信] 用户注册异常: {}", username, e);
+            return false;
+        }
+    }
+
+    /**
      * 获取环信用户级 token（grant_type=password 模式）
      * 供前端 IM SDK 5.x login({userId, token}) 使用
      *
