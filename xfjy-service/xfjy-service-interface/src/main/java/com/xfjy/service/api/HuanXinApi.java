@@ -39,6 +39,20 @@ public interface HuanXinApi {
                      @RequestParam("msg") String msg);
 
     /**
+     * 注册环信用户（IM 账号创建）
+     *
+     * 幂等：用户已存在时返回 true，调用方无需区分是否首次注册
+     *
+     * @param username 环信用户ID
+     * @param password 环信用户密码
+     * @return true=注册成功或已存在；false=注册失败
+     */
+    @PostExchange("/user-register")
+    @PostMapping("/user-register")
+    boolean registerUser(@RequestParam("username") String username,
+                         @RequestParam("password") String password);
+
+    /**
      * 获取环信用户级 token（供 IM SDK 5.x 登录使用）
      *
      * @param username 环信用户ID
