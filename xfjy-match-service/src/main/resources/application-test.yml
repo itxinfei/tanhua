@@ -1,8 +1,7 @@
 # 测试环境
 spring:
-  data:
-    mongodb:
-      uri: mongodb://172.17.0.144:27017/xfjy
+  mongodb:
+    uri: mongodb://172.17.0.144:27017/xfjy
 
 es:
   server:

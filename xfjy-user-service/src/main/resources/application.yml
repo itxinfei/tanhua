@@ -4,9 +4,9 @@ server:
 spring:
   application:
     name: xfjy-user-service
+  mongodb:
+    uri: mongodb://192.168.20.130:27017/xfjy
   data:
-    mongodb:
-      uri: mongodb://192.168.20.130:27017/xfjy
     redis:
       host: 192.168.20.130
       port: 6379
