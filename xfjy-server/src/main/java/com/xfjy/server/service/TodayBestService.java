@@ -324,16 +324,16 @@ public class TodayBestService {
     }
 
     /**
-     * 递归随机生成推荐好友，保证不重复
+     * 随机生成推荐好友，保证不重复（while 循环重试，避免递归栈溢出）
      */
     private void createRecommendUser(List<RecommendUser> newRecommendUserList,
                                      List<RecommendUser> records){
-        RecommendUser recommendUser = records.get(RandomUtils.nextInt(0, records.size() - 1));
-        if(!newRecommendUserList.contains(recommendUser)){
-            newRecommendUserList.add(recommendUser);
-        }else{
-            // 开始递归
-            createRecommendUser(newRecommendUserList, records);
+        while (true) {
+            RecommendUser recommendUser = records.get(RandomUtils.nextInt(0, records.size()));
+            if (!newRecommendUserList.contains(recommendUser)) {
+                newRecommendUserList.add(recommendUser);
+                return;
+            }
         }
     }
 
