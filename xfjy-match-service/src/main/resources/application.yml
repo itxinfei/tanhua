@@ -6,9 +6,8 @@ spring:
     name: xfjy-match-service
   profiles:
     active: local
-  data:
-    mongodb:
-      uri: mongodb://192.168.20.130:27017/xfjy
+  mongodb:
+    uri: mongodb://192.168.20.130:27017/xfjy
 
 # ES服务地址（xfjy-elasticsearch 模块的HTTP接口，附近的人查询）
 es:
