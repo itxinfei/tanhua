@@ -28,6 +28,9 @@
     <scroll-view
       class="list-scroll"
       scroll-y
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="onRefresh"
       @scrolltolower="loadMore"
     >
       <view v-if="userList.length === 0 && !loading" class="empty-state">
@@ -45,6 +48,7 @@
           class="user-avatar"
           :src="user.avatar || '/static/logo/logo-icon-transparent.png'"
           mode="aspectFill"
+          lazy-load
           @click="goDetail(user.id)"
         />
         <view class="user-info" @click="goDetail(user.id)">
@@ -109,6 +113,8 @@ const userList = ref<UserProfile[]>([]);
 const currentPage = ref(1);
 const hasMore = ref(true);
 const loading = ref(false);
+/** 下拉刷新中状态（驱动 scroll-view refresher） */
+const refreshing = ref(false);
 
 /** 页面加载时读取传入的 type 参数 */
 onLoad((options) => {
@@ -144,6 +150,16 @@ async function loadList(): Promise<void> {
     hasMore.value = (result.items?.length || 0) >= DEFAULT_PAGE_SIZE;
   } finally {
     loading.value = false;
+  }
+}
+
+/** 下拉刷新：重新加载当前 Tab 首页 */
+async function onRefresh(): Promise<void> {
+  refreshing.value = true;
+  try {
+    await loadList();
+  } finally {
+    refreshing.value = false;
   }
 }
 

@@ -22,7 +22,7 @@
       <!-- 用户卡片 -->
       <view v-for="user in userList" :key="user.id" class="user-item shadow-card btn-feedback" @click="goDetail(user.id)">
         <view class="avatar-wrap">
-          <image class="avatar" :src="user.avatar || '/static/logo/logo-icon-transparent.png'" mode="aspectFill" />
+          <image class="avatar" :src="user.avatar || '/static/logo/logo-icon-transparent.png'" mode="aspectFill" lazy-load />
           <view v-if="user.online" class="online-dot" />
         </view>
         <view class="info">
@@ -41,23 +41,29 @@
 
       <!-- 加载中 -->
       <view v-if="loading" class="loading-tip"><text>加载中...</text></view>
+      <!-- 没有更多 -->
+      <view v-if="!hasMore && userList.length > 0" class="loading-tip"><text>没有更多了</text></view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { onShow, onPullDownRefresh, onReachBottom } from "@dcloudio/uni-app";
 import { getNearby } from "@/api/match";
 
 /** 距离筛选选项（km，0 表示全部） */
 const DISTANCE_OPTIONS = [0, 1, 3, 5, 10];
+/** 默认分页大小 */
+const DEFAULT_PAGE_SIZE = 10;
 
 const distances = DISTANCE_OPTIONS;
 const distance = ref(0);
 const gender = ref("全部");
 const userList = ref<any[]>([]);
 const loading = ref(false);
+const currentPage = ref(1);
+const hasMore = ref(true);
 
 /**
  * 格式化距离显示：小于 1km 显示米，否则保留 1 位小数
@@ -79,19 +85,49 @@ function handleQuickLike(id: string): void {
   uni.showToast({ title: "已喜欢", icon: "success" });
 }
 
-/** 加载附近用户 */
+/** 加载附近用户（首页） */
 async function loadNearby(): Promise<void> {
   if (loading.value) return;
   loading.value = true;
   try {
-    // TODO: 对接 GET /xfjy/search?gender=&distance=
+    // TODO: 对接 GET /xfjy/search?gender=&distance=&page=1&pagesize=10
+    currentPage.value = 1;
+    hasMore.value = false; // 接口未接入前标记无更多数据
     userList.value = [];
   } finally {
     loading.value = false;
   }
 }
 
+/** 上拉加载更多附近用户 */
+async function loadMoreNearby(): Promise<void> {
+  if (loading.value || !hasMore.value) return;
+  loading.value = true;
+  try {
+    // TODO: 对接 GET /xfjy/search 分页参数 page=currentPage+1&pagesize=10
+    const nextPage = currentPage.value + 1;
+    currentPage.value = nextPage;
+    hasMore.value = false;
+  } finally {
+    loading.value = false;
+  }
+}
+
 onShow(() => loadNearby());
+
+/** 下拉刷新：重新加载附近用户 */
+onPullDownRefresh(async () => {
+  try {
+    await loadNearby();
+  } finally {
+    uni.stopPullDownRefresh();
+  }
+});
+
+/** 上拉加载更多 */
+onReachBottom(() => {
+  loadMoreNearby();
+});
 </script>
 
 <style lang="scss" scoped>

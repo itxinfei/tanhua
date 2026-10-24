@@ -18,8 +18,30 @@
     </view>
 
     <!-- 动态列表 -->
-    <scroll-view scroll-y class="feed-list" @scrolltolower="loadMore">
-      <view v-if="feedList.length === 0" class="empty-state">
+    <scroll-view
+      scroll-y
+      class="feed-list"
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="onRefresh"
+      @scrolltolower="loadMore"
+    >
+      <!-- 骨架屏（首屏加载中） -->
+      <view v-if="feedList.length === 0 && loading" class="skeleton-feed">
+        <view v-for="i in SKELETON_CARD_COUNT" :key="i" class="skeleton-card">
+          <view class="skeleton-header">
+            <view class="skeleton skel-avatar" />
+            <view class="skeleton skel-name" />
+          </view>
+          <view class="skeleton skel-text" />
+          <view class="skeleton skel-text skel-short" />
+          <view class="skeleton skel-grid-row">
+            <view v-for="j in GRID_COLUMN_COUNT" :key="j" class="skeleton skel-grid" />
+          </view>
+        </view>
+      </view>
+      <!-- 空状态 -->
+      <view v-if="feedList.length === 0 && !loading" class="empty-state">
         <view class="empty-icon">
           <text>📷</text>
         </view>
@@ -29,7 +51,7 @@
       <view v-for="item in feedList" :key="item.id" class="post-card">
         <!-- 头部 -->
         <view class="post-header">
-          <image class="avatar" :src="item.avatar" mode="aspectFill" />
+          <image class="avatar" :src="item.avatar" mode="aspectFill" lazy-load />
           <view class="user-info">
             <text class="nickname">{{ item.nickname }}</text>
             <text class="meta">{{ item.createDate }} · {{ item.location || '未知位置' }}</text>
@@ -45,6 +67,7 @@
             class="grid-image"
             :src="img"
             mode="aspectFill"
+            lazy-load
             @click="previewImage(item.medias, i)"
           />
         </view>
@@ -70,8 +93,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { ref, computed } from "vue";
+import { onShow, onShareAppMessage } from "@dcloudio/uni-app";
 import { useCircleStore } from "@/store/circle";
 import type { Movement } from "@/api/circle";
 
@@ -81,6 +104,8 @@ const circleStore = useCircleStore();
 const MAX_GRID_IMAGE_COUNT = 9;
 /** 九宫格列数 */
 const GRID_COLUMN_COUNT = 3;
+/** 骨架屏占位卡片数量 */
+const SKELETON_CARD_COUNT = 3;
 
 const tabs = [
   { key: "friend", label: "好友" },
@@ -97,6 +122,8 @@ const feedList = computed<Movement[]>(() =>
 );
 /** 加载状态 */
 const loading = computed(() => circleStore.loading);
+/** 下拉刷新中状态（驱动 scroll-view refresher） */
+const refreshing = ref(false);
 
 /**
  * 切换 Tab（目标 Tab 无数据时才加载）
@@ -160,6 +187,18 @@ async function loadFeed() {
 }
 
 /**
+ * 下拉刷新：重新加载当前 Tab 首页动态
+ */
+async function onRefresh(): Promise<void> {
+  refreshing.value = true;
+  try {
+    await loadFeed();
+  } finally {
+    refreshing.value = false;
+  }
+}
+
+/**
  * 上拉加载更多
  */
 async function loadMore() {
@@ -177,6 +216,12 @@ async function loadMore() {
 onShow(() => {
   if (feedList.value.length === 0) loadFeed();
 });
+
+/** 小程序端分享配置（H5 端静默忽略） */
+onShareAppMessage(() => ({
+  title: "心飞交友 · 遇见心动的人",
+  path: "/pages/match/index",
+}));
 </script>
 
 <style lang="scss" scoped>
@@ -333,5 +378,55 @@ onShow(() => {
   padding: 24rpx;
   color: #999;
   font-size: 24rpx;
+}
+
+/* ===== 骨架屏 ===== */
+.skeleton-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+
+  .skeleton-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20rpx;
+
+    .skel-avatar {
+      width: 72rpx;
+      height: 72rpx;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .skel-name {
+      width: 180rpx;
+      height: 28rpx;
+      margin-left: 16rpx;
+    }
+  }
+
+  .skel-text {
+    width: 100%;
+    height: 26rpx;
+    margin-bottom: 12rpx;
+
+    &.skel-short {
+      width: 60%;
+    }
+  }
+
+  .skel-grid-row {
+    display: flex;
+    gap: 8rpx;
+    height: 200rpx;
+    margin-top: 8rpx;
+
+    .skel-grid {
+      flex: 1;
+      height: 100%;
+      border-radius: 8rpx;
+    }
+  }
 }
 </style>

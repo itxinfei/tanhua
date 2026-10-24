@@ -19,27 +19,27 @@
             object-fit="cover"
           />
           <!-- 封面占位 -->
-          <image v-else class="cover" :src="video.cover" mode="aspectFill" />
+          <image v-else class="cover" :src="video.cover" mode="aspectFill" lazy-load />
 
           <!-- 右侧操作栏 -->
           <view class="side-bar">
-            <view class="side-btn btn-feedback" @click="handleLike(video)">
+            <view class="side-btn btn-feedback" @click="handleLike(video)" :aria-label="video.hasLiked === 1 ? '取消点赞' : '点赞'">
               <view class="icon-circle" :class="{ liked: video.hasLiked === 1 }">
                 <text class="icon-text">{{ video.hasLiked === 1 ? '♥' : '♡' }}</text>
               </view>
               <text class="side-count">{{ video.likeCount }}</text>
             </view>
-            <view class="side-btn btn-feedback" @click="showComments(video)">
+            <view class="side-btn btn-feedback" @click="showComments(video)" aria-label="查看评论">
               <view class="icon-circle">
                 <text class="icon-text">💬</text>
               </view>
               <text class="side-count">{{ video.commentCount }}</text>
             </view>
-            <view class="side-btn btn-feedback" @click="handleFocus(video)">
-              <image class="side-avatar" :src="video.avatar" mode="aspectFill" />
+            <view class="side-btn btn-feedback" @click="handleFocus(video)" :aria-label="video.hasFocus ? '取消关注' : '关注作者'">
+              <image class="side-avatar" :src="video.avatar" mode="aspectFill" lazy-load />
               <view v-if="!video.hasFocus" class="follow-plus">+</view>
             </view>
-            <view class="side-btn btn-feedback" @click="handleShare">
+            <view class="side-btn btn-feedback" @click="handleShare" aria-label="分享视频">
               <view class="icon-circle">
                 <text class="icon-text">↗</text>
               </view>
@@ -55,8 +55,15 @@
       </swiper-item>
     </swiper>
 
+    <!-- 骨架屏（首屏加载中，黑底深色骨架） -->
+    <view v-if="videoList.length === 0 && loading" class="skeleton-video">
+      <view class="skeleton skel-full" />
+      <view class="skeleton skel-author" />
+      <view class="skeleton skel-desc" />
+    </view>
+
     <!-- 空状态 -->
-    <view v-if="videoList.length === 0" class="empty-overlay">
+    <view v-if="videoList.length === 0 && !loading" class="empty-overlay">
       <view class="empty-state">
         <view class="empty-icon">
           <text>🎬</text>
@@ -70,7 +77,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { onShow, onShareAppMessage } from "@dcloudio/uni-app";
 import {
   getVideoList,
   likeVideo,
@@ -86,6 +93,7 @@ const PAGE_SIZE = 10;
 const videoList = ref<Video[]>([]);
 const currentId = ref("");
 const page = ref(1);
+const loading = ref(false);
 
 /**
  * 滑动切换视频，接近底部时预加载下一页
@@ -147,13 +155,14 @@ function showComments(_video: Video) {
 }
 
 function handleShare() {
-  uni.showToast({ title: "分享功能开发中", icon: "none" });
+  uni.showToast({ title: "点击右上角 ··· 分享给好友", icon: "none" });
 }
 
 /**
  * 加载视频列表首页
  */
 async function loadVideos() {
+  loading.value = true;
   try {
     page.value = 1;
     const res = await getVideoList({ page: 1, pagesize: PAGE_SIZE });
@@ -163,6 +172,8 @@ async function loadVideos() {
     }
   } catch {
     // 请求失败由 request 层统一 toast
+  } finally {
+    loading.value = false;
   }
 }
 
@@ -185,6 +196,12 @@ async function loadMoreVideos() {
 onShow(() => {
   if (videoList.value.length === 0) loadVideos();
 });
+
+/** 小程序端分享配置（H5 端静默忽略） */
+onShareAppMessage(() => ({
+  title: "心飞交友 · 遇见心动的人",
+  path: "/pages/match/index",
+}));
 </script>
 
 <style lang="scss" scoped>
@@ -324,6 +341,40 @@ onShow(() => {
     .empty-desc {
       color: rgba(255, 255, 255, 0.5);
     }
+  }
+}
+
+/* 骨架屏（黑底深色骨架，覆盖全局浅色 skeleton） */
+.skeleton-video {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+
+  .skeleton {
+    background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+    background-size: 800rpx 100%;
+  }
+
+  .skel-full {
+    position: absolute;
+    inset: 0;
+    border-radius: 0;
+  }
+
+  .skel-author {
+    position: absolute;
+    left: 24rpx;
+    bottom: 140rpx;
+    width: 200rpx;
+    height: 32rpx;
+  }
+
+  .skel-desc {
+    position: absolute;
+    left: 24rpx;
+    bottom: 90rpx;
+    width: 400rpx;
+    height: 26rpx;
   }
 }
 </style>

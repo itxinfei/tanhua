@@ -2,17 +2,30 @@
   <view class="match-page">
     <!-- 顶部栏 -->
     <view class="top-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
-      <view class="city" @click="showCityPicker = true">
+      <view class="city" @click="showCityPicker = true" aria-label="选择城市">
         <text class="city-name">{{ currentCity }}</text>
         <text class="arrow">▾</text>
       </view>
-      <view class="filter-btn" @click="goNearby">
+      <view class="filter-btn" @click="goNearby" aria-label="查看附近的人">
         <text>附近</text>
       </view>
     </view>
 
     <!-- 卡片区域 -->
     <view class="card-area">
+      <!-- 骨架卡片（首屏加载中，模拟堆叠效果） -->
+      <view v-if="cardList.length === 0 && loading" class="skeleton-cards">
+        <view
+          v-for="i in VISIBLE_CARD_COUNT"
+          :key="i"
+          class="skeleton skel-card"
+          :style="{
+            transform: `scale(${1 - (i - 1) * CARD_SCALE_STEP}) translateY(${(i - 1) * CARD_OFFSET_STEP_RPX}rpx)`,
+            zIndex: CARD_BASE_Z_INDEX - (i - 1),
+          }"
+        />
+      </view>
+
       <!-- 空状态 -->
       <view v-if="cardList.length === 0 && !loading" class="empty-state">
         <view class="empty-icon">
@@ -74,19 +87,19 @@
 
     <!-- 底部操作栏 -->
     <view class="action-bar safe-area-bottom">
-      <view class="action-btn rewind btn-feedback" @click="handleRewind">
+      <view class="action-btn rewind btn-feedback" @click="handleRewind" aria-label="撤销上一个滑动">
         <text>↩</text>
       </view>
-      <view class="action-btn dislike btn-feedback" @click="handleDislike">
+      <view class="action-btn dislike btn-feedback" @click="handleDislike" aria-label="不喜欢">
         <text>✕</text>
       </view>
-      <view class="action-btn superlike btn-feedback" @click="handleSuperlike">
+      <view class="action-btn superlike btn-feedback" @click="handleSuperlike" aria-label="超级喜欢">
         <text>★</text>
       </view>
-      <view class="action-btn like btn-feedback" @click="handleLike">
+      <view class="action-btn like btn-feedback" @click="handleLike" aria-label="喜欢">
         <text>♥</text>
       </view>
-      <view class="action-btn boost btn-feedback" @click="handleBoost">
+      <view class="action-btn boost btn-feedback" @click="handleBoost" aria-label="曝光提升">
         <text>⚡</text>
       </view>
     </view>
@@ -112,7 +125,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { onShow, onShareAppMessage } from "@dcloudio/uni-app";
 import { useMatchStore } from "@/store/match";
 import { getCards, type TodayBest } from "@/api/match";
 import { useUserStore } from "@/store/user";
@@ -372,6 +385,12 @@ onShow(() => {
     loadMoreCards();
   }
 });
+
+/** 小程序端分享配置（H5 端静默忽略） */
+onShareAppMessage(() => ({
+  title: "心飞交友 · 遇见心动的人",
+  path: "/pages/match/index",
+}));
 </script>
 
 <style lang="scss" scoped>
@@ -421,6 +440,21 @@ onShow(() => {
   position: relative;
   padding: 24rpx;
   overflow: hidden;
+}
+
+/* 骨架卡片堆叠（首屏加载占位） */
+.skeleton-cards {
+  position: absolute;
+  left: 24rpx;
+  right: 24rpx;
+  top: 24rpx;
+  bottom: 24rpx;
+
+  .skel-card {
+    position: absolute;
+    inset: 0;
+    border-radius: 32rpx;
+  }
 }
 
 .card-wrapper {

@@ -29,7 +29,7 @@
         @click="goChatDetail(contact)"
       >
         <view class="avatar-wrap">
-          <image class="avatar" :src="contact.avatar" mode="aspectFill" />
+          <image class="avatar" :src="contact.avatar" mode="aspectFill" lazy-load />
           <view v-if="contact.online" class="online-dot" />
         </view>
         <view class="chat-info">
@@ -49,7 +49,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { onShow, onPullDownRefresh } from "@dcloudio/uni-app";
 import { getContacts, type Contact } from "@/api/chat";
 import { useChatStore, type NoticeType } from "@/store/chat";
 import { loginEasemob, getConversations } from "@/utils/easemob";
@@ -72,6 +72,11 @@ const NOTICE_META: Record<
   love: { icon: "★", label: "心动", color: "#ffd700" },
   announcement: { icon: "📢", label: "公告", color: "#4cd964" },
 };
+
+/** tabBar 消息页索引（见 pages.json tabBar.list） */
+const TAB_BAR_CHAT_INDEX = 1;
+/** 角标最大显示数字，超过显示 99+ */
+const BADGE_MAX_COUNT = 99;
 
 /** 通知入口（未读数来自 store 本地存储方案） */
 const noticeItems = computed(() =>
@@ -116,6 +121,24 @@ async function initEasemobAndMerge(): Promise<void> {
 }
 
 /**
+ * 同步 tabBar 消息角标（聊天会话未读总数）
+ */
+function updateTabBarBadge(): void {
+  const totalUnread = chatList.value.reduce(
+    (sum, item) => sum + (item.unreadCount || 0),
+    0
+  );
+  if (totalUnread > 0) {
+    uni.setTabBarBadge({
+      index: TAB_BAR_CHAT_INDEX,
+      text: totalUnread > BADGE_MAX_COUNT ? "99+" : String(totalUnread),
+    });
+  } else {
+    uni.removeTabBarBadge({ index: TAB_BAR_CHAT_INDEX });
+  }
+}
+
+/**
  * 加载联系人列表并合并环信会话
  */
 async function loadContacts(): Promise<void> {
@@ -127,6 +150,7 @@ async function loadContacts(): Promise<void> {
       unreadCount: 0,
     }));
     await initEasemobAndMerge();
+    updateTabBarBadge();
   } catch {
     // 请求失败由 request 层统一 toast
   }
@@ -154,6 +178,15 @@ function goChatDetail(contact: ChatListItem): void {
 onShow(() => {
   loadContacts();
   chatStore.loadNoticeCounts();
+});
+
+/** 下拉刷新：重新拉取联系人与通知未读数 */
+onPullDownRefresh(async () => {
+  try {
+    await Promise.all([loadContacts(), chatStore.loadNoticeCounts()]);
+  } finally {
+    uni.stopPullDownRefresh();
+  }
 });
 </script>
 
