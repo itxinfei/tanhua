@@ -23,7 +23,8 @@ spring:
             - id: xfjy-server
               uri: http://localhost:18081
               predicates:
-                - Path=/users/**,/movements/**,/comments/**,/messages/**,/smallVideos/**,/huanxin/**,/baidu/**,/xfjy/**,/admin/**
+                - Path=/users/**,/movements/**,/comments/**,/messages/**,/smallVideos/**,/huanxin/**,/baidu/**,/xfjy/**,/admin/**,/test-media/**
+          # 测试素材静态资源：/test-media/** → gateway → server(18081) → file:d:/MyCode/mytanhua/test-assets/
           # 编排层(BFF)决策：前端业务请求统一经 gateway → server(18081)，server 通过 @HttpExchange 契约代理
           # 调用各域服务(user 18090 / match 18082 / circle 18084 / video 18085 / message 18086)，
           # gateway 不直连各域服务，避免跨域聚合逻辑散落到前端。接入 Nacos 后改为 lb://xfjy-server。
