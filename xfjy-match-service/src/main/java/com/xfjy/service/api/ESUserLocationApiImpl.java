@@ -1,7 +1,10 @@
 package com.xfjy.service.api;
 
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ArrayNode;
@@ -41,7 +44,11 @@ public class ESUserLocationApiImpl implements ESUserLocationApi {
     private String esServerUrl;
 
     @Override
-    public String updateUserLocation(Long userId, Double longitude, Double latitude, String address) {
+    @PostMapping("/updateUserLocation")
+    public String updateUserLocation(@RequestParam("userId") Long userId,
+                                     @RequestParam("longitude") Double longitude,
+                                     @RequestParam("latitude") Double latitude,
+                                     @RequestParam("address") String address) {
         try {
             String url = this.esServerUrl + "user/location";
             Map<String, Object> param = new HashMap<>();
@@ -69,7 +76,8 @@ public class ESUserLocationApiImpl implements ESUserLocationApi {
     }
 
     @Override
-    public UserLocationVo queryByUserId(Long userId) {
+    @GetMapping("/queryByUserId")
+    public UserLocationVo queryByUserId(@RequestParam("userId") Long userId) {
         String url = this.esServerUrl + "user/location/" + userId;
         ResponseEntity<String> responseEntity = this.restTemplate.getForEntity(url, String.class);
         if (responseEntity.getStatusCode().value() != 200) {
@@ -100,7 +108,10 @@ public class ESUserLocationApiImpl implements ESUserLocationApi {
     }
 
     @Override
-    public List<UserLocationVo> queryUserFromLocation(Double longitude, Double latitude, Integer range) {
+    @GetMapping("/queryUserFromLocation")
+    public List<UserLocationVo> queryUserFromLocation(@RequestParam("longitude") Double longitude,
+                                                      @RequestParam("latitude") Double latitude,
+                                                      @RequestParam("range") Integer range) {
         String url = this.esServerUrl + "user/location/list";
         Map<String, Object> param = new HashMap<>();
         param.put("longitude", longitude);

@@ -1,7 +1,11 @@
 package com.xfjy.service.api;
 
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import com.xfjy.service.pojo.Users;
 import com.xfjy.service.vo.PageInfo;
 import org.bson.types.ObjectId;
@@ -22,7 +26,8 @@ public class UsersApiImpl implements UsersApi {
     private MongoTemplate mongoTemplate;
 
     @Override
-    public String saveUsers(Users users) {
+    @PostMapping("/saveUsers")
+    public String saveUsers(@RequestBody Users users) {
 
         //校验
         if (users.getUserId() == null || users.getFriendId() == null) {
@@ -42,20 +47,24 @@ public class UsersApiImpl implements UsersApi {
         users.setId(ObjectId.get());
         users.setDate(System.currentTimeMillis());
 
-        //将数据写入到MongoDB??
+        //将数据写入到MongoDB
         this.mongoTemplate.save(users);
 
         return users.getId().toHexString();
     }
 
     @Override
-    public List<Users> queryAllUsersList(Long userId) {
+    @GetMapping("/queryAllUsersList")
+    public List<Users> queryAllUsersList(@RequestParam("userId") Long userId) {
         Query query = Query.query(Criteria.where("userId").is(userId));
         return this.mongoTemplate.find(query, Users.class);
     }
 
     @Override
-    public PageInfo<Users> queryUsersList(Long userId, Integer page, Integer pageSize) {
+    @GetMapping("/queryUsersList")
+    public PageInfo<Users> queryUsersList(@RequestParam("userId") Long userId,
+                                          @RequestParam("page") Integer page,
+                                          @RequestParam("pageSize") Integer pageSize) {
         PageRequest pageRequest = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Order.desc("created")));
         Query query = Query.query(Criteria.where("userId").is(userId)).with(pageRequest);
 

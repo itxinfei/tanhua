@@ -1,8 +1,12 @@
 package com.xfjy.service.api;
 
 import org.springframework.util.CollectionUtils;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import com.mongodb.client.result.DeleteResult;
 import com.xfjy.service.pojo.*;
 import com.xfjy.service.service.IdService;
@@ -69,7 +73,8 @@ public class QuanziApiImpl implements QuanZiApi {
     }
 
     @Override
-    public String savePublish(Publish publish) {
+    @PostMapping("/savePublish")
+    public String savePublish(@RequestBody Publish publish) {
 
         //校验publish对象
         if (publish.getUserId() == null) {
@@ -146,7 +151,10 @@ public class QuanziApiImpl implements QuanZiApi {
     }
 
     @Override
-    public PageInfo<Publish> queryPublishList(Long userId, Integer page, Integer pageSize) {
+    @GetMapping("/queryPublishList")
+    public PageInfo<Publish> queryPublishList(@RequestParam("userId") Long userId,
+                                              @RequestParam("page") Integer page,
+                                              @RequestParam("pageSize") Integer pageSize) {
 
         Pageable pageable = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Order.desc("date")));
         Query query = new Query().with(pageable);
@@ -183,7 +191,9 @@ public class QuanziApiImpl implements QuanZiApi {
     }
 
     @Override
-    public boolean saveLikeComment(Long userId, String publishId) {
+    @PostMapping("/saveLikeComment")
+    public boolean saveLikeComment(@RequestParam("userId") Long userId,
+                                   @RequestParam("publishId") String publishId) {
 
         //判断是否已经点赞，如果已经点赞就返回
         Criteria criteria = Criteria.where("userId").is(userId)
@@ -205,7 +215,10 @@ public class QuanziApiImpl implements QuanZiApi {
     }
 
     @Override
-    public boolean removeComment(Long userId, String publishId, Integer commentType) {
+    @PostMapping("/removeComment")
+    public boolean removeComment(@RequestParam("userId") Long userId,
+                                 @RequestParam("publishId") String publishId,
+                                 @RequestParam("commentType") Integer commentType) {
 
         Criteria criteria = Criteria.where("userId").is(userId)
                 .and("publishId").is(new ObjectId(publishId))
@@ -226,7 +239,9 @@ public class QuanziApiImpl implements QuanZiApi {
     }
 
     @Override
-    public boolean saveLoveComment(Long userId, String publishId) {
+    @PostMapping("/saveLoveComment")
+    public boolean saveLoveComment(@RequestParam("userId") Long userId,
+                                   @RequestParam("publishId") String publishId) {
         //判断是否已经喜欢，如果已经喜欢就返回
         Criteria criteria = Criteria.where("userId").is(userId)
                 .and("publishId").is(new ObjectId(publishId))
@@ -247,7 +262,11 @@ public class QuanziApiImpl implements QuanZiApi {
     }
 
     @Override
-    public boolean saveComment(Long userId, String publishId, Integer type, String content) {
+    @PostMapping("/saveComment")
+    public boolean saveComment(@RequestParam("userId") Long userId,
+                               @RequestParam("publishId") String publishId,
+                               @RequestParam("type") Integer type,
+                               @RequestParam("content") String content) {
 
         try {
             Comment comment = new Comment();
@@ -287,7 +306,9 @@ public class QuanziApiImpl implements QuanZiApi {
     }
 
     @Override
-    public Long queryCommentCount(String publishId, Integer type) {
+    @GetMapping("/queryCommentCount")
+    public Long queryCommentCount(@RequestParam("publishId") String publishId,
+                                  @RequestParam("type") Integer type) {
         Criteria criteria = Criteria.where("publishId").is(new ObjectId(publishId))
                 .and("commentType").is(type);
         Query query = Query.query(criteria);
@@ -295,7 +316,9 @@ public class QuanziApiImpl implements QuanZiApi {
     }
 
     @Override
-    public Map<String, Long> queryCommentCountBatch(List<String> publishIds, Integer type) {
+    @PostMapping("/queryCommentCountBatch")
+    public Map<String, Long> queryCommentCountBatch(@RequestBody List<String> publishIds,
+                                                    @RequestParam("type") Integer type) {
         Map<String, Long> result = new HashMap<>();
         if (CollectionUtils.isEmpty(publishIds)) {
             return result;
@@ -333,12 +356,16 @@ public class QuanziApiImpl implements QuanZiApi {
     }
 
     @Override
-    public Publish queryPublishById(String publishId) {
+    @GetMapping("/queryPublishById")
+    public Publish queryPublishById(@RequestParam("publishId") String publishId) {
         return this.mongoTemplate.findById(new ObjectId(publishId), Publish.class);
     }
 
     @Override
-    public PageInfo<Comment> queryCommentList(String publishId, Integer page, Integer pageSize) {
+    @GetMapping("/queryCommentList")
+    public PageInfo<Comment> queryCommentList(@RequestParam("publishId") String publishId,
+                                              @RequestParam("page") Integer page,
+                                              @RequestParam("pageSize") Integer pageSize) {
 
         PageRequest pageRequest = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Order.asc("created")));
 
@@ -357,13 +384,18 @@ public class QuanziApiImpl implements QuanZiApi {
     }
 
     @Override
-    public List<Publish> queryPublishByPids(List<Long> pids) {
+    @PostMapping("/queryPublishByPids")
+    public List<Publish> queryPublishByPids(@RequestBody List<Long> pids) {
         Query query = Query.query(Criteria.where("pid").in(pids));
         return this.mongoTemplate.find(query, Publish.class);
     }
 
     @Override
-    public PageInfo<Comment> queryCommentListByUser(Long userId, Integer type, Integer page, Integer pageSize) {
+    @GetMapping("/queryCommentListByUser")
+    public PageInfo<Comment> queryCommentListByUser(@RequestParam("userId") Long userId,
+                                                    @RequestParam("type") Integer type,
+                                                    @RequestParam("page") Integer page,
+                                                    @RequestParam("pageSize") Integer pageSize) {
 
         PageRequest pageRequest = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Order.desc("created")));
         Query query = new Query(Criteria
@@ -381,7 +413,10 @@ public class QuanziApiImpl implements QuanZiApi {
     }
 
     @Override
-    public PageInfo<Publish> queryAlbumList(Long userId, Integer page, Integer pageSize) {
+    @GetMapping("/queryAlbumList")
+    public PageInfo<Publish> queryAlbumList(@RequestParam("userId") Long userId,
+                                            @RequestParam("page") Integer page,
+                                            @RequestParam("pageSize") Integer pageSize) {
         PageInfo<Publish> pageInfo = new PageInfo<>();
         pageInfo.setPageNum(page);
         pageInfo.setPageSize(pageSize);
@@ -409,7 +444,9 @@ public class QuanziApiImpl implements QuanZiApi {
     }
 
     @Override
-    public boolean recordPublishView(Long userId, String publishId) {
+    @PostMapping("/recordPublishView")
+    public boolean recordPublishView(@RequestParam("userId") Long userId,
+                                     @RequestParam("publishId") String publishId) {
         // 评分事件：浏览动态（type=2）
         Publish publish = this.mongoTemplate.findById(new ObjectId(publishId), Publish.class);
         this.sendScoringMsg(2, userId, publish);

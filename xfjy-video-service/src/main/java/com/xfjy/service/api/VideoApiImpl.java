@@ -1,7 +1,11 @@
 package com.xfjy.service.api;
 
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import com.mongodb.client.result.DeleteResult;
 import com.xfjy.service.pojo.FollowUser;
 import com.xfjy.service.pojo.Video;
@@ -58,7 +62,8 @@ public class VideoApiImpl implements VideoApi {
     }
 
     @Override
-    public String saveVideo(Video video) {
+    @PostMapping("/saveVideo")
+    public String saveVideo(@RequestBody Video video) {
 
         if (video.getUserId() == null) {
             return null;
@@ -77,7 +82,9 @@ public class VideoApiImpl implements VideoApi {
     }
 
     @Override
-    public PageInfo<Video> queryVideoList(Integer page, Integer pageSize) {
+    @GetMapping("/queryVideoList")
+    public PageInfo<Video> queryVideoList(@RequestParam("page") Integer page,
+                                          @RequestParam("pageSize") Integer pageSize) {
         Pageable pageable = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Order.desc("created")));
         Query query = new Query().with(pageable);
         List<Video> videos = this.mongoTemplate.find(query, Video.class);
@@ -90,7 +97,9 @@ public class VideoApiImpl implements VideoApi {
     }
 
     @Override
-    public Boolean followUser(Long userId, Long followUserId) {
+    @PostMapping("/followUser")
+    public Boolean followUser(@RequestParam("userId") Long userId,
+                              @RequestParam("followUserId") Long followUserId) {
         try {
             FollowUser followUser = new FollowUser();
             followUser.setId(ObjectId.get());
@@ -106,25 +115,32 @@ public class VideoApiImpl implements VideoApi {
     }
 
     @Override
-    public Boolean disFollowUser(Long userId, Long followUserId) {
+    @PostMapping("/disFollowUser")
+    public Boolean disFollowUser(@RequestParam("userId") Long userId,
+                                 @RequestParam("followUserId") Long followUserId) {
         Query query = Query.query(Criteria.where("userId").is(userId).and("followUserId").is(followUserId));
         DeleteResult deleteResult = this.mongoTemplate.remove(query, FollowUser.class);
         return deleteResult.getDeletedCount() > 0;
     }
 
     @Override
-    public Video queryVideoById(String id) {
+    @GetMapping("/queryVideoById")
+    public Video queryVideoById(@RequestParam("id") String id) {
         return this.mongoTemplate.findById(new ObjectId(id), Video.class);
     }
 
     @Override
-    public List<Video> queryVideoListByPids(List<Long> vids) {
+    @PostMapping("/queryVideoListByPids")
+    public List<Video> queryVideoListByPids(@RequestBody List<Long> vids) {
         Query query = Query.query(Criteria.where("vid").in(vids));
         return this.mongoTemplate.find(query, Video.class);
     }
 
     @Override
-    public Boolean recordVideoMsg(Long userId, String videoId, Integer type) {
+    @PostMapping("/recordVideoMsg")
+    public Boolean recordVideoMsg(@RequestParam("userId") Long userId,
+                                  @RequestParam("videoId") String videoId,
+                                  @RequestParam("type") Integer type) {
         Video video = this.mongoTemplate.findById(new ObjectId(videoId), Video.class);
         if (video == null) {
             return false;

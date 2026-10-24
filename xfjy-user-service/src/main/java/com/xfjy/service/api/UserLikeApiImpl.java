@@ -1,7 +1,10 @@
 package com.xfjy.service.api;
 
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import com.mongodb.client.result.DeleteResult;
 import com.xfjy.service.pojo.UserLike;
 import com.xfjy.service.vo.PageInfo;
@@ -24,7 +27,9 @@ public class UserLikeApiImpl implements UserLikeApi {
     private MongoTemplate mongoTemplate;
 
     @Override
-    public String saveUserLike(Long userId, Long likeUserId) {
+    @PostMapping("/saveUserLike")
+    public String saveUserLike(@RequestParam("userId") Long userId,
+                               @RequestParam("likeUserId") Long likeUserId) {
         // 判断喜欢关系是否存在
         Query query = Query.query(Criteria.where("userId").is(userId)
                 .and("likeUserId").is(likeUserId));
@@ -51,7 +56,9 @@ public class UserLikeApiImpl implements UserLikeApi {
      * @return
      */
     @Override
-    public Boolean isMutualLike(Long userId, Long likeUserId) {
+    @GetMapping("/isMutualLike")
+    public Boolean isMutualLike(@RequestParam("userId") Long userId,
+                                @RequestParam("likeUserId") Long likeUserId) {
         Criteria criteria1 = Criteria.where("userId").is(userId).and("likeUserId").is(likeUserId);
         Criteria criteria2 = Criteria.where("userId").is(likeUserId).and("likeUserId").is(userId);
 
@@ -60,7 +67,9 @@ public class UserLikeApiImpl implements UserLikeApi {
     }
 
     @Override
-    public Boolean deleteUserLike(Long userId, Long likeUserId) {
+    @PostMapping("/deleteUserLike")
+    public Boolean deleteUserLike(@RequestParam("userId") Long userId,
+                                  @RequestParam("likeUserId") Long likeUserId) {
         Query query = Query.query(Criteria.where("userId").is(userId)
                 .and("likeUserId").is(likeUserId));
         DeleteResult deleteResult = this.mongoTemplate.remove(query, UserLike.class);
@@ -68,7 +77,8 @@ public class UserLikeApiImpl implements UserLikeApi {
     }
 
     @Override
-    public Long queryEachLikeCount(Long userId) {
+    @GetMapping("/queryEachLikeCount")
+    public Long queryEachLikeCount(@RequestParam("userId") Long userId) {
         // 思路：
 
         // 查询我的喜欢列表
@@ -88,17 +98,22 @@ public class UserLikeApiImpl implements UserLikeApi {
     }
 
     @Override
-    public Long queryLikeCount(Long userId) {
+    @GetMapping("/queryLikeCount")
+    public Long queryLikeCount(@RequestParam("userId") Long userId) {
         return this.mongoTemplate.count(Query.query(Criteria.where("userId").is(userId)), UserLike.class);
     }
 
     @Override
-    public Long queryFanCount(Long userId) {
+    @GetMapping("/queryFanCount")
+    public Long queryFanCount(@RequestParam("userId") Long userId) {
         return this.mongoTemplate.count(Query.query(Criteria.where("likeUserId").is(userId)), UserLike.class);
     }
 
     @Override
-    public PageInfo<UserLike> queryEachLikeList(Long userId, Integer page, Integer pageSize) {
+    @GetMapping("/queryEachLikeList")
+    public PageInfo<UserLike> queryEachLikeList(@RequestParam("userId") Long userId,
+                                                @RequestParam("page") Integer page,
+                                                @RequestParam("pageSize") Integer pageSize) {
 
         // 查询我的喜欢列表
         Query query = Query.query(Criteria.where("userId").is(userId));
@@ -116,12 +131,18 @@ public class UserLikeApiImpl implements UserLikeApi {
     }
 
     @Override
-    public PageInfo<UserLike> queryLikeList(Long userId, Integer page, Integer pageSize) {
+    @GetMapping("/queryLikeList")
+    public PageInfo<UserLike> queryLikeList(@RequestParam("userId") Long userId,
+                                            @RequestParam("page") Integer page,
+                                            @RequestParam("pageSize") Integer pageSize) {
         return this.queryList(Query.query(Criteria.where("userId").is(userId)), page, pageSize);
     }
 
     @Override
-    public PageInfo<UserLike> queryFanList(Long userId, Integer page, Integer pageSize) {
+    @GetMapping("/queryFanList")
+    public PageInfo<UserLike> queryFanList(@RequestParam("userId") Long userId,
+                                           @RequestParam("page") Integer page,
+                                           @RequestParam("pageSize") Integer pageSize) {
         return this.queryList(Query.query(Criteria.where("likeUserId").is(userId)), page, pageSize);
     }
 
