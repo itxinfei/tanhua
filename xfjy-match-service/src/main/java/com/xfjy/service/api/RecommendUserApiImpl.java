@@ -1,7 +1,9 @@
 package com.xfjy.service.api;
 
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import com.xfjy.service.pojo.RecommendUser;
 import com.xfjy.service.vo.PageInfo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +30,8 @@ public class RecommendUserApiImpl implements RecommendUserApi {
      * @return
      */
     @Override
-    public RecommendUser queryWithMaxScore(Long userId) {
+    @GetMapping("/queryWithMaxScore")
+    public RecommendUser queryWithMaxScore(@RequestParam("userId") Long userId) {
         // 条件
         Criteria criteria = Criteria.where("toUserId").is(userId);
         // 按照得分倒序排序，获取第一条数据
@@ -46,7 +49,10 @@ public class RecommendUserApiImpl implements RecommendUserApi {
      * @return
      */
     @Override
-    public PageInfo<RecommendUser> queryPageInfo(Long userId, Integer pageNum, Integer pageSize) {
+    @GetMapping("/queryPageInfo")
+    public PageInfo<RecommendUser> queryPageInfo(@RequestParam("userId") Long userId,
+                                                 @RequestParam("pageNum") Integer pageNum,
+                                                 @RequestParam("pageSize") Integer pageSize) {
         // 条件
         Criteria criteria = Criteria.where("toUserId").is(userId);
         Pageable pageable = PageRequest.of(pageNum - 1, pageSize, Sort.by(Sort.Order.desc("score")));
@@ -58,7 +64,9 @@ public class RecommendUserApiImpl implements RecommendUserApi {
     }
 
     @Override
-    public double queryScore(Long userId, Long toUserId) {
+    @GetMapping("/queryScore")
+    public double queryScore(@RequestParam("userId") Long userId,
+                             @RequestParam("toUserId") Long toUserId) {
         Query query = Query.query(Criteria
                 .where("toUserId").is(toUserId)
                 .and("userId").is(userId));

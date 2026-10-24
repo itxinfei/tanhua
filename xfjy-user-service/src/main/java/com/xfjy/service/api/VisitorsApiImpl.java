@@ -1,7 +1,11 @@
 package com.xfjy.service.api;
 
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import com.xfjy.service.pojo.RecommendUser;
 import com.xfjy.service.pojo.Visitors;
 import com.xfjy.service.vo.PageInfo;
@@ -24,7 +28,8 @@ public class VisitorsApiImpl implements VisitorsApi {
     private MongoTemplate mongoTemplate;
 
     @Override
-    public String saveVisitor(Visitors visitors) {
+    @PostMapping("/saveVisitor")
+    public String saveVisitor(@RequestBody Visitors visitors) {
         visitors.setId(ObjectId.get());
         visitors.setDate(System.currentTimeMillis());
 
@@ -33,14 +38,18 @@ public class VisitorsApiImpl implements VisitorsApi {
     }
 
     @Override
-    public List<Visitors> topVisitor(Long userId, Integer num) {
+    @GetMapping("/topVisitorByNum")
+    public List<Visitors> topVisitor(@RequestParam("userId") Long userId,
+                                     @RequestParam("num") Integer num) {
         Pageable pageable = PageRequest.of(0, num, Sort.by(Sort.Order.desc("date")));
         Query query = Query.query(Criteria.where("userId").is(userId)).with(pageable);
         return this.queryVisitorsList(query);
     }
 
     @Override
-    public List<Visitors> topVisitor(Long userId, Long date) {
+    @GetMapping("/topVisitorByDate")
+    public List<Visitors> topVisitor(@RequestParam("userId") Long userId,
+                                     @RequestParam("date") Long date) {
         Query query = Query.query(Criteria
                 .where("userId")
                 .is(userId)
@@ -49,7 +58,10 @@ public class VisitorsApiImpl implements VisitorsApi {
     }
 
     @Override
-    public PageInfo<Visitors> topVisitor(Long userId, Integer page, Integer pageSize) {
+    @GetMapping("/topVisitorByPage")
+    public PageInfo<Visitors> topVisitor(@RequestParam("userId") Long userId,
+                                         @RequestParam("page") Integer page,
+                                         @RequestParam("pageSize") Integer pageSize) {
         Pageable pageable = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Order.desc("date")));
         Query query = Query.query(Criteria.where("userId").is(userId)).with(pageable);
         List<Visitors> visitorsList = this.queryVisitorsList(query);
