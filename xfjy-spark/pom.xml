@@ -11,6 +11,17 @@
 
     <artifactId>xfjy-spark</artifactId>
 
+    <!-- 固定 Scala 版本与 Spark 4.2.0 一致：传递解析被降级到 2.13.13 导致 MurmurHash3 NoSuchMethodError -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.scala-lang</groupId>
+                <artifactId>scala-library</artifactId>
+                <version>2.13.18</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <!-- Spark MLlib（Spark 4.2.0 官方支持 Java 17/21/25，Scala 2.13） -->
         <dependency>

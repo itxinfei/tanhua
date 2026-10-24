@@ -34,9 +34,15 @@ public class SparkUserRecommend {
     public static void main(String[] args) throws Exception {
 
         // 加载外部的配置文件，app.properties
+        // 注：app.properties 使用 ${ENV_VAR:default} 占位符语法实现密钥外置，
+        // 纯 Java 环境下 Properties.load 不解析占位符，需手动解析（环境变量优先，回退默认值）
         InputStream inputStream = SparkUserRecommend.class.getClassLoader().getResourceAsStream("app.properties");
+        Properties rawProperties = new Properties();
+        rawProperties.load(inputStream);
         Properties properties = new Properties();
-        properties.load(inputStream);
+        for (String key : rawProperties.stringPropertyNames()) {
+            properties.put(key, resolvePlaceholders(rawProperties.getProperty(key)));
+        }
 
         // 构建SparkSession，设置MongoDB写入连接
         SparkConf sparkConf = new SparkConf()
@@ -151,5 +157,31 @@ public class SparkUserRecommend {
         }
 
         sparkSession.close();
+    }
+
+    /**
+     * 解析 ${ENV_VAR:default} 占位符：环境变量优先，未设置时回退默认值；无占位符原样返回。
+     */
+    private static String resolvePlaceholders(String value) {
+        if (value == null) {
+            return null;
+        }
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+                .compile("\\$\\{([^}:]+)(?::([^}]*))?\\}").matcher(value);
+        StringBuilder sb = new StringBuilder();
+        while (matcher.find()) {
+            String envVar = matcher.group(1);
+            String defaultValue = matcher.group(2) != null ? matcher.group(2) : "";
+            String resolved = System.getenv(envVar);
+            if (resolved == null || resolved.isEmpty()) {
+                resolved = System.getProperty(envVar);
+            }
+            if (resolved == null || resolved.isEmpty()) {
+                resolved = defaultValue;
+            }
+            matcher.appendReplacement(sb, java.util.regex.Matcher.quoteReplacement(resolved));
+        }
+        matcher.appendTail(sb);
+        return sb.toString();
     }
 }
