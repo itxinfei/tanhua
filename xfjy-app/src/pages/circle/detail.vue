@@ -63,32 +63,33 @@ onLoad((options: any) => {
 </script>
 
 <style lang="scss" scoped>
-.post-detail { min-height: 100vh; background: #f5f5f5; padding-bottom: 120rpx; }
-.post-card { background: #fff; padding: 24rpx; margin-bottom: 16rpx;
+.post-detail { min-height: 100vh; background: #f5f5f5; padding: 20rpx 24rpx 120rpx; }
+.post-card { background: #fff; padding: 28rpx; margin-bottom: 16rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   .post-header { display: flex; align-items: center;
-    .avatar { width: 72rpx; height: 72rpx; border-radius: 50%; }
+    .avatar { width: 76rpx; height: 76rpx; border-radius: 50%; border: 3rpx solid #fff0f5; }
     .user-info { margin-left: 16rpx;
-      .nickname { font-size: 28rpx; font-weight: 500; display: block; }
+      .nickname { font-size: 28rpx; font-weight: bold; display: block; color: #333; }
       .time { font-size: 22rpx; color: #ccc; margin-top: 4rpx; display: block; }
     }
   }
-  .post-content { font-size: 28rpx; line-height: 1.6; margin: 16rpx 0; }
+  .post-content { font-size: 28rpx; line-height: 1.7; margin: 20rpx 0; color: #333; }
   .image-grid { display: flex; flex-wrap: wrap; gap: 8rpx;
-    .grid-img { width: 220rpx; height: 220rpx; border-radius: 8rpx; }
+    .grid-img { width: 210rpx; height: 210rpx; border-radius: 12rpx; }
   }
 }
-.comment-section { background: #fff; padding: 24rpx;
-  .section-title { font-size: 28rpx; font-weight: bold; display: block; margin-bottom: 16rpx; }
-  .comment-item { display: flex; padding: 16rpx 0; border-bottom: 1rpx solid #f5f5f5;
-    .avatar { width: 64rpx; height: 64rpx; border-radius: 50%; }
+.comment-section { background: #fff; padding: 28rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+  .section-title { font-size: 28rpx; font-weight: bold; display: block; margin-bottom: 16rpx; color: #333; }
+  .comment-item { display: flex; padding: 18rpx 0; border-bottom: 1rpx solid #f5f5f5;
+    &:last-child { border-bottom: none; }
+    .avatar { width: 64rpx; height: 64rpx; border-radius: 50%; background: #f0f0f0; }
     .comment-info { margin-left: 16rpx; flex: 1;
-      .nickname { font-size: 24rpx; color: #666; display: block; }
-      .content { font-size: 28rpx; color: #333; margin-top: 4rpx; display: block; }
-      .time { font-size: 20rpx; color: #ccc; margin-top: 4rpx; display: block; }
+      .nickname { font-size: 24rpx; color: #ff5e8e; display: block; }
+      .content { font-size: 28rpx; color: #333; margin-top: 6rpx; display: block; }
+      .time { font-size: 20rpx; color: #ccc; margin-top: 6rpx; display: block; }
     }
   }
 }
-.comment-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 16rpx 24rpx; background: #fff;
+.comment-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 16rpx 24rpx; background: #fff; box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.05);
   .comment-input { height: 72rpx; background: #f5f5f5; border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; }
 }
 </style>

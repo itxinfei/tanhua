@@ -2,11 +2,13 @@
   <view class="blacklist-page">
     <!-- 列表 -->
     <scroll-view class="list-scroll" scroll-y @scrolltolower="loadMore">
-      <view v-if="userList.length === 0 && !loading" class="empty">
-        <text class="empty-text">黑名单为空</text>
+      <view v-if="userList.length === 0 && !loading" class="empty-state">
+        <view class="empty-icon"><text>🛡</text></view>
+        <text class="empty-title">黑名单为空</text>
+        <text class="empty-desc">被拉黑的用户将无法与你互动</text>
       </view>
 
-      <view v-for="user in userList" :key="user.id" class="user-item">
+      <view v-for="user in userList" :key="user.id" class="user-item shadow-card">
         <image
           class="user-avatar"
           :src="user.avatar || '/static/logo/logo-icon-transparent.png'"
@@ -18,7 +20,7 @@
             {{ user.gender === 'man' ? '男' : '女' }} · {{ user.age || '—' }}岁
           </text>
         </view>
-        <view class="action-btn" @click="handleRemove(user.id)">
+        <view class="action-btn btn-feedback" @click="handleRemove(user.id)">
           <text>移除</text>
         </view>
       </view>
@@ -112,7 +114,7 @@ async function handleRemove(userId: string): Promise<void> {
 
 .list-scroll {
   height: 100%;
-  padding: 0 32rpx;
+  padding: 20rpx 24rpx;
 }
 
 .user-item {
@@ -158,20 +160,10 @@ async function handleRemove(userId: string): Promise<void> {
   .action-btn {
     font-size: 24rpx;
     padding: 12rpx 32rpx;
-    border-radius: 24rpx;
+    border-radius: 28rpx;
     color: #ff5e8e;
     background: #fff0f5;
-  }
-}
-
-.empty {
-  display: flex;
-  justify-content: center;
-  padding: 120rpx 0;
-
-  .empty-text {
-    font-size: 28rpx;
-    color: #999;
+    font-weight: 500;
   }
 }
 

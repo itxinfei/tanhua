@@ -210,9 +210,10 @@ function handleSkip(): void {
 
 .section {
   background: #fff;
-  border-radius: 20rpx;
+  border-radius: 24rpx;
   padding: 28rpx 32rpx;
   margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 
   .section-title {
     font-size: 28rpx;
@@ -269,11 +270,14 @@ function handleSkip(): void {
     background: #f5f5f5;
     font-size: 30rpx;
     color: #666;
+    border: 2rpx solid transparent;
+    transition: all 0.2s;
 
     &.active {
-      background: #fff0f5;
-      color: #ff5e8e;
-      border: 2rpx solid #ff5e8e;
+      background: linear-gradient(135deg, #ff5e8e, #ff8fab);
+      color: #fff;
+      border-color: #ff5e8e;
+      box-shadow: 0 4rpx 14rpx rgba(255, 94, 142, 0.3);
     }
   }
 }
@@ -283,10 +287,12 @@ function handleSkip(): void {
   background: linear-gradient(90deg, #ff5e8e, #ff8fab);
   color: #fff;
   font-size: 32rpx;
+  font-weight: bold;
   height: 88rpx;
   line-height: 88rpx;
   border-radius: 44rpx;
   border: none;
+  box-shadow: 0 8rpx 24rpx rgba(255, 94, 142, 0.35);
 
   &[disabled] {
     opacity: 0.6;

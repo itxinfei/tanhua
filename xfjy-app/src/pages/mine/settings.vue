@@ -132,26 +132,27 @@ function handleDeleteAccount() {
 </script>
 
 <style lang="scss" scoped>
-.settings-page { min-height: 100vh; background: #f5f5f5; padding: 16rpx 0 80rpx; }
+.settings-page { min-height: 100vh; background: #f5f5f5; padding: 20rpx 24rpx 80rpx; }
 
-.group { background: #fff; margin: 0 0 24rpx; padding: 8rpx 32rpx;
+.group { background: #fff; margin: 0 0 24rpx; padding: 8rpx 32rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   .group-title { font-size: 24rpx; color: #999; padding: 16rpx 0 8rpx; display: block; }
-  .item { display: flex; align-items: center; padding: 24rpx 0; border-bottom: 1rpx solid #f5f5f5;
+  .item { display: flex; align-items: center; padding: 26rpx 0; border-bottom: 1rpx solid #f5f5f5;
     &:last-child { border-bottom: none; }
     .label { flex: 1; font-size: 28rpx; color: #333; }
     .value { font-size: 26rpx; color: #999; margin-right: 8rpx; }
-    .value.verified { color: #ff5e8e; }
-    .arrow { font-size: 28rpx; color: #ccc; }
+    .value.verified { color: #ff5e8e; font-weight: 500; }
+    .arrow { font-size: 32rpx; color: #ccc; }
   }
 }
 
 .logout-btn {
-  margin: 32rpx; height: 88rpx; line-height: 88rpx;
-  background: #fff; color: #ff3b30; font-size: 30rpx;
+  margin: 16rpx 0 0; height: 88rpx; line-height: 88rpx;
+  background: #fff; color: #ff3b30; font-size: 30rpx; font-weight: 500;
   border-radius: 44rpx; border: none;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 }
 
-.delete-account { text-align: center; padding: 24rpx;
+.delete-account { text-align: center; padding: 32rpx;
   text { font-size: 24rpx; color: #ccc; }
 }
 </style>
