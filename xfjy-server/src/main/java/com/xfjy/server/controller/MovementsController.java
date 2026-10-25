@@ -1,8 +1,12 @@
 package com.xfjy.server.controller;
 
+import com.xfjy.server.service.ContentReviewService;
 import com.xfjy.server.service.MovementsService;
+import com.xfjy.server.service.RiskControlService;
+import com.xfjy.server.utils.UserThreadLocal;
 import com.xfjy.server.vo.Movements;
 import com.xfjy.server.vo.PageResult;
+import com.xfjy.server.vo.TextDetectResult;
 import com.xfjy.server.vo.VisitorsVo;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -24,8 +28,18 @@ public class MovementsController {
     @Autowired
     private MovementsService movementsService;
 
+    @Autowired
+    private ContentReviewService contentReviewService;
+
+    @Autowired
+    private RiskControlService riskControlService;
+
     /**
      * 发布动态
+     *
+     * <p>风控：单用户 60s 内最多发布 5 次，超限 429</p>
+     * <p>审核：文字走敏感词检测，HIGH 级拒发(400)，LOW 级替换星号，MID 级放行+进人工审核队列；
+     * 含图片的动态统一进人工审核队列（先发后审，管理端可驳回下架）</p>
      *
      * @param textContent
      * @param location
@@ -41,9 +55,26 @@ public class MovementsController {
                                               @RequestParam("latitude") String latitude,
                                               @RequestParam("imageContent") MultipartFile[] multipartFile) {
         try {
-            String publishId = this.movementsService.saveMovements(textContent, location, longitude, latitude, multipartFile);
-            if (StringUtils.isNotEmpty(publishId)) {
+            Long userId = UserThreadLocal.get().getId();
 
+            // 风控：发布频率限制
+            if (!this.riskControlService.allow(userId, RiskControlService.ACTION_PUBLISH)) {
+                return ResponseEntity.status(429).build();
+            }
+
+            // 审核：文字敏感词检测，BLOCK 直接拒发
+            TextDetectResult detect = this.contentReviewService.reviewText(textContent);
+            if ("BLOCK".equals(detect.getAction())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            }
+
+            String publishId = this.movementsService.saveMovements(detect.getFilteredText(), location, longitude, latitude, multipartFile);
+            if (StringUtils.isNotEmpty(publishId)) {
+                // MANUAL 或含图片：写入人工审核队列（先发后审）
+                if ("MANUAL".equals(detect.getAction()) || (multipartFile != null && multipartFile.length > 0)) {
+                    this.contentReviewService.createReviewRecord(
+                            ContentReviewService.TYPE_POST, userId, publishId, detect.getFilteredText(), null);
+                }
                 return ResponseEntity.ok(null);
             }
         } catch (Exception e) {
@@ -99,6 +130,9 @@ public class MovementsController {
     @GetMapping("/{id}/like")
     public ResponseEntity<Long> likeComment(@PathVariable("id") String publishId) {
         try {
+            if (!this.riskControlService.allow(UserThreadLocal.get().getId(), RiskControlService.ACTION_LIKE)) {
+                return ResponseEntity.status(429).build();
+            }
             Long count = this.movementsService.likeComment(publishId);
             if (null != count) {
 
@@ -139,6 +173,9 @@ public class MovementsController {
     @GetMapping("/{id}/love")
     public ResponseEntity<Long> loveComment(@PathVariable("id") String publishId) {
         try {
+            if (!this.riskControlService.allow(UserThreadLocal.get().getId(), RiskControlService.ACTION_LIKE)) {
+                return ResponseEntity.status(429).build();
+            }
             Long count = this.movementsService.loveComment(publishId);
             if (null != count) {
 

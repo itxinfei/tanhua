@@ -1,8 +1,12 @@
 package com.xfjy.server.controller;
 
 import com.xfjy.server.service.CommentsService;
+import com.xfjy.server.service.ContentReviewService;
 import com.xfjy.server.service.MovementsService;
+import com.xfjy.server.service.RiskControlService;
+import com.xfjy.server.utils.UserThreadLocal;
 import com.xfjy.server.vo.PageResult;
+import com.xfjy.server.vo.TextDetectResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +27,12 @@ public class CommentsController {
 
     @Autowired
     private MovementsService movementsService;
+
+    @Autowired
+    private ContentReviewService contentReviewService;
+
+    @Autowired
+    private RiskControlService riskControlService;
 
     /**
      * 查询评论列表
@@ -51,6 +61,9 @@ public class CommentsController {
     /**
      * 发表评论
      *
+     * <p>风控：单用户 60s 内最多评论 10 次，超限 429</p>
+     * <p>审核：HIGH 级词拒发(400)，LOW 级词替换星号后发布；评论量大不建人工审核单，靠机审+举报兜底</p>
+     *
      * @param param
      * @return
      */
@@ -59,7 +72,19 @@ public class CommentsController {
         try {
             String publishId = param.get("movementId");
             String content = param.get("comment");
-            Boolean bool = this.commentsService.saveComments(publishId, content);
+
+            // 风控：评论频率限制
+            if (!this.riskControlService.allow(UserThreadLocal.get().getId(), RiskControlService.ACTION_COMMENT)) {
+                return ResponseEntity.status(429).build();
+            }
+
+            // 审核：敏感词检测，BLOCK 直接拒发
+            TextDetectResult detect = this.contentReviewService.reviewText(content);
+            if ("BLOCK".equals(detect.getAction())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            }
+
+            Boolean bool = this.commentsService.saveComments(publishId, detect.getFilteredText());
             if (bool) {
 
                 return ResponseEntity.ok(null);

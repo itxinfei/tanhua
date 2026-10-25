@@ -16,6 +16,7 @@ public class Review extends BasePojo {
     private Long userId; //发布者用户ID
     private String content;
     private String medias; //媒体URL，逗号分隔
+    private String targetId; //关联内容ID（动态publishId/视频videoId），驳回时联动下架
     private String status; //PENDING/APPROVED/REJECTED
     private String rejectReason;
     private String reviewer;

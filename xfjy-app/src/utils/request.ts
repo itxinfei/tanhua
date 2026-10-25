@@ -84,6 +84,20 @@ function request<T = any>(options: RequestOptions): Promise<T> {
           return;
         }
 
+        // 429 风控限流：操作过于频繁
+        if (res.statusCode === 429) {
+          uni.showToast({ title: "操作过于频繁，请稍后再试", icon: "none" });
+          reject(new Error("操作过于频繁"));
+          return;
+        }
+
+        // 400 内容审核拒发
+        if (res.statusCode === 400) {
+          uni.showToast({ title: "内容包含违规信息，请修改后发布", icon: "none" });
+          reject(new Error("内容审核未通过"));
+          return;
+        }
+
         if (res.statusCode >= 400) {
           uni.showToast({ title: `请求失败(${res.statusCode})`, icon: "none" });
           reject(new Error(`HTTP ${res.statusCode}`));
@@ -158,6 +172,18 @@ export function upload<T = any>(
       formData,
       header,
       success: (res: any) => {
+        // 429 风控限流
+        if (res.statusCode === 429) {
+          uni.showToast({ title: "操作过于频繁，请稍后再试", icon: "none" });
+          reject(new Error("操作过于频繁"));
+          return;
+        }
+        // 400 内容审核拒发
+        if (res.statusCode === 400) {
+          uni.showToast({ title: "内容包含违规信息，请修改后发布", icon: "none" });
+          reject(new Error("内容审核未通过"));
+          return;
+        }
         if (res.statusCode >= 400) {
           uni.showToast({ title: `上传失败(${res.statusCode})`, icon: "none" });
           reject(new Error(`HTTP ${res.statusCode}`));

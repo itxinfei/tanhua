@@ -1,7 +1,10 @@
 package com.xfjy.server.controller;
 
 import org.apache.commons.lang3.StringUtils;
+import com.xfjy.server.service.ContentReviewService;
+import com.xfjy.server.service.RiskControlService;
 import com.xfjy.server.service.VideoService;
+import com.xfjy.server.utils.UserThreadLocal;
 import com.xfjy.server.vo.PageResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,13 +31,33 @@ public class VideoController {
     @Autowired
     private CommentsController commentsController;
 
+    @Autowired
+    private ContentReviewService contentReviewService;
+
+    @Autowired
+    private RiskControlService riskControlService;
+
+    /**
+     * 发布小视频
+     *
+     * <p>风控：单用户 60s 内最多发布 5 次，超限 429</p>
+     * <p>审核：视频统一进人工审核队列（先发后审，管理端可驳回下架）</p>
+     */
     @PostMapping
     public ResponseEntity<Void> saveVideo(@RequestParam(value = "videoThumbnail", required = false) MultipartFile picFile,
                                           @RequestParam(value = "videoFile", required = false) MultipartFile videoFile) {
         try {
+            Long userId = UserThreadLocal.get().getId();
+
+            // 风控：发布频率限制
+            if (!this.riskControlService.allow(userId, RiskControlService.ACTION_PUBLISH)) {
+                return ResponseEntity.status(429).build();
+            }
+
             String id = this.videoService.saveVideo(picFile, videoFile);
             if (StringUtils.isNotEmpty(id)) {
-
+                // 视频进人工审核队列（先发后审）
+                this.contentReviewService.createReviewRecord(ContentReviewService.TYPE_VIDEO, userId, id, null, null);
                 return ResponseEntity.ok(null);
             }
         } catch (Exception e) {

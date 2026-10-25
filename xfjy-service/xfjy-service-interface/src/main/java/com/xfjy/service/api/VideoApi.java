@@ -69,4 +69,14 @@ public interface VideoApi {
     Boolean recordVideoMsg(@RequestParam("userId") Long userId,
                            @RequestParam("videoId") String videoId,
                            @RequestParam("type") Integer type);
+
+    /**
+     * 删除小视频（内容审核驳回时联动下架）
+     *
+     * @param videoId 视频ID
+     * @return 是否删除成功（视频不存在返回 false）
+     */
+    @PostExchange("/removeVideo")
+    @PostMapping("/removeVideo")
+    boolean removeVideo(@RequestParam("videoId") String videoId);
 }

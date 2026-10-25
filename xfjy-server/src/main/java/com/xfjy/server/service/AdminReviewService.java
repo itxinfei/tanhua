@@ -3,12 +3,16 @@ package com.xfjy.server.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.xfjy.service.api.QuanZiApi;
 import com.xfjy.service.api.UserInfoApi;
+import com.xfjy.service.api.VideoApi;
 import com.xfjy.service.pojo.UserInfo;
 import com.xfjy.server.mapper.ReviewMapper;
 import com.xfjy.server.pojo.Review;
 import com.xfjy.server.utils.AdminThreadLocal;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -20,11 +24,19 @@ import java.util.*;
 @Service
 public class AdminReviewService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(AdminReviewService.class);
+
     @Autowired
     private ReviewMapper reviewMapper;
 
     @Autowired
     private UserInfoApi userInfoApi;
+
+    @Autowired
+    private QuanZiApi quanZiApi;
+
+    @Autowired
+    private VideoApi videoApi;
 
     /**
      * 分页查询审核列表
@@ -69,6 +81,9 @@ public class AdminReviewService {
 
     /**
      * 驳回审核
+     *
+     * <p>驳回后联动下架：POST/PHOTO 删除动态（主表+相册+时间线），VIDEO 删除视频。
+     * 下架失败不回滚审核状态，仅记录日志（内容可由管理端手动处理）。</p>
      */
     public Boolean reject(Long id, String reason) {
         Review review = this.reviewMapper.selectById(id);
@@ -79,7 +94,27 @@ public class AdminReviewService {
         review.setRejectReason(reason);
         review.setReviewer(AdminThreadLocal.get() != null ? AdminThreadLocal.get().getNickname() : "admin");
         review.setReviewedAt(new Date());
-        return this.reviewMapper.updateById(review) > 0;
+        boolean updated = this.reviewMapper.updateById(review) > 0;
+
+        if (updated && StringUtils.isNotEmpty(review.getTargetId())) {
+            takedownContent(review);
+        }
+        return updated;
+    }
+
+    /**
+     * 驳回时联动下架内容
+     */
+    private void takedownContent(Review review) {
+        try {
+            switch (review.getType()) {
+                case "POST", "PHOTO" -> this.quanZiApi.removePublish(review.getTargetId());
+                case "VIDEO" -> this.videoApi.removeVideo(review.getTargetId());
+                default -> LOGGER.warn("未知审核类型，跳过下架 type={} reviewId={}", review.getType(), review.getId());
+            }
+        } catch (Exception e) {
+            LOGGER.error("驳回联动下架失败 reviewId={} type={} targetId={}", review.getId(), review.getType(), review.getTargetId(), e);
+        }
     }
 
     /**

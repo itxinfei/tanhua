@@ -136,4 +136,16 @@ public interface QuanZiApi {
     PageInfo<Publish> queryAlbumList(@RequestParam("userId") Long userId,
                                      @RequestParam("page") Integer page,
                                      @RequestParam("pageSize") Integer pageSize);
+
+    /**
+     * 删除动态（内容审核驳回时联动下架）
+     *
+     * <p>删除范围：动态主表 + 发布者相册 + 好友时间线中的该动态记录</p>
+     *
+     * @param publishId 动态ID
+     * @return 是否删除成功（动态不存在返回 false）
+     */
+    @PostExchange("/removePublish")
+    @PostMapping("/removePublish")
+    boolean removePublish(@RequestParam("publishId") String publishId);
 }

@@ -444,6 +444,44 @@ public class QuanziApiImpl implements QuanZiApi {
     }
 
     @Override
+    @PostMapping("/removePublish")
+    public boolean removePublish(@RequestParam("publishId") String publishId) {
+        if (publishId == null || publishId.isEmpty()) {
+            return false;
+        }
+        ObjectId oid;
+        try {
+            oid = new ObjectId(publishId);
+        } catch (IllegalArgumentException e) {
+            LOGGER.warn("removePublish 非法的 publishId: {}", publishId);
+            return false;
+        }
+
+        Publish publish = this.mongoTemplate.findById(oid, Publish.class);
+        if (publish == null) {
+            return false;
+        }
+
+        // 1. 删除动态主表
+        this.mongoTemplate.remove(publish);
+
+        // 2. 删除发布者相册中的记录
+        Query albumQuery = Query.query(Criteria.where("publishId").is(oid));
+        this.mongoTemplate.remove(albumQuery, "quanzi_album_" + publish.getUserId());
+
+        // 3. 删除好友时间线中的该动态记录
+        Query usersQuery = Query.query(Criteria.where("userId").is(publish.getUserId()));
+        List<Users> users = this.mongoTemplate.find(usersQuery, Users.class);
+        for (Users user : users) {
+            Query timeLineQuery = Query.query(Criteria.where("publishId").is(oid));
+            this.mongoTemplate.remove(timeLineQuery, "quanzi_time_line_" + user.getFriendId());
+        }
+
+        LOGGER.info("动态已下架 publishId={} userId={}", publishId, publish.getUserId());
+        return true;
+    }
+
+    @Override
     @PostMapping("/recordPublishView")
     public boolean recordPublishView(@RequestParam("userId") Long userId,
                                      @RequestParam("publishId") String publishId) {

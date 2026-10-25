@@ -148,4 +148,24 @@ public class VideoApiImpl implements VideoApi {
         this.sendVideoMsg(userId, videoId, video.getVid(), type);
         return true;
     }
+
+    @Override
+    @PostMapping("/removeVideo")
+    public boolean removeVideo(@RequestParam("videoId") String videoId) {
+        if (videoId == null || videoId.isEmpty()) {
+            return false;
+        }
+        try {
+            Query query = Query.query(Criteria.where("_id").is(new ObjectId(videoId)));
+            DeleteResult result = this.mongoTemplate.remove(query, Video.class);
+            if (result.getDeletedCount() > 0) {
+                LOGGER.info("视频已下架 videoId={}", videoId);
+                return true;
+            }
+            return false;
+        } catch (IllegalArgumentException e) {
+            LOGGER.warn("removeVideo 非法的 videoId: {}", videoId);
+            return false;
+        }
+    }
 }
