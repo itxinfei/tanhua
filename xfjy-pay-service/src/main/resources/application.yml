@@ -4,6 +4,13 @@ server:
 spring:
   application:
     name: xfjy-pay-service
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:192.168.20.130:8848}
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PASSWORD:123456}
+        namespace: ${NACOS_NAMESPACE:}
   data:
     redis:
       host: 192.168.20.130

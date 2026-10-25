@@ -5,6 +5,15 @@ spring:
   application:
     name: xfjy-gateway
   cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:192.168.20.130:8848}
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PASSWORD:123456}
+        namespace: ${NACOS_NAMESPACE:}
+    loadbalancer:
+      nacos:
+        enabled: true
     gateway:
       server:
         webflux:
@@ -14,18 +23,18 @@ spring:
                 allowedOriginPatterns: "*"
                 allowedMethods: "*"
                 allowedHeaders: "*"
-          # 静态路由（本地开发版）。接入 Nacos 后改为 lb://xfjy-xxx 服务名路由
+          # 服务发现路由（lb:// 经 Nacos 解析服务名，loadbalancer 负载均衡）
           routes:
             - id: xfjy-sso
-              uri: http://localhost:18080
+              uri: lb://xfjy-sso
               predicates:
                 - Path=/user/**
             - id: xfjy-server
-              uri: http://localhost:18081
+              uri: lb://xfjy-server
               predicates:
                 - Path=/users/**,/movements/**,/comments/**,/messages/**,/smallVideos/**,/huanxin/**,/baidu/**,/xfjy/**,/admin/**,/test-media/**
           # 测试素材静态资源：/test-media/** → gateway → server(18081) → file:d:/MyCode/mytanhua/test-assets/
           # 编排层(BFF)决策：前端业务请求统一经 gateway → server(18081)，server 通过 @HttpExchange 契约代理
           # 调用各域服务(user 18090 / match 18082 / circle 18084 / video 18085 / message 18086)，
-          # gateway 不直连各域服务，避免跨域聚合逻辑散落到前端。接入 Nacos 后改为 lb://xfjy-server。
+          # gateway 不直连各域服务，避免跨域聚合逻辑散落到前端。路由已切换 lb://xfjy-server 服务发现。
           # 辅助服务：recommend 18087(评分计算) / elasticsearch 18088(附近的人ES查询)，仅内部调用不走网关。

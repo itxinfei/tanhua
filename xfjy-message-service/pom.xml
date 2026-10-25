@@ -12,6 +12,12 @@
     <artifactId>xfjy-message-service</artifactId>
 
     <dependencies>
+                <!-- Nacos 服务注册与发现（地址/凭据见 application.yml 环境变量占位） -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
         <!-- 内部接口模块（@HttpExchange 契约） -->
         <dependency>
             <groupId>cn.xfjy</groupId>

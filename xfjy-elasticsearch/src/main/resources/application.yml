@@ -1,6 +1,13 @@
 spring:
   application:
     name: xfjy-elasticsearch
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:192.168.20.130:8848}
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PASSWORD:123456}
+        namespace: ${NACOS_NAMESPACE:}
   elasticsearch:
     uris: http://192.168.20.130:9200
     connection-timeout: 5s

@@ -4,6 +4,13 @@ server:
 spring:
   application:
     name: xfjy-video-service
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:192.168.20.130:8848}
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PASSWORD:123456}
+        namespace: ${NACOS_NAMESPACE:}
   mongodb:
     uri: mongodb://192.168.20.130:27017/xfjy
   data:

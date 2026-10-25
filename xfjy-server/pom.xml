@@ -12,6 +12,12 @@
     <artifactId>xfjy-server</artifactId>
 
     <dependencies>
+                <!-- Nacos 服务注册与发现（内部 @HttpExchange 调用经 DiscoveryClient 动态解析实例） -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
         <!-- 内部接口模块（HTTP Service Clients 接口定义） -->
         <dependency>
             <groupId>cn.xfjy</groupId>
