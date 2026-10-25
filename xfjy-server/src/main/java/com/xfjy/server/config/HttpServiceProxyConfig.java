@@ -2,6 +2,7 @@ package com.xfjy.server.config;
 
 import com.xfjy.service.api.ESUserLocationApi;
 import com.xfjy.service.api.HuanXinApi;
+import com.xfjy.service.api.PayApi;
 import com.xfjy.service.api.QuanZiApi;
 import com.xfjy.service.api.RecommendUserApi;
 import com.xfjy.service.api.UserInfoApi;
@@ -43,6 +44,9 @@ public class HttpServiceProxyConfig {
     @Value("${xfjy.message.service.url:http://127.0.0.1:18086}")
     private String messageServiceUrl;
 
+    @Value("${xfjy.pay.service.url:http://127.0.0.1:18089}")
+    private String payServiceUrl;
+
     @Bean
     public HttpServiceProxyFactory matchServiceProxyFactory() {
         return buildFactory(matchServiceUrl);
@@ -66,6 +70,11 @@ public class HttpServiceProxyConfig {
     @Bean
     public HttpServiceProxyFactory messageServiceProxyFactory() {
         return buildFactory(messageServiceUrl);
+    }
+
+    @Bean
+    public HttpServiceProxyFactory payServiceProxyFactory() {
+        return buildFactory(payServiceUrl);
     }
 
     private HttpServiceProxyFactory buildFactory(String baseUrl) {
@@ -135,5 +144,12 @@ public class HttpServiceProxyConfig {
     @Bean
     public HuanXinApi huanXinApi(@Qualifier("messageServiceProxyFactory") HttpServiceProxyFactory factory) {
         return factory.createClient(HuanXinApi.class);
+    }
+
+    // ---- 支付服务（18089）----
+
+    @Bean
+    public PayApi payApi(@Qualifier("payServiceProxyFactory") HttpServiceProxyFactory factory) {
+        return factory.createClient(PayApi.class);
     }
 }

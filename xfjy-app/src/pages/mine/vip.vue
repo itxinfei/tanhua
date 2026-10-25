@@ -9,6 +9,15 @@
       <view class="glow-circle c2" />
     </view>
 
+    <!-- 会员状态 -->
+    <view v-if="vipInfo.isVip" class="vip-status-card">
+      <text class="status-icon">✨</text>
+      <view class="status-text">
+        <text class="status-level">{{ vipInfo.levelName }}生效中</text>
+        <text class="status-expire">{{ vipInfo.expireText }}到期</text>
+      </view>
+    </view>
+
     <!-- 权益对比 -->
     <view class="benefits-card shadow-gold">
       <view class="benefit-head">
@@ -25,17 +34,17 @@
 
     <!-- 套餐选择 -->
     <view class="plans">
-      <view v-for="plan in plans" :key="plan.id" class="plan-card btn-feedback" :class="{ selected: selectedPlan === plan.id }" @click="selectedPlan = plan.id">
+      <view v-for="plan in plans" :key="plan.id" class="plan-card btn-feedback" :class="{ selected: selectedId === plan.id }" @click="selectedId = plan.id">
         <text v-if="plan.tag" class="plan-tag">{{ plan.tag }}</text>
         <text class="plan-name">{{ plan.name }}</text>
-        <text class="plan-price">¥{{ plan.price }}</text>
+        <text class="plan-price">¥{{ plan.priceYuan }}</text>
         <text class="plan-unit">{{ plan.unit }}</text>
       </view>
     </view>
 
     <!-- 支付按钮 -->
-    <button class="pay-btn safe-area-bottom btn-feedback" @click="handlePay">
-      立即开通 ¥{{ currentPlan?.price || 0 }}
+    <button class="pay-btn safe-area-bottom btn-feedback" :disabled="paying" @click="handlePay">
+      {{ paying ? "支付中..." : `立即开通 ¥${currentPlan?.priceYuan || 0}` }}
     </button>
   </view>
 </template>
@@ -43,12 +52,27 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
+import {
+  getVipPackages,
+  createVipOrder,
+  confirmVipPay,
+  getVipStatus,
+  type VipPackage,
+  type UserVip,
+} from "@/api/mine";
 
 /** 默认状态栏高度（px） */
 const DEFAULT_STATUS_BAR_HEIGHT = 20;
 
 const statusBarHeight = ref(DEFAULT_STATUS_BAR_HEIGHT);
-const selectedPlan = ref("year");
+/** 选中套餐 id（后端数字主键） */
+const selectedId = ref<number>(0);
+/** 套餐列表（从后端拉取） */
+const packages = ref<VipPackage[]>([]);
+/** 当前用户 VIP 状态 */
+const vipStatus = ref<UserVip | null>(null);
+/** 支付进行中标记（防重复提交） */
+const paying = ref(false);
 
 /** 权益对比数据 */
 const benefits = [
@@ -60,30 +84,104 @@ const benefits = [
   { name: "专属标识", free: "—", vip: "VIP角标" },
 ];
 
-/** 套餐配置 */
-const plans = [
-  { id: "month", name: "月卡", price: 28, unit: "¥28/月", tag: "" },
-  { id: "quarter", name: "季卡", price: 68, unit: "¥22.7/月", tag: "" },
-  { id: "year", name: "年卡", price: 198, unit: "¥16.5/月", tag: "最划算" },
-];
+/** 套餐展示模型：分转元 + 月均价 + 营销标签 */
+const plans = computed(() =>
+  packages.value.map((p) => {
+    const priceYuan = Math.round(p.price / 100);
+    const months = Math.max(1, Math.round(p.durationDays / 30));
+    const perMonth = (priceYuan / months).toFixed(1);
+    let tag = "";
+    if (p.durationDays >= 365) {
+      tag = "最划算";
+    } else if (p.durationDays >= 90) {
+      tag = "立省12元";
+    }
+    return {
+      id: p.id,
+      name: p.name,
+      priceYuan,
+      unit: `¥${perMonth}/月`,
+      tag,
+    };
+  })
+);
 
 /** 当前选中套餐 */
-const currentPlan = computed(() => plans.find((p) => p.id === selectedPlan.value));
+const currentPlan = computed(() => plans.value.find((p) => p.id === selectedId.value));
 
-/** 发起支付（开发期占位） */
+/** 会员状态展示 */
+const vipInfo = computed(() => {
+  const level = vipStatus.value?.level ?? 0;
+  const isVip = level > 0;
+  const levelNames: Record<number, string> = { 1: "月卡会员", 2: "季卡会员", 3: "年卡会员" };
+  let expireText = "";
+  if (isVip && vipStatus.value?.expireTime) {
+    const d = new Date(vipStatus.value.expireTime);
+    expireText = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+  return { isVip, levelName: levelNames[level] || "VIP", expireText };
+});
+
+/** 拉取套餐列表与会员状态 */
+async function loadVipData(): Promise<void> {
+  try {
+    const [pkgs, status] = await Promise.all([getVipPackages(), getVipStatus()]);
+    packages.value = pkgs || [];
+    vipStatus.value = status;
+    // 默认选年卡（level=3），无年卡则选最后一个
+    const yearPkg = packages.value.find((p) => p.level === 3);
+    selectedId.value = yearPkg?.id ?? packages.value[packages.value.length - 1]?.id ?? 0;
+  } catch (e) {
+    // 请求层已统一 toast，这里静默
+  }
+}
+
+/** 发起支付：下单 → 二次确认 → 沙箱确认 → 刷新状态 */
 async function handlePay(): Promise<void> {
-  // TODO: 对接微信/支付宝支付
-  uni.showActionSheet({
-    itemList: ["微信支付", "支付宝支付"],
-    success: () => {
-      uni.showToast({ title: "支付功能开发中", icon: "none" });
-    },
-  });
+  if (paying.value || !selectedId.value) {
+    return;
+  }
+  const plan = currentPlan.value;
+  if (!plan) {
+    return;
+  }
+  paying.value = true;
+  try {
+    // 1. 创建订单
+    const order = await createVipOrder(selectedId.value);
+    if (!order?.orderNo) {
+      uni.showToast({ title: "下单失败，请重试", icon: "none" });
+      return;
+    }
+    // 2. 二次确认（沙箱环境直接确认；生产环境此处拉起微信/支付宝 SDK）
+    const confirmed = await new Promise<boolean>((resolve) => {
+      uni.showModal({
+        title: "确认开通",
+        content: `${plan.name} ¥${plan.priceYuan}（模拟支付）`,
+        confirmText: "确认支付",
+        success: (res) => resolve(res.confirm),
+        fail: () => resolve(false),
+      });
+    });
+    if (!confirmed) {
+      return;
+    }
+    // 3. 沙箱支付确认
+    await confirmVipPay(order.orderNo);
+    uni.showToast({ title: "开通成功", icon: "success" });
+    // 4. 刷新会员状态
+    vipStatus.value = await getVipStatus();
+  } catch (e) {
+    // 请求层已统一 toast
+  } finally {
+    paying.value = false;
+  }
 }
 
 onLoad(() => {
   const sysInfo = uni.getSystemInfoSync();
   statusBarHeight.value = sysInfo.statusBarHeight || DEFAULT_STATUS_BAR_HEIGHT;
+  loadVipData();
 });
 </script>
 
@@ -104,6 +202,14 @@ onLoad(() => {
 .glow-circle { position: absolute; border-radius: 50%; filter: blur(60rpx); pointer-events: none;
   &.c1 { width: 300rpx; height: 300rpx; background: rgba(255, 215, 0, 0.12); top: -60rpx; left: -80rpx; }
   &.c2 { width: 240rpx; height: 240rpx; background: rgba(255, 94, 142, 0.08); bottom: -40rpx; right: -60rpx; }
+}
+
+/* ===== 会员状态卡 ===== */
+.vip-status-card { margin: 24rpx 32rpx 0; background: linear-gradient(90deg, rgba(255, 215, 0, 0.18), rgba(255, 179, 71, 0.12)); border: 1rpx solid rgba(255, 215, 0, 0.35); border-radius: 20rpx; padding: 24rpx 28rpx; display: flex; align-items: center; gap: 16rpx;
+  .status-icon { font-size: 40rpx; }
+  .status-text { display: flex; flex-direction: column; gap: 4rpx; }
+  .status-level { font-size: 28rpx; color: #ffd700; font-weight: bold; }
+  .status-expire { font-size: 22rpx; color: rgba(255, 215, 0, 0.6); }
 }
 
 /* ===== 权益对比 ===== */
@@ -138,5 +244,6 @@ onLoad(() => {
   background: linear-gradient(90deg, #ffd700, #ffb347); color: #1a1a2e;
   font-size: 34rpx; font-weight: 900; border-radius: 48rpx; border: none;
   box-shadow: 0 8rpx 28rpx rgba(255, 179, 71, 0.4);
+  &[disabled] { opacity: 0.6; box-shadow: none; }
 }
 </style>

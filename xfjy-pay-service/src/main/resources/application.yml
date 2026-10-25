@@ -1,0 +1,30 @@
+server:
+  port: 18089
+
+spring:
+  application:
+    name: xfjy-pay-service
+  data:
+    redis:
+      host: 192.168.20.130
+      port: 6379
+      password: 123456
+      timeout: 10s
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${MYSQL_URL:jdbc:mysql://192.168.20.130:3306/xfjy?useUnicode=true&characterEncoding=utf8&autoReconnect=true&allowMultiQueries=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai}
+    username: ${MYSQL_USERNAME:xfjy}
+    password: ${MYSQL_PASSWORD:123456}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+# MyBatis-Plus（tb_vip_package / tb_pay_order / tb_user_vip 由本服务独占）
+mybatis-plus:
+  global-config:
+    db-config:
+      table-prefix: tb_
+      id-type: auto

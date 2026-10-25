@@ -170,3 +170,108 @@ export function updateNotificationSetting(param: NotificationSettingParam): Prom
 export function reportLocation(param: LocationParam): Promise<void> {
   return post<void>("/baidu/location", param as any);
 }
+
+/** 举报对象类型 */
+export const REPORT_TARGET_TYPE = {
+  USER: "USER",
+  POST: "POST",
+  COMMENT: "COMMENT",
+  MESSAGE: "MESSAGE",
+} as const;
+
+/** 举报参数 */
+export interface ReportParam {
+  targetUserId: string;
+  targetType?: string;
+  targetId?: string;
+  reason: string;
+  description?: string;
+  evidence?: string;
+}
+
+/**
+ * 提交举报
+ * 对接后端: POST /users/report
+ */
+export function submitReport(param: ReportParam): Promise<void> {
+  return post<void>("/users/report", param as any);
+}
+
+/**
+ * 注销账号（需先调 sendSmsCode 获取验证码）
+ * 对接后端: POST /users/logoff
+ */
+export function deleteAccount(code: string): Promise<void> {
+  return post<void>("/users/logoff", { code });
+}
+
+/** VIP 套餐 */
+export interface VipPackage {
+  id: number;
+  name: string;
+  level: number;
+  /** 售价，单位：分 */
+  price: number;
+  /** 原价，单位：分 */
+  originalPrice: number;
+  /** 有效天数 */
+  durationDays: number;
+  description: string;
+}
+
+/** 支付订单 */
+export interface PayOrder {
+  id: number;
+  orderNo: string;
+  userId: number;
+  packageId: number;
+  packageName: string;
+  /** 金额，单位：分 */
+  amount: number;
+  status: string;
+  payType: string;
+  paidTime: string;
+  expireTime: string;
+  created: string;
+}
+
+/** 用户 VIP 状态 */
+export interface UserVip {
+  userId: number;
+  /** 0-非会员，1-月卡，2-季卡，3-年卡 */
+  level: number;
+  expireTime: string;
+  source: string;
+}
+
+/**
+ * 查询上架的 VIP 套餐列表
+ * 对接后端: GET /users/vip/packages
+ */
+export function getVipPackages(): Promise<VipPackage[]> {
+  return get<VipPackage[]>("/users/vip/packages");
+}
+
+/**
+ * 创建支付订单
+ * 对接后端: POST /users/vip/order
+ */
+export function createVipOrder(packageId: number): Promise<PayOrder> {
+  return post<PayOrder>("/users/vip/order", { packageId });
+}
+
+/**
+ * 模拟支付确认（沙箱回调）
+ * 对接后端: POST /users/vip/pay/confirm
+ */
+export function confirmVipPay(orderNo: string): Promise<void> {
+  return post<void>("/users/vip/pay/confirm", { orderNo });
+}
+
+/**
+ * 查询当前用户 VIP 状态
+ * 对接后端: GET /users/vip/status
+ */
+export function getVipStatus(): Promise<UserVip> {
+  return get<UserVip>("/users/vip/status");
+}

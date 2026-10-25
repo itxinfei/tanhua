@@ -29,6 +29,7 @@
         <module>xfjy-recommend</module>
         <module>xfjy-spark</module>
         <module>xfjy-elasticsearch</module>
+        <module>xfjy-pay-service</module>
     </modules>
 
     <!-- 集中定义依赖版本号 -->

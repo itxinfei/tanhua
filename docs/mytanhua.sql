@@ -438,3 +438,65 @@ CREATE TABLE `tb_report` (
   KEY `target_user_id` (`target_user_id`),
   KEY `status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='举报表';
+
+-- ----------------------------
+-- Table structure for tb_vip_package（VIP 套餐表，pay-service 独占）
+-- ----------------------------
+DROP TABLE IF EXISTS `tb_vip_package`;
+CREATE TABLE `tb_vip_package` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `name` varchar(50) NOT NULL COMMENT '套餐名称（月卡/季卡/年卡）',
+  `level` int(11) NOT NULL COMMENT 'VIP 等级：1-月卡会员，2-季卡会员，3-年卡会员',
+  `price` bigint(20) NOT NULL COMMENT '售价，单位：分',
+  `original_price` bigint(20) DEFAULT NULL COMMENT '原价，单位：分',
+  `duration_days` int(11) NOT NULL COMMENT '有效天数（30/90/365）',
+  `description` varchar(200) DEFAULT NULL COMMENT '套餐描述',
+  `status` int(1) DEFAULT '1' COMMENT '状态：1-上架，0-下架',
+  `sort` int(11) DEFAULT '0' COMMENT '排序权重，越小越靠前',
+  `created` datetime DEFAULT NULL,
+  `updated` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='VIP 套餐表';
+
+INSERT INTO `tb_vip_package` VALUES ('1', '月卡', 1, 3000, 4500, 30, '月度会员，每日优先推荐位', 1, 1, NOW(), NOW());
+INSERT INTO `tb_vip_package` VALUES ('2', '季卡', 2, 7800, 13500, 90, '季度会员，立省12元，专属标识', 1, 2, NOW(), NOW());
+INSERT INTO `tb_vip_package` VALUES ('3', '年卡', 3, 25800, 54000, 365, '年度会员，立省102元，全部特权', 1, 3, NOW(), NOW());
+
+-- ----------------------------
+-- Table structure for tb_pay_order（支付订单表，pay-service 独占）
+-- ----------------------------
+DROP TABLE IF EXISTS `tb_pay_order`;
+CREATE TABLE `tb_pay_order` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `order_no` varchar(32) NOT NULL COMMENT '订单号（VIP+yyyyMMdd+6位序列）',
+  `user_id` bigint(20) NOT NULL COMMENT '下单用户ID',
+  `package_id` bigint(20) NOT NULL COMMENT '套餐ID',
+  `package_name` varchar(50) DEFAULT NULL COMMENT '套餐名称（冗余）',
+  `amount` bigint(20) NOT NULL COMMENT '支付金额，单位：分',
+  `status` varchar(20) DEFAULT 'PENDING' COMMENT '状态：PENDING-待支付，PAID-已支付，EXPIRED-已过期，CANCELLED-已取消',
+  `pay_type` varchar(20) DEFAULT 'SANDBOX' COMMENT '支付方式：SANDBOX-模拟沙箱，ALIPAY-支付宝，WECHAT-微信',
+  `paid_time` datetime DEFAULT NULL COMMENT '实际支付时间',
+  `expire_time` datetime DEFAULT NULL COMMENT '订单过期时间（下单后30分钟）',
+  `created` datetime DEFAULT NULL,
+  `updated` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_order_no` (`order_no`),
+  KEY `user_id` (`user_id`),
+  KEY `status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='支付订单表';
+
+-- ----------------------------
+-- Table structure for tb_user_vip（用户VIP记录表，pay-service 独占）
+-- ----------------------------
+DROP TABLE IF EXISTS `tb_user_vip`;
+CREATE TABLE `tb_user_vip` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `user_id` bigint(20) NOT NULL COMMENT '用户ID',
+  `level` int(11) DEFAULT '0' COMMENT 'VIP等级：0-非会员，1-月卡，2-季卡，3-年卡',
+  `expire_time` datetime DEFAULT NULL COMMENT 'VIP到期时间',
+  `source` varchar(20) DEFAULT 'PAY' COMMENT '开通来源：PAY-支付开通，GIFT-运营赠送',
+  `created` datetime DEFAULT NULL,
+  `updated` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='用户VIP记录表';
