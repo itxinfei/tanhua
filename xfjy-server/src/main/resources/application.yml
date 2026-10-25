@@ -59,6 +59,8 @@ xfjy:
       w-geo: 0.3         # 地理距离权重
       w-profile: 0.2     # 画像相似度权重
       geo-decay-km: 50   # 距离衰减常数(km)，距离=该值时geo分=0.5
+    filter:
+      opposite-sex: true # 异性过滤开关（已喜欢排除始终生效）
 
 # Sa-Token 认证鉴权（管理后台）
 sa-token:

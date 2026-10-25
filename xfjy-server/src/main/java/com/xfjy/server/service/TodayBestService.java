@@ -70,6 +70,9 @@ public class TodayBestService {
     @Autowired //推荐混合评分（阶段1保底：ALS+距离+画像加权）
     private RecommendScoringService recommendScoringService;
 
+    @Autowired //召回过滤（已喜欢排除+异性过滤，评分前调用）
+    private RecommendFilterService recommendFilterService;
+
 
     public TodayBest queryTodayBest() {
 
@@ -115,6 +118,9 @@ public class TodayBestService {
                 records.add(recommendUser);
             }
         }
+
+        // 召回过滤：排除已喜欢 + 异性过滤（评分前调用，减少无效候选）
+        records = this.recommendFilterService.filter(user.getId(), records);
 
         // 混合评分：ALS+距离+画像加权重排，数据缺失维度自动降级（score 替换为 0~100 缘分值）
         this.recommendScoringService.scoreAndSort(user.getId(), records);
@@ -295,6 +301,9 @@ public class TodayBestService {
                 records.add(recommendUser);
             }
         }
+
+        // 召回过滤：排除已喜欢 + 异性过滤（评分前调用）
+        records = this.recommendFilterService.filter(user.getId(), records);
 
         // 混合评分后取 top 作为抽样池（保留探索性，非纯 top-N）
         this.recommendScoringService.scoreAndSort(user.getId(), records);

@@ -4,6 +4,8 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import com.xfjy.service.pojo.Publish;
 import com.xfjy.recommend.pojo.RecommendQuanZi;
+import com.xfjy.recommend.pojo.UserBehavior;
+import com.xfjy.recommend.service.UserFeatureService;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
@@ -38,6 +40,9 @@ public class QuanZiMsgConsumer implements RocketMQListener<String> {
 
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
+
+    @Autowired // 特征宽表增量更新（双塔数据基建）
+    private UserFeatureService userFeatureService;
 
     @Override
     public void onMessage(String msg) {
@@ -122,6 +127,11 @@ public class QuanZiMsgConsumer implements RocketMQListener<String> {
             // 将数据写入到MongoDB
             String collectName = "recommend_quanzi_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
             this.mongoTemplate.save(recommendQuanZi, collectName);
+
+            // 冗余写入统一行为明细（双塔训练数据源，targetType=1 动态）
+            this.mongoTemplate.save(new UserBehavior(ObjectId.get(), userId, pid, 1, type, recommendQuanZi.getScore(), date));
+            // 特征宽表增量更新
+            this.userFeatureService.recordBehavior(userId, "quanzi:" + type, recommendQuanZi.getScore(), date);
 
         } catch (Exception e) {
             LOGGER.error("消息处理失败! msg = " + msg);
