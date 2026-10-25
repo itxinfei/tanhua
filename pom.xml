@@ -27,7 +27,6 @@
         <module>xfjy-service</module>
         <module>xfjy-server</module>
         <module>xfjy-recommend</module>
-        <module>xfjy-spark</module>
         <module>xfjy-elasticsearch</module>
         <module>xfjy-pay-service</module>
     </modules>

@@ -56,7 +56,6 @@ hs_err_pid*
 target/
 .idea/
 /.idea
-/xfjy-spark/target
 /.joycode
 /scripts
 
