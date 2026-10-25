@@ -52,6 +52,13 @@ xfjy:
       user: 2
       recommend:
         users: 1,2,3,4,5,6,7,8,9,10
+  # 推荐混合评分权重（阶段1保底，数据缺失维度自动降级，权重不计入分母）
+  recommend:
+    scoring:
+      w-als: 0.5         # ALS分数权重
+      w-geo: 0.3         # 地理距离权重
+      w-profile: 0.2     # 画像相似度权重
+      geo-decay-km: 50   # 距离衰减常数(km)，距离=该值时geo分=0.5
 
 # Sa-Token 认证鉴权（管理后台）
 sa-token:

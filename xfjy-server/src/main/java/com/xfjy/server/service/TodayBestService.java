@@ -67,6 +67,9 @@ public class TodayBestService {
     @Autowired
     private IMService imService;
 
+    @Autowired //推荐混合评分（阶段1保底：ALS+距离+画像加权）
+    private RecommendScoringService recommendScoringService;
+
 
     public TodayBest queryTodayBest() {
 
@@ -112,6 +115,9 @@ public class TodayBestService {
                 records.add(recommendUser);
             }
         }
+
+        // 混合评分：ALS+距离+画像加权重排，数据缺失维度自动降级（score 替换为 0~100 缘分值）
+        this.recommendScoringService.scoreAndSort(user.getId(), records);
 
         List<Long> userIds = new ArrayList<>();
         for (RecommendUser record : records) {
@@ -290,11 +296,17 @@ public class TodayBestService {
             }
         }
 
+        // 混合评分后取 top 作为抽样池（保留探索性，非纯 top-N）
+        this.recommendScoringService.scoreAndSort(user.getId(), records);
+
         List<RecommendUser> newRecommendUserList = new ArrayList<>();
 
-        int showCount = Math.min(10, records.size());
+        // 抽样池：混合分 top 30，从中随机抽 10 展示
+        int poolSize = Math.min(30, records.size());
+        List<RecommendUser> candidatePool = records.subList(0, poolSize);
+        int showCount = Math.min(10, candidatePool.size());
         for (int i = 0; i < showCount; i++) {
-            createRecommendUser(newRecommendUserList, records);
+            createRecommendUser(newRecommendUserList, candidatePool);
         }
 
         List<Long> userIds = new ArrayList<>();
