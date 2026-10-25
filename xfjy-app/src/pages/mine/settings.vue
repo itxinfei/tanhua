@@ -63,6 +63,8 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useUserStore } from "@/store/user";
+import { getUserSettings, deleteAccount } from "@/api/mine";
+import { sendSmsCode } from "@/api/auth";
 
 const userStore = useUserStore();
 const phoneMasked = computed(() => userStore.userInfo ? '138****8888' : '');
@@ -85,7 +87,7 @@ function toggleNotification(key: string, e: any) {
 
 function goPhone() { uni.showToast({ title: '换绑手机开发中', icon: 'none' }); }
 function goVerify() { uni.showToast({ title: '实名认证开发中', icon: 'none' }); }
-function goBlacklist() { uni.showToast({ title: '黑名单开发中', icon: 'none' }); }
+function goBlacklist() { uni.navigateTo({ url: "/pages/mine/blacklist" }); }
 
 function clearCache() {
   uni.showModal({
@@ -115,16 +117,65 @@ function handleLogout() {
   });
 }
 
+/** 注销账号：二次确认 → 发验证码 → 输入验证码 → 调接口注销 */
 function handleDeleteAccount() {
   uni.showModal({
     title: '注销账号',
-    content: '注销后账号数据将保留30天，之后永久删除。确定要注销吗？',
-    confirmText: '确定注销',
+    content: '注销后账号将立即无法登录，数据保留30天后永久删除。确定要注销吗？',
+    confirmText: '继续',
     confirmColor: '#ff3b30',
     success: (res) => {
       if (res.confirm) {
-        // TODO: 对接注销接口 + 验证码校验
-        uni.showToast({ title: '注销功能开发中', icon: 'none' });
+        sendDeleteCode();
+      }
+    },
+  });
+}
+
+/** 向当前账号手机号发送验证码 */
+async function sendDeleteCode() {
+  uni.showLoading({ title: '发送验证码...' });
+  try {
+    const settings = await getUserSettings();
+    if (!settings?.phone) {
+      uni.showToast({ title: '未绑定手机号，无法注销', icon: 'none' });
+      return;
+    }
+    await sendSmsCode(settings.phone);
+    uni.hideLoading();
+    uni.showToast({ title: '验证码已发送', icon: 'none' });
+    inputDeleteCode();
+  } catch (e) {
+    uni.hideLoading();
+    uni.showToast({ title: '验证码发送失败', icon: 'none' });
+  }
+}
+
+/** 弹出验证码输入框，提交注销 */
+function inputDeleteCode() {
+  uni.showModal({
+    title: '输入验证码',
+    content: '请输入手机收到的6位验证码',
+    editable: true,
+    placeholderText: '6位验证码',
+    confirmText: '确定注销',
+    confirmColor: '#ff3b30',
+    success: async (res) => {
+      if (!res.confirm) return;
+      const code = (res.content || '').trim();
+      if (!/^\d{6}$/.test(code)) {
+        uni.showToast({ title: '请输入6位数字验证码', icon: 'none' });
+        return;
+      }
+      uni.showLoading({ title: '注销中...' });
+      try {
+        await deleteAccount(code);
+        uni.hideLoading();
+        uni.showToast({ title: '账号已注销', icon: 'success' });
+        userStore.logout();
+      } catch (e) {
+        uni.hideLoading();
+        uni.showToast({ title: '验证码错误，注销失败', icon: 'none' });
       }
     },
   });

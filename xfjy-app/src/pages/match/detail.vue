@@ -17,6 +17,11 @@
       <text>{{ currentPhotoIndex + 1 }} / {{ photos.length }}</text>
     </view>
 
+    <!-- 更多按钮（毛玻璃）：举报入口 -->
+    <view class="more-btn glass" :style="{ top: statusBarHeight + 8 + 'px' }" @click="handleMore">
+      <text>⋯</text>
+    </view>
+
     <!-- 资料卡 -->
     <view class="info-card shadow-card">
       <view class="name-row">
@@ -68,6 +73,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
+import { submitReport, REPORT_TARGET_TYPE } from "@/api/mine";
 
 /** 缘分值满分 */
 const FATE_SCORE_MAX = 100;
@@ -75,6 +81,8 @@ const FATE_SCORE_MAX = 100;
 const DEMO_FATE_SCORE = 86;
 /** 默认状态栏高度（px） */
 const DEFAULT_STATUS_BAR_HEIGHT = 20;
+/** 举报原因选项 */
+const REPORT_REASONS = ["骚扰", "欺诈", "色情信息", "冒充他人"];
 
 const statusBarHeight = ref(DEFAULT_STATUS_BAR_HEIGHT);
 const userId = ref("");
@@ -128,6 +136,42 @@ async function handleDislike(): Promise<void> {
   setTimeout(goBack, 300);
 }
 
+/** 更多操作：举报入口 */
+function handleMore(): void {
+  uni.showActionSheet({
+    itemList: ["举报该用户"],
+    success: (res) => {
+      if (res.tapIndex === 0) {
+        chooseReportReason();
+      }
+    },
+  });
+}
+
+/** 选择举报原因并提交 */
+function chooseReportReason(): void {
+  uni.showActionSheet({
+    itemList: REPORT_REASONS,
+    success: async (res) => {
+      const reason = REPORT_REASONS[res.tapIndex];
+      if (!reason || !userId.value) return;
+      uni.showLoading({ title: "提交中..." });
+      try {
+        await submitReport({
+          targetUserId: userId.value,
+          targetType: REPORT_TARGET_TYPE.USER,
+          reason,
+        });
+        uni.hideLoading();
+        uni.showToast({ title: "举报已提交", icon: "success" });
+      } catch (e) {
+        uni.hideLoading();
+        uni.showToast({ title: "提交失败，请重试", icon: "none" });
+      }
+    },
+  });
+}
+
 onLoad((options: any) => {
   userId.value = options?.id || "";
   const sysInfo = uni.getSystemInfoSync();
@@ -147,6 +191,8 @@ onLoad((options: any) => {
 }
 
 .back-btn { position: absolute; left: 24rpx; width: 64rpx; height: 64rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 44rpx; z-index: 10; }
+
+.more-btn { position: absolute; right: 24rpx; width: 64rpx; height: 64rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 40rpx; z-index: 10; }
 
 .photo-count { position: absolute; right: 24rpx; top: 780rpx; padding: 6rpx 20rpx; border-radius: 20rpx; font-size: 22rpx; color: #fff; z-index: 10; }
 

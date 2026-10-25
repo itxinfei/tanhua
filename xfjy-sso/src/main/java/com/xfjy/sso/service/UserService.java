@@ -81,8 +81,8 @@ public class UserService {
             user.setCreated(new java.util.Date());
             user.setUpdated(new java.util.Date());
             this.userMapper.insert(user);
-        } else if ("FROZEN".equals(user.getStatus())) {
-            return null; //已封禁
+        } else if (!"NORMAL".equals(user.getStatus())) {
+            return null; //已封禁(FROZEN)或已注销(DELETED)
         }
 
         // Sa-Token 签发 token（会话存 Redis，所有服务共享校验）
@@ -108,6 +108,11 @@ public class UserService {
         if (loginId == null) {
             return null;
         }
-        return this.userMapper.selectById(Long.valueOf(loginId.toString()));
+        User user = this.userMapper.selectById(Long.valueOf(loginId.toString()));
+        //已注销(DELETED)或已封禁(FROZEN)的用户，token 立即失效
+        if (user == null || !"NORMAL".equals(user.getStatus())) {
+            return null;
+        }
+        return user;
     }
 }

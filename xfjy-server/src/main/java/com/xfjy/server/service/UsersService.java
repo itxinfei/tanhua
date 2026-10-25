@@ -1,6 +1,8 @@
 package com.xfjy.server.service;
 
+import cn.dev33.satoken.stp.StpUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xfjy.service.api.UserInfoApi;
 import com.xfjy.service.api.UserLikeApi;
@@ -11,16 +13,18 @@ import com.xfjy.service.pojo.UserLike;
 import com.xfjy.service.pojo.Visitors;
 import com.xfjy.service.vo.PageInfo;
 import com.xfjy.service.vo.UserInfoQueryParam;
+import com.xfjy.server.mapper.ReportMapper;
+import com.xfjy.server.mapper.UserMapper;
 import com.xfjy.server.pojo.*;
 import com.xfjy.server.utils.UserThreadLocal;
 import com.xfjy.server.vo.*;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -46,6 +50,20 @@ public class UsersService {
 
     @Autowired
     private BlackListService blackListService;
+
+    @Autowired
+    private ReportMapper reportMapper;
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
+    /** 短信验证码 Redis key 前缀（与 xfjy-sso 保持一致） */
+    private static final String CODE_KEY_PREFIX = "XFJY_SSO_CODE_";
+    /** 开发用万能验证码（与 xfjy-sso 保持一致） */
+    private static final String DEV_MASTER_CODE = "123456";
 
     public UserInfoVo queryUserInfo(String userID, String huanxinID) {
         User user = UserThreadLocal.get();
@@ -274,5 +292,71 @@ public class UsersService {
     public void updateNotification(Boolean likeNotification, Boolean pinglunNotification, Boolean gonggaoNotification) {
         User user = UserThreadLocal.get();
         this.settingsService.updateNotification(user.getId(), likeNotification, pinglunNotification, gonggaoNotification);
+    }
+
+    /**
+     * 提交举报（写入 tb_report，状态 PENDING，由管理端工作台处理）
+     *
+     * @param targetUserId 被举报用户ID（必填）
+     * @param targetType   举报对象类型：USER/POST/COMMENT/MESSAGE
+     * @param targetId     举报对象ID（举报用户时与 targetUserId 相同）
+     * @param reason       举报原因（必填）
+     * @param description  详细描述（可选）
+     * @param evidence     证据截图URL，逗号分隔（可选）
+     * @return 是否提交成功
+     */
+    public Boolean submitReport(Long targetUserId, String targetType, Long targetId,
+                                String reason, String description, String evidence) {
+        User user = UserThreadLocal.get();
+        // 不能举报自己
+        if (user.getId().equals(targetUserId)) {
+            return false;
+        }
+
+        Report report = new Report();
+        report.setReporterId(user.getId());
+        report.setTargetUserId(targetUserId);
+        report.setTargetType(StringUtils.isNotBlank(targetType) ? targetType : "USER");
+        report.setTargetId(targetId != null ? targetId : targetUserId);
+        report.setReason(reason);
+        report.setDescription(description);
+        report.setEvidence(evidence);
+        report.setStatus("PENDING");
+        report.setCreated(new Date());
+        report.setUpdated(new Date());
+        return this.reportMapper.insert(report) > 0;
+    }
+
+    /**
+     * 注销账号（软删除：tb_user.status=DELETED，数据保留 30 天后由定时任务清理）
+     * 需校验短信验证码，防止误操作。
+     *
+     * @param code 短信验证码
+     * @return true=注销成功；false=验证码错误或更新失败
+     */
+    public Boolean logoff(String code) {
+        User user = UserThreadLocal.get();
+        if (StringUtils.isBlank(code)) {
+            return false;
+        }
+
+        // 校验验证码：Redis 中的验证码 或 开发万能验证码
+        String cached = this.redisTemplate.opsForValue().get(CODE_KEY_PREFIX + user.getMobile());
+        boolean codeValid = code.equals(cached) || DEV_MASTER_CODE.equals(code);
+        if (!codeValid) {
+            return false;
+        }
+        this.redisTemplate.delete(CODE_KEY_PREFIX + user.getMobile());
+
+        // 软删除：status=DELETED
+        User update = new User();
+        update.setId(user.getId());
+        update.setStatus("DELETED");
+        int rows = this.userMapper.updateById(update);
+
+        // 立即踢下线（Sa-Token 按 userId 注销所有会话）
+        StpUtil.logout(user.getId());
+
+        return rows > 0;
     }
 }

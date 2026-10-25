@@ -231,4 +231,58 @@ public class UsersController {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
 
+    /**
+     * 提交举报
+     *
+     * @param param targetUserId-被举报用户ID, targetType-USER/POST/COMMENT/MESSAGE,
+     *              targetId-举报对象ID, reason-举报原因, description-详细描述, evidence-证据URL
+     * @return 200=提交成功；400=参数无效（如举报自己）；500=服务异常
+     */
+    @PostMapping("report")
+    public ResponseEntity<Void> submitReport(@RequestBody Map<String, Object> param) {
+        try {
+            Object targetUserIdObj = param.get("targetUserId");
+            if (targetUserIdObj == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            }
+            Long targetUserId = Long.valueOf(targetUserIdObj.toString());
+            String targetType = param.get("targetType") != null ? param.get("targetType").toString() : null;
+            Long targetId = param.get("targetId") != null ? Long.valueOf(param.get("targetId").toString()) : null;
+            String reason = param.get("reason") != null ? param.get("reason").toString() : null;
+            String description = param.get("description") != null ? param.get("description").toString() : null;
+            String evidence = param.get("evidence") != null ? param.get("evidence").toString() : null;
+
+            if (reason == null || reason.trim().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            }
+
+            Boolean success = this.usersService.submitReport(targetUserId, targetType, targetId,
+                    reason, description, evidence);
+            return Boolean.TRUE.equals(success) ? ResponseEntity.ok().build()
+                    : ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        } catch (Exception e) {
+            LOGGER.error("接口处理异常", e);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+
+    /**
+     * 注销账号（软删除，需短信验证码校验）
+     *
+     * @param param code-短信验证码（需先调 POST /user/sendCode 获取）
+     * @return 200=注销成功；400=验证码错误；500=服务异常
+     */
+    @PostMapping("logoff")
+    public ResponseEntity<Void> logoff(@RequestBody Map<String, String> param) {
+        try {
+            String code = param.get("code");
+            Boolean success = this.usersService.logoff(code);
+            return Boolean.TRUE.equals(success) ? ResponseEntity.ok().build()
+                    : ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        } catch (Exception e) {
+            LOGGER.error("接口处理异常", e);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+
 }
