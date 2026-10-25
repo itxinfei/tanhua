@@ -124,12 +124,6 @@ public class VideoApiImpl implements VideoApi {
     }
 
     @Override
-    @GetMapping("/queryVideoById")
-    public Video queryVideoById(@RequestParam("id") String id) {
-        return this.mongoTemplate.findById(new ObjectId(id), Video.class);
-    }
-
-    @Override
     @PostMapping("/queryVideoListByPids")
     public List<Video> queryVideoListByPids(@RequestBody List<Long> vids) {
         Query query = Query.query(Criteria.where("vid").in(vids));

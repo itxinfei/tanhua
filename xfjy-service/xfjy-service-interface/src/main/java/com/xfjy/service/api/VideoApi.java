@@ -47,13 +47,6 @@ public interface VideoApi {
                           @RequestParam("followUserId") Long followUserId);
 
     /**
-     * 根据id查询小视频
-     */
-    @GetExchange("/queryVideoById")
-    @GetMapping("/queryVideoById")
-    Video queryVideoById(@RequestParam("id") String id);
-
-    /**
      * 根据vids批量查询视频列表
      */
     @PostExchange("/queryVideoListByPids")

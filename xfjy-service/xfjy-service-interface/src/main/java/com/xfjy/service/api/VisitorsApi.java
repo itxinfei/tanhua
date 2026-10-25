@@ -3,24 +3,14 @@ package com.xfjy.service.api;
 import com.xfjy.service.pojo.Visitors;
 import com.xfjy.service.vo.PageInfo;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.HttpExchange;
-import org.springframework.web.service.annotation.PostExchange;
 
 import java.util.List;
 
 @HttpExchange("/api/visitors")
 public interface VisitorsApi {
-
-    /**
-     * 保存来访记录
-     */
-    @PostExchange("/saveVisitor")
-    @PostMapping("/saveVisitor")
-    String saveVisitor(@RequestBody Visitors visitors);
 
     /**
      * 按照时间倒序排序，查询最近的访客信息（指定数量）

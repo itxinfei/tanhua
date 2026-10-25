@@ -1,15 +1,12 @@
 package com.xfjy.service.api;
 
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.xfjy.service.pojo.RecommendUser;
 import com.xfjy.service.pojo.Visitors;
 import com.xfjy.service.vo.PageInfo;
-import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,16 +23,6 @@ public class VisitorsApiImpl implements VisitorsApi {
 
     @Autowired
     private MongoTemplate mongoTemplate;
-
-    @Override
-    @PostMapping("/saveVisitor")
-    public String saveVisitor(@RequestBody Visitors visitors) {
-        visitors.setId(ObjectId.get());
-        visitors.setDate(System.currentTimeMillis());
-
-        this.mongoTemplate.save(visitors);
-        return visitors.getId().toHexString();
-    }
 
     @Override
     @GetMapping("/topVisitorByNum")
