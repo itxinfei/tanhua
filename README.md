@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/logo/logo-horizontal-transparent.png" width="360" alt="心飞交友">
+
 # 🌸 心飞交友
 
 **基于大数据智能推荐的陌生人社交平台**
