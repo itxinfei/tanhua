@@ -64,7 +64,7 @@
 import { ref, computed } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import { useUserStore } from "@/store/user";
-import { getUserSettings, deleteAccount, getVerifyStatus } from "@/api/mine";
+import { getUserSettings, deleteAccount, getVerifyStatus, updateNotificationSetting } from "@/api/mine";
 import { sendSmsCode } from "@/api/auth";
 
 const userStore = useUserStore();
@@ -80,10 +80,22 @@ const notificationSettings = ref([
   { key: 'announcement', label: '系统公告', value: false },
 ]);
 
-function toggleNotification(key: string, e: any) {
+async function toggleNotification(key: string, e: any) {
   const s = notificationSettings.value.find(n => n.key === key);
   if (s) s.value = e.detail.value;
-  // TODO: 对接 PUT /users/settings/notifications
+  // match 项后端暂无对应字段，仅本地生效；其余三项持久化到 /users/notifications/setting
+  if (key === 'match') return;
+  const find = (k: string) => notificationSettings.value.find(n => n.key === k)?.value ?? true;
+  try {
+    await updateNotificationSetting({
+      likeNotification: find('like'),
+      pinglunNotification: find('comment'),
+      gonggaoNotification: find('announcement'),
+    });
+  } catch {
+    // 持久化失败由 request 层统一 toast，回滚本地开关
+    if (s) s.value = !e.detail.value;
+  }
 }
 
 function goPhone() { uni.navigateTo({ url: "/pages/mine/change-phone" }); }
@@ -96,6 +108,16 @@ async function loadPhone() {
     const settings = await getUserSettings();
     const phone = settings?.phone || '';
     phoneMasked.value = phone ? phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '';
+    // 回填通知开关初始值（match 项后端无字段，保持本地默认）
+    if (settings) {
+      const setVal = (key: string, val?: boolean) => {
+        const item = notificationSettings.value.find(n => n.key === key);
+        if (item && typeof val === 'boolean') item.value = val;
+      };
+      setVal('like', settings.likeNotification);
+      setVal('comment', settings.pinglunNotification);
+      setVal('announcement', settings.gonggaoNotification);
+    }
   } catch {
     // 请求失败由 request 层统一 toast
   }
