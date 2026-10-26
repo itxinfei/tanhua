@@ -104,16 +104,37 @@ function changeAvatar(): void {
   }});
 }
 
-/** 添加照片墙图片 */
+/** 添加照片墙图片：逐张上传 OSS，成功 URL 入数组 */
 function addPhoto(): void {
-  uni.chooseImage({ count: MAX_ALBUM_COUNT - form.value.photoAlbum.length, sizeType: ["compressed"], success: (res) => {
-    form.value.photoAlbum.push(...res.tempFilePaths);
+  const remain = MAX_ALBUM_COUNT - form.value.photoAlbum.length;
+  if (remain <= 0) { uni.showToast({ title: "照片墙已满", icon: "none" }); return; }
+  uni.chooseImage({ count: remain, sizeType: ["compressed"], success: async (res) => {
+    uni.showLoading({ title: "上传中...", mask: true });
+    for (const tempPath of res.tempFilePaths) {
+      try {
+        const result = await uploadImage(tempPath);
+        if (result.status === "done" && result.name) form.value.photoAlbum.push(result.name);
+      } catch { /* 单张失败跳过，继续后续 */ }
+    }
+    uni.hideLoading();
   }});
 }
 
 /** 删除照片墙图片 */
 function removePhoto(i: number): void {
   form.value.photoAlbum.splice(i, 1);
+}
+
+/** photoAlbum 兼容 string(JSON)/string[] 两种来源，统一归一为 string[] */
+function normalizeAlbum(raw: unknown): string[] {
+  if (Array.isArray(raw)) return raw.filter((u): u is string => typeof u === "string");
+  if (typeof raw === "string" && raw) {
+    try {
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr.filter((u): u is string => typeof u === "string") : [];
+    } catch { return []; }
+  }
+  return [];
 }
 
 /** 弹窗编辑文本字段 */
@@ -129,7 +150,7 @@ function editField(field: string, label: string): void {
   });
 }
 
-/** 保存资料：可映射字段提交后端，signature/height/照片墙暂仅本地（后端无对应字段） */
+/** 保存资料：可映射字段提交后端，照片墙以 JSON 字符串提交 */
 async function handleSave(): Promise<void> {
   if (submitting.value) return;
   submitting.value = true;
@@ -141,6 +162,7 @@ async function handleSave(): Promise<void> {
       city: form.value.city,
       education: form.value.education,
       profession: form.value.industry,
+      photoAlbum: JSON.stringify(form.value.photoAlbum),
     });
     userStore.updateUserInfo(form.value);
     uni.showToast({ title: "保存成功", icon: "success" });
@@ -155,6 +177,7 @@ async function handleSave(): Promise<void> {
 onShow(async () => {
   if (userStore.userInfo) {
     Object.assign(form.value, userStore.userInfo);
+    form.value.photoAlbum = normalizeAlbum((userStore.userInfo as any).photoAlbum);
     return;
   }
   // store 为空时从后端拉取
@@ -167,6 +190,7 @@ onShow(async () => {
       form.value.city = profile.city || form.value.city;
       form.value.education = profile.education || form.value.education;
       form.value.industry = profile.profession || form.value.industry;
+      form.value.photoAlbum = normalizeAlbum(profile.photoAlbum);
     }
   } catch {
     // request 层统一 toast

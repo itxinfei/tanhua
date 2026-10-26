@@ -19,10 +19,10 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        //C端用户Token认证拦截器（排除管理后台路径）
+        //C端用户Token认证拦截器（排除管理后台路径与监控端点）
         registry.addInterceptor(this.tokenInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/admin/**", "/error", "/test-media/**");
+                .excludePathPatterns("/admin/**", "/error", "/test-media/**", "/actuator/**");
 
         //管理后台Token拦截器（排除登录接口）
         registry.addInterceptor(this.adminTokenInterceptor)

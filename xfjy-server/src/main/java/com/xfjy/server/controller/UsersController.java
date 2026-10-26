@@ -233,8 +233,9 @@ public class UsersController {
             Boolean likeNotification = param.get("likeNotification");
             Boolean pinglunNotification = param.get("pinglunNotification");
             Boolean gonggaoNotification = param.get("gonggaoNotification");
+            Boolean matchNotification = param.get("matchNotification");
 
-            this.usersService.updateNotification(likeNotification, pinglunNotification, gonggaoNotification);
+            this.usersService.updateNotification(likeNotification, pinglunNotification, gonggaoNotification, matchNotification);
             return ResponseEntity.ok(null);
         } catch (Exception e) {
             LOGGER.error("接口处理异常", e);

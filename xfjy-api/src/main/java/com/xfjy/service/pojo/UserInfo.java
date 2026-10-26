@@ -26,6 +26,7 @@ public class UserInfo extends BasePojo implements java.io.Serializable {
     private String city; //城市
     private String birthday; //生日
     private String coverPic; //封面图片
+    private String photoAlbum; //照片墙：JSON数组存OSS URL列表
     private String industry; //行业
     private String income; //收入
     private String marriage; //婚姻状况

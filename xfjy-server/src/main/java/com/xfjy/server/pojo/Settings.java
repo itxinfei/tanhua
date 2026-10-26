@@ -14,5 +14,6 @@ public class Settings extends BasePojo {
     private Boolean likeNotification;
     private Boolean pinglunNotification;
     private Boolean gonggaoNotification;
+    private Boolean matchNotification;
 
 }

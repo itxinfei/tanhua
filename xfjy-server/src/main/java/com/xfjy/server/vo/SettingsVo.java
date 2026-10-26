@@ -15,5 +15,6 @@ public class SettingsVo {
     private Boolean likeNotification = true;
     private Boolean pinglunNotification = true;
     private Boolean gonggaoNotification = true;
+    private Boolean matchNotification = true;
 
 }

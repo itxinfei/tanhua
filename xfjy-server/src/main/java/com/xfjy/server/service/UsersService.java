@@ -91,6 +91,7 @@ public class UsersService {
         userInfoVo.setMarriage(StringUtils.equals(userInfo.getMarriage(), "已婚") ? 1 : 0);
         userInfoVo.setNickname(userInfo.getNickName());
         userInfoVo.setProfession(userInfo.getIndustry());
+        userInfoVo.setPhotoAlbum(userInfo.getPhotoAlbum());
         return userInfoVo;
     }
 
@@ -106,6 +107,7 @@ public class UsersService {
         userInfo.setIncome(StringUtils.replaceAll(userInfoVo.getIncome(), "K", ""));
         userInfo.setIndustry(userInfoVo.getProfession());
         userInfo.setMarriage(userInfoVo.getMarriage() == 1 ? "已婚" : "未婚");
+        userInfo.setPhotoAlbum(userInfoVo.getPhotoAlbum());
         return this.userInfoApi.updateUserInfoByUserId(userInfo);
     }
 
@@ -225,6 +227,7 @@ public class UsersService {
             settingsVo.setPinglunNotification(settings.getPinglunNotification());
             settingsVo.setLikeNotification(settings.getLikeNotification());
             settingsVo.setGonggaoNotification(settings.getGonggaoNotification());
+            settingsVo.setMatchNotification(settings.getMatchNotification());
         }
 
         //查询陌生人问题
@@ -289,9 +292,9 @@ public class UsersService {
         this.blackListService.delBlacklist(user.getId(), userId);
     }
 
-    public void updateNotification(Boolean likeNotification, Boolean pinglunNotification, Boolean gonggaoNotification) {
+    public void updateNotification(Boolean likeNotification, Boolean pinglunNotification, Boolean gonggaoNotification, Boolean matchNotification) {
         User user = UserThreadLocal.get();
-        this.settingsService.updateNotification(user.getId(), likeNotification, pinglunNotification, gonggaoNotification);
+        this.settingsService.updateNotification(user.getId(), likeNotification, pinglunNotification, gonggaoNotification, matchNotification);
     }
 
     /**

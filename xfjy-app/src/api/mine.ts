@@ -22,6 +22,8 @@ export interface UserProfile {
   income: string;
   profession: string;
   marriage: number;
+  /** 照片墙：JSON数组字符串（OSS URL 列表） */
+  photoAlbum?: string;
 }
 
 /** 关系统计（后端 CountsVo 结构） */
@@ -39,6 +41,7 @@ export interface UserSettings {
   likeNotification: boolean;
   pinglunNotification: boolean;
   gonggaoNotification: boolean;
+  matchNotification: boolean;
 }
 
 /** 位置上报参数 */
@@ -53,6 +56,7 @@ export interface NotificationSettingParam {
   likeNotification: boolean;
   pinglunNotification: boolean;
   gonggaoNotification: boolean;
+  matchNotification: boolean;
 }
 
 /**

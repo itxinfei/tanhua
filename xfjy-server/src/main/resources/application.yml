@@ -87,3 +87,13 @@ sa-token:
   is-share: false
   token-style: uuid
   is-log: false
+
+# Spring Boot Actuator 运行状态监控
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized

@@ -18,11 +18,12 @@ public class SettingsService {
         return this.settingsMapper.selectOne(queryWrapper);
     }
 
-    public void updateNotification(Long userId, Boolean likeNotification, Boolean pinglunNotification, Boolean gonggaoNotification) {
+    public void updateNotification(Long userId, Boolean likeNotification, Boolean pinglunNotification, Boolean gonggaoNotification, Boolean matchNotification) {
         Settings settings = new Settings();
         settings.setLikeNotification(likeNotification);
         settings.setGonggaoNotification(gonggaoNotification);
         settings.setPinglunNotification(pinglunNotification);
+        settings.setMatchNotification(matchNotification);
 
         QueryWrapper<Settings> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("user_id", userId);

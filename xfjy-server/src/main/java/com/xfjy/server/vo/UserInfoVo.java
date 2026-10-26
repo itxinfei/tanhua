@@ -20,5 +20,6 @@ public class UserInfoVo {
     private String income; //月收入 枚举: 5k,8K,15K,35K,55K,80K,100K
     private String profession; //行业 枚举: IT行业,服务行业,公务员
     private Integer marriage; //婚姻状态（0未婚 1已婚
+    private String photoAlbum; //照片墙：JSON数组存OSS URL列表
 
 }
