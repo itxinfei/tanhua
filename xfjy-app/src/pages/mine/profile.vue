@@ -58,7 +58,7 @@
     </view>
 
     <!-- 保存 -->
-    <button class="save-btn btn-gradient safe-area-bottom" @click="handleSave">保存</button>
+    <button class="save-btn btn-gradient safe-area-bottom" :disabled="submitting" @click="handleSave">保存</button>
   </view>
 </template>
 
@@ -66,6 +66,7 @@
 import { ref } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import { useUserStore } from "@/store/user";
+import { getUserProfile, updateUserProfile } from "@/api/mine";
 
 /** 照片墙最大数量 */
 const MAX_ALBUM_COUNT = 6;
@@ -82,6 +83,7 @@ const form = ref({
   city: "", height: "", education: "", industry: "",
   photoAlbum: [] as string[],
 });
+const submitting = ref(false);
 
 /** 更换头像 */
 function changeAvatar(): void {
@@ -116,16 +118,48 @@ function editField(field: string, label: string): void {
   });
 }
 
-/** 保存资料 */
+/** 保存资料：可映射字段提交后端，signature/height/照片墙暂仅本地（后端无对应字段） */
 async function handleSave(): Promise<void> {
-  // TODO: 对接 PUT /users 更新资料
-  userStore.updateUserInfo(form.value);
-  uni.showToast({ title: "保存成功", icon: "success" });
-  setTimeout(() => uni.navigateBack(), 800);
+  if (submitting.value) return;
+  submitting.value = true;
+  try {
+    await updateUserProfile({
+      avatar: form.value.avatar,
+      nickname: form.value.nickname,
+      gender: form.value.gender,
+      city: form.value.city,
+      education: form.value.education,
+      profession: form.value.industry,
+    });
+    userStore.updateUserInfo(form.value);
+    uni.showToast({ title: "保存成功", icon: "success" });
+    setTimeout(() => uni.navigateBack(), 800);
+  } catch {
+    // request 层统一 toast
+  } finally {
+    submitting.value = false;
+  }
 }
 
-onShow(() => {
-  if (userStore.userInfo) Object.assign(form.value, userStore.userInfo);
+onShow(async () => {
+  if (userStore.userInfo) {
+    Object.assign(form.value, userStore.userInfo);
+    return;
+  }
+  // store 为空时从后端拉取
+  try {
+    const profile = await getUserProfile();
+    if (profile) {
+      form.value.avatar = profile.avatar || form.value.avatar;
+      form.value.nickname = profile.nickname || form.value.nickname;
+      form.value.gender = profile.gender || form.value.gender;
+      form.value.city = profile.city || form.value.city;
+      form.value.education = profile.education || form.value.education;
+      form.value.industry = profile.profession || form.value.industry;
+    }
+  } catch {
+    // request 层统一 toast
+  }
 });
 </script>
 

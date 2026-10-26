@@ -6,12 +6,12 @@
         <image class="avatar" :src="post.avatar" mode="aspectFill" />
         <view class="user-info">
           <text class="nickname">{{ post.nickname }}</text>
-          <text class="time">{{ post.time }}</text>
+          <text class="time">{{ post.createDate }}</text>
         </view>
       </view>
-      <view class="post-content">{{ post.content }}</view>
-      <view v-if="post.images?.length" class="image-grid">
-        <image v-for="(img, i) in post.images" :key="i" class="grid-img" :src="img" mode="aspectFill" @click="previewImg(i)" />
+      <view class="post-content">{{ post.textContent }}</view>
+      <view v-if="post.medias?.length" class="image-grid">
+        <image v-for="(img, i) in post.medias" :key="i" class="grid-img" :src="img" mode="aspectFill" @click="previewImg(i)" />
       </view>
     </view>
 
@@ -22,8 +22,8 @@
         <image class="avatar" :src="c.avatar" mode="aspectFill" />
         <view class="comment-info">
           <text class="nickname">{{ c.nickname }}</text>
-          <text class="content">{{ c.content }}</text>
-          <text class="time">{{ c.time }}</text>
+          <text class="content">{{ c.comment }}</text>
+          <text class="time">{{ c.createDate }}</text>
         </view>
       </view>
     </view>
@@ -38,27 +38,62 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
+import { getMovementById, getComments, publishComment } from "@/api/circle";
+import type { Movement, Comment } from "@/api/circle";
 
+const PAGE_SIZE = 20;
 const postId = ref("");
 const commentText = ref("");
-const post = ref<any>({ avatar: "", nickname: "", time: "", content: "", images: [] });
-const comments = ref<any[]>([]);
+const post = ref<Movement | null>(null);
+const comments = ref<Comment[]>([]);
+const sending = ref(false);
 
 function previewImg(index: number | string) {
   const i = Number(index);
-  uni.previewImage({ urls: post.value.images, current: post.value.images[i] });
+  const medias = post.value?.medias || [];
+  uni.previewImage({ urls: medias, current: medias[i] });
 }
 
+/** 加载动态详情 */
+async function loadDetail() {
+  try {
+    post.value = await getMovementById(postId.value);
+  } catch {
+    // request 层统一 toast
+  }
+}
+
+/** 加载评论列表 */
+async function loadComments() {
+  try {
+    const res = await getComments(postId.value, { page: 1, pagesize: PAGE_SIZE });
+    comments.value = res.items || [];
+  } catch {
+    // request 层统一 toast
+  }
+}
+
+/** 发表评论，成功后刷新列表 */
 async function sendComment() {
-  if (!commentText.value.trim()) return;
-  // TODO: 对接 POST /comments
-  uni.showToast({ title: "评论成功", icon: "success" });
-  commentText.value = "";
+  const text = commentText.value.trim();
+  if (!text || sending.value) return;
+  sending.value = true;
+  try {
+    await publishComment(postId.value, text);
+    commentText.value = "";
+    uni.showToast({ title: "评论成功", icon: "success" });
+    await loadComments();
+  } catch {
+    // request 层统一 toast
+  } finally {
+    sending.value = false;
+  }
 }
 
 onLoad((options: any) => {
   postId.value = options?.id || "";
-  // TODO: 对接 GET /movements/{id} 和 GET /comments?movementId=
+  loadDetail();
+  loadComments();
 });
 </script>
 

@@ -46,11 +46,11 @@
     <view class="location-row btn-feedback" @click="chooseLocation">
       <text class="loc-icon">📍</text>
       <text class="loc-text">{{ location || '添加位置' }}</text>
-      <text v-if="location" class="loc-clear" @click.stop="location = ''">✕</text>
+      <text v-if="location" class="loc-clear" @click.stop="clearLocation">✕</text>
     </view>
 
     <!-- 发布按钮 -->
-    <button class="publish-btn btn-gradient" :disabled="!canPublish" @click="handlePublish">
+    <button class="publish-btn btn-gradient" :disabled="!canPublish || submitting" @click="handlePublish">
       发布
     </button>
   </view>
@@ -58,6 +58,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { publishMovement } from "@/api/circle";
 
 /** 内容最大字数 */
 const MAX_CONTENT_LENGTH = 500;
@@ -70,8 +71,11 @@ const HOT_TOPICS = ["交友日常", "心动瞬间", "周末去哪儿", "美食�
 const content = ref("");
 const images = ref<string[]>([]);
 const location = ref("");
+const longitude = ref("");
+const latitude = ref("");
 const selectedTopics = ref<string[]>([]);
 const isInputFocus = ref(false);
+const submitting = ref(false);
 
 /** 是否可发布（内容或图片至少一项） */
 const canPublish = computed(() => content.value.trim().length > 0 || images.value.length > 0);
@@ -108,6 +112,8 @@ function chooseLocation(): void {
   uni.chooseLocation({
     success: (res) => {
       location.value = res.name;
+      longitude.value = String(res.longitude);
+      latitude.value = String(res.latitude);
     },
     fail: () => {
       uni.showToast({ title: "请授权位置权限", icon: "none" });
@@ -115,12 +121,32 @@ function chooseLocation(): void {
   });
 }
 
-/** 发布动态 */
+/** 清除位置 */
+function clearLocation(): void {
+  location.value = "";
+  longitude.value = "";
+  latitude.value = "";
+}
+
+/** 发布动态（图片由 publishMovement 内部 upload 直传后端） */
 async function handlePublish(): Promise<void> {
-  if (!canPublish.value) return;
-  // TODO: 对接 POST /movements 发布动态（携带 selectedTopics）
-  uni.showToast({ title: "发布成功", icon: "success" });
-  setTimeout(() => uni.navigateBack(), 800);
+  if (!canPublish.value || submitting.value) return;
+  submitting.value = true;
+  try {
+    await publishMovement({
+      textContent: content.value.trim(),
+      location: location.value,
+      longitude: longitude.value,
+      latitude: latitude.value,
+      imagePaths: images.value,
+    });
+    uni.showToast({ title: "发布成功", icon: "success" });
+    setTimeout(() => uni.navigateBack(), 800);
+  } catch {
+    // request 层统一 toast
+  } finally {
+    submitting.value = false;
+  }
 }
 </script>
 

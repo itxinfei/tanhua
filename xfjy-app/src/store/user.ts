@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { getToken, setToken, removeToken } from "@/utils/request";
 import { login, sendSmsCode } from "@/api/auth";
+import { getUserProfile } from "@/api/mine";
 
 // 用户信息类型
 export interface UserInfo {
@@ -53,9 +54,23 @@ export const useUserStore = defineStore("user", () => {
     }
   }
 
-  /** 从后端拉取最新用户信息 */
+  /** 从后端拉取最新用户信息（保留本地无后端字段的旧值） */
   async function fetchUserInfo(): Promise<void> {
-    // TODO: 对接 GET /users 接口
+    const profile = await getUserProfile();
+    if (!profile) return;
+    userInfo.value = {
+      id: profile.id ?? userInfo.value?.id ?? 0,
+      nickname: profile.nickname || userInfo.value?.nickname || "",
+      avatar: profile.avatar || userInfo.value?.avatar || "",
+      gender: profile.gender || userInfo.value?.gender || "",
+      age: Number(profile.age) || userInfo.value?.age || 0,
+      city: profile.city || userInfo.value?.city || "",
+      signature: userInfo.value?.signature || "",
+      verified: userInfo.value?.verified || false,
+      vip: userInfo.value?.vip || false,
+      photoAlbum: userInfo.value?.photoAlbum || [],
+      completeness: userInfo.value?.completeness || 0,
+    };
   }
 
   return {
