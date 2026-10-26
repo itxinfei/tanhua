@@ -1,34 +1,56 @@
 <div align="center">
-  <h1>🌸 心飞交友</h1>
-  <strong>基于大数据智能推荐的陌生人社交平台</strong>
 
-  <em>即时通讯 · 动态圈子 · 附近的人 · 探花匹配 · 智能推荐</em>
+# 🌸 心飞交友
+
+**基于大数据智能推荐的陌生人社交平台**
+
+即时通讯 · 动态圈子 · 附近的人 · 探花匹配 · 智能推荐 · VIP 权益
 
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.1-brightgreen)
 ![JDK](https://img.shields.io/badge/JDK-25-orange)
-![MyBatis Plus](https://img.shields.io/badge/MyBatis%20Plus-3.5.17-blue)
+![Spring Cloud](https://img.shields.io/badge/Spring%20Cloud-2025.0.0-green)
 ![Sa-Token](https://img.shields.io/badge/Sa--Token-1.46.0-red)
-![Spark](https://img.shields.io/badge/Spark%20MLlib-4.2.0-yellow)
-![MongoDB](https://img.shields.io/badge/MongoDB-SB4%20Starter-green)
-![RocketMQ](https://img.shields.io/badge/RocketMQ-2.3.6-red)
+![MyBatis Plus](https://img.shields.io/badge/MyBatis%20Plus-3.5.17-blue)
+![MongoDB](https://img.shields.io/badge/MongoDB-8.0-47A248)
+![Redis](https://img.shields.io/badge/Redis-7.x-DC382D)
+![RocketMQ](https://img.shields.io/badge/RocketMQ-5.x-D773A2)
+![Qdrant](https://img.shields.io/badge/Qdrant-向量检索-DC382D)
+![Neo4j](https://img.shields.io/badge/Neo4j-图推荐-008CC1)
+![PyTorch](https://img.shields.io/badge/PyTorch-双塔模型-EE4C2C)
 ![Vue](https://img.shields.io/badge/Vue-3.5-42b883)
 ![Element Plus](https://img.shields.io/badge/Element%20Plus-2.14-blue)
 ![uni-app](https://img.shields.io/badge/uni--app-Vue3-purple)
-![Vite](https://img.shields.io/badge/Vite-8%20%2F%205-646cff)
+![License](https://img.shields.io/badge/License-MIT-yellow)
+
 </div>
 
 ---
 
 ## 一、项目简介
 
-心飞交友是一款面向年轻群体的陌生人社交平台，核心功能：
+心飞交友是一款面向年轻群体的陌生人社交平台，采用 Spring Boot 4.1 + JDK 25 微服务架构，前端覆盖 H5 / 小程序 / App 多端。
 
-- 📍 **附近的人**：Elasticsearch Geo 地理位置搜索
-- 🤝 **探花匹配**：卡片滑动 + 陌生人问题破冰
-- 📰 **圈子动态**：图文动态、点赞、评论
-- 🎬 **小视频**：上传、推荐、播放
-- 💬 **实时聊天**：集成环信 IM
-- 🤖 **智能推荐**：Spark MLlib 协同过滤离线计算 + RocketMQ 实时评分
+### 核心功能
+
+| 模块 | 功能 |
+|------|------|
+| 📍 附近的人 | Elasticsearch Geo 地理位置搜索，按距离排序 |
+| 🤝 探花匹配 | 卡片滑动（喜欢/不喜欢/超级喜欢）+ 陌生人问题破冰 |
+| 📰 圈子动态 | 图文动态发布、点赞、评论、时间线 |
+| 🎬 小视频 | 视频上传、推荐流、关注作者 |
+| 💬 实时聊天 | 集成环信 IM，互相喜欢自动成为联系人 |
+| 🤖 智能推荐 | 冷启动兜底 + ALS 协同过滤 + 地理衰减 + 画像相似度 + 互惠精排 |
+| 💎 VIP 权益 | 权益矩阵驱动：超级喜欢 / 谁喜欢我 / 无限滑动 / 隐身访问 |
+| 🛡️ 管理后台 | 内容审核、敏感词过滤、用户管理、数据看板 |
+
+### 推荐引擎亮点
+
+- **T5 冷启动**：新用户无行为数据时，地理召回（500km）+ 画像相似度（标签 Jaccard + 年龄 + 同城）兜底
+- **混合评分**：ALS 分数 × 地理距离衰减 × 画像相似度 × 互惠匹配分，权重可配置，缺失维度自动降级
+- **T4 互惠精排**：基于双塔 embedding 的 cosine² 双向匹配分，放大"双向高相似"候选
+- **向量召回**：Qdrant 纯 REST 接入，point id = userId 免映射，不可用时自动降级
+- **图推荐**：Neo4j 二度好友（共同喜欢数排序），喜欢关系实时同步
+- **双塔训练**：Python + PyTorch 权重共享对称双塔，BPR loss，`--mock` 模式无需中间件验证管线
 
 ---
 
@@ -40,184 +62,274 @@
 |------|------|------|
 | 语言 | JDK | 25 |
 | 框架 | Spring Boot | 4.1.1 |
-| 认证鉴权 | Sa-Token（sa-token-spring-boot4-starter） | 1.46.0 |
-| 持久层-关系 | MyBatis-Plus + mybatis-plus-jsqlparser + mysql-connector-j | 3.5.17 |
+| 微服务 | Spring Cloud + Nacos | 2025.0.0 / 3.x |
+| 网关 | Spring Cloud Gateway | 4.3.x |
+| 认证鉴权 | Sa-Token | 1.46.0 |
+| 持久层-关系 | MyBatis-Plus + mysql-connector-j | 3.5.17 |
 | 持久层-文档 | spring-data-mongodb | SB4 托管 |
 | 持久层-搜索 | spring-data-elasticsearch | SB4 托管 |
 | 缓存 | Spring Cache + Lettuce Redis | SB4 托管 |
 | 消息队列 | rocketmq-spring-boot-starter | 2.3.6 |
-| 服务间通信 | HTTP Service Clients（@HttpExchange + RestClient，替代 Dubbo） | — |
-| 对象存储 | aliyun-sdk-oss | 3.18.5 |
-| 即时通讯 | 环信 IM（REST + SDK） | — |
-| 人脸/地图 | 百度 AI 开放平台 | — |
-| 离线推荐 | Apache Spark MLlib + mongo-spark-connector | 4.2.0 / 11.1.0 |
-| 工具 | Lombok / commons-io / commons-codec | 2.22.0 / 1.23.0 |
+| 服务间通信 | HTTP Service Clients（@HttpExchange + RestClient） | — |
+| 对象存储 | 阿里云 OSS | 3.18.5 |
+| 即时通讯 | 环信 IM | — |
+| 向量检索 | Qdrant（纯 REST 接入） | — |
+| 图数据库 | Neo4j（纯 HTTP Cypher 接入） | 5.x |
+| 工具 | Lombok / commons-io / commons-codec | — |
+
+### AI 训练工程
+
+| 组件 | 技术 | 说明 |
+|------|------|------|
+| 双塔模型 | PyTorch | 权重共享对称双塔，BPR loss，64 维 L2 归一化输出 |
+| 特征工程 | 自研 | tags multi-hot + age 归一化 + sex/city/edu/industry Embedding |
+| 数据源 | MongoDB（user_like）+ MySQL（画像） | 行为数据 → (user, liked_user, score) 三元组 |
+| 落地 | Qdrant REST upsert | point id = userId，与 Java 侧载荷完全对齐 |
 
 ### 前端
 
-| 端 | 技术 | 版本 |
+| 端 | 技术 | 说明 |
 |------|------|------|
-| 管理端 | Vue + Element Plus + ECharts + Pinia + Vue Router + Axios + Vite + TypeScript | 3.5.44 / 2.14.7 / 6.1.0 / 4.1.0 / 4.6.4 / 1.20.0 / 8.3.5 / 6.0.3 |
-| 用户端 | uni-app + Vue + uview-plus + Pinia + vue-i18n + dayjs + Sass | 3.0.0-alpha / 3.5.44 / 3.8.130 / 4.1.0 / 11.4.16 / 1.11.23 / 1.106.1 |
-| 用户端构建 | Vite（受 DCloud 版本钳制）+ TypeScript + vue-tsc | 5.2.8 / 5.9 / 3.3.13 |
+| 管理端 | Vue 3.5 + Element Plus 2.14 + ECharts + Pinia + Vite 8 + TypeScript | xfjy-admin |
+| 用户端 | uni-app + Vue 3.5 + uview-plus + Pinia + vue-i18n + Sass | xfjy-app（H5 / 小程序 / App） |
 
 ---
 
-## 三、目录结构说明
-
-```
-xfjy/
-├── pom.xml                     # 根 pom：SB 4.1.1 parent + 依赖版本集中管理
-├── xfjy-gateway/               # ★ 统一入口网关（8080，Spring Cloud Gateway）
-├── xfjy-sso/                   # ★ 认证服务（18080，验证码登录/注册，Sa-Token + Redis）
-├── xfjy-user-service/          # ★ 用户关系服务（18090，Mongo：好友/喜欢/访客，阶段二）
-├── xfjy-circle-service/        # ★ 圈子动态服务（18084，Mongo：动态/评论/时间线，阶段三）
-├── xfjy-video-service/         # ★ 小视频服务（18085，Mongo：视频/关注作者，阶段三）
-├── xfjy-match-service/         # ★ 探花匹配服务（18082，Mongo：推荐用户/地理位置/附近的人，阶段三）
-├── xfjy-message-service/       # ★ 消息/IM 服务（18086，环信集成：好友注册/消息下发，阶段三）
-├── xfjy-server/                # ★ 主业务聚合服务（18081，边缘入口，内部直连各拆分服务）
-│   └── 用户资料/推荐/圈子/视频/IM/设置 + 管理后台接口 + Sa-Token 认证
-├── xfjy-service/               # ★ 内部契约模块
-│   └── xfjy-service-interface/ #   内部 HTTP 接口定义（@HttpExchange，包名 com.xfjy.service.api）
-├── xfjy-elasticsearch/         # ★ 地理位置服务：ES 附近的人搜索
-├── xfjy-recommend/             # ★ 推荐评分消费者：RocketMQ 消息 → MongoDB 评分存储
-├── xfjy-spark/                 # ★ 离线推荐计算：MLlib 协同过滤（Spark 4.2，Java 编写）
-├── xfjy-admin/                 # ★ 管理后台前端（Vue3 + Element Plus + Vite 8）
-├── xfjy-app/                   # ★ 用户端前端（uni-app 多端：H5/小程序/App）
-├── docs/                       # 文档：需求文档、重构规划、数据库脚本 mytanhua.sql、logo
-└── .creative-design/           # Logo 生成的一次性脚本（check_alpha.py 等）
-```
-
-### 各目录职责与处置建议
-
-| 目录 | 职责 | 状态/建议 |
-|------|------|------|
-| `xfjy-server` | 主业务 HTTP 服务，含管理后台 Admin 系列接口 | ✅ 保持 |
-| `xfjy-service` | 仅 xfjy-service-interface：内部 HTTP 接口契约（@HttpExchange，包名 com.xfjy.service.api）；core 已退役 | ✅ 保持（包名已由 com.xfjy.dubbo.server 统一重命名为 com.xfjy.service） |
-| `xfjy-user-service` | 用户关系服务（Mongo：好友/喜欢/访客，阶段二拆出） | ✅ 保持 |
-| `xfjy-circle-service` | 圈子动态服务（Mongo：动态/评论/时间线，阶段三拆出） | ✅ 保持 |
-| `xfjy-video-service` | 小视频服务（Mongo：视频/关注作者，阶段三拆出） | ✅ 保持 |
-| `xfjy-match-service` | 探花匹配服务（推荐用户/地理位置/附近的人，阶段三拆出） | ✅ 保持 |
-| `xfjy-message-service` | 消息/IM 服务（环信集成：好友注册/消息下发，阶段三拆出） | ✅ 保持 |
-| `xfjy-elasticsearch` | ES Geo 查询（UserLocation） | ✅ 保持 |
-| `xfjy-recommend` | MQ 消费者，写推荐评分 | ✅ 保持 |
-| `xfjy-spark` | 离线批量推荐计算 | ✅ 保持；运行时需 Spark 冒烟验证 |
-| `xfjy-admin` | 管理后台前端 | ✅ 保持（技术栈已是最新） |
-| `xfjy-app` | 用户端多端应用 | ⚠️ 受 DCloud alpha 版本钳制，正式构建前关注正式版 |
-| `docs/` | 需求/规划文档、SQL | ✅ 保持 |
-| `.creative-design/` | Logo 生成的临时脚本 | 🗑️ **可删除**（产物已入库 docs/logo，脚本无复用价值） |
-| `.joycode/` | 旧编辑器的记忆/规则目录 | 🗑️ **可删除**（与本项目构建无关，或加入 .gitignore） |
-| `docs/心飞为你飞.jpg` | 旧版推广二维码 | 🗑️ **可删除**（README 已不再引用） |
-
----
-
-## 四、架构总览
+## 三、系统架构
 
 ```mermaid
 flowchart TB
     subgraph 客户端层
-        A1[管理后台前端<br/>Vue3 + Element Plus<br/>xfjy-admin]
-        A2[用户端<br/>uni-app 多端<br/>xfjy-app]
+        A1[管理后台 xfjy-admin<br/>Vue3 + Element Plus]
+        A2[用户端 xfjy-app<br/>uni-app 多端]
     end
 
     subgraph 入口与认证
-        B[网关 Gateway · 8080<br/>路由/限流/跨域]
-        C[SSO 认证 · 18080<br/>验证码登录/注册<br/>Sa-Token + Redis]
+        B[网关 Gateway · 8090<br/>路由/限流/跨域]
+        C[SSO 认证 · 18080<br/>验证码登录 Sa-Token + Redis]
     end
 
     subgraph 主业务
-        D[主聚合服务 · 18081<br/>业务 + 管理后台接口<br/>xfjy-server]
+        D[主聚合服务 xfjy-server · 18081<br/>业务 + 管理后台 + 推荐评分]
     end
 
     subgraph 拆分服务
-        E1[用户关系 · 18090<br/>好友/喜欢/访客]
-        E2[圈子动态 · 18084<br/>动态/评论/时间线]
-        E3[小视频 · 18085<br/>视频/关注作者]
-        E4[探花匹配 · 18082<br/>推荐/附近的人]
-        E5[消息/IM · 18086<br/>环信集成]
+        E1[用户关系 · 18090]
+        E2[圈子动态 · 18084]
+        E3[小视频 · 18085]
+        E4[探花匹配 · 18082]
+        E5[消息/IM · 18086]
         E6[推荐评分消费者<br/>xfjy-recommend]
     end
 
-    subgraph 数据与离线计算
-        F1[(MySQL<br/>MyBatis-Plus)]
-        F2[(Redis<br/>缓存/会话)]
-        F3[(MongoDB<br/>动态/关系/评分)]
-        F4[(Elasticsearch<br/>Geo 附近的人)]
-        F5[(RocketMQ<br/>行为→评分)]
-        F6[Spark MLlib<br/>离线 ALS 推荐<br/>xfjy-spark]
+    subgraph 数据层
+        F1[(MySQL)]
+        F2[(Redis)]
+        F3[(MongoDB)]
+        F4[(Elasticsearch)]
+        F5[(RocketMQ)]
+        F7[(Qdrant 向量库)]
+        F8[(Neo4j 图库)]
     end
 
-    subgraph 外部服务
-        G1[环信 IM]
-        G2[阿里云 OSS]
-        G3[百度 AI]
+    subgraph AI 训练
+        G1[xfjy-spark<br/>Python 双塔训练]
     end
 
     A1 --> B
     A2 --> B
     B --> C
     B --> D
-    D -- @HttpExchange 内部直连 --> E1
+    D -- @HttpExchange --> E1
     D --> E2
     D --> E3
     D --> E4
     D --> E5
+    D --> F7
+    D --> F8
     E6 --> F3
-    F6 --> F3
     F5 --> E6
     D --> F5
+    G1 --> F7
     E1 --> F3
     E2 --> F3
     E3 --> F3
     E4 --> F4
-    E4 --> F3
     D --> F1
     D --> F2
-    E5 --> G1
-    D --> G2
-    D --> G3
 ```
+
+### 服务端口
 
 | 服务 | 端口 | 职责 |
 |------|------|------|
-| xfjy-gateway | 8080 | 统一入口网关（Spring Cloud Gateway，路由/限流/跨域） |
-| xfjy-sso | 18080 | 单点登录（手机号+验证码，Sa-Token + Redis 会话，已入库） |
-| xfjy-server | 18081 | 主业务 + 管理后台 |
-| xfjy-user-service | 18090 | 用户关系服务（Mongo：好友/喜欢/访客，阶段二拆出） |
-| xfjy-circle-service | 18084 | 圈子动态服务（Mongo：动态/评论/时间线，阶段三拆出） |
-| xfjy-video-service | 18085 | 小视频服务（Mongo：视频/关注作者，阶段三拆出） |
-| xfjy-match-service | 18082 | 探花匹配服务（推荐用户/地理位置/附近的人，阶段三拆出） |
-| xfjy-message-service | 18086 | 消息/IM 服务（环信集成：好友注册/消息下发，阶段三拆出） |
-| xfjy-elasticsearch | — | 附近的人 |
-| xfjy-recommend | — | MQ 评分消费者 |
-| xfjy-spark | — | 离线推荐（定时任务） |
+| xfjy-gateway | 8090 | 统一入口网关（路由/限流/跨域） |
+| xfjy-sso | 18080 | 单点登录（手机号+验证码，Sa-Token + Redis） |
+| xfjy-server | 18081 | 主业务聚合 + 管理后台 |
+| xfjy-match-service | 18082 | 探花匹配（推荐用户/地理位置） |
+| xfjy-circle-service | 18084 | 圈子动态 |
+| xfjy-video-service | 18085 | 小视频 |
+| xfjy-message-service | 18086 | 消息/IM（环信集成） |
+| xfjy-user-service | 18090 | 用户关系（好友/喜欢/访客） |
+| xfjy-recommend | — | RocketMQ 评分消费者 |
+| xfjy-elasticsearch | — | ES Geo 附近的人 |
+| xfjy-pay-service | 18089 | 支付/VIP 权益 |
 
-**数据链路**：用户行为 → xfjy-server → RocketMQ → xfjy-recommend → MongoDB 评分表 → Spark 定时 ALS 计算 → 推荐列表 → Redis 缓存 → 接口消费。
+**数据链路**：用户行为 → xfjy-server → RocketMQ → xfjy-recommend → MongoDB 评分 → 推荐接口混合评分 → 前端消费。
 
-**网关路由**：仅做边缘路由（sso + xfjy-server）。user/circle/video/match/message 等拆分服务由 xfjy-server 经 @HttpExchange 内部直连，不经网关。
+**网关路由**：仅做边缘路由（sso + xfjy-server）。拆分服务由 xfjy-server 经 @HttpExchange 内部直连，不经网关。
+
+---
+
+## 四、项目结构
+
+```
+xfjy/
+├── pom.xml                     # 根 pom：SB 4.1.1 parent + 依赖版本集中管理
+├── xfjy-gateway/               # 统一入口网关（8090，Spring Cloud Gateway）
+├── xfjy-sso/                   # 认证服务（18080，验证码登录，Sa-Token + Redis）
+├── xfjy-server/                # 主业务聚合服务（18081，边缘入口 + 管理后台）
+├── xfjy-user-service/          # 用户关系服务（18090，Mongo：好友/喜欢/访客）
+├── xfjy-match-service/         # 探花匹配服务（18082，推荐用户/地理位置）
+├── xfjy-circle-service/        # 圈子动态服务（18084，动态/评论/时间线）
+├── xfjy-video-service/         # 小视频服务（18085，视频/关注作者）
+├── xfjy-message-service/       # 消息/IM 服务（18086，环信集成）
+├── xfjy-pay-service/           # 支付/VIP 权益服务（18089）
+├── xfjy-recommend/             # 推荐评分消费者（RocketMQ → MongoDB）
+├── xfjy-elasticsearch/         # ES Geo 地理位置：附近的人
+├── xfjy-service/
+│   └── xfjy-service-interface/ # 内部 HTTP 接口契约（@HttpExchange）
+├── xfjy-spark/                 # Python 双塔训练工程（PyTorch + Qdrant 导出）
+├── xfjy-admin/                 # 管理后台前端（Vue3 + Element Plus + Vite 8）
+├── xfjy-app/                   # 用户端前端（uni-app：H5/小程序/App）
+├── docs/                       # 需求文档、数据库脚本、logo
+└── scripts/                    # 部署/验证脚本（不入库）
+```
 
 ---
 
 ## 五、快速开始
 
+### 环境要求
+
+| 依赖 | 版本 | 说明 |
+|------|------|------|
+| JDK | 25 | 后端编译运行 |
+| Maven | 3.9+ | 后端构建 |
+| Node.js | 18+ | 前端构建 |
+| Python | 3.11+ | 双塔训练（可选） |
+| MySQL | 8.0 | 关系数据 |
+| Redis | 7.x | 缓存/会话 |
+| MongoDB | 8.0 | 动态/关系/评分 |
+| Elasticsearch | 8.x | 地理搜索 |
+| RocketMQ | 5.x | 行为消息 |
+| Nacos | 3.x | 服务注册/配置 |
+
+> Qdrant / Neo4j 为可选中间件，未部署时推荐引擎自动降级，不阻断主链路。
+
+### 后端启动
+
 ```bash
-# 后端（JDK 25 + Maven 3.9+）
+# 1. 初始化数据库
+mysql -u root -p < docs/mytanhua.sql
+mysql -u root -p xfjy < scripts/init-sensitive-words.sql
+mysql -u root -p xfjy < scripts/init-pay-tables.sql
+mysql -u root -p xfjy < scripts/init-value-added-services.sql
+
+# 2. 编译
 mvn clean compile
 
-# 管理后台前端
+# 3. 启动（按顺序）
+# Nacos → MySQL → Redis → MongoDB → ES → RocketMQ
+# 然后：sso → server → gateway → 各拆分服务
+```
+
+### 前端启动
+
+```bash
+# 管理后台
 cd xfjy-admin && npm install && npm run dev
 
-# 用户端（H5）
+# 用户端 H5
 cd xfjy-app && npm install && npm run dev:h5
 ```
 
-依赖的中间件：MySQL、Redis、MongoDB、Elasticsearch、RocketMQ；外部服务：环信 IM、阿里云 OSS、百度 AI、SSO（18080）。
+### 双塔训练（可选）
+
+```bash
+cd xfjy-spark
+pip install -r requirements.txt
+
+# 模拟数据验证管线（无需中间件）
+python train/train.py --mock --epochs 10
+
+# 导出 embedding 到 Qdrant（Qdrant 部署后）
+python train/export_embedding.py
+```
 
 ---
 
-## 六、文档
+## 六、环境变量配置
+
+所有敏感配置通过环境变量注入，模板见 [.env.example](.env.example)。
+
+### 基础中间件
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| NACOS_SERVER_ADDR | Nacos 地址 | 127.0.0.1:8848 |
+| NACOS_USERNAME | Nacos 用户名 | nacos |
+| NACOS_PASSWORD | Nacos 密码 | （空） |
+| MYSQL_URL | MySQL 连接串 | 127.0.0.1:3306/xfjy |
+| MYSQL_PASSWORD | MySQL 密码 | （空） |
+| REDIS_HOST | Redis 地址 | 127.0.0.1 |
+| REDIS_PASSWORD | Redis 密码 | （空） |
+| MONGO_URI | MongoDB 连接串 | 127.0.0.1:27017/xfjy |
+
+### 第三方服务
+
+| 变量 | 说明 |
+|------|------|
+| SMS_ACCESS_KEY_ID / SECRET | 阿里云短信 |
+| OSS_ACCESS_KEY_ID / SECRET / BUCKET / ENDPOINT | 阿里云 OSS |
+| BAIDU_FACE_API_KEY / SECRET_KEY | 百度 AI 人脸 |
+| EASEMOB_CLIENT_ID / SECRET | 环信 IM |
+| NEO4J_PASSWORD | Neo4j 密码 |
+
+> 未配置的第三方服务走占位/模拟模式，开发环境可用。
+
+---
+
+## 七、文档
 
 - 📄 [需求文档](docs/需求文档.md)
-- 📄 [项目重构规划](docs/项目重构规划.md)
-- 📄 [升级任务计划](docs/升级任务计划.md)
 - 🗄️ [数据库脚本](docs/mytanhua.sql)
+- 🤖 [双塔训练工程](xfjy-spark/README.md)
+
+---
+
+## 八、贡献指南
+
+1. Fork 本仓库
+2. 创建特性分支：`git checkout -b feat/your-feature`
+3. 提交改动：`git commit -m "feat: 简述"`
+4. 推送分支：`git push origin feat/your-feature`
+5. 提交 Pull Request
+
+### 开发规范
+
+- commit message 格式：`type: 简述`（feat / fix / refactor / docs / test / chore / perf）
+- 密钥/凭证禁止入库，统一环境变量外置（`.env.example` 为模板）
+- 改动 `xfjy-service-interface` 后须 `mvn -am` 连带构建
+
+---
+
+## 九、License
+
+[MIT](LICENSE)
+
+---
+
+<div align="center">
+<sub>Built with ❤️ by itxinfei</sub>
+</div>

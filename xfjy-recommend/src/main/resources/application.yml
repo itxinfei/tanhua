@@ -7,17 +7,17 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: ${NACOS_SERVER_ADDR:192.168.20.130:8848}
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
         username: ${NACOS_USERNAME:nacos}
-        password: ${NACOS_PASSWORD:123456}
+        password: ${NACOS_PASSWORD:}
         namespace: ${NACOS_NAMESPACE:}
   mongodb:
-    uri: mongodb://192.168.20.130:27017/xfjy
+    uri: mongodb://127.0.0.1:27017/xfjy
   data:
     redis:
-      host: 192.168.20.130
+      host: 127.0.0.1
       port: 6379
-      password: 123456
+      password: ${REDIS_PASSWORD:}
       database: 0
       timeout: 10s
       lettuce:
@@ -28,6 +28,6 @@ spring:
 
 # RocketMQ（与 circle/video 生产端同集群，消费 xfjy-quanzi / xfjy-video topic）
 rocketmq:
-  name-server: 192.168.20.130:9876
+  name-server: 127.0.0.1:9876
   producer:
     group: xfjy-recommend

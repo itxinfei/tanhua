@@ -7,9 +7,9 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: ${NACOS_SERVER_ADDR:192.168.20.130:8848}
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
         username: ${NACOS_USERNAME:nacos}
-        password: ${NACOS_PASSWORD:123456}
+        password: ${NACOS_PASSWORD:}
         namespace: ${NACOS_NAMESPACE:}
   profiles:
     active: local
@@ -58,9 +58,24 @@ xfjy:
       w-als: 0.5         # ALS分数权重
       w-geo: 0.3         # 地理距离权重
       w-profile: 0.2     # 画像相似度权重
+      w-recip: 0.2       # T4 互惠匹配权重（cosine²双向相似度，Qdrant 无 embedding 时自动降级）
       geo-decay-km: 50   # 距离衰减常数(km)，距离=该值时geo分=0.5
     filter:
       opposite-sex: true # 异性过滤开关（已喜欢排除始终生效）
+    cold-start:
+      enabled: true       # T5 冷启动开关，false 时回退默认推荐用户
+      fallback-size: 20   # 冷启动召回数量
+  # Qdrant 向量检索（T3-1，中间件后期部署，不可用时自动降级空召回）
+  qdrant:
+    host: 127.0.0.1
+    port: 6333
+    collection: user_embedding
+    vector-size: 64
+  # Neo4j 图数据库（P2 二度好友推荐，中间件后期部署，不可用时自动降级空召回）
+  neo4j:
+    uri: http://127.0.0.1:7474
+    username: neo4j
+    password: ${NEO4J_PASSWORD:}
 
 # Sa-Token 认证鉴权（管理后台）
 sa-token:

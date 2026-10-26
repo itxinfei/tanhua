@@ -35,6 +35,7 @@ hs_err_pid*
 # 环境变量文件
 **/.env
 **/.env.*
+!**/.env.example
 
 # 密钥/证书文件
 **/*.pem
@@ -66,3 +67,25 @@ target/
 /admin-login.json
 # 本地测试素材目录（头像/视频，体积大，禁止入库）
 /test-assets/
+
+# ===== 开源项目：内部开发文档不公开 =====
+docs/剩余任务实施计划.md
+docs/项目体检报告.md
+docs/升级任务计划.md
+docs/推荐引擎重构需求文档.md
+docs/功能就绪矩阵.md
+docs/项目重构规划.md
+docs/心飞为你飞.jpg
+
+# ===== 训练产出（xfjy-spark）=====
+xfjy-spark/output/
+
+# ===== 根目录临时文件与操作日志 =====
+hist-*.txt
+port-check.txt
+verify.txt
+filter-branch*.log
+gc.log
+push.log
+stash-pop.log
+mvn-*.log

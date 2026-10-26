@@ -1,7 +1,7 @@
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: ${MYSQL_URL:jdbc:mysql://172.17.0.144:3306/xfjy?useUnicode=true&characterEncoding=utf8&autoReconnect=true&allowMultiQueries=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai}
+    url: ${MYSQL_URL:jdbc:mysql://127.0.0.1:3306/xfjy?useUnicode=true&characterEncoding=utf8&autoReconnect=true&allowMultiQueries=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai}
     username: ${MYSQL_USERNAME:root}
     password: ${MYSQL_PASSWORD:}
     hikari:
@@ -12,7 +12,7 @@ spring:
       max-lifetime: 1800000
   data:
     redis:
-      host: 172.17.0.144
+      host: 127.0.0.1
       port: 6379
       timeout: 10s
       lettuce:
@@ -23,6 +23,6 @@ spring:
 
 xfjy:
   sso:
-    url: http://172.17.0.144:18080
+    url: http://127.0.0.1:18080
     default:
       user: 2
