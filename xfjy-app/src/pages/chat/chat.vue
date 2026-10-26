@@ -71,15 +71,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from "vue";
+import { ref, nextTick, onUnmounted } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
+import { useUserStore } from "@/store/user";
+import { getHuanXinUser } from "@/api/chat";
+import { getUserProfile } from "@/api/mine";
+import {
+  loginEasemob,
+  onMessageReceived,
+  sendTextMessage,
+  getChatHistory,
+} from "@/utils/easemob";
 
 /** 默认头像路径 */
 const DEFAULT_AVATAR = "/static/logo/logo-icon-transparent.png";
 /** 时间分隔线最小间隔（分钟） */
 const TIME_GAP_MINUTES = 5;
-/** 模拟发送耗时（毫秒），接入环信后移除 */
-const SIMULATED_SEND_DELAY_MS = 800;
 
 /** 表情面板数据 */
 const EMOJI_LIST: string[] = [
@@ -113,8 +120,10 @@ interface Message {
 /** 底部面板类型 */
 type PanelType = "none" | "emoji" | "more";
 
+const userStore = useUserStore();
 const userId = ref("");
 const nickname = ref("");
+const peerAvatar = ref(DEFAULT_AVATAR);
 const myAvatar = ref(DEFAULT_AVATAR);
 const inputText = ref("");
 const scrollToId = ref("");
@@ -183,7 +192,7 @@ function chooseImage(): void {
 }
 
 /**
- * 追加消息并模拟发送状态流转（接入环信 SDK 后替换为真实回调）
+ * 追加消息并通过环信 SDK 发送（失败时标记状态保持 sending）
  * @param type 消息类型
  * @param content 消息内容
  */
@@ -199,9 +208,16 @@ async function pushMessage(type: Message["type"], content: string): Promise<void
   };
   messageList.value.push(msg);
   scrollToBottom();
-  // TODO: 环信 SDK 发送消息，成功回调中更新 status
-  await new Promise((r) => setTimeout(r, SIMULATED_SEND_DELAY_MS));
-  msg.status = "sent";
+  if (type !== "text") {
+    // 图片消息走 OSS 上传后发送链接，当前仅本地预览
+    msg.status = "sent";
+    return;
+  }
+  const ok = await sendTextMessage(userId.value, content);
+  msg.status = ok ? "sent" : "sending";
+  if (!ok) {
+    uni.showToast({ title: "发送失败，请稍后重试", icon: "none" });
+  }
 }
 
 /** 插入表情到输入框 */
@@ -242,19 +258,78 @@ function showTodoToast(feature: string): void {
   uni.showToast({ title: `${feature}功能开发中`, icon: "none" });
 }
 
-onLoad((options: any) => {
+/** 接收对方新消息回调（onUnmounted 注销） */
+let unregisterMessage: (() => void) | null = null;
+
+onLoad(async (options: any) => {
   userId.value = options?.userId || "";
   nickname.value = options?.nickname || "聊天";
   uni.setNavigationBarTitle({ title: nickname.value });
-  // TODO: 环信 SDK 初始化会话，拉取历史消息
-  // 开发期演示数据（接入环信后移除）
-  const now = Date.now();
-  messageList.value = [
-    { id: "demo-1", type: "text", content: "嗨，看到你的探花卡片啦～", isMine: false, avatar: DEFAULT_AVATAR, timestamp: now - 3600000, status: "read" },
-    { id: "demo-2", type: "text", content: "你好呀！很高兴认识你 😊", isMine: true, avatar: myAvatar.value, timestamp: now - 3500000, status: "read" },
-    { id: "demo-3", type: "text", content: "你平时喜欢做什么呢？", isMine: false, avatar: DEFAULT_AVATAR, timestamp: now - 600000, status: "read" },
-  ];
-  scrollToBottom();
+
+  // 当前用户头像
+  myAvatar.value = userStore.userInfo?.avatar || DEFAULT_AVATAR;
+
+  // 拉对方资料补头像
+  if (userId.value) {
+    getUserProfile(userId.value)
+      .then((profile) => {
+        if (profile.avatar) {
+          peerAvatar.value = profile.avatar;
+          // 同步更新已渲染的对方消息头像
+          messageList.value.forEach((m) => {
+            if (!m.isMine) m.avatar = profile.avatar;
+          });
+        }
+      })
+      .catch(() => {});
+  }
+
+  // 环信 SDK 登录 → 拉历史 → 注册消息接收
+  try {
+    const credential = await getHuanXinUser();
+    if (credential.username && credential.token) {
+      const ok = await loginEasemob(credential.username, credential.token);
+      if (ok) {
+        // 拉取历史消息填充列表
+        const history = await getChatHistory(userId.value);
+        const myId = credential.username;
+        messageList.value = history.map((msg, i) => ({
+          id: `hist-${i}-${msg.time}`,
+          type: "text" as const,
+          content: msg.content,
+          isMine: msg.from === myId,
+          avatar: msg.from === myId ? myAvatar.value : peerAvatar.value,
+          timestamp: msg.time,
+          status: "read" as MsgStatus,
+        }));
+        scrollToBottom();
+
+        // 注册消息到达回调：仅处理当前会话对方的消息
+        unregisterMessage = onMessageReceived((msg) => {
+          if (msg.from !== userId.value) return;
+          messageList.value.push({
+            id: `recv-${msg.time}`,
+            type: "text",
+            content: msg.content,
+            isMine: false,
+            avatar: peerAvatar.value,
+            timestamp: msg.time,
+            status: "read",
+          });
+          scrollToBottom();
+        });
+      }
+    }
+  } catch {
+    // 环信登录失败静默降级（可发但不达，列表为空）
+  }
+});
+
+onUnmounted(() => {
+  if (unregisterMessage) {
+    unregisterMessage();
+    unregisterMessage = null;
+  }
 });
 </script>
 

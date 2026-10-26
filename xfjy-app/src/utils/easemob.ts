@@ -166,6 +166,69 @@ export function onMessageReceived(handler: MessageHandler): () => void {
 }
 
 /**
+ * 发送文本消息（单聊）
+ *
+ * @param to 对方环信 ID（即对方业务用户 ID 字符串）
+ * @param content 文本内容
+ * @returns 发送是否成功
+ */
+export async function sendTextMessage(
+  to: string,
+  content: string
+): Promise<boolean> {
+  if (!isLoggedIn) {
+    return false;
+  }
+  try {
+    const connection = getClient();
+    const message = connection.createTextMessage({
+      conversationId: to,
+      conversationType: "singleChat",
+      content,
+    });
+    await connection.sendMessage(message);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 拉取单聊历史消息（从服务端，向上翻页）
+ *
+ * @param conversationId 对方环信 ID
+ * @param pageSize 每页条数，默认 20
+ * @returns 消息列表（按时间正序），登录失败或异常返回空数组
+ */
+export async function getChatHistory(
+  conversationId: string,
+  pageSize = 20
+): Promise<ReceivedMessage[]> {
+  if (!isLoggedIn) {
+    return [];
+  }
+  try {
+    const connection = getClient();
+    const page = await connection.getHistoryMessages({
+      conversationId,
+      conversationType: "singleChat",
+      pageSize,
+      searchDirection: "up",
+    });
+    return page.items
+      .map((msg) => ({
+        from: msg.from,
+        content: extractText(msg),
+        time: msg.timestamp,
+      }))
+      .filter((msg) => msg.content !== "")
+      .sort((a, b) => a.time - b.time);
+  } catch {
+    return [];
+  }
+}
+
+/**
  * 获取环信登录状态
  * @returns 是否已登录
  */
