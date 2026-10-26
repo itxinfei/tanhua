@@ -23,6 +23,7 @@ export interface MessageLike {
   avatar: string;
   nickname: string;
   createDate: string;
+  userId?: number;
 }
 
 /** 公告消息 */

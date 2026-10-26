@@ -1,17 +1,22 @@
 package com.xfjy.server.controller;
 
+import com.xfjy.server.pojo.User;
 import com.xfjy.server.service.UsersService;
+import com.xfjy.server.utils.UserThreadLocal;
 import com.xfjy.server.vo.CountsVo;
 import com.xfjy.server.vo.PageResult;
 import com.xfjy.server.vo.SettingsVo;
 import com.xfjy.server.vo.UserInfoVo;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -22,6 +27,12 @@ public class UsersController {
 
     @Autowired
     private UsersService usersService;
+
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
+    /** 实名认证状态 Redis key 前缀（value 存认证摘要，存在即已认证） */
+    private static final String VERIFY_KEY_PREFIX = "XFJY_VERIFY_";
 
     /**
      * 用户资料 - 读取
@@ -281,6 +292,70 @@ public class UsersController {
                     : ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         } catch (Exception e) {
             LOGGER.error("接口处理异常", e);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+
+    /**
+     * 提交实名认证（骨架：姓名+身份证格式校验 → 标记已认证）
+     *
+     * <p> TODO: 百度人脸 key 到位后，接入二要素核验（姓名+身份证实名一致性），
+     * 核验通过再标记。当前仅做格式校验，敏感信息不落库只存 MD5 摘要。</p>
+     *
+     * @param param realName-真实姓名, idCard-身份证号
+     * @return 200=认证成功；400=格式错误或已认证；500=服务异常
+     */
+    @PostMapping("verify")
+    public ResponseEntity<Void> submitVerify(@RequestBody Map<String, String> param) {
+        try {
+            User user = UserThreadLocal.get();
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+
+            // 已认证拒绝重复提交
+            if (Boolean.TRUE.equals(redisTemplate.hasKey(VERIFY_KEY_PREFIX + user.getId()))) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            }
+
+            String realName = param.get("realName");
+            String idCard = param.get("idCard");
+            // 格式校验：姓名2-20位中文，身份证18位（含校验位格式）
+            if (realName == null || !realName.matches("^[\\u4e00-\\u9fa5]{2,20}$")
+                    || idCard == null || !idCard.matches("^\\d{17}[\\dXx]$")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            }
+
+            // TODO: 接入百度人脸二要素核验（BAIDU_FACE_API_KEY/SECRET_KEY 环境变量外置）
+            // 核验通过后标记。当前骨架直接标记通过。
+
+            // 只存 MD5 摘要（姓名+身份证），不存明文敏感信息
+            String digest = DigestUtils.md5Hex(realName + "|" + idCard);
+            redisTemplate.opsForValue().set(VERIFY_KEY_PREFIX + user.getId(), digest);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            LOGGER.error("实名认证异常", e);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+
+    /**
+     * 查询实名认证状态
+     *
+     * @return {verified: true/false}
+     */
+    @GetMapping("verify/status")
+    public ResponseEntity<Map<String, Object>> queryVerifyStatus() {
+        try {
+            User user = UserThreadLocal.get();
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+            Map<String, Object> result = new HashMap<>();
+            result.put("verified", Boolean.TRUE.equals(redisTemplate.hasKey(VERIFY_KEY_PREFIX + user.getId())));
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            LOGGER.error("查询实名认证状态异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }

@@ -18,17 +18,18 @@
       </view>
     </view>
 
-    <!-- 权益对比 -->
+    <!-- 权益矩阵（后端 tb_value_added_service 驱动） -->
     <view class="benefits-card shadow-gold">
       <view class="benefit-head">
         <text class="head-name">权益</text>
-        <text class="head-free">普通用户</text>
-        <text class="head-vip">VIP</text>
+        <text class="head-vip">所需等级</text>
       </view>
-      <view class="benefit-row" v-for="b in benefits" :key="b.name">
-        <text class="benefit-name">{{ b.name }}</text>
-        <text class="free">{{ b.free }}</text>
-        <text class="vip">{{ b.vip }}</text>
+      <view class="benefit-row" v-for="b in benefits" :key="b.serviceCode">
+        <view class="benefit-info">
+          <text class="benefit-name">{{ b.name }}</text>
+          <text class="benefit-desc">{{ b.description }}</text>
+        </view>
+        <text class="vip">VIP{{ b.vipLevelRequired }}+</text>
       </view>
     </view>
 
@@ -57,8 +58,10 @@ import {
   createVipOrder,
   confirmVipPay,
   getVipStatus,
+  getVipBenefits,
   type VipPackage,
   type UserVip,
+  type ValueAddedService,
 } from "@/api/mine";
 
 /** 默认状态栏高度（px） */
@@ -74,15 +77,8 @@ const vipStatus = ref<UserVip | null>(null);
 /** 支付进行中标记（防重复提交） */
 const paying = ref(false);
 
-/** 权益对比数据 */
-const benefits = [
-  { name: "无限滑动", free: "50次/天", vip: "无限" },
-  { name: "超级喜欢", free: "—", vip: "5次/天" },
-  { name: "查看谁喜欢我", free: "—", vip: "全部可见" },
-  { name: "位置穿越", free: "—", vip: "任意城市" },
-  { name: "撤销左滑", free: "—", vip: "不限次" },
-  { name: "专属标识", free: "—", vip: "VIP角标" },
-];
+/** 权益矩阵（后端 tb_value_added_service 驱动，新增权益只改 DB 不改前端） */
+const benefits = ref<ValueAddedService[]>([]);
 
 /** 套餐展示模型：分转元 + 月均价 + 营销标签 */
 const plans = computed(() =>
@@ -125,9 +121,14 @@ const vipInfo = computed(() => {
 /** 拉取套餐列表与会员状态 */
 async function loadVipData(): Promise<void> {
   try {
-    const [pkgs, status] = await Promise.all([getVipPackages(), getVipStatus()]);
+    const [pkgs, status, benefitList] = await Promise.all([
+      getVipPackages(),
+      getVipStatus(),
+      getVipBenefits(),
+    ]);
     packages.value = pkgs || [];
     vipStatus.value = status;
+    benefits.value = benefitList || [];
     // 默认选年卡（level=3），无年卡则选最后一个
     const yearPkg = packages.value.find((p) => p.level === 3);
     selectedId.value = yearPkg?.id ?? packages.value[packages.value.length - 1]?.id ?? 0;
@@ -218,14 +219,14 @@ onLoad(() => {
 
 .benefit-head { display: flex; align-items: center; padding: 20rpx 0 12rpx; border-bottom: 1rpx solid rgba(255, 215, 0, 0.2);
   .head-name { flex: 1; font-size: 22rpx; color: rgba(255, 255, 255, 0.5); }
-  .head-free { width: 160rpx; text-align: center; font-size: 22rpx; color: rgba(255, 255, 255, 0.5); }
   .head-vip { width: 160rpx; text-align: center; font-size: 22rpx; color: #ffd700; font-weight: bold; }
 }
 
 .benefit-row { display: flex; align-items: center; padding: 18rpx 0; border-bottom: 1rpx solid rgba(255, 255, 255, 0.06);
   &:last-child { border-bottom: none; }
-  .benefit-name { flex: 1; font-size: 26rpx; color: #fff; }
-  .free { width: 160rpx; text-align: center; font-size: 24rpx; color: rgba(255, 255, 255, 0.35); }
+  .benefit-info { flex: 1; display: flex; flex-direction: column; gap: 4rpx; }
+  .benefit-name { font-size: 26rpx; color: #fff; }
+  .benefit-desc { font-size: 20rpx; color: rgba(255, 255, 255, 0.4); }
   .vip { width: 160rpx; text-align: center; font-size: 24rpx; color: #ffd700; font-weight: bold; }
 }
 

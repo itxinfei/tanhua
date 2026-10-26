@@ -72,6 +72,13 @@
         <text class="empty-desc">精彩内容即将上线</text>
       </view>
     </view>
+
+    <!-- 评论抽屉 -->
+    <video-comment-drawer
+      :visible="commentVisible"
+      :video-id="activeCommentVideoId"
+      @close="commentVisible = false"
+    />
   </view>
 </template>
 
@@ -86,6 +93,7 @@ import {
   unfocusVideoUser,
   type Video,
 } from "@/api/video";
+import VideoCommentDrawer from "@/components/video-comment-drawer.vue";
 
 /** 分页大小 */
 const PAGE_SIZE = 10;
@@ -94,6 +102,10 @@ const videoList = ref<Video[]>([]);
 const currentId = ref("");
 const page = ref(1);
 const loading = ref(false);
+
+/** 评论抽屉状态 */
+const commentVisible = ref(false);
+const activeCommentVideoId = ref("");
 
 /**
  * 滑动切换视频，接近底部时预加载下一页
@@ -149,9 +161,9 @@ async function handleFocus(video: Video) {
   }
 }
 
-function showComments(_video: Video) {
-  // TODO: 弹出半屏评论抽屉（后续接入 getVideoComments）
-  uni.showToast({ title: "评论功能开发中", icon: "none" });
+function showComments(video: Video) {
+  activeCommentVideoId.value = video.id;
+  commentVisible.value = true;
 }
 
 function handleShare() {

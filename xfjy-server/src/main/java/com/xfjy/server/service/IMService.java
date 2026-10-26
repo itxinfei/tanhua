@@ -181,6 +181,7 @@ public class IMService {
                     messageLike.setId(record.getId().toHexString());
                     messageLike.setAvatar(userInfo.getLogo());
                     messageLike.setNickname(userInfo.getNickName());
+                    messageLike.setUserId(record.getUserId());
                     messageLike.setCreateDate(LocalDateTime.ofInstant(Instant.ofEpochMilli(record.getCreated()), ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
 
                     messageLikeList.add(messageLike);

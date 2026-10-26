@@ -114,6 +114,18 @@
 			"style": {
 				"navigationBarTitleText": "黑名单"
 			}
+		},
+		{
+			"path": "pages/mine/change-phone",
+			"style": {
+				"navigationBarTitleText": "换绑手机"
+			}
+		},
+		{
+			"path": "pages/mine/verify",
+			"style": {
+				"navigationBarTitleText": "实名认证"
+			}
 		}
 	],
 	"globalStyle": {

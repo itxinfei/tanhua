@@ -27,7 +27,6 @@
       <view class="name-row">
         <text class="nickname">{{ user?.nickname || '—' }}</text>
         <view class="age-badge"><text>{{ user?.age || '—' }}</text></view>
-        <view v-if="user?.verified" class="verified"><text>✔ 已认证</text></view>
       </view>
 
       <!-- 缘分值 -->
@@ -41,21 +40,39 @@
 
       <view class="meta-grid">
         <view class="meta-item"><text class="label">城市</text><text class="value">{{ user?.city || '—' }}</text></view>
-        <view class="meta-item"><text class="label">身高</text><text class="value">{{ user?.height || '—' }}cm</text></view>
-        <view class="meta-item"><text class="label">学历</text><text class="value">{{ user?.education || '—' }}</text></view>
+        <view class="meta-item"><text class="label">学历</text><text class="value">{{ user?.edu || '—' }}</text></view>
         <view class="meta-item"><text class="label">行业</text><text class="value">{{ user?.industry || '—' }}</text></view>
       </view>
-      <view v-if="user?.signature" class="signature">
-        <text class="quote-mark">“</text>
-        <text>{{ user.signature }}</text>
+
+      <!-- 个人标签 -->
+      <view v-if="user?.tags && user.tags.length > 0" class="tags-section">
+        <text class="section-title">个人标签</text>
+        <view class="tags-wrap">
+          <view v-for="(tag, i) in user.tags" :key="i" class="tag"><text>{{ tag }}</text></view>
+        </view>
       </view>
 
       <!-- 陌生人问题 -->
-      <view class="question-section">
+      <view v-if="questions.length > 0" class="question-section">
         <text class="section-title">破冰问题</text>
         <view v-for="(q, i) in questions" :key="i" class="question-item">
           <view class="q-index"><text>{{ i + 1 }}</text></view>
           <text class="question">{{ q }}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- TA的动态 -->
+    <view v-if="movements.length > 0" class="movements-card shadow-card">
+      <text class="section-title">TA的动态</text>
+      <view v-for="m in movements" :key="m.id" class="movement-item" @click="goMovementDetail(m.id)">
+        <image v-if="m.medias && m.medias.length > 0" class="m-cover" :src="m.medias[0]" mode="aspectFill" lazy-load />
+        <view class="m-body">
+          <text class="m-text ellipsis-2">{{ m.textContent }}</text>
+          <view class="m-stats">
+            <text>♥ {{ m.loveLikeCount }}</text>
+            <text>💬 {{ m.commentCount }}</text>
+          </view>
         </view>
       </view>
     </view>
@@ -73,22 +90,25 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
-import { submitReport, REPORT_TARGET_TYPE } from "@/api/mine";
+import { submitReport, REPORT_TARGET_TYPE, checkBenefit, recordBenefitUsage } from "@/api/mine";
+import { getPersonalInfo, getStrangerQuestion, loveUser, unloveUser, type TodayBest } from "@/api/match";
+import { getUserMovements, type Movement } from "@/api/circle";
 
 /** 缘分值满分 */
 const FATE_SCORE_MAX = 100;
-/** 开发期演示缘分值（对接推荐分数接口后移除） */
-const DEMO_FATE_SCORE = 86;
 /** 默认状态栏高度（px） */
 const DEFAULT_STATUS_BAR_HEIGHT = 20;
 /** 举报原因选项 */
 const REPORT_REASONS = ["骚扰", "欺诈", "色情信息", "冒充他人"];
+/** 动态加载页大小 */
+const MOVEMENT_PAGE_SIZE = 10;
 
 const statusBarHeight = ref(DEFAULT_STATUS_BAR_HEIGHT);
 const userId = ref("");
-const user = ref<any>(null);
+const user = ref<TodayBest | null>(null);
 const photos = ref<string[]>([]);
 const questions = ref<string[]>([]);
+const movements = ref<Movement[]>([]);
 const currentPhotoIndex = ref(0);
 const fateScore = ref(0);
 
@@ -110,18 +130,84 @@ function previewPhoto(index: number): void {
   uni.previewImage({ urls: photos.value, current: photos.value[index] });
 }
 
-/** 喜欢 */
-async function handleLike(): Promise<void> {
-  // TODO: 对接 POST /xfjy/{id}/love
-  uni.showToast({ title: "已喜欢", icon: "success" });
-  setTimeout(goBack, 800);
+/** 加载用户资料 */
+async function loadUserInfo(): Promise<void> {
+  if (!userId.value) return;
+  try {
+    const info = await getPersonalInfo(userId.value);
+    user.value = info;
+    fateScore.value = info?.fateValue || 0;
+    // 照片轮播：头像 + 动态图片
+    const avatar = info?.avatar || "";
+    const mediaPhotos = movements.value
+      .flatMap((m) => m.medias || [])
+      .filter((url) => /\.(jpe?g|png|webp|gif)$/i.test(url));
+    photos.value = avatar ? [avatar, ...mediaPhotos] : mediaPhotos;
+  } catch {
+    // 请求失败由 request 层统一 toast
+  }
 }
 
-/** 超级喜欢（VIP 功能） */
+/** 加载破冰问题 */
+async function loadQuestion(): Promise<void> {
+  if (!userId.value) return;
+  try {
+    const q = await getStrangerQuestion(userId.value);
+    questions.value = q ? [q] : [];
+  } catch {
+    questions.value = [];
+  }
+}
+
+/** 加载TA的动态 */
+async function loadMovements(): Promise<void> {
+  if (!userId.value) return;
+  try {
+    const res = await getUserMovements(userId.value, { page: 1, pagesize: MOVEMENT_PAGE_SIZE });
+    movements.value = res.items || [];
+  } catch {
+    movements.value = [];
+  }
+}
+
+/** 喜欢 */
+async function handleLike(): Promise<void> {
+  if (!userId.value) return;
+  try {
+    const matched = await loveUser(userId.value);
+    uni.showToast({ title: matched ? "互相喜欢，已匹配！" : "已喜欢", icon: "success" });
+    setTimeout(goBack, 800);
+  } catch {
+    // 请求失败由 request 层统一 toast
+  }
+}
+
+/** 超级喜欢（VIP 权益：super_like，VIP1 每日 5 次） */
 async function handleSuperLike(): Promise<void> {
-  // TODO: 对接超级喜欢接口（需 VIP 校验）
-  uni.showToast({ title: "超级喜欢已送出 ★", icon: "none" });
-  setTimeout(goBack, 800);
+  if (!userId.value) return;
+  try {
+    const benefit = await checkBenefit("super_like");
+    if (!benefit.hasBenefit) {
+      uni.showToast({ title: "超级喜欢需开通VIP", icon: "none" });
+      setTimeout(() => uni.navigateTo({ url: "/pages/mine/vip" }), 600);
+      return;
+    }
+    if (benefit.remainingToday === 0) {
+      uni.showToast({ title: "今日超级喜欢次数已用完", icon: "none" });
+      return;
+    }
+    const ok = await recordBenefitUsage("super_like");
+    if (!ok) {
+      uni.showToast({ title: "今日超级喜欢次数已用完", icon: "none" });
+      return;
+    }
+    // 超级喜欢=加权喜欢，复用喜欢接口上报
+    const matched = await loveUser(userId.value);
+    uni.showToast({ title: matched ? "超级喜欢，已匹配！" : "已超级喜欢", icon: "success" });
+    setTimeout(goBack, 800);
+  } catch {
+    // 请求失败由 request 层统一 toast
+  }
 }
 
 /** 打招呼，跳转聊天页 */
@@ -132,8 +218,20 @@ function handleChat(): void {
 
 /** 不喜欢 */
 async function handleDislike(): Promise<void> {
-  // TODO: 对接 POST /xfjy/{id}/unlove
-  setTimeout(goBack, 300);
+  if (!userId.value) {
+    setTimeout(goBack, 300);
+    return;
+  }
+  try {
+    await unloveUser(userId.value);
+  } finally {
+    setTimeout(goBack, 300);
+  }
+}
+
+/** 跳转动态详情 */
+function goMovementDetail(id: string): void {
+  uni.navigateTo({ url: `/pages/circle/detail?id=${id}` });
 }
 
 /** 更多操作：举报入口 */
@@ -172,13 +270,13 @@ function chooseReportReason(): void {
   });
 }
 
-onLoad((options: any) => {
+onLoad(async (options: any) => {
   userId.value = options?.id || "";
   const sysInfo = uni.getSystemInfoSync();
   statusBarHeight.value = sysInfo.statusBarHeight || DEFAULT_STATUS_BAR_HEIGHT;
-  // TODO: 对接 GET /users/{id}/personalInfo 和 GET /users/{id}/strangerQuestions
-  // 开发期演示数据（接入接口后移除）
-  fateScore.value = DEMO_FATE_SCORE;
+  // 先加载动态（照片轮播需要动态图片），再加载资料
+  await loadMovements();
+  await Promise.all([loadUserInfo(), loadQuestion()]);
 });
 </script>
 
@@ -202,7 +300,6 @@ onLoad((options: any) => {
 .name-row { display: flex; align-items: center; gap: 16rpx;
   .nickname { font-size: 42rpx; font-weight: bold; color: #222; }
   .age-badge { background: linear-gradient(135deg, #ff5e8e, #ff8fab); color: #fff; font-size: 24rpx; padding: 4rpx 16rpx; border-radius: 16rpx; }
-  .verified { font-size: 20rpx; color: #ff5e8e; background: #fff0f5; padding: 4rpx 14rpx; border-radius: 16rpx; border: 1rpx solid #ffd6e4; }
 }
 
 /* 缘分值进度条 */
@@ -214,22 +311,38 @@ onLoad((options: any) => {
 }
 
 .meta-grid { display: flex; flex-wrap: wrap; gap: 20rpx; margin-top: 28rpx;
-  .meta-item { width: calc(50% - 10rpx); background: #fafafa; border-radius: 16rpx; padding: 16rpx 20rpx;
+  .meta-item { flex: 1; min-width: calc(33.33% - 14rpx); background: #fafafa; border-radius: 16rpx; padding: 16rpx 20rpx;
     .label { font-size: 22rpx; color: #bbb; display: block; }
     .value { font-size: 28rpx; color: #333; margin-top: 6rpx; display: block; font-weight: 500; }
   }
 }
 
-.signature { font-size: 26rpx; color: #666; line-height: 1.6; margin-top: 24rpx; padding: 20rpx; background: linear-gradient(135deg, #fff8fb, #fff); border-radius: 16rpx; border-left: 6rpx solid #ff5e8e;
-  .quote-mark { font-size: 40rpx; color: #ffd6e4; margin-right: 8rpx; vertical-align: -8rpx; }
+/* 个人标签 */
+.tags-section { margin-top: 28rpx;
+  .tags-wrap { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 16rpx; }
+  .tag { background: #fff0f5; color: #ff5e8e; font-size: 24rpx; padding: 8rpx 20rpx; border-radius: 20rpx; border: 1rpx solid #ffd6e4; }
 }
 
 .question-section { margin-top: 32rpx;
-  .section-title { font-size: 30rpx; font-weight: bold; display: block; margin-bottom: 20rpx; color: #222; }
   .question-item { display: flex; align-items: flex-start; gap: 16rpx; padding: 18rpx 0; border-bottom: 1rpx solid #f5f5f5;
     &:last-child { border-bottom: none; }
     .q-index { width: 36rpx; height: 36rpx; border-radius: 50%; background: linear-gradient(135deg, #ff5e8e, #ff8fab); color: #fff; font-size: 22rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2rpx; }
     .question { font-size: 26rpx; color: #555; line-height: 1.5; }
+  }
+}
+
+.section-title { font-size: 30rpx; font-weight: bold; display: block; margin-bottom: 12rpx; color: #222; }
+
+/* ===== TA的动态 ===== */
+.movements-card { margin: 24rpx 24rpx 0; background: #fff; border-radius: 32rpx; padding: 32rpx; }
+
+.movement-item { display: flex; gap: 20rpx; padding: 20rpx 0; border-bottom: 1rpx solid #f5f5f5;
+  &:last-child { border-bottom: none; }
+  .m-cover { width: 160rpx; height: 160rpx; border-radius: 16rpx; background: #f0f0f0; flex-shrink: 0; }
+  .m-body { flex: 1; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
+  .m-text { font-size: 26rpx; color: #333; line-height: 1.5; }
+  .m-stats { display: flex; gap: 24rpx;
+    text { font-size: 22rpx; color: #999; }
   }
 }
 

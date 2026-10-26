@@ -1,0 +1,8 @@
+# 双塔推荐模型训练依赖（Python 3.11+）
+# 纯 REST 调 Qdrant，无需 qdrant-client
+torch>=2.0
+pandas>=2.0
+numpy>=1.24
+pymongo>=4.3
+scikit-learn>=1.2
+requests>=2.28

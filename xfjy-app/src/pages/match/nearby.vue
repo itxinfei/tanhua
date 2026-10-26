@@ -20,10 +20,9 @@
       </view>
 
       <!-- 用户卡片 -->
-      <view v-for="user in userList" :key="user.id" class="user-item shadow-card btn-feedback" @click="goDetail(user.id)">
+      <view v-for="user in userList" :key="user.userId" class="user-item shadow-card btn-feedback" @click="goDetail(user.userId)">
         <view class="avatar-wrap">
           <image class="avatar" :src="user.avatar || '/static/logo/logo-icon-transparent.png'" mode="aspectFill" lazy-load />
-          <view v-if="user.online" class="online-dot" />
         </view>
         <view class="info">
           <view class="name-row">
@@ -31,87 +30,69 @@
             <view class="age-badge"><text>{{ user.age || '—' }}</text></view>
           </view>
           <view class="distance-tag">
-            <text>📍 {{ formatDistance(user.distance) }}</text>
+            <text>📍 {{ user.city || '同范围' }}</text>
           </view>
         </view>
-        <view class="like-btn btn-feedback" @click.stop="handleQuickLike(user.id)">
+        <view class="like-btn btn-feedback" @click.stop="handleQuickLike(user.userId)">
           <text>♥</text>
         </view>
       </view>
 
       <!-- 加载中 -->
       <view v-if="loading" class="loading-tip"><text>加载中...</text></view>
-      <!-- 没有更多 -->
-      <view v-if="!hasMore && userList.length > 0" class="loading-tip"><text>没有更多了</text></view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import { onShow, onPullDownRefresh, onReachBottom } from "@dcloudio/uni-app";
-import { getNearby } from "@/api/match";
+import { ref, watch } from "vue";
+import { onShow, onPullDownRefresh } from "@dcloudio/uni-app";
+import { getNearby, loveUser, type NearUser } from "@/api/match";
 
 /** 距离筛选选项（km，0 表示全部） */
 const DISTANCE_OPTIONS = [0, 1, 3, 5, 10];
-/** 默认分页大小 */
-const DEFAULT_PAGE_SIZE = 10;
+/** "全部"距离对应的搜索半径（米），取 50km 覆盖全城 */
+const ALL_DISTANCE_METER = 50000;
 
 const distances = DISTANCE_OPTIONS;
 const distance = ref(0);
 const gender = ref("全部");
-const userList = ref<any[]>([]);
+const userList = ref<NearUser[]>([]);
 const loading = ref(false);
-const currentPage = ref(1);
-const hasMore = ref(true);
-
-/**
- * 格式化距离显示：小于 1km 显示米，否则保留 1 位小数
- * @param km 距离（千米）
- */
-function formatDistance(km: number): string {
-  if (km < 1) return `${Math.round(km * 1000)}m`;
-  return `${km.toFixed(1)}km`;
-}
 
 /** 跳转用户详情 */
-function goDetail(id: string): void {
+function goDetail(id: number): void {
   uni.navigateTo({ url: `/pages/match/detail?id=${id}` });
 }
 
 /** 快速喜欢 */
-function handleQuickLike(id: string): void {
-  // TODO: 对接 POST /xfjy/{id}/love
-  uni.showToast({ title: "已喜欢", icon: "success" });
+async function handleQuickLike(id: number): Promise<void> {
+  try {
+    const matched = await loveUser(id);
+    uni.showToast({ title: matched ? "互相喜欢，匹配成功！" : "已喜欢", icon: "success" });
+  } catch {
+    // 请求失败由 request 层统一 toast
+  }
 }
 
-/** 加载附近用户（首页） */
+/** 加载附近用户 */
 async function loadNearby(): Promise<void> {
   if (loading.value) return;
   loading.value = true;
   try {
-    // TODO: 对接 GET /xfjy/search?gender=&distance=&page=1&pagesize=10
-    currentPage.value = 1;
-    hasMore.value = false; // 接口未接入前标记无更多数据
-    userList.value = [];
+    const genderParam = gender.value === "女" ? "woman" : undefined;
+    const distanceMeter = distance.value === 0 ? ALL_DISTANCE_METER : distance.value * 1000;
+    const list = await getNearby(genderParam, distanceMeter);
+    userList.value = list || [];
+  } catch {
+    // 请求失败由 request 层统一 toast
   } finally {
     loading.value = false;
   }
 }
 
-/** 上拉加载更多附近用户 */
-async function loadMoreNearby(): Promise<void> {
-  if (loading.value || !hasMore.value) return;
-  loading.value = true;
-  try {
-    // TODO: 对接 GET /xfjy/search 分页参数 page=currentPage+1&pagesize=10
-    const nextPage = currentPage.value + 1;
-    currentPage.value = nextPage;
-    hasMore.value = false;
-  } finally {
-    loading.value = false;
-  }
-}
+/** 筛选条件变化时重新加载 */
+watch([distance, gender], () => loadNearby());
 
 onShow(() => loadNearby());
 
@@ -122,11 +103,6 @@ onPullDownRefresh(async () => {
   } finally {
     uni.stopPullDownRefresh();
   }
-});
-
-/** 上拉加载更多 */
-onReachBottom(() => {
-  loadMoreNearby();
 });
 </script>
 

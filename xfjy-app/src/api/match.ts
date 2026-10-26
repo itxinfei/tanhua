@@ -19,6 +19,12 @@ export interface TodayBest {
   tags: string[];
   /** 缘分值 */
   fateValue: number;
+  /** 城市 */
+  city?: string;
+  /** 学历 */
+  edu?: string;
+  /** 行业 */
+  industry?: string;
 }
 
 /**
@@ -32,6 +38,10 @@ export interface NearUser {
   avatar: string;
   /** 昵称 */
   nickname: string;
+  /** 年龄 */
+  age?: number;
+  /** 居住城市 */
+  city?: string;
 }
 
 /**

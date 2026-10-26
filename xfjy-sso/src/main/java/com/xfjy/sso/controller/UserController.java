@@ -1,5 +1,6 @@
 package com.xfjy.sso.controller;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.xfjy.sso.pojo.User;
 import com.xfjy.sso.service.LoginLimitService;
 import com.xfjy.sso.service.UserService;
@@ -9,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -82,6 +84,46 @@ public class UserController {
             return ResponseEntity.ok().build();
         }
         return ResponseEntity.ok(user);
+    }
+
+    /**
+     * 换绑手机号（需验证新手机号的短信验证码）
+     *
+     * <p>风控：同 IP 60s 内最多 10 次（429）</p>
+     * <p>状态码：200 成功 / 400 格式错 / 401 token 失效 / 403 验证码错误 / 409 手机号已被占用</p>
+     * <p>注意：验证码错误用 403 而非 401，避免前端 401 拦截器强制跳登录页</p>
+     */
+    @PutMapping("/user/phone")
+    public ResponseEntity<Void> changePhone(@RequestBody Map<String, String> body, HttpServletRequest request) {
+        if (!this.loginLimitService.allowByIp(resolveClientIp(request))) {
+            return ResponseEntity.status(429).build();
+        }
+
+        String newPhone = body.get("phone");
+        String code = body.get("code");
+        if (newPhone == null || !newPhone.matches("^1[3-9]\\d{9}$")
+                || code == null || !code.matches("^\\d{6}$")) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        // 解析登录态（Sa-Token 未配 token-prefix，手动剥 Bearer，与 server 侧 TokenInterceptor 一致）
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).build();
+        }
+        Object loginId = StpUtil.getLoginIdByToken(authHeader.substring(7));
+        if (loginId == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        int result = this.userService.changePhone(Long.valueOf(loginId.toString()), newPhone, code);
+        if (result == 1) {
+            return ResponseEntity.status(403).build();
+        }
+        if (result == 2) {
+            return ResponseEntity.status(409).build();
+        }
+        return ResponseEntity.ok().build();
     }
 
     /**

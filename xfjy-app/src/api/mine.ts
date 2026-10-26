@@ -205,6 +205,27 @@ export function deleteAccount(code: string): Promise<void> {
   return post<void>("/users/logoff", { code });
 }
 
+/** 实名认证状态 */
+export interface VerifyStatus {
+  verified: boolean;
+}
+
+/**
+ * 提交实名认证（骨架：姓名+身份证格式校验，百度人脸核验 key 到位后接入二要素）
+ * 对接后端: POST /users/verify
+ */
+export function submitVerify(realName: string, idCard: string): Promise<void> {
+  return post<void>("/users/verify", { realName, idCard });
+}
+
+/**
+ * 查询实名认证状态
+ * 对接后端: GET /users/verify/status
+ */
+export function getVerifyStatus(): Promise<VerifyStatus> {
+  return get<VerifyStatus>("/users/verify/status");
+}
+
 /** VIP 套餐 */
 export interface VipPackage {
   id: number;
@@ -274,4 +295,66 @@ export function confirmVipPay(orderNo: string): Promise<void> {
  */
 export function getVipStatus(): Promise<UserVip> {
   return get<UserVip>("/users/vip/status");
+}
+
+// ==================== P2 增值服务权益矩阵 ====================
+
+/** 增值服务权益定义（与后端 ValueAddedService 对齐） */
+export interface ValueAddedService {
+  id: number;
+  /** 权益码 */
+  serviceCode: string;
+  name: string;
+  /** 所需 VIP 等级 */
+  vipLevelRequired: number;
+  /** 每日次数限制（null=不限） */
+  dailyLimit: number | null;
+  description: string;
+}
+
+/** 权益校验结果（与后端 BenefitCheckVo 对齐） */
+export interface BenefitCheck {
+  serviceCode: string;
+  name: string;
+  vipLevelRequired: number;
+  /** 当前用户 VIP 等级（非会员为 0） */
+  userVipLevel: number;
+  /** 是否拥有权益 */
+  hasBenefit: boolean;
+  /** 每日上限（null=不限） */
+  dailyLimit: number | null;
+  /** 今日已用（null=不限次权益） */
+  usedToday: number | null;
+  /** 今日剩余（null=不限；0=已用尽） */
+  remainingToday: number | null;
+}
+
+/**
+ * 查询增值服务权益矩阵
+ * 对接后端: GET /users/vip/benefits
+ */
+export function getVipBenefits(): Promise<ValueAddedService[]> {
+  return get<ValueAddedService[]>("/users/vip/benefits");
+}
+
+/**
+ * 权益校验：当前用户是否拥有指定权益
+ * 对接后端: GET /users/vip/benefit/check?serviceCode=xxx
+ */
+export function checkBenefit(serviceCode: string): Promise<BenefitCheck> {
+  return get<BenefitCheck>(`/users/vip/benefit/check?serviceCode=${serviceCode}`);
+}
+
+/**
+ * 记录权益使用（每日限次权益扣减次数）
+ * 对接后端: POST /users/vip/benefit/usage
+ * @returns true=扣减成功/不限次；false=今日已用尽
+ */
+export async function recordBenefitUsage(serviceCode: string): Promise<boolean> {
+  try {
+    await post<void>("/users/vip/benefit/usage", { serviceCode });
+    return true;
+  } catch (e) {
+    return false;
+  }
 }

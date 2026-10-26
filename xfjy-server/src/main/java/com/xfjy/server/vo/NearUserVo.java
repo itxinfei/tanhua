@@ -12,5 +12,7 @@ public class NearUserVo {
     private Long userId;
     private String avatar;
     private String nickname;
+    private Integer age;
+    private String city;
 
 }

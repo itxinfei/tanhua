@@ -19,5 +19,8 @@ public class TodayBest {
     private Integer age;
     private String[] tags;
     private Long fateValue; //缘分值
+    private String city; //城市
+    private String edu; //学历
+    private String industry; //行业
 
 }

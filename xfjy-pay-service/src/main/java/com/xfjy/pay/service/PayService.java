@@ -3,10 +3,13 @@ package com.xfjy.pay.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xfjy.pay.mapper.PayOrderMapper;
 import com.xfjy.pay.mapper.UserVipMapper;
+import com.xfjy.pay.mapper.ValueAddedServiceMapper;
 import com.xfjy.pay.mapper.VipPackageMapper;
 import com.xfjy.service.pojo.PayOrder;
 import com.xfjy.service.pojo.UserVip;
+import com.xfjy.service.pojo.ValueAddedService;
 import com.xfjy.service.pojo.VipPackage;
+import com.xfjy.service.vo.BenefitCheckVo;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +50,13 @@ public class PayService {
     private UserVipMapper userVipMapper;
 
     @Autowired
+    private ValueAddedServiceMapper valueAddedServiceMapper;
+
+    @Autowired
     private StringRedisTemplate redisTemplate;
+
+    /** 权益每日已用次数 Redis key 前缀：XFJY_BENEFIT_USED_{userId}_{code}_{yyyyMMdd} */
+    private static final String BENEFIT_USED_PREFIX = "XFJY_BENEFIT_USED_";
 
     /**
      * 查询上架的 VIP 套餐列表（按 sort 升序）
@@ -246,5 +255,104 @@ public class PayService {
             seq = System.currentTimeMillis() % 1000000L;
         }
         return "VIP" + day + String.format("%06d", seq);
+    }
+
+    // ==================== P2 增值服务权益矩阵 ====================
+
+    /**
+     * 查询上架的权益列表（按 sort 升序）
+     */
+    public List<ValueAddedService> queryBenefits() {
+        LambdaQueryWrapper<ValueAddedService> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ValueAddedService::getStatus, 1)
+                .orderByAsc(ValueAddedService::getSort);
+        List<ValueAddedService> list = this.valueAddedServiceMapper.selectList(wrapper);
+        return list != null ? list : Collections.emptyList();
+    }
+
+    /**
+     * 权益校验：VIP 等级是否达标 + 每日限次权益的剩余次数
+     *
+     * @param userId      用户 id
+     * @param serviceCode 权益码
+     * @return 校验结果；权益码不存在返回 null
+     */
+    public BenefitCheckVo checkBenefit(Long userId, String serviceCode) {
+        if (userId == null || StringUtils.isBlank(serviceCode)) {
+            return null;
+        }
+        ValueAddedService service = queryBenefitByCode(serviceCode);
+        if (service == null) {
+            return null;
+        }
+
+        UserVip vip = this.queryVipStatus(userId);
+        int userLevel = vip.getLevel() != null ? vip.getLevel() : 0;
+        boolean hasBenefit = userLevel >= service.getVipLevelRequired();
+
+        BenefitCheckVo vo = new BenefitCheckVo();
+        vo.setServiceCode(serviceCode);
+        vo.setName(service.getName());
+        vo.setVipLevelRequired(service.getVipLevelRequired());
+        vo.setUserVipLevel(userLevel);
+        vo.setHasBenefit(hasBenefit);
+
+        // 有日限的权益补充今日已用/剩余次数
+        if (service.getDailyLimit() != null) {
+            int usedToday = getUsedToday(userId, serviceCode);
+            vo.setDailyLimit(service.getDailyLimit());
+            vo.setUsedToday(usedToday);
+            vo.setRemainingToday(Math.max(0, service.getDailyLimit() - usedToday));
+        }
+        return vo;
+    }
+
+    /**
+     * 记录权益使用（每日限次权益扣减次数）
+     *
+     * @return true=扣减成功或权益不限次；false=今日次数已用尽或权益不存在
+     */
+    public boolean recordBenefitUsage(Long userId, String serviceCode) {
+        if (userId == null || StringUtils.isBlank(serviceCode)) {
+            return false;
+        }
+        ValueAddedService service = queryBenefitByCode(serviceCode);
+        if (service == null) {
+            return false;
+        }
+        if (service.getDailyLimit() == null) {
+            return true; // 不限次权益
+        }
+        String key = benefitUsedKey(userId, serviceCode);
+        int usedToday = getUsedToday(userId, serviceCode);
+        if (usedToday >= service.getDailyLimit()) {
+            return false; // 今日已用尽
+        }
+        Long used = this.redisTemplate.opsForValue().increment(key);
+        if (used != null && used == 1L) {
+            // 首次使用，TTL 设到次日零点（避免手动清理）
+            java.util.Date nextMidnight = java.util.Date.from(
+                    LocalDate.now(ZoneId.of("Asia/Shanghai")).plusDays(1)
+                            .atStartOfDay(ZoneId.of("Asia/Shanghai")).toInstant());
+            this.redisTemplate.expireAt(key, nextMidnight);
+        }
+        return true;
+    }
+
+    private ValueAddedService queryBenefitByCode(String serviceCode) {
+        LambdaQueryWrapper<ValueAddedService> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ValueAddedService::getServiceCode, serviceCode)
+                .eq(ValueAddedService::getStatus, 1);
+        return this.valueAddedServiceMapper.selectOne(wrapper);
+    }
+
+    private int getUsedToday(Long userId, String serviceCode) {
+        String used = this.redisTemplate.opsForValue().get(benefitUsedKey(userId, serviceCode));
+        return used != null ? Integer.parseInt(used) : 0;
+    }
+
+    private String benefitUsedKey(Long userId, String serviceCode) {
+        String day = LocalDate.now(ZoneId.of("Asia/Shanghai")).format(DateTimeFormatter.BASIC_ISO_DATE);
+        return BENEFIT_USED_PREFIX + userId + "_" + serviceCode + "_" + day;
     }
 }

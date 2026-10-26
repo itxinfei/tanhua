@@ -62,13 +62,14 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { onShow } from "@dcloudio/uni-app";
 import { useUserStore } from "@/store/user";
-import { getUserSettings, deleteAccount } from "@/api/mine";
+import { getUserSettings, deleteAccount, getVerifyStatus } from "@/api/mine";
 import { sendSmsCode } from "@/api/auth";
 
 const userStore = useUserStore();
-const phoneMasked = computed(() => userStore.userInfo ? '138****8888' : '');
-const isVerified = computed(() => userStore.userInfo?.verified || false);
+const phoneMasked = ref('');
+const isVerified = ref(false);
 const showDistance = ref(true);
 const cacheSize = ref('0MB');
 
@@ -85,9 +86,35 @@ function toggleNotification(key: string, e: any) {
   // TODO: 对接 PUT /users/settings/notifications
 }
 
-function goPhone() { uni.showToast({ title: '换绑手机开发中', icon: 'none' }); }
-function goVerify() { uni.showToast({ title: '实名认证开发中', icon: 'none' }); }
+function goPhone() { uni.navigateTo({ url: "/pages/mine/change-phone" }); }
+function goVerify() { uni.navigateTo({ url: "/pages/mine/verify" }); }
 function goBlacklist() { uni.navigateTo({ url: "/pages/mine/blacklist" }); }
+
+/** 加载当前手机号（脱敏显示，换绑返回后 onShow 刷新） */
+async function loadPhone() {
+  try {
+    const settings = await getUserSettings();
+    const phone = settings?.phone || '';
+    phoneMasked.value = phone ? phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '';
+  } catch {
+    // 请求失败由 request 层统一 toast
+  }
+}
+
+/** 加载实名认证状态（认证返回后 onShow 刷新） */
+async function loadVerifyStatus() {
+  try {
+    const res = await getVerifyStatus();
+    isVerified.value = res?.verified || false;
+  } catch {
+    // 请求失败由 request 层统一 toast
+  }
+}
+
+onShow(() => {
+  loadPhone();
+  loadVerifyStatus();
+});
 
 function clearCache() {
   uni.showModal({

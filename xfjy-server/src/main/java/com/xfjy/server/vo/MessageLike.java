@@ -13,5 +13,6 @@ public class MessageLike {
     private String avatar;
     private String nickname;
     private String createDate;
+    private Long userId;
 
 }

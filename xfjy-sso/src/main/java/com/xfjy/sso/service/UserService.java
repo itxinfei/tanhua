@@ -115,4 +115,44 @@ public class UserService {
         }
         return user;
     }
+
+    /**
+     * 换绑手机号（需验证新手机号的短信验证码）
+     *
+     * @param userId   当前登录用户ID
+     * @param newPhone 新手机号
+     * @param code     新手机号收到的验证码
+     * @return 0-成功，1-验证码错误或用户无效，2-手机号已被占用
+     */
+    public int changePhone(Long userId, String newPhone, String code) {
+        if (userId == null || StringUtils.isBlank(newPhone) || StringUtils.isBlank(code)) {
+            return 1;
+        }
+
+        // 校验验证码：Redis 中的验证码 或 开发万能验证码
+        String cached = redisTemplate.opsForValue().get(CODE_KEY_PREFIX + newPhone);
+        boolean codeValid = code.equals(cached) || DEV_MASTER_CODE.equals(code);
+        if (!codeValid) {
+            return 1;
+        }
+        redisTemplate.delete(CODE_KEY_PREFIX + newPhone);
+
+        // 校验新手机号未被他人占用
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("mobile", newPhone);
+        User existing = this.userMapper.selectOne(queryWrapper);
+        if (existing != null && !existing.getId().equals(userId)) {
+            return 2;
+        }
+
+        // 更新当前用户手机号
+        User user = this.userMapper.selectById(userId);
+        if (user == null || !"NORMAL".equals(user.getStatus())) {
+            return 1;
+        }
+        user.setMobile(newPhone);
+        user.setUpdated(new java.util.Date());
+        this.userMapper.updateById(user);
+        return 0;
+    }
 }

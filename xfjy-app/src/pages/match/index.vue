@@ -128,6 +128,7 @@ import { ref, computed, onMounted } from "vue";
 import { onShow, onShareAppMessage } from "@dcloudio/uni-app";
 import { useMatchStore } from "@/store/match";
 import { getCards, type TodayBest } from "@/api/match";
+import { checkBenefit, recordBenefitUsage } from "@/api/mine";
 import { useUserStore } from "@/store/user";
 
 const matchStore = useMatchStore();
@@ -327,10 +328,37 @@ function handleDislike() {
   dragX.value = 0;
   swipeOut("dislike");
 }
-function handleSuperlike() {
-  dragX.value = 0;
-  dragY.value = 0;
-  swipeOut("superlike");
+/** 超级喜欢权益校验中（防连点） */
+const superlikeChecking = ref(false);
+async function handleSuperlike() {
+  if (superlikeChecking.value) return;
+  superlikeChecking.value = true;
+  try {
+    // P2 权益拦截：超级喜欢需 super_like 权益（VIP1，5次/天）
+    const benefit = await checkBenefit("super_like");
+    if (!benefit.hasBenefit) {
+      uni.showToast({ title: "超级喜欢需开通VIP", icon: "none" });
+      setTimeout(() => uni.navigateTo({ url: "/pages/mine/vip" }), 600);
+      return;
+    }
+    if (benefit.remainingToday === 0) {
+      uni.showToast({ title: "今日超级喜欢次数已用完", icon: "none" });
+      return;
+    }
+    // 扣减每日次数（不限次权益返回 true）
+    const ok = await recordBenefitUsage("super_like");
+    if (!ok) {
+      uni.showToast({ title: "今日超级喜欢次数已用完", icon: "none" });
+      return;
+    }
+    dragX.value = 0;
+    dragY.value = 0;
+    swipeOut("superlike");
+  } catch {
+    uni.showToast({ title: "网络异常，请重试", icon: "none" });
+  } finally {
+    superlikeChecking.value = false;
+  }
 }
 function handleRewind() {
   if (currentCardIndex.value > 0) {

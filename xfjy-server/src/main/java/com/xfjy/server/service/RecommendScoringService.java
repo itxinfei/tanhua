@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
  *   <li>ALS 分数：recommend_user 表的协同过滤分，归一化到 0~1</li>
  *   <li>地理距离：Haversine 距离衰减 1/(1+d/decayKm)，当前用户无位置则整体降级</li>
  *   <li>画像相似度：tags Jaccard×0.5 + 年龄差衰减×0.3 + 同城×0.2</li>
+ *   <li>互惠匹配（T4）：cosine(my_vec, cand_vec)²，Qdrant 无 embedding 时降级</li>
  * </ul>
  * 输出分数映射到 0~100 区间（缘分值），权重通过 application.yml 热调。
  */
@@ -50,14 +51,25 @@ public class RecommendScoringService {
     @Value("${xfjy.recommend.scoring.w-profile:0.2}")
     private double weightProfile;
 
+    /** T4 互惠匹配权重：cosine²双向相似度，无 embedding 时该维度降级（权重不计入分母） */
+    @Value("${xfjy.recommend.scoring.w-recip:0.2}")
+    private double weightRecip;
+
     @Value("${xfjy.recommend.scoring.geo-decay-km:50}")
     private double geoDecayKm;
+
+    /** T6-1 数据源开关：false 时跳过混合评分，降级为原 ALS 排序（灰度/熔断用） */
+    @Value("${xfjy.recommend.scoring.enabled:true}")
+    private boolean scoringEnabled;
 
     @Autowired
     private ESUserLocationApi esUserLocationApi;
 
     @Autowired
     private UserInfoApi userInfoApi;
+
+    @Autowired //T4 互惠匹配精排（cosine²双向相似度，Qdrant 无 embedding 时降级）
+    private ReciprocalScoringService reciprocalScoringService;
 
     /**
      * 对候选列表计算混合分并按降序排序。
@@ -69,6 +81,12 @@ public class RecommendScoringService {
      */
     public List<RecommendUser> scoreAndSort(Long currentUserId, List<RecommendUser> records) {
         if (CollectionUtils.isEmpty(records) || records.size() <= 1) {
+            return records;
+        }
+
+        // T6-1 开关关闭时降级为原 ALS 排序（灰度/熔断）
+        if (!scoringEnabled) {
+            records.sort((a, b) -> Double.compare(b.getScore(), a.getScore()));
             return records;
         }
 
@@ -86,6 +104,9 @@ public class RecommendScoringService {
             Map<Long, UserLocationVo> locationMap = (myLocation != null)
                     ? loadLocations(myLocation) : Collections.emptyMap();
 
+            // T4 预加载当前用户 embedding（循环外取一次，Qdrant 不可用时为 null → 互惠维度降级）
+            float[] myEmbedding = (weightRecip > 0) ? reciprocalScoringService.loadEmbedding(currentUserId) : null;
+
             // ALS 归一化基准（除以候选最大分）
             double maxAls = records.stream()
                     .mapToDouble(RecommendUser::getScore)
@@ -95,9 +116,14 @@ public class RecommendScoringService {
             }
 
             for (RecommendUser record : records) {
+                // T4 互惠匹配分（候选无 embedding 时为 -1 → 该维度降级）
+                double sRecip = (myEmbedding != null)
+                        ? reciprocalScoringService.computeReciprocalScore(myEmbedding, record.getUserId())
+                        : -1;
+
                 double finalScore = computeScore(record, maxAls, myProfile,
                         profileMap.get(record.getUserId()), myLocation,
-                        locationMap.get(record.getUserId()));
+                        locationMap.get(record.getUserId()), sRecip);
                 record.setScore(finalScore);
             }
 
@@ -111,11 +137,13 @@ public class RecommendScoringService {
     }
 
     /**
-     * 单候选评分：可用维度加权求和后按可用权重归一，结果 ×100 映射到缘分值区间
+     * 单候选评分：可用维度加权求和后按可用权重归一，结果 ×100 映射到缘分值区间。
+     * 数据缺失维度（sX=-1）不计入分母，实现自动降级。
      */
     private double computeScore(RecommendUser record, double maxAls,
                                 UserInfo myProfile, UserInfo candProfile,
-                                UserLocationVo myLocation, UserLocationVo candLocation) {
+                                UserLocationVo myLocation, UserLocationVo candLocation,
+                                double sRecip) {
         // ALS 维度始终可用（候选来自 ALS 结果或默认推荐）
         double sAls = clamp01(record.getScore() / maxAls);
 
@@ -140,6 +168,11 @@ public class RecommendScoringService {
         if (sProfile >= 0) {
             sum += weightProfile * sProfile;
             wsum += weightProfile;
+        }
+        // T4 互惠匹配维度（无 embedding 时降级）
+        if (sRecip >= 0) {
+            sum += weightRecip * sRecip;
+            wsum += weightRecip;
         }
 
         return (wsum > 0 ? sum / wsum : 0) * 100;

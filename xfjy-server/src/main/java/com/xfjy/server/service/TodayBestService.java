@@ -73,6 +73,12 @@ public class TodayBestService {
     @Autowired //召回过滤（已喜欢排除+异性过滤，评分前调用）
     private RecommendFilterService recommendFilterService;
 
+    @Autowired //冷启动召回（T5：新用户无ALS数据时地理+画像兜底）
+    private ColdStartService coldStartService;
+
+    @Autowired //Neo4j 图推荐（P2：喜欢关系同步+二度好友召回，不可用降级）
+    private GraphRecommendService graphRecommendService;
+
 
     public TodayBest queryTodayBest() {
 
@@ -107,16 +113,9 @@ public class TodayBestService {
         PageInfo<RecommendUser> pageInfo = this.recommendUserService.queryRecommendUserList(user.getId(), queryParam.getPage(), queryParam.getPagesize());
         List<RecommendUser> records = pageInfo.getRecords();
 
-        // 如果未查询到，需要使用默认推荐列表（解析结果已缓存，避免每次请求重复拆分配置字符串）
+        // T5 冷启动：ALS 无数据时走"地理召回+画像相似度"兜底（内部不足时已用默认推荐用户补尾）
         if (CollectionUtils.isEmpty(records)) {
-            for (Long defaultUserId : getDefaultRecommendUserIds()) {
-                RecommendUser recommendUser = new RecommendUser();
-                recommendUser.setUserId(defaultUserId);
-                recommendUser.setToUserId(user.getId());
-                recommendUser.setScore(RandomUtils.nextDouble(70, 98));
-
-                records.add(recommendUser);
-            }
+            records = this.coldStartService.recommendColdStart(user.getId(), queryParam.getPagesize());
         }
 
         // 召回过滤：排除已喜欢 + 异性过滤（评分前调用，减少无效候选）
@@ -186,6 +185,9 @@ public class TodayBestService {
         todayBest.setGender(userInfo.getSex().name().toLowerCase());
         todayBest.setNickname(userInfo.getNickName());
         todayBest.setTags(StringUtils.split(userInfo.getTags(), ','));
+        todayBest.setCity(userInfo.getCity());
+        todayBest.setEdu(userInfo.getEdu());
+        todayBest.setIndustry(userInfo.getIndustry());
 
         double score = this.recommendUserService.queryScore(userId, user.getId());
         if (score == 0) {
@@ -276,6 +278,8 @@ public class TodayBestService {
                     nearUserVo.setNickname(userInfo.getNickName());
                     nearUserVo.setAvatar(userInfo.getLogo());
                     nearUserVo.setUserId(userInfo.getUserId());
+                    nearUserVo.setAge(userInfo.getAge());
+                    nearUserVo.setCity(userInfo.getCity());
 
                     result.add(nearUserVo);
                     break;
@@ -292,14 +296,8 @@ public class TodayBestService {
         PageInfo<RecommendUser> pageInfo = this.recommendUserService.queryRecommendUserList(user.getId(), 1, 50);
         List<RecommendUser> records = pageInfo.getRecords();
         if (CollectionUtils.isEmpty(records)) {
-            //使用默认的推荐列表
-            String[] ss = StringUtils.split(defaultRecommendUsers, ',');
-            for (String s : ss) {
-                RecommendUser recommendUser = new RecommendUser();
-                recommendUser.setUserId(Long.valueOf(s));
-                recommendUser.setToUserId(user.getId());
-                records.add(recommendUser);
-            }
+            // T5 冷启动兜底（地理召回+画像相似度，不足时默认推荐用户补尾）
+            records = this.coldStartService.recommendColdStart(user.getId(), 50);
         }
 
         // 召回过滤：排除已喜欢 + 异性过滤（评分前调用）
@@ -372,6 +370,9 @@ public class TodayBestService {
             return null;
         }
 
+        // P2 同步喜欢关系到 Neo4j（异步语义：失败仅打日志，不阻断主链路）
+        this.graphRecommendService.syncLikeRelation(user.getId(), likeUserId);
+
         boolean mutualLike = this.userLikeApi.isMutualLike(user.getId(), likeUserId);
         if (mutualLike) {
             // 相互喜欢成为好友（注册环信联系人）
@@ -382,7 +383,13 @@ public class TodayBestService {
 
     public Boolean disLikeUser(Long likeUserId) {
         User user = UserThreadLocal.get();
-        return this.userLikeApi.deleteUserLike(user.getId(), likeUserId);
+        Boolean deleted = this.userLikeApi.deleteUserLike(user.getId(), likeUserId);
+
+        // P2 同步取消喜欢到 Neo4j（异步语义：失败仅打日志）
+        if (Boolean.TRUE.equals(deleted)) {
+            this.graphRecommendService.removeLikeRelation(user.getId(), likeUserId);
+        }
+        return deleted;
     }
 
     /**

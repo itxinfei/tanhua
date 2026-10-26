@@ -3,7 +3,9 @@ package com.xfjy.service.api;
 import com.xfjy.pay.service.PayService;
 import com.xfjy.service.pojo.PayOrder;
 import com.xfjy.service.pojo.UserVip;
+import com.xfjy.service.pojo.ValueAddedService;
 import com.xfjy.service.pojo.VipPackage;
+import com.xfjy.service.vo.BenefitCheckVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -53,5 +55,25 @@ public class PayApiImpl implements PayApi {
     @GetMapping("/order")
     public PayOrder queryOrder(@RequestParam("orderNo") String orderNo) {
         return this.payService.queryOrder(orderNo);
+    }
+
+    @Override
+    @GetMapping("/benefits")
+    public List<ValueAddedService> queryBenefits() {
+        return this.payService.queryBenefits();
+    }
+
+    @Override
+    @GetMapping("/benefit/check")
+    public BenefitCheckVo checkBenefit(@RequestParam("userId") Long userId,
+                                       @RequestParam("serviceCode") String serviceCode) {
+        return this.payService.checkBenefit(userId, serviceCode);
+    }
+
+    @Override
+    @PostMapping("/benefit/usage")
+    public Boolean recordBenefitUsage(@RequestParam("userId") Long userId,
+                                      @RequestParam("serviceCode") String serviceCode) {
+        return this.payService.recordBenefitUsage(userId, serviceCode);
     }
 }

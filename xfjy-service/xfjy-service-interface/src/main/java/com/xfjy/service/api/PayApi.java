@@ -2,7 +2,9 @@ package com.xfjy.service.api;
 
 import com.xfjy.service.pojo.PayOrder;
 import com.xfjy.service.pojo.UserVip;
+import com.xfjy.service.pojo.ValueAddedService;
 import com.xfjy.service.pojo.VipPackage;
+import com.xfjy.service.vo.BenefitCheckVo;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -66,4 +68,33 @@ public interface PayApi {
     @GetExchange("/order")
     @GetMapping("/order")
     PayOrder queryOrder(@RequestParam("orderNo") String orderNo);
+
+    /**
+     * 查询上架的增值服务权益列表（按 sort 升序）
+     */
+    @GetExchange("/benefits")
+    @GetMapping("/benefits")
+    List<ValueAddedService> queryBenefits();
+
+    /**
+     * 权益校验：VIP 等级是否达标 + 每日限次权益的剩余次数
+     *
+     * @param userId      用户 id
+     * @param serviceCode 权益码
+     * @return 校验结果；权益码不存在返回 null
+     */
+    @GetExchange("/benefit/check")
+    @GetMapping("/benefit/check")
+    BenefitCheckVo checkBenefit(@RequestParam("userId") Long userId,
+                                @RequestParam("serviceCode") String serviceCode);
+
+    /**
+     * 记录权益使用（每日限次权益扣减次数）
+     *
+     * @return true=扣减成功或权益不限次；false=今日次数已用尽或权益不存在
+     */
+    @PostExchange("/benefit/usage")
+    @PostMapping("/benefit/usage")
+    Boolean recordBenefitUsage(@RequestParam("userId") Long userId,
+                               @RequestParam("serviceCode") String serviceCode);
 }
