@@ -66,7 +66,7 @@
 import { ref } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import { useUserStore } from "@/store/user";
-import { getUserProfile, updateUserProfile } from "@/api/mine";
+import { getUserProfile, updateUserProfile, uploadImage } from "@/api/mine";
 
 /** 照片墙最大数量 */
 const MAX_ALBUM_COUNT = 6;
@@ -85,11 +85,22 @@ const form = ref({
 });
 const submitting = ref(false);
 
-/** 更换头像 */
+/** 更换头像：选图后上传 OSS，成功写入 OSS URL（随保存提交后端） */
 function changeAvatar(): void {
-  uni.chooseImage({ count: 1, sizeType: ["compressed"], success: (res) => {
-    // TODO: 上传 OSS
-    form.value.avatar = res.tempFilePaths[0];
+  uni.chooseImage({ count: 1, sizeType: ["compressed"], success: async (res) => {
+    const tempPath = res.tempFilePaths[0];
+    uni.showLoading({ title: "上传中...", mask: true });
+    try {
+      const result = await uploadImage(tempPath);
+      uni.hideLoading();
+      if (result.status === "done" && result.name) {
+        form.value.avatar = result.name;
+        uni.showToast({ title: "头像已更新", icon: "success" });
+      }
+    } catch (e) {
+      uni.hideLoading();
+      // upload 工具已统一 toast 错误提示
+    }
   }});
 }
 

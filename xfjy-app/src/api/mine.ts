@@ -1,4 +1,4 @@
-import { get, post, put, del } from "@/utils/request";
+import { get, post, put, del, upload } from "@/utils/request";
 import type { PageResult, PageParam } from "@/api/circle";
 
 /** 关系列表类型 */
@@ -78,6 +78,27 @@ export function getUserProfile(
  */
 export function updateUserProfile(profile: Partial<UserProfile>): Promise<void> {
   return put<void>("/users", profile as any);
+}
+
+/** 图片上传结果（后端 PicUploadResult 结构） */
+export interface PicUploadResult {
+  uid: string;
+  /** OSS 访问 URL（status=done 时有效） */
+  name: string;
+  /** 状态：done / error */
+  status: string;
+  response?: string;
+}
+
+/**
+ * 上传单张图片（头像/照片墙等通用）
+ * 对接后端: POST /upload/image（multipart/form-data）
+ *
+ * @param filePath 本地临时文件路径（uni.chooseImage 的 tempFilePaths[0]）
+ * @returns PicUploadResult，status=done 时 name 为 OSS URL
+ */
+export function uploadImage(filePath: string): Promise<PicUploadResult> {
+  return upload<PicUploadResult>("/upload/image", [filePath], "file");
 }
 
 /**

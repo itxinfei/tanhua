@@ -27,7 +27,7 @@ public class PicUploadService {
     private static final String[] IMAGE_TYPE = new String[]{".bmp", ".jpg",
             ".jpeg", ".gif", ".png"};
 
-    @Autowired
+    @Autowired(required = false)
     private OSSClient ossClient;
 
     @Autowired
@@ -36,6 +36,13 @@ public class PicUploadService {
     public PicUploadResult upload(MultipartFile uploadFile) {
 
         PicUploadResult fileUploadResult = new PicUploadResult();
+
+        // OSS 未配置（aliyun.properties 缺失或 endpoint 未填）时快速失败
+        if (this.ossClient == null) {
+            LOGGER.error("OSS 未配置，无法上传图片，请检查 aliyun.properties");
+            fileUploadResult.setStatus("error");
+            return fileUploadResult;
+        }
 
         //图片校验
         boolean isLegal = false;
