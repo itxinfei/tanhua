@@ -104,16 +104,13 @@ flowchart TB
         A1[管理后台 xfjy-admin<br/>Vue3 + Element Plus]
         A2[用户端 xfjy-app<br/>uni-app 多端]
     end
-
     subgraph 入口与认证
         B[网关 Gateway · 8090<br/>路由/限流/跨域]
         C[SSO 认证 · 18080<br/>验证码登录 Sa-Token + Redis]
     end
-
     subgraph 主业务
         D[主聚合服务 xfjy-server · 18081<br/>业务 + 管理后台 + 推荐评分]
     end
-
     subgraph 拆分服务
         E1[用户关系 · 18090]
         E2[圈子动态 · 18084]
@@ -122,7 +119,6 @@ flowchart TB
         E5[消息/IM · 18086]
         E6[推荐评分消费者<br/>xfjy-recommend]
     end
-
     subgraph 数据层
         F1[(MySQL)]
         F2[(Redis)]
@@ -132,11 +128,9 @@ flowchart TB
         F7[(Qdrant 向量库)]
         F8[(Neo4j 图库)]
     end
-
     subgraph AI 训练
         G1[xfjy-spark<br/>Python 双塔训练]
     end
-
     A1 --> B
     A2 --> B
     B --> C
@@ -231,7 +225,7 @@ xfjy/
 
 ```bash
 # 1. 初始化数据库
-mysql -u root -p < docs/mytanhua.sql
+mysql -u root -p < scripts/mytanhua.sql
 mysql -u root -p xfjy < scripts/init-sensitive-words.sql
 mysql -u root -p xfjy < scripts/init-pay-tables.sql
 mysql -u root -p xfjy < scripts/init-value-added-services.sql
@@ -338,7 +332,7 @@ curl http://127.0.0.1:18081/actuator/health
 ## 八、文档
 
 - 📄 [需求文档](docs/需求文档.md)
-- 🗄️ [数据库脚本](docs/mytanhua.sql)
+- 🗄️ 数据库脚本：本地 `scripts/` 目录（基础库 `mytanhua.sql` + 各 `init-*.sql`，不入库）
 - 🤖 [双塔训练工程](xfjy-spark/README.md)
 
 ---

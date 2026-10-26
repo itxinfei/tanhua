@@ -76,6 +76,8 @@ docs/推荐引擎重构需求文档.md
 docs/功能就绪矩阵.md
 docs/项目重构规划.md
 docs/心飞为你飞.jpg
+# SQL 脚本不入库（统一放 scripts/ 本地管理）
+docs/*.sql
 
 # ===== 训练产出（xfjy-spark）=====
 xfjy-spark/output/
