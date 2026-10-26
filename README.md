@@ -2,8 +2,6 @@
 
 <img src="docs/logo/logo-horizontal-transparent.png" width="360" alt="心飞交友">
 
-# 🌸 心飞交友
-
 **基于大数据智能推荐的陌生人社交平台**
 
 即时通讯 · 动态圈子 · 附近的人 · 探花匹配 · 智能推荐 · VIP 权益
