@@ -21,6 +21,6 @@ spring:
       database: 0
 
 rocketmq:
-  name-server: 127.0.0.1:9876
+  name-server: ${ROCKETMQ_NAME_SERVER:127.0.0.1:9876}
   producer:
     group: xfjy-video

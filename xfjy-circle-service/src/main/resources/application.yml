@@ -22,7 +22,7 @@ spring:
 
 # RocketMQ：圈子评分事件生产（xfjy-quanzi topic，消费方为 xfjy-recommend）
 rocketmq:
-  name-server: 127.0.0.1:9876
+  name-server: ${ROCKETMQ_NAME_SERVER:127.0.0.1:9876}
   producer:
     group: xfjy-circle
     send-message-timeout: 3000

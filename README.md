@@ -8,7 +8,7 @@
 
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.1-brightgreen)
 ![JDK](https://img.shields.io/badge/JDK-25-orange)
-![Spring Cloud](https://img.shields.io/badge/Spring%20Cloud-2025.0.0-green)
+![Spring Cloud](https://img.shields.io/badge/Spring%20Cloud-2025.1.3-green)
 ![Sa-Token](https://img.shields.io/badge/Sa--Token-1.46.0-red)
 ![MyBatis Plus](https://img.shields.io/badge/MyBatis%20Plus-3.5.17-blue)
 ![MongoDB](https://img.shields.io/badge/MongoDB-8.0-47A248)
@@ -62,7 +62,7 @@
 |------|------|------|
 | 语言 | JDK | 25 |
 | 框架 | Spring Boot | 4.1.1 |
-| 微服务 | Spring Cloud + Nacos | 2025.0.0 / 3.x |
+| 微服务 | Spring Cloud + Nacos | 2025.1.3 / 3.x |
 | 网关 | Spring Cloud Gateway | 4.3.x |
 | 认证鉴权 | Sa-Token | 1.46.0 |
 | 持久层-关系 | MyBatis-Plus + mysql-connector-j | 3.5.17 |
@@ -75,6 +75,7 @@
 | 即时通讯 | 环信 IM | — |
 | 向量检索 | Qdrant（纯 REST 接入） | — |
 | 图数据库 | Neo4j（纯 HTTP Cypher 接入） | 5.x |
+| 运行监控 | Spring Boot Actuator | health/info/metrics |
 | 工具 | Lombok / commons-io / commons-codec | — |
 
 ### AI 训练工程
@@ -215,7 +216,7 @@ xfjy/
 |------|------|------|
 | JDK | 25 | 后端编译运行 |
 | Maven | 3.9+ | 后端构建 |
-| Node.js | 18+ | 前端构建 |
+| Node.js | 22+ | 前端构建 |
 | Python | 3.11+ | 双塔训练（可选） |
 | MySQL | 8.0 | 关系数据 |
 | Redis | 7.x | 缓存/会话 |
@@ -234,6 +235,8 @@ mysql -u root -p < docs/mytanhua.sql
 mysql -u root -p xfjy < scripts/init-sensitive-words.sql
 mysql -u root -p xfjy < scripts/init-pay-tables.sql
 mysql -u root -p xfjy < scripts/init-value-added-services.sql
+mysql -u root -p xfjy < scripts/init-photo-album-column.sql
+mysql -u root -p xfjy < scripts/init-match-notification-column.sql
 
 # 2. 编译
 mvn clean compile
@@ -284,6 +287,7 @@ python train/export_embedding.py
 | REDIS_HOST | Redis 地址 | 127.0.0.1 |
 | REDIS_PASSWORD | Redis 密码 | （空） |
 | MONGO_URI | MongoDB 连接串 | 127.0.0.1:27017/xfjy |
+| ROCKETMQ_NAME_SERVER | RocketMQ NameServer | 127.0.0.1:9876 |
 
 ### 第三方服务
 
@@ -299,7 +303,39 @@ python train/export_embedding.py
 
 ---
 
-## 七、文档
+## 七、监控与持续集成
+
+### 运行监控（Actuator）
+
+xfjy-server 集成 Spring Boot Actuator，暴露以下端点（无需认证）：
+
+| 端点 | 说明 |
+|------|------|
+| `GET /actuator/health` | 健康检查（含 DB/Redis/Mongo 等组件状态） |
+| `GET /actuator/info` | 应用信息 |
+| `GET /actuator/metrics` | 指标列表及明细 |
+
+```bash
+# 健康检查示例
+curl http://127.0.0.1:18081/actuator/health
+# 预期: {"status":"UP"}
+```
+
+### CI 流水线
+
+[.github/workflows/ci.yml](.github/workflows/ci.yml) 定义三条并行 Job：
+
+| Job | 内容 | 环境 |
+|-----|------|------|
+| backend | `mvn compile` 全量编译 | JDK 25 |
+| admin | 管理后台 `npm run build` | Node 22 |
+| app | 用户端 `npm run build:h5` | Node 22 |
+
+触发条件：push / PR 到 master 分支。
+
+---
+
+## 八、文档
 
 - 📄 [需求文档](docs/需求文档.md)
 - 🗄️ [数据库脚本](docs/mytanhua.sql)
@@ -307,7 +343,7 @@ python train/export_embedding.py
 
 ---
 
-## 八、贡献指南
+## 九、贡献指南
 
 1. Fork 本仓库
 2. 创建特性分支：`git checkout -b feat/your-feature`
@@ -323,7 +359,7 @@ python train/export_embedding.py
 
 ---
 
-## 九、License
+## 十、License
 
 [MIT](LICENSE)
 
