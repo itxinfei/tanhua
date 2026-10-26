@@ -197,8 +197,7 @@ xfjy/
 ├── xfjy-pay-service/           # 支付/VIP 权益服务（18089）
 ├── xfjy-recommend/             # 推荐评分消费者（RocketMQ → MongoDB）
 ├── xfjy-elasticsearch/         # ES Geo 地理位置：附近的人
-├── xfjy-service/
-│   └── xfjy-service-interface/ # 内部 HTTP 接口契约（@HttpExchange）
+├── xfjy-api/                    # 内部 HTTP 接口契约（@HttpExchange）
 ├── xfjy-spark/                 # Python 双塔训练工程（PyTorch + Qdrant 导出）
 ├── xfjy-admin/                 # 管理后台前端（Vue3 + Element Plus + Vite 8）
 ├── xfjy-app/                   # 用户端前端（uni-app：H5/小程序/App）
@@ -320,7 +319,7 @@ python train/export_embedding.py
 
 - commit message 格式：`type: 简述`（feat / fix / refactor / docs / test / chore / perf）
 - 密钥/凭证禁止入库，统一环境变量外置（`.env.example` 为模板）
-- 改动 `xfjy-service-interface` 后须 `mvn -am` 连带构建
+- 改动 `xfjy-api` 后须 `mvn -am` 连带构建
 
 ---
 

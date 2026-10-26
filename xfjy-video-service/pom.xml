@@ -21,7 +21,7 @@
         <!-- 内部接口模块（@HttpExchange 契约 + 视频域 pojo/vo） -->
         <dependency>
             <groupId>cn.xfjy</groupId>
-            <artifactId>xfjy-service-interface</artifactId>
+            <artifactId>xfjy-api</artifactId>
             <version>${project.version}</version>
         </dependency>
 
