@@ -16,7 +16,11 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 @RestController
@@ -74,6 +78,23 @@ public class VisitorsApiImpl implements VisitorsApi {
         if (visitors.getDate() == null) {
             visitors.setDate(System.currentTimeMillis());
         }
+
+        // 去重：同一访客当日只保留一条，重复访问更新来访时间为最近一次
+        LocalDate today = Instant.ofEpochMilli(visitors.getDate())
+                .atZone(ZoneId.systemDefault()).toLocalDate();
+        long dayStart = today.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        long dayEnd = today.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+
+        Query dupQuery = Query.query(Criteria.where("userId").is(visitors.getUserId())
+                .and("visitorUserId").is(visitors.getVisitorUserId())
+                .and("date").gte(dayStart).lt(dayEnd));
+        Visitors existing = this.mongoTemplate.findOne(dupQuery, Visitors.class);
+        if (existing != null) {
+            Update update = new Update().set("date", visitors.getDate());
+            this.mongoTemplate.updateFirst(dupQuery, update, Visitors.class);
+            return;
+        }
+
         this.mongoTemplate.insert(visitors);
     }
 
