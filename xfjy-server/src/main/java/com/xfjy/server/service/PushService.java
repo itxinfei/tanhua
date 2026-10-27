@@ -124,7 +124,7 @@ public class PushService {
             }
 
             String title = "收到点赞";
-            String alert = "有人赞了你的动态，快去看看吧！";
+            String alert = "有人赞了你的内容，快去看看吧！";
             List<String> registrationIds = devices.stream()
                     .map(UserDevice::getRegistrationId)
                     .collect(Collectors.toList());
