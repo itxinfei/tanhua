@@ -21,6 +21,9 @@ public class AdminNoticeService {
     @Autowired
     private NoticeMapper noticeMapper;
 
+    @Autowired
+    private PushService pushService;
+
     /**
      * 分页查询公告
      */
@@ -97,7 +100,12 @@ public class AdminNoticeService {
         }
         notice.setStatus("PUBLISHED");
         notice.setPublishedAt(new Date());
-        return this.noticeMapper.updateById(notice) > 0;
+        boolean success = this.noticeMapper.updateById(notice) > 0;
+        if (success) {
+            // 广播公告推送（PushService 内部已捕获异常，失败不阻断发布）
+            this.pushService.pushNoticeBroadcast(notice.getTitle(), notice.getContent());
+        }
+        return success;
     }
 
     /**

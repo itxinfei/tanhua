@@ -50,6 +50,9 @@ public class MovementsService {
     @Autowired
     private ESUserLocationApi esUserLocationApi;
 
+    @Autowired
+    private PushService pushService;
+
     private static final Logger log = LoggerFactory.getLogger(MovementsService.class);
 
 
@@ -294,6 +297,17 @@ public class MovementsService {
         // 记录当前用于已经点赞
         String likeUserCommentKey = "QUANZI_COMMENT_LIKE_USER_" + user.getId() + "_" + publishId;
         this.redisTemplate.opsForValue().set(likeUserCommentKey, "1");
+
+        // 推送点赞通知给动态作者（旁路：自己赞自己不推，失败仅日志不阻断）
+        try {
+            Publish publish = this.quanZiApi.queryPublishById(publishId);
+            if (publish != null && publish.getUserId() != null
+                    && !publish.getUserId().equals(user.getId())) {
+                this.pushService.pushLikeNotification(publish.getUserId());
+            }
+        } catch (Exception e) {
+            log.warn("点赞推送触发失败：publishId={}", publishId, e);
+        }
 
         return likeCount;
     }

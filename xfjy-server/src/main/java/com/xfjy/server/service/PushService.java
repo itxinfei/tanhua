@@ -101,6 +101,123 @@ public class PushService {
     }
 
     /**
+     * 点赞通知（动态被点赞时通知作者）
+     *
+     * @param targetUserId 动态作者用户ID
+     */
+    public void pushLikeNotification(Long targetUserId) {
+        if (!Boolean.TRUE.equals(enabled)) {
+            return;
+        }
+        try {
+            // 1. 校验通知开关（likeNotification 为 null 视为开启）
+            Settings settings = this.settingsService.querySettingsByUserId(targetUserId);
+            if (settings != null && Boolean.FALSE.equals(settings.getLikeNotification())) {
+                return;
+            }
+
+            // 2. 查询目标用户绑定的设备
+            List<UserDevice> devices = this.listDevicesByUserId(targetUserId);
+            if (devices.isEmpty()) {
+                LOGGER.debug("推送跳过：用户{}未绑定设备", targetUserId);
+                return;
+            }
+
+            String title = "收到点赞";
+            String alert = "有人赞了你的动态，快去看看吧！";
+            List<String> registrationIds = devices.stream()
+                    .map(UserDevice::getRegistrationId)
+                    .collect(Collectors.toList());
+
+            // 3. 凭证为空走 mock 模式
+            if (StringUtils.isEmpty(appKey) || StringUtils.isEmpty(masterSecret)) {
+                LOGGER.info("[PushMock] 点赞推送 -> userId={}, rids={}, alert={}",
+                        targetUserId, registrationIds, alert);
+                return;
+            }
+
+            // 4. 调用极光 REST API
+            this.doJPush(registrationIds, title, alert);
+            LOGGER.info("点赞推送完成：userId={}", targetUserId);
+        } catch (Exception e) {
+            LOGGER.warn("点赞推送失败：userId={}", targetUserId, e);
+        }
+    }
+
+    /**
+     * 评论通知（动态被评论时通知作者）
+     *
+     * @param targetUserId 动态作者用户ID
+     * @param content      评论内容（超长截断）
+     */
+    public void pushCommentNotification(Long targetUserId, String content) {
+        if (!Boolean.TRUE.equals(enabled)) {
+            return;
+        }
+        try {
+            // 1. 校验通知开关（pinglunNotification 为 null 视为开启）
+            Settings settings = this.settingsService.querySettingsByUserId(targetUserId);
+            if (settings != null && Boolean.FALSE.equals(settings.getPinglunNotification())) {
+                return;
+            }
+
+            // 2. 查询目标用户绑定的设备
+            List<UserDevice> devices = this.listDevicesByUserId(targetUserId);
+            if (devices.isEmpty()) {
+                LOGGER.debug("推送跳过：用户{}未绑定设备", targetUserId);
+                return;
+            }
+
+            String title = "收到评论";
+            String brief = StringUtils.length(content) > 20 ? content.substring(0, 20) + "..." : content;
+            String alert = "收到新评论：" + brief;
+            List<String> registrationIds = devices.stream()
+                    .map(UserDevice::getRegistrationId)
+                    .collect(Collectors.toList());
+
+            // 3. 凭证为空走 mock 模式
+            if (StringUtils.isEmpty(appKey) || StringUtils.isEmpty(masterSecret)) {
+                LOGGER.info("[PushMock] 评论推送 -> userId={}, rids={}, alert={}",
+                        targetUserId, registrationIds, alert);
+                return;
+            }
+
+            // 4. 调用极光 REST API
+            this.doJPush(registrationIds, title, alert);
+            LOGGER.info("评论推送完成：userId={}", targetUserId);
+        } catch (Exception e) {
+            LOGGER.warn("评论推送失败：userId={}", targetUserId, e);
+        }
+    }
+
+    /**
+     * 公告广播（管理员发布公告时全量广播）
+     *
+     * <p>广播模式 audience=all，不查设备列表与个人开关：
+     * 全量查开关+设备不现实，gonggaoNotification 开关由 app 内公告列表过滤。</p>
+     *
+     * @param title   公告标题
+     * @param content 公告内容（超长截断）
+     */
+    public void pushNoticeBroadcast(String title, String content) {
+        if (!Boolean.TRUE.equals(enabled)) {
+            return;
+        }
+        try {
+            String brief = StringUtils.length(content) > 40 ? content.substring(0, 40) + "..." : content;
+            // 凭证为空走 mock 模式
+            if (StringUtils.isEmpty(appKey) || StringUtils.isEmpty(masterSecret)) {
+                LOGGER.info("[PushMock] 公告广播 -> title={}, alert={}", title, brief);
+                return;
+            }
+            this.doJPushBroadcast(title, brief);
+            LOGGER.info("公告广播完成：title={}", title);
+        } catch (Exception e) {
+            LOGGER.warn("公告广播失败：title={}", title, e);
+        }
+    }
+
+    /**
      * 调用极光 v3/push 接口
      */
     private void doJPush(List<String> registrationIds, String title, String alert) {
@@ -136,6 +253,43 @@ public class PushService {
         ResponseEntity<String> resp = this.restTemplate.postForEntity(JPUSH_PUSH_URL, entity, String.class);
         if (!resp.getStatusCode().is2xxSuccessful()) {
             LOGGER.warn("极光推送响应异常：status={}, body={}", resp.getStatusCode(), resp.getBody());
+        }
+    }
+
+    /**
+     * 调用极光 v3/push 广播接口（audience=all，推送给所有集成 SDK 的设备）
+     */
+    private void doJPushBroadcast(String title, String alert) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        String auth = Base64.getEncoder()
+                .encodeToString((appKey + ":" + masterSecret).getBytes(StandardCharsets.UTF_8));
+        headers.set("Authorization", "Basic " + auth);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("platform", "all");
+        body.put("audience", "all"); // 广播模式
+
+        Map<String, Object> notification = new HashMap<>();
+        notification.put("alert", alert);
+        Map<String, Object> android = new HashMap<>();
+        android.put("alert", alert);
+        android.put("title", title);
+        notification.put("android", android);
+        Map<String, Object> ios = new HashMap<>();
+        ios.put("alert", alert);
+        ios.put("sound", "default");
+        notification.put("ios", ios);
+        body.put("notification", notification);
+
+        Map<String, Object> options = new HashMap<>();
+        options.put("apns_production", false);
+        body.put("options", options);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+        ResponseEntity<String> resp = this.restTemplate.postForEntity(JPUSH_PUSH_URL, entity, String.class);
+        if (!resp.getStatusCode().is2xxSuccessful()) {
+            LOGGER.warn("极光广播响应异常：status={}, body={}", resp.getStatusCode(), resp.getBody());
         }
     }
 

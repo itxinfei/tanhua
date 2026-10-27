@@ -2,10 +2,13 @@ package com.xfjy.server.service;
 
 import org.springframework.util.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.xfjy.service.api.QuanZiApi;
 import com.xfjy.service.api.UserInfoApi;
 import com.xfjy.service.pojo.Comment;
+import com.xfjy.service.pojo.Publish;
 import com.xfjy.service.pojo.UserInfo;
 import com.xfjy.service.vo.PageInfo;
 import com.xfjy.service.vo.UserInfoQueryParam;
@@ -36,6 +39,11 @@ public class CommentsService {
 
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
+
+    @Autowired
+    private PushService pushService;
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(CommentsService.class);
 
     public PageResult queryCommentsList(String publishId, Integer page, Integer pageSize) {
 
@@ -102,6 +110,20 @@ public class CommentsService {
 
     public Boolean saveComments(String publishId, String content) {
         User user = UserThreadLocal.get();
-        return this.quanZiApi.saveComment(user.getId(), publishId, 2, content);
+        boolean success = this.quanZiApi.saveComment(user.getId(), publishId, 2, content);
+        if (!success) {
+            return false;
+        }
+        // 推送评论通知给动态作者（旁路：自己评论自己不推，失败仅日志不阻断）
+        try {
+            Publish publish = this.quanZiApi.queryPublishById(publishId);
+            if (publish != null && publish.getUserId() != null
+                    && !publish.getUserId().equals(user.getId())) {
+                this.pushService.pushCommentNotification(publish.getUserId(), content);
+            }
+        } catch (Exception e) {
+            LOGGER.warn("评论推送触发失败：publishId={}", publishId, e);
+        }
+        return true;
     }
 }
