@@ -224,13 +224,9 @@ xfjy/
 ### 后端启动
 
 ```bash
-# 1. 初始化数据库
-mysql -u root -p < scripts/mytanhua.sql
-mysql -u root -p xfjy < scripts/init-sensitive-words.sql
-mysql -u root -p xfjy < scripts/init-pay-tables.sql
-mysql -u root -p xfjy < scripts/init-value-added-services.sql
-mysql -u root -p xfjy < scripts/init-photo-album-column.sql
-mysql -u root -p xfjy < scripts/init-match-notification-column.sql
+# 1. 初始化数据库（全量脚本：表结构+初始数据，一键导入）
+mysql -u root -p --default-character-set=utf8mb4 -e "CREATE DATABASE IF NOT EXISTS xfjy DEFAULT CHARSET utf8mb4;"
+mysql -u root -p --default-character-set=utf8mb4 xfjy < scripts/mytanhua.sql
 
 # 2. 编译
 mvn clean compile
@@ -332,7 +328,7 @@ curl http://127.0.0.1:18081/actuator/health
 ## 八、文档
 
 - 📄 [需求文档](docs/需求文档.md)
-- 🗄️ 数据库脚本：本地 `scripts/` 目录（基础库 `mytanhua.sql` + 各 `init-*.sql`，不入库）
+- 🗄️ 数据库脚本：本地 `scripts/mytanhua.sql`（全量表结构 + 初始数据，一键导入，不入库）
 - 🤖 [双塔训练工程](xfjy-spark/README.md)
 
 ---
