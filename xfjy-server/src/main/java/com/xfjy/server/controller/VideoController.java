@@ -2,10 +2,13 @@ package com.xfjy.server.controller;
 
 import org.apache.commons.lang3.StringUtils;
 import com.xfjy.server.service.ContentReviewService;
+import com.xfjy.server.service.PushService;
 import com.xfjy.server.service.RiskControlService;
 import com.xfjy.server.service.VideoService;
 import com.xfjy.server.utils.UserThreadLocal;
 import com.xfjy.server.vo.PageResult;
+import com.xfjy.service.api.QuanZiApi;
+import com.xfjy.service.pojo.Comment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +39,12 @@ public class VideoController {
 
     @Autowired
     private RiskControlService riskControlService;
+
+    @Autowired
+    private QuanZiApi quanZiApi;
+
+    @Autowired
+    private PushService pushService;
 
     /**
      * 发布小视频
@@ -158,13 +167,27 @@ public class VideoController {
 
     /**
      * 评论点赞
+     * 点赞成功后通知评论作者（旁路：自己赞自己不推，失败仅日志不阻断）
      *
-     * @param publishId
-     * @return
+     * @param commentId 评论id
      */
     @PostMapping("/comments/{id}/like")
-    public ResponseEntity<Long> commentsLikeComment(@PathVariable("id") String publishId) {
-        return this.movementsController.likeComment(publishId);
+    public ResponseEntity<Long> commentsLikeComment(@PathVariable("id") String commentId) {
+        ResponseEntity<Long> entity = this.movementsController.likeComment(commentId);
+        if (entity.getStatusCode().is2xxSuccessful() && entity.getBody() != null) {
+            try {
+                Comment comment = this.quanZiApi.queryCommentById(commentId);
+                if (comment != null && comment.getUserId() != null) {
+                    Long currentUserId = UserThreadLocal.get().getId();
+                    if (!comment.getUserId().equals(currentUserId)) {
+                        this.pushService.pushLikeNotification(comment.getUserId());
+                    }
+                }
+            } catch (Exception e) {
+                LOGGER.warn("评论点赞推送触发失败：commentId={}", commentId, e);
+            }
+        }
+        return entity;
     }
 
     /**

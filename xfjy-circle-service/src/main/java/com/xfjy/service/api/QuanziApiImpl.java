@@ -362,6 +362,12 @@ public class QuanziApiImpl implements QuanZiApi {
     }
 
     @Override
+    @GetMapping("/queryCommentById")
+    public Comment queryCommentById(@RequestParam("commentId") String commentId) {
+        return this.mongoTemplate.findById(new ObjectId(commentId), Comment.class);
+    }
+
+    @Override
     @GetMapping("/queryCommentList")
     public PageInfo<Comment> queryCommentList(@RequestParam("publishId") String publishId,
                                               @RequestParam("page") Integer page,

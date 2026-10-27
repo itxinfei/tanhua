@@ -360,7 +360,7 @@ public class UsersService {
     }
 
     /**
-     * 注销账号（软删除：tb_user.status=DELETED，数据保留 30 天后由定时任务清理）
+     * 注销账号（软删除：tb_user.status=DELETED，数据保留以备恢复，如需彻底清理由运维手工执行）
      * 需校验短信验证码，防止误操作。
      *
      * @param code 短信验证码
@@ -385,6 +385,11 @@ public class UsersService {
         update.setId(user.getId());
         update.setStatus("DELETED");
         int rows = this.userMapper.updateById(update);
+
+        // 清理推送设备绑定（注销用户不再接收任何推送）
+        QueryWrapper<UserDevice> deviceWrapper = new QueryWrapper<>();
+        deviceWrapper.eq("user_id", user.getId());
+        this.userDeviceMapper.delete(deviceWrapper);
 
         // 立即踢下线（Sa-Token 按 userId 注销所有会话）
         StpUtil.logout(user.getId());

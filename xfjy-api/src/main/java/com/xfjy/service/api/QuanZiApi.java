@@ -103,6 +103,13 @@ public interface QuanZiApi {
                               @RequestParam("publishId") String publishId);
 
     /**
+     * 根据id查询评论（评论点赞通知评论作者用）
+     */
+    @GetExchange("/queryCommentById")
+    @GetMapping("/queryCommentById")
+    Comment queryCommentById(@RequestParam("commentId") String commentId);
+
+    /**
      * 查询评论
      */
     @GetExchange("/queryCommentList")
