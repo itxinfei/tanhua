@@ -90,8 +90,9 @@ async function handleLogin() {
       ElMessage.success('登录成功')
       router.push('/dashboard')
     } catch (err: any) {
-      // 后端不可用时使用模拟登录（开发阶段）
-      if (err?.message?.includes('Network Error') || err?.code === 'ERR_NETWORK') {
+      // 后端不可用时使用模拟登录（仅开发环境；生产环境禁止降级放行，避免任意密码绕过认证）
+      const isNetworkError = err?.message?.includes('Network Error') || err?.code === 'ERR_NETWORK'
+      if (isNetworkError && import.meta.env.DEV) {
         const mockToken = 'mock-admin-token-' + Date.now()
         authStore.token = mockToken
         authStore.adminInfo = {
@@ -108,6 +109,8 @@ async function handleLogin() {
         )
         ElMessage.success('登录成功（开发模式）')
         router.push('/dashboard')
+      } else if (isNetworkError) {
+        ElMessage.error('网络异常，无法连接后端服务，请稍后重试')
       }
     } finally {
       loading.value = false

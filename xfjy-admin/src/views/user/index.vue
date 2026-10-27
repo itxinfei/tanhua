@@ -160,9 +160,15 @@ async function loadData() {
     tableData.value = res.list
     total.value = res.total
   } catch {
-    const mock = getMockUsers(query.page, query.pageSize)
-    tableData.value = mock.list
-    total.value = mock.total
+    // Mock 兜底仅开发环境生效，生产环境显示空列表避免假数据误导
+    if (import.meta.env.DEV) {
+      const mock = getMockUsers(query.page, query.pageSize)
+      tableData.value = mock.list
+      total.value = mock.total
+    } else {
+      tableData.value = []
+      total.value = 0
+    }
   } finally {
     loading.value = false
   }
@@ -205,11 +211,12 @@ async function confirmFreeze() {
   try {
     await freezeUserApi(freezeTarget.value.id, freezeReason.value)
     ElMessage.success('已封禁')
+    freezeTarget.value.status = 'FROZEN'
+    freezeDialogVisible.value = false
   } catch {
-    ElMessage.success('已封禁（开发模式）')
+    // 封禁失败：不提示成功、不改本地状态、不关弹窗，让用户重试
+    ElMessage.error('封禁失败，请稍后重试')
   }
-  freezeTarget.value.status = 'FROZEN'
-  freezeDialogVisible.value = false
 }
 
 async function handleUnfreeze(row: UserItem) {

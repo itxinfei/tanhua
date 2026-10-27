@@ -294,15 +294,17 @@ async function loadOverview() {
     const res = await getStatOverviewApi()
     Object.assign(overview, res)
   } catch {
-    // Mock 兜底
-    Object.assign(overview, {
-      dau: 12856, dauChange: 5.2,
-      newUsers: 486, newUsersChange: 12.3,
-      matchRate: 42.8, matchRateChange: 2.1,
-      payRate: 8.6, payRateChange: -0.5,
-      totalUsers: 358920, totalPosts: 1284567,
-      totalReports: 23, pendingReviews: 15,
-    })
+    // Mock 兜底仅开发环境生效，生产环境保持真实零值避免假数据误导
+    if (import.meta.env.DEV) {
+      Object.assign(overview, {
+        dau: 12856, dauChange: 5.2,
+        newUsers: 486, newUsersChange: 12.3,
+        matchRate: 42.8, matchRateChange: 2.1,
+        payRate: 8.6, payRateChange: -0.5,
+        totalUsers: 358920, totalPosts: 1284567,
+        totalReports: 23, pendingReviews: 15,
+      })
+    }
   }
   // 更新卡片
   statCards.value[0].value = overview.dau
@@ -322,10 +324,15 @@ async function loadTrend() {
   try {
     data = await getTrendDataApi(trendDays.value)
   } catch {
-    data = generateMockTrend(trendDays.value)
+    // Mock 兜底仅开发环境生效，生产环境跳过图表渲染
+    if (import.meta.env.DEV) {
+      data = generateMockTrend(trendDays.value)
+    }
   }
-  initTrendChart(data)
-  initRateChart(data)
+  if (data) {
+    initTrendChart(data)
+    initRateChart(data)
+  }
 }
 
 async function loadGender() {
@@ -335,8 +342,11 @@ async function loadGender() {
     male = res.male
     female = res.female
   } catch {
-    male = 58
-    female = 42
+    // Mock 兜底仅开发环境生效
+    if (import.meta.env.DEV) {
+      male = 58
+      female = 42
+    }
   }
   initGenderChart(male, female)
 }
@@ -348,8 +358,11 @@ async function loadAge() {
     ranges = res.ranges
     counts = res.counts
   } catch {
-    ranges = ['18-22', '23-27', '28-32', '33-37', '38-42', '43+']
-    counts = [45200, 98600, 87400, 52300, 28100, 12300]
+    // Mock 兜底仅开发环境生效
+    if (import.meta.env.DEV) {
+      ranges = ['18-22', '23-27', '28-32', '33-37', '38-42', '43+']
+      counts = [45200, 98600, 87400, 52300, 28100, 12300]
+    }
   }
   initAgeChart(ranges, counts)
 }

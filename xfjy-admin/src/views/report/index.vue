@@ -181,9 +181,15 @@ async function loadData() {
     tableData.value = res.list
     total.value = res.total
   } catch {
-    const mock = getMockReports(query.page, query.pageSize)
-    tableData.value = mock.list
-    total.value = mock.total
+    // Mock 兜底仅开发环境生效，生产环境显示空列表避免假数据误导
+    if (import.meta.env.DEV) {
+      const mock = getMockReports(query.page, query.pageSize)
+      tableData.value = mock.list
+      total.value = mock.total
+    } else {
+      tableData.value = []
+      total.value = 0
+    }
   } finally {
     loading.value = false
   }
