@@ -85,3 +85,14 @@ export function toggleFaqApi(id: number, status: number) {
 export function deleteFaqApi(id: number) {
   return request.delete(`/admin/kefu/faq/${id}`)
 }
+
+/** 客服环信登录凭证（工作台 SDK 登录用） */
+export interface KefuCredential {
+  username: string
+  token: string | null
+}
+
+/** 获取客服环信登录凭证 */
+export function getAgentCredentialApi() {
+  return request.get<any, KefuCredential>('/admin/kefu/agent/credential')
+}

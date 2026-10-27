@@ -114,9 +114,15 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/service',
     component: Layout,
-    redirect: '/service/feedback',
+    redirect: '/service/workbench',
     meta: { title: '客服管理', icon: 'Service' },
     children: [
+      {
+        path: 'workbench',
+        name: 'KefuWorkbench',
+        component: () => import('@/views/kefu/workbench.vue'),
+        meta: { title: '客服工作台', icon: 'ChatLineRound' },
+      },
       {
         path: 'feedback',
         name: 'KefuFeedback',

@@ -1,6 +1,7 @@
 package com.xfjy.server.controller;
 
 import com.xfjy.server.service.AdminKefuService;
+import com.xfjy.server.service.KefuService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,25 @@ public class AdminKefuController {
 
     @Autowired
     private AdminKefuService adminKefuService;
+
+    @Autowired
+    private KefuService kefuService;
+
+    // ==================== 客服工作台 ====================
+
+    /**
+     * GET /admin/kefu/agent/credential — 获取客服环信登录凭证
+     * 前端工作台用 username+token 登录环信 SDK，接收/回复用户消息
+     */
+    @GetMapping("agent/credential")
+    public ResponseEntity getAgentCredential() {
+        try {
+            return ResponseEntity.ok(this.kefuService.getAgentCredential());
+        } catch (Exception e) {
+            LOGGER.error("获取客服凭证失败", e);
+            return ResponseEntity.status(500).body(Map.of("message", "获取客服凭证失败"));
+        }
+    }
 
     // ==================== 意见反馈 ====================
 

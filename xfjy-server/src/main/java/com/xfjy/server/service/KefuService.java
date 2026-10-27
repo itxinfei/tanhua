@@ -62,6 +62,27 @@ public class KefuService {
     }
 
     /**
+     * 获取客服环信登录凭证（admin 工作台专用）
+     * 幂等注册客服账号后换取用户级 token，前端 SDK 用 username+token 登录
+     *
+     * @return {username, token}；环信不可用时 token 为 null
+     */
+    public Map<String, String> getAgentCredential() {
+        String password = DigestUtils.md5Hex(KEFU_AGENT_ID + "_xfjy");
+        Map<String, String> credential = new HashMap<>();
+        credential.put("username", KEFU_AGENT_ID);
+        try {
+            this.huanXinApi.registerUser(KEFU_AGENT_ID, password);
+            String token = this.huanXinApi.getUserToken(KEFU_AGENT_ID, password);
+            credential.put("token", token);
+        } catch (Exception e) {
+            LOGGER.error("[客服] 获取客服凭证异常: {}", KEFU_AGENT_ID, e);
+            credential.put("token", null);
+        }
+        return credential;
+    }
+
+    /**
      * 查询启用中的 FAQ 列表（按 sort 升序）
      */
     public List<FAQ> listEnabledFaq() {
