@@ -96,3 +96,15 @@ export interface KefuCredential {
 export function getAgentCredentialApi() {
   return request.get<any, KefuCredential>('/admin/kefu/agent/credential')
 }
+
+/** 工作台用户基础信息（会话列表昵称/头像展示） */
+export interface KefuUserInfo {
+  userId: number
+  nickname: string | null
+  logo: string | null
+}
+
+/** 批量查询用户基础信息（环信 username = userId，conversationId 即对端 userId） */
+export function getKefuUsersInfoApi(userIds: number[]) {
+  return request.post<any, KefuUserInfo[]>('/admin/kefu/users/info', { userIds })
+}

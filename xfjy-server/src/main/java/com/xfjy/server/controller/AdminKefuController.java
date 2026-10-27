@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -46,6 +47,28 @@ public class AdminKefuController {
         } catch (Exception e) {
             LOGGER.error("获取客服凭证失败", e);
             return ResponseEntity.status(500).body(Map.of("message", "获取客服凭证失败"));
+        }
+    }
+
+    /**
+     * POST /admin/kefu/users/info — 批量查询用户基础信息
+     * body: { userIds: [1, 2, 3] }
+     * 工作台会话列表用 conversationId（环信 username = userId）查昵称/头像
+     */
+    @PostMapping("users/info")
+    public ResponseEntity queryUsersInfo(@RequestBody Map<String, Object> body) {
+        try {
+            Object raw = body.get("userIds");
+            if (raw == null) {
+                return ResponseEntity.ok(List.of());
+            }
+            List<Long> userIds = ((List<?>) raw).stream()
+                    .map(item -> Long.valueOf(String.valueOf(item)))
+                    .collect(java.util.stream.Collectors.toList());
+            return ResponseEntity.ok(this.kefuService.queryUsersInfo(userIds));
+        } catch (Exception e) {
+            LOGGER.error("批量查询用户信息失败", e);
+            return ResponseEntity.status(500).body(Map.of("message", "批量查询用户信息失败"));
         }
     }
 

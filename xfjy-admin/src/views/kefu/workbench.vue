@@ -15,7 +15,16 @@
           @click="openSession(s.conversationId)"
         >
           <div class="session-top">
-            <span class="user-id">用户 {{ s.conversationId }}</span>
+            <div class="user-wrap">
+              <img
+                v-if="displayLogo(s.conversationId)"
+                class="user-avatar"
+                :src="displayLogo(s.conversationId)"
+                alt=""
+              />
+              <span v-else class="user-avatar placeholder">{{ displayName(s.conversationId).charAt(0) }}</span>
+              <span class="user-id">{{ displayName(s.conversationId) }}</span>
+            </div>
             <span class="last-time">{{ fmtShort(s.lastTime) }}</span>
           </div>
           <div class="session-bottom">
@@ -31,7 +40,7 @@
     <div class="chat-panel">
       <div v-if="!activeId" class="chat-empty">选择左侧会话开始回复</div>
       <template v-else>
-        <div class="chat-header">用户 {{ activeId }}</div>
+        <div class="chat-header">{{ displayName(activeId) }}</div>
         <div ref="msgListRef" class="msg-list">
           <div
             v-for="msg in messages"
@@ -60,7 +69,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getAgentCredentialApi } from '@/api/kefu'
+import { getAgentCredentialApi, getKefuUsersInfoApi, type KefuUserInfo } from '@/api/kefu'
 import {
   loginEasemob,
   logoutEasemob,
@@ -116,9 +125,44 @@ function scrollToBottom(): void {
   })
 }
 
-/** 刷新会话列表 */
+/** 用户信息缓存（conversationId 数值 -> 用户信息），会话列表展示昵称/头像 */
+const userMap = ref<Map<number, KefuUserInfo>>(new Map())
+
+/** 会话展示名：有昵称用昵称，否则回退"用户{id}" */
+function displayName(id: string): string {
+  const info = userMap.value.get(Number(id))
+  return info?.nickname || `用户${id}`
+}
+
+/** 会话头像：有 logo 用 logo，否则返回 null（模板用首字占位） */
+function displayLogo(id: string): string | null {
+  return userMap.value.get(Number(id))?.logo || null
+}
+
+/** 批量补查缺失的用户信息（会话刷新后调用，失败静默降级） */
+async function ensureUserInfos(): Promise<void> {
+  const missing: number[] = []
+  for (const s of sessions.value) {
+    const num = Number(s.conversationId)
+    if (!Number.isNaN(num) && !userMap.value.has(num)) {
+      missing.push(num)
+    }
+  }
+  if (missing.length === 0) return
+  try {
+    const list = await getKefuUsersInfoApi(missing)
+    for (const info of list) {
+      userMap.value.set(info.userId, info)
+    }
+  } catch {
+    // 查询失败静默降级，展示回退"用户{id}"
+  }
+}
+
+/** 刷新会话列表（顺带补查新增会话的用户信息） */
 async function refreshSessions(): Promise<void> {
   sessions.value = await getConversations()
+  await ensureUserInfos()
 }
 
 /** 打开会话：加载历史消息 */
@@ -238,9 +282,21 @@ onUnmounted(() => {
 .session-top {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   margin-bottom: 4px;
-  .user-id { font-size: 14px; font-weight: 500; color: #303133; }
-  .last-time { font-size: 12px; color: #c0c4cc; }
+  .user-wrap { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .user-avatar {
+    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; object-fit: cover;
+    &.placeholder {
+      background: #409eff; color: #fff; font-size: 13px;
+      display: flex; align-items: center; justify-content: center;
+    }
+  }
+  .user-id {
+    font-size: 14px; font-weight: 500; color: #303133;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .last-time { font-size: 12px; color: #c0c4cc; flex-shrink: 0; }
 }
 .session-bottom {
   display: flex;

@@ -2,8 +2,11 @@ package com.xfjy.server.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xfjy.service.api.HuanXinApi;
+import com.xfjy.service.api.UserInfoApi;
 import com.xfjy.service.pojo.FAQ;
 import com.xfjy.service.pojo.Feedback;
+import com.xfjy.service.pojo.UserInfo;
+import com.xfjy.service.vo.UserInfoQueryParam;
 import com.xfjy.server.mapper.FAQMapper;
 import com.xfjy.server.mapper.FeedbackMapper;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -13,10 +16,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
@@ -39,6 +44,9 @@ public class KefuService {
 
     @Autowired
     private HuanXinApi huanXinApi;
+
+    @Autowired
+    private UserInfoApi userInfoApi;
 
     /**
      * 获取人工客服环信账号 ID
@@ -80,6 +88,30 @@ public class KefuService {
             credential.put("token", null);
         }
         return credential;
+    }
+
+    /**
+     * 批量查询用户基础信息（admin 工作台会话列表展示昵称/头像）
+     *
+     * <p>环信 username 即 userId 字符串，工作台拿会话 conversationId 即可查询。</p>
+     *
+     * @param userIds 用户ID列表
+     * @return [{userId, nickname, logo}] 列表，入参为空返回空列表
+     */
+    public List<Map<String, Object>> queryUsersInfo(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        UserInfoQueryParam queryParam = new UserInfoQueryParam();
+        queryParam.setUserIds(userIds);
+        List<UserInfo> userInfoList = this.userInfoApi.queryUserInfoList(queryParam);
+        return userInfoList.stream().map(info -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("userId", info.getUserId());
+            map.put("nickname", info.getNickName());
+            map.put("logo", info.getLogo());
+            return map;
+        }).collect(Collectors.toList());
     }
 
     /**
