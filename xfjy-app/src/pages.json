@@ -126,6 +126,18 @@
 			"style": {
 				"navigationBarTitleText": "实名认证"
 			}
+		},
+		{
+			"path": "pages/kefu/index",
+			"style": {
+				"navigationBarTitleText": "在线客服"
+			}
+		},
+		{
+			"path": "pages/kefu/feedback",
+			"style": {
+				"navigationBarTitleText": "意见反馈"
+			}
 		}
 	],
 	"globalStyle": {

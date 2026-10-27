@@ -112,6 +112,26 @@ export const routes: RouteRecordRaw[] = [
     ],
   },
   {
+    path: '/service',
+    component: Layout,
+    redirect: '/service/feedback',
+    meta: { title: '客服管理', icon: 'Service' },
+    children: [
+      {
+        path: 'feedback',
+        name: 'KefuFeedback',
+        component: () => import('@/views/kefu/feedback.vue'),
+        meta: { title: '意见反馈', icon: 'ChatDotRound' },
+      },
+      {
+        path: 'faq',
+        name: 'KefuFaq',
+        component: () => import('@/views/kefu/faq.vue'),
+        meta: { title: 'FAQ管理', icon: 'QuestionFilled' },
+      },
+    ],
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/views/error/404.vue'),

@@ -144,6 +144,12 @@ const settingsMenuItems: MenuItemConfig[] = [
     action: () => goPage("/pages/mine/blacklist"),
   },
   {
+    icon: "🎧",
+    label: "在线客服",
+    color: "#ff5e8e",
+    action: () => goPage("/pages/kefu/index"),
+  },
+  {
     icon: "⚙",
     label: "设置",
     color: "#666666",
