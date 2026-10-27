@@ -8,6 +8,7 @@ import com.xfjy.server.vo.PageResult;
 import com.xfjy.server.vo.SettingsVo;
 import com.xfjy.server.vo.UserInfoVo;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -236,6 +237,28 @@ public class UsersController {
             Boolean matchNotification = param.get("matchNotification");
 
             this.usersService.updateNotification(likeNotification, pinglunNotification, gonggaoNotification, matchNotification);
+            return ResponseEntity.ok(null);
+        } catch (Exception e) {
+            LOGGER.error("接口处理异常", e);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+
+    /**
+     * 上报设备推送标识（极光 registrationId，APP 登录后调用）
+     *
+     * @param param registrationId-极光推送标识（必填）, platform-平台 ANDROID/IOS（可选）
+     * @return 200=绑定成功；400=参数无效
+     */
+    @PostMapping("device/report")
+    public ResponseEntity<Void> reportDevice(@RequestBody Map<String, String> param) {
+        try {
+            String registrationId = param.get("registrationId");
+            String platform = param.get("platform");
+            if (StringUtils.isEmpty(registrationId)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            }
+            this.usersService.reportDevice(registrationId, platform);
             return ResponseEntity.ok(null);
         } catch (Exception e) {
             LOGGER.error("接口处理异常", e);

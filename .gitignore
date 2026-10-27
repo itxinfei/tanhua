@@ -61,6 +61,7 @@ target/
 /scripts/*
 # scripts目录整体忽略（本地调试脚本），仅保留需入库的初始化SQL
 !/scripts/init-kefu.sql
+!/scripts/init-push.sql
 
 # 本地测试用图片（接口验证产物，不入库）
 /test-img.jpg

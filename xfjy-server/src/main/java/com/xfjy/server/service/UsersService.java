@@ -3,6 +3,7 @@ package com.xfjy.server.service;
 import cn.dev33.satoken.stp.StpUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xfjy.service.api.UserInfoApi;
 import com.xfjy.service.api.UserLikeApi;
@@ -14,6 +15,7 @@ import com.xfjy.service.pojo.Visitors;
 import com.xfjy.service.vo.PageInfo;
 import com.xfjy.service.vo.UserInfoQueryParam;
 import com.xfjy.server.mapper.ReportMapper;
+import com.xfjy.server.mapper.UserDeviceMapper;
 import com.xfjy.server.mapper.UserMapper;
 import com.xfjy.server.pojo.*;
 import com.xfjy.server.utils.UserThreadLocal;
@@ -53,6 +55,9 @@ public class UsersService {
 
     @Autowired
     private ReportMapper reportMapper;
+
+    @Autowired
+    private UserDeviceMapper userDeviceMapper;
 
     @Autowired
     private UserMapper userMapper;
@@ -295,6 +300,30 @@ public class UsersService {
     public void updateNotification(Boolean likeNotification, Boolean pinglunNotification, Boolean gonggaoNotification, Boolean matchNotification) {
         User user = UserThreadLocal.get();
         this.settingsService.updateNotification(user.getId(), likeNotification, pinglunNotification, gonggaoNotification, matchNotification);
+    }
+
+    /**
+     * 上报设备推送标识（按 userId+registrationId 去重，存在则更新平台，否则插入）
+     *
+     * @param registrationId 极光推送标识
+     * @param platform       平台 ANDROID/IOS（可空）
+     */
+    public void reportDevice(String registrationId, String platform) {
+        User user = UserThreadLocal.get();
+        QueryWrapper<UserDevice> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("user_id", user.getId());
+        queryWrapper.eq("registration_id", registrationId);
+        UserDevice exist = this.userDeviceMapper.selectOne(queryWrapper);
+        if (exist != null) {
+            exist.setPlatform(platform);
+            this.userDeviceMapper.updateById(exist);
+        } else {
+            UserDevice device = new UserDevice();
+            device.setUserId(user.getId());
+            device.setRegistrationId(registrationId);
+            device.setPlatform(platform);
+            this.userDeviceMapper.insert(device);
+        }
     }
 
     /**

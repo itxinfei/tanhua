@@ -76,6 +76,11 @@ xfjy:
     uri: http://127.0.0.1:7474
     username: neo4j
     password: ${NEO4J_PASSWORD:}
+  # 极光推送 JPush（凭证环境变量外置，留空走 mock 模式仅打日志不实际推送）
+  jpush:
+    app-key: ${JPUSH_APP_KEY:}
+    master-secret: ${JPUSH_MASTER_SECRET:}
+    enabled: true
 
 # Sa-Token 认证鉴权（管理后台）
 sa-token:

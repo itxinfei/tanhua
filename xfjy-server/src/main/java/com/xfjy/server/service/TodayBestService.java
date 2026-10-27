@@ -67,6 +67,9 @@ public class TodayBestService {
     @Autowired
     private IMService imService;
 
+    @Autowired //极光推送（匹配成功通知对方，旁路失败不阻断主链路）
+    private PushService pushService;
+
     @Autowired //推荐混合评分（阶段1保底：ALS+距离+画像加权）
     private RecommendScoringService recommendScoringService;
 
@@ -378,6 +381,8 @@ public class TodayBestService {
         if (mutualLike) {
             // 相互喜欢成为好友（注册环信联系人）
             this.imService.contactUser(likeUserId);
+            // 推送匹配成功通知给对方（旁路，失败仅日志不阻断）
+            this.pushService.pushMatchNotification(likeUserId);
         }
         return mutualLike;
     }
