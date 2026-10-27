@@ -3,11 +3,13 @@
  * 基于 uni.request，统一处理 Token 注入、错误码映射、Loading
  */
 
-// 后端服务地址（按环境切换）
+// 后端服务地址：优先读环境变量 VITE_API_BASE_URL，未配置则按构建模式回退
+// 开发联调可在 xfjy-app/.env.development 配置 VITE_API_BASE_URL=http://192.168.x.x:8090
 export const BASE_URL: string =
-  import.meta.env.MODE === "production"
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.MODE === "production"
     ? "https://api.xfjy.com"
-    : "http://localhost:8090"; // 统一走网关(8090，避开8080端口占用)，由网关路由到 sso/server
+    : "http://localhost:8090"); // 统一走网关(8090，避开8080端口占用)，由网关路由到 sso/server
 
 // 请求配置类型
 interface RequestOptions {

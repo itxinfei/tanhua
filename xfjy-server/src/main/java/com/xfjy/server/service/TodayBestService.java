@@ -188,6 +188,7 @@ public class TodayBestService {
         todayBest.setCity(userInfo.getCity());
         todayBest.setEdu(userInfo.getEdu());
         todayBest.setIndustry(userInfo.getIndustry());
+        todayBest.setPhotoAlbum(userInfo.getPhotoAlbum());
 
         double score = this.recommendUserService.queryScore(userId, user.getId());
         if (score == 0) {

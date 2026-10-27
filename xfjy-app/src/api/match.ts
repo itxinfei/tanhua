@@ -25,6 +25,8 @@ export interface TodayBest {
   edu?: string;
   /** 行业 */
   industry?: string;
+  /** 照片墙：JSON数组字符串（OSS URL 列表） */
+  photoAlbum?: string;
 }
 
 /**

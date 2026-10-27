@@ -1,25 +1,14 @@
 <script setup lang="ts">
-import { onLaunch, onShow, onHide } from "@dcloudio/uni-app";
-
-onLaunch(() => {
-  console.log("心飞交友 App Launch");
-});
-
-onShow(() => {
-  console.log("App Show");
-});
-
-onHide(() => {
-  console.log("App Hide");
-});
+// 全局生命周期暂无逻辑，App 初始化由各页面 onLoad/onShow 自行处理
 </script>
 
 <style lang="scss">
 /* uview-plus 样式 */
 @import "uview-plus/index.scss";
 
-/* ===== CSS 变量（深色模式基础版：跟随系统自动切换，页面硬编码色后续逐步迁移） ===== */
+/* ===== CSS 变量（深色模式 WIP：变量层已就绪，页面硬编码色待逐步迁移到变量引用） ===== */
 page {
+  --color-primary: #ff5e8e;
   --bg-page: #f5f5f5;
   --bg-card: #ffffff;
   --bg-icon-soft: #fff0f5;
@@ -37,6 +26,7 @@ page {
 
 @media (prefers-color-scheme: dark) {
   page {
+    --color-primary: #ff7ba5;
     --bg-page: #1a1a1a;
     --bg-card: #2c2c2c;
     --bg-icon-soft: #3a2a30;

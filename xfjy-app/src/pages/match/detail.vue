@@ -130,6 +130,18 @@ function previewPhoto(index: number): void {
   uni.previewImage({ urls: photos.value, current: photos.value[index] });
 }
 
+/** photoAlbum 兼容 string(JSON)/string[]/undefined，统一归一为 string[] */
+function normalizeAlbum(raw: string | string[] | undefined): string[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter(Boolean);
+  try {
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
 /** 加载用户资料 */
 async function loadUserInfo(): Promise<void> {
   if (!userId.value) return;
@@ -137,12 +149,14 @@ async function loadUserInfo(): Promise<void> {
     const info = await getPersonalInfo(userId.value);
     user.value = info;
     fateScore.value = info?.fateValue || 0;
-    // 照片轮播：头像 + 动态图片
+    // 照片轮播：头像 + 照片墙（photo_album）+ 动态图片，去重
     const avatar = info?.avatar || "";
+    const albumPhotos = normalizeAlbum(info?.photoAlbum);
     const mediaPhotos = movements.value
       .flatMap((m) => m.medias || [])
       .filter((url) => /\.(jpe?g|png|webp|gif)$/i.test(url));
-    photos.value = avatar ? [avatar, ...mediaPhotos] : mediaPhotos;
+    const all = [...(avatar ? [avatar] : []), ...albumPhotos, ...mediaPhotos];
+    photos.value = [...new Set(all)];
   } catch {
     // 请求失败由 request 层统一 toast
   }

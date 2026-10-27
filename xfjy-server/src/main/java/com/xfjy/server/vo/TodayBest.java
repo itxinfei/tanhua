@@ -22,5 +22,6 @@ public class TodayBest {
     private String city; //城市
     private String edu; //学历
     private String industry; //行业
+    private String photoAlbum; //照片墙：JSON数组存OSS URL列表
 
 }

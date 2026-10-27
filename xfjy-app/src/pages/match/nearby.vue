@@ -123,7 +123,6 @@ onPullDownRefresh(async () => {
 .user-item { display: flex; align-items: center; padding: 24rpx; background: #fff; border-radius: 24rpx; margin-bottom: 16rpx;
   .avatar-wrap { position: relative; flex-shrink: 0;
     .avatar { width: 100rpx; height: 100rpx; border-radius: 50%; background: #f0f0f0; border: 3rpx solid #fff0f5; }
-    .online-dot { position: absolute; bottom: 4rpx; right: 4rpx; width: 22rpx; height: 22rpx; background: #4cd964; border: 3rpx solid #fff; border-radius: 50%; }
   }
   .info { flex: 1; margin-left: 24rpx;
     .name-row { display: flex; align-items: center; gap: 12rpx;

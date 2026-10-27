@@ -198,6 +198,13 @@ const currentCardIndex = ref(0); // 当前顶部卡片在 cardList 中的索引
 // 匹配弹窗
 const matchPopup = ref<MatchPopupData | null>(null);
 
+/** 上一张卡片的滑动记录（用于撤销回滚后端操作） */
+interface SwipeRecord {
+  card: TodayBest;
+  action: "like" | "dislike" | "superlike";
+}
+const lastSwipe = ref<SwipeRecord | null>(null);
+
 /** 可见卡片（最多显示 VISIBLE_CARD_COUNT 张，从后往前堆叠渲染） */
 const visibleCards = computed(() => {
   return cardList.value.slice(
@@ -296,6 +303,8 @@ async function swipeOut(action: "like" | "dislike" | "superlike") {
   // 上报滑动，互相喜欢时弹出匹配成功窗
   try {
     const matched = await matchStore.doSwipe(card.id, action);
+    // 记录本次滑动，供撤销回滚使用
+    lastSwipe.value = { card, action };
     if (matched) {
       matchPopup.value = {
         userId: card.id,
@@ -360,10 +369,31 @@ async function handleSuperlike() {
     superlikeChecking.value = false;
   }
 }
-function handleRewind() {
-  if (currentCardIndex.value > 0) {
+/** 撤销进行中标记（防连点） */
+const rewinding = ref(false);
+async function handleRewind() {
+  if (rewinding.value) return;
+  if (!lastSwipe.value) {
+    uni.showToast({ title: "暂无可撤销的操作", icon: "none" });
+    return;
+  }
+  if (!matchStore.canRewind()) {
+    uni.showToast({ title: "今日撤销次数已用完（3次/天）", icon: "none" });
+    return;
+  }
+  const { card, action } = lastSwipe.value;
+  rewinding.value = true;
+  try {
+    // 回滚后端操作（like/superlike→unlove）并返还滑动次数
+    await matchStore.undoSwipe(card.id, action);
     currentCardIndex.value--;
+    matchStore.useRewind();
+    lastSwipe.value = null;
     uni.showToast({ title: "已撤销", icon: "none" });
+  } catch {
+    uni.showToast({ title: "撤销失败，请重试", icon: "none" });
+  } finally {
+    rewinding.value = false;
   }
 }
 function handleBoost() {

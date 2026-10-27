@@ -105,17 +105,18 @@ const plans = computed(() =>
 /** 当前选中套餐 */
 const currentPlan = computed(() => plans.value.find((p) => p.id === selectedId.value));
 
-/** 会员状态展示 */
+/** 会员状态展示（等级名从套餐 name 动态取，避免硬编码与后端套餐名脱节） */
 const vipInfo = computed(() => {
   const level = vipStatus.value?.level ?? 0;
   const isVip = level > 0;
-  const levelNames: Record<number, string> = { 1: "月卡会员", 2: "季卡会员", 3: "年卡会员" };
+  const pkg = packages.value.find((p) => p.level === level);
+  const levelName = pkg ? pkg.name : "VIP";
   let expireText = "";
   if (isVip && vipStatus.value?.expireTime) {
     const d = new Date(vipStatus.value.expireTime);
     expireText = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
-  return { isVip, levelName: levelNames[level] || "VIP", expireText };
+  return { isVip, levelName, expireText };
 });
 
 /** 拉取套餐列表与会员状态 */
