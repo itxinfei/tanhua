@@ -86,6 +86,32 @@ export const routes: RouteRecordRaw[] = [
     ],
   },
   {
+    path: '/operation',
+    component: Layout,
+    redirect: '/operation/pay',
+    meta: { title: '运营管理', icon: 'Operation' },
+    children: [
+      {
+        path: 'pay',
+        name: 'PayOrders',
+        component: () => import('@/views/pay/index.vue'),
+        meta: { title: '支付订单', icon: 'Wallet' },
+      },
+      {
+        path: 'sensitive',
+        name: 'SensitiveWords',
+        component: () => import('@/views/sensitive/index.vue'),
+        meta: { title: '敏感词库', icon: 'Filter' },
+      },
+      {
+        path: 'vip',
+        name: 'VipPackages',
+        component: () => import('@/views/vip/index.vue'),
+        meta: { title: 'VIP套餐', icon: 'Medal' },
+      },
+    ],
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/views/error/404.vue'),
