@@ -25,6 +25,19 @@
 
     <!-- 输入区 -->
     <view class="input-area safe-area-bottom">
+      <!-- 快捷问题（仅新会话显示，发送首条后隐藏） -->
+      <scroll-view v-if="messageList.length === 0" scroll-x class="quick-bar" :show-scrollbar="false">
+        <view class="quick-list">
+          <view
+            v-for="q in QUICK_QUESTIONS"
+            :key="q"
+            class="quick-chip btn-feedback"
+            @click="sendQuick(q)"
+          >
+            <text>{{ q }}</text>
+          </view>
+        </view>
+      </scroll-view>
       <view class="input-bar">
         <input
           v-model="inputText"
@@ -61,6 +74,13 @@ import {
 const DEFAULT_AVATAR = "/static/logo/logo-icon-transparent.png";
 /** 时间分隔线最小间隔（分钟） */
 const TIME_GAP_MINUTES = 5;
+/** 快捷问题预设（与 FAQ 种子数据呼应，引导首次提问） */
+const QUICK_QUESTIONS: string[] = [
+  "如何修改绑定手机？",
+  "VIP会员有哪些权益？",
+  "如何注销账号？",
+  "举报后会如何处理？",
+];
 
 /** 消息发送状态 */
 type MsgStatus = "sending" | "sent" | "read";
@@ -116,6 +136,18 @@ function scrollToBottom(): void {
 async function sendText(): Promise<void> {
   const text = inputText.value.trim();
   if (!text || sending.value) return;
+  await doSend(text);
+  inputText.value = "";
+}
+
+/** 点击快捷问题直接发送 */
+async function sendQuick(text: string): Promise<void> {
+  if (sending.value) return;
+  await doSend(text);
+}
+
+/** 实际发送逻辑：追加消息并通过环信 SDK 发送 */
+async function doSend(text: string): Promise<void> {
   sending.value = true;
   const msg: Message = {
     id: Date.now().toString(),
@@ -125,7 +157,6 @@ async function sendText(): Promise<void> {
     status: "sending",
   };
   messageList.value.push(msg);
-  inputText.value = "";
   scrollToBottom();
   const ok = await sendTextMessage(agentId.value, text);
   msg.status = ok ? "sent" : "sending";
@@ -224,6 +255,13 @@ onUnmounted(() => {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .input-area { background: #fff; border-top: 1rpx solid #eee; }
+
+.quick-bar { background: #fafafa; border-bottom: 1rpx solid #f0f0f0; }
+.quick-list { display: flex; gap: 16rpx; padding: 16rpx 20rpx; }
+.quick-chip { flex-shrink: 0; background: #fff; border: 1rpx solid #ffb3c9; border-radius: 32rpx; padding: 12rpx 28rpx;
+  text { font-size: 24rpx; color: #ff5e8e; white-space: nowrap; }
+}
+
 .input-bar { display: flex; align-items: center; gap: 16rpx; padding: 14rpx 16rpx; }
 .text-input { flex: 1; height: 72rpx; background: #f5f5f5; border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; transition: all 0.2s;
   &.focus { background: #fff; box-shadow: 0 0 0 3rpx rgba(255, 94, 142, 0.35); }

@@ -1,10 +1,25 @@
 <template>
   <view class="kefu-page">
+    <!-- FAQ 搜索框 -->
+    <view class="search-bar">
+      <view class="search-input-wrap">
+        <text class="search-icon">🔍</text>
+        <input
+          v-model="keyword"
+          class="search-input"
+          placeholder="搜索常见问题关键词"
+          :maxlength="30"
+          confirm-type="search"
+        />
+        <text v-if="keyword" class="search-clear" @click="keyword = ''">✕</text>
+      </view>
+    </view>
+
     <scroll-view class="faq-scroll" scroll-y>
       <view v-if="groupedList.length === 0 && !loading" class="empty-state">
         <view class="empty-icon"><text>💬</text></view>
-        <text class="empty-title">暂无常见问题</text>
-        <text class="empty-desc">可直接提交意见反馈联系我们</text>
+        <text class="empty-title">{{ keyword ? '未找到相关问题' : '暂无常见问题' }}</text>
+        <text class="empty-desc">{{ keyword ? '换个关键词，或直接咨询在线客服' : '可直接提交意见反馈联系我们' }}</text>
       </view>
 
       <view v-for="group in groupedList" :key="group.category" class="faq-group">
@@ -50,13 +65,26 @@ import { getFaqListApi, type FaqItem } from "@/api/kefu";
 
 const faqList = ref<FaqItem[]>([]);
 const loading = ref(false);
+/** 搜索关键词（本地过滤 question/answer） */
+const keyword = ref("");
 /** 当前展开的 FAQ id（手风琴：同时只展开一个） */
 const expandedId = ref<number | null>(null);
 
-/** 按分类分组 */
+/** 按关键词过滤后的列表 */
+const filteredList = computed(() => {
+  const kw = keyword.value.trim().toLowerCase();
+  if (!kw) return faqList.value;
+  return faqList.value.filter(
+    (item) =>
+      item.question.toLowerCase().includes(kw) ||
+      item.answer.toLowerCase().includes(kw)
+  );
+});
+
+/** 按分类分组（基于过滤后列表） */
 const groupedList = computed(() => {
   const map = new Map<string, FaqItem[]>();
-  for (const item of faqList.value) {
+  for (const item of filteredList.value) {
     const key = item.category || "其他";
     if (!map.has(key)) {
       map.set(key, []);
@@ -103,6 +131,39 @@ function goFeedback(): void {
   background: #f5f5f5;
   display: flex;
   flex-direction: column;
+}
+
+.search-bar {
+  padding: 16rpx 24rpx 4rpx;
+  background: #f5f5f5;
+
+  .search-input-wrap {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border-radius: 36rpx;
+    padding: 0 24rpx;
+    height: 72rpx;
+    gap: 12rpx;
+
+    .search-icon {
+      font-size: 28rpx;
+      flex-shrink: 0;
+    }
+
+    .search-input {
+      flex: 1;
+      font-size: 26rpx;
+      color: #333;
+    }
+
+    .search-clear {
+      font-size: 28rpx;
+      color: #ccc;
+      padding: 8rpx;
+      flex-shrink: 0;
+    }
+  }
 }
 
 .faq-scroll {
