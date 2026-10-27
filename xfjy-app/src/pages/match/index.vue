@@ -442,6 +442,10 @@ onShow(() => {
   if (userStore.isLogin && cardList.value.length === 0) {
     loadMoreCards();
   }
+  // 刷新无限滑动权益状态（VIP unlimited_swipe，每次进入匹配页刷新一次）
+  if (userStore.isLogin) {
+    matchStore.loadSwipeBenefit();
+  }
 });
 
 /** 小程序端分享配置（H5 端静默忽略） */

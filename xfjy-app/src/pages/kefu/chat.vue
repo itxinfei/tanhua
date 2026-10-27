@@ -2,6 +2,11 @@
   <view class="chat-room">
     <!-- 消息列表 -->
     <scroll-view scroll-y class="msg-list" :scroll-into-view="scrollToId" :scroll-with-animation="true">
+      <!-- VIP 专属客服通道标识（exclusive_service 权益） -->
+      <view v-if="isVip" class="vip-banner">
+        <text class="vip-crown">👑</text>
+        <text class="vip-text">VIP 专属客服通道 · 优先服务</text>
+      </view>
       <!-- 客服欢迎语 -->
       <view class="welcome-tip">
         <text>您好，我是心飞交友在线客服，很高兴为您服务 🎧</text>
@@ -63,6 +68,7 @@ import { onLoad } from "@dcloudio/uni-app";
 import { useUserStore } from "@/store/user";
 import { getHuanXinUser } from "@/api/chat";
 import { getAgentApi } from "@/api/kefu";
+import { getVipStatus } from "@/api/mine";
 import {
   loginEasemob,
   onMessageReceived,
@@ -101,6 +107,8 @@ const sending = ref(false);
 const isInputFocus = ref(false);
 const scrollToId = ref("");
 const messageList = ref<Message[]>([]);
+/** 是否 VIP（exclusive_service 专属客服标识） */
+const isVip = ref(false);
 
 /** 是否显示时间分隔线（与上一条间隔超过阈值） */
 function showTimeDivider(msg: Message): boolean {
@@ -172,6 +180,12 @@ let unregisterMessage: (() => void) | null = null;
 onLoad(async () => {
   myAvatar.value = userStore.userInfo?.avatar || DEFAULT_AVATAR;
 
+  // 查询 VIP 状态（exclusive_service 专属客服标识，失败静默不阻断）
+  try {
+    const vip = await getVipStatus();
+    isVip.value = (vip?.level ?? 0) > 0;
+  } catch {}
+
   try {
     // 1. 获取客服环信账号
     const agent = await getAgentApi();
@@ -222,6 +236,13 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .chat-room { height: 100vh; display: flex; flex-direction: column; background: #f5f5f5; }
+
+.vip-banner { display: flex; align-items: center; justify-content: center; gap: 8rpx;
+  margin: 24rpx 24rpx 0; padding: 16rpx 0;
+  background: linear-gradient(90deg, #2b1a0e, #4a3220); border-radius: 16rpx;
+  .vip-crown { font-size: 28rpx; }
+  .vip-text { font-size: 24rpx; color: #e8c88a; letter-spacing: 1rpx; }
+}
 
 .welcome-tip { display: flex; justify-content: center; margin: 24rpx 0;
   text { font-size: 24rpx; color: #999; background: rgba(0, 0, 0, 0.05); padding: 10rpx 28rpx; border-radius: 24rpx; }

@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import { getCards, loveUser, unloveUser, getTodayBest, type TodayBest } from "@/api/match";
+import { checkBenefit } from "@/api/mine";
 
 /** 每日免费滑动上限 */
 const MAX_FREE_SWIPE = 50;
@@ -65,6 +66,8 @@ export const useMatchStore = defineStore("match", () => {
   const swipeCount = ref(restoreDailyCount(SWIPE_COUNT_STORAGE_KEY));
   /** 今日已撤销次数（storage 持久化，跨日自动清零） */
   const rewindCount = ref(restoreDailyCount(REWIND_COUNT_STORAGE_KEY));
+  /** 是否拥有无限滑动权益（VIP unlimited_swipe，每次进入匹配页刷新） */
+  const hasUnlimitedSwipe = ref(false);
 
   // ===== actions =====
   /**
@@ -133,7 +136,20 @@ export const useMatchStore = defineStore("match", () => {
    * @returns true 表示可以继续滑动
    */
   function canSwipe(): boolean {
-    return swipeCount.value < MAX_FREE_SWIPE;
+    return hasUnlimitedSwipe.value || swipeCount.value < MAX_FREE_SWIPE;
+  }
+
+  /**
+   * 刷新无限滑动权益状态（进入匹配页时调用一次，非每次滑动请求）
+   * 权益码 unlimited_swipe：VIP 达标即不限次
+   */
+  async function loadSwipeBenefit(): Promise<void> {
+    try {
+      const benefit = await checkBenefit("unlimited_swipe");
+      hasUnlimitedSwipe.value = !!benefit?.hasBenefit;
+    } catch {
+      hasUnlimitedSwipe.value = false;
+    }
   }
 
   /**
@@ -160,6 +176,7 @@ export const useMatchStore = defineStore("match", () => {
     todayBest.value = null;
     swipeCount.value = 0;
     rewindCount.value = 0;
+    hasUnlimitedSwipe.value = false;
     loading.value = false;
     clearDailyCountStorage();
   }
@@ -170,11 +187,13 @@ export const useMatchStore = defineStore("match", () => {
     loading,
     swipeCount,
     rewindCount,
+    hasUnlimitedSwipe,
     loadCards,
     doSwipe,
     undoSwipe,
     loadTodayBest,
     canSwipe,
+    loadSwipeBenefit,
     canRewind,
     useRewind,
     clear,

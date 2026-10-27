@@ -1,6 +1,8 @@
 package com.xfjy.service.api;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -61,6 +63,18 @@ public class VisitorsApiImpl implements VisitorsApi {
         pageInfo.setTotal(0); //暂时不提供
 
         return pageInfo;
+    }
+
+    @Override
+    @PostMapping("/saveVisitor")
+    public void saveVisitor(@RequestBody Visitors visitors) {
+        if (visitors == null || visitors.getUserId() == null || visitors.getVisitorUserId() == null) {
+            return;
+        }
+        if (visitors.getDate() == null) {
+            visitors.setDate(System.currentTimeMillis());
+        }
+        this.mongoTemplate.insert(visitors);
     }
 
     private List<Visitors> queryVisitorsList(Query query) {

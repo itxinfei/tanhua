@@ -4,11 +4,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import tools.jackson.databind.json.JsonMapper;
 import com.xfjy.service.api.ESUserLocationApi;
 import com.xfjy.service.api.HuanXinApi;
+import com.xfjy.service.api.PayApi;
 import com.xfjy.service.api.UserInfoApi;
 import com.xfjy.service.api.UserLikeApi;
+import com.xfjy.service.api.VisitorsApi;
 import com.xfjy.service.enums.SexEnum;
 import com.xfjy.service.pojo.RecommendUser;
 import com.xfjy.service.pojo.UserInfo;
+import com.xfjy.service.pojo.Visitors;
+import com.xfjy.service.vo.BenefitCheckVo;
 import com.xfjy.service.vo.PageInfo;
 import com.xfjy.service.vo.UserInfoQueryParam;
 import com.xfjy.service.vo.UserLocationVo;
@@ -69,6 +73,12 @@ public class TodayBestService {
 
     @Autowired //极光推送（匹配成功通知对方，旁路失败不阻断主链路）
     private PushService pushService;
+
+    @Autowired //权益校验（stealth_visit 隐身访问）
+    private PayApi payApi;
+
+    @Autowired //访客记录写入
+    private VisitorsApi visitorsApi;
 
     @Autowired //推荐混合评分（阶段1保底：ALS+距离+画像加权）
     private RecommendScoringService recommendScoringService;
@@ -199,6 +209,24 @@ public class TodayBestService {
         }
 
         todayBest.setFateValue(Double.valueOf(score).longValue());
+
+        // 查看他人详情时记录访客（自己看自己不记录；stealth_visit 隐身权益不记录）
+        if (!userId.equals(user.getId())) {
+            try {
+                BenefitCheckVo stealth = this.payApi.checkBenefit(user.getId(), "stealth_visit");
+                if (stealth == null || !Boolean.TRUE.equals(stealth.getHasBenefit())) {
+                    Visitors visitors = new Visitors();
+                    visitors.setUserId(userId);              // 被查看者
+                    visitors.setVisitorUserId(user.getId()); // 来访者
+                    visitors.setFrom("todayBest");
+                    visitors.setDate(System.currentTimeMillis());
+                    this.visitorsApi.saveVisitor(visitors);
+                }
+            } catch (Exception e) {
+                LOGGER.warn("访客记录写入失败：visitor={}, target={}", user.getId(), userId, e);
+            }
+        }
+
         return todayBest;
     }
 
