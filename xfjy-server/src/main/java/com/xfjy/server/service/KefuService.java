@@ -1,11 +1,15 @@
 package com.xfjy.server.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.xfjy.service.api.HuanXinApi;
 import com.xfjy.service.pojo.FAQ;
 import com.xfjy.service.pojo.Feedback;
 import com.xfjy.server.mapper.FAQMapper;
 import com.xfjy.server.mapper.FeedbackMapper;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -17,16 +21,45 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 /**
- * 客服服务（app 端）：FAQ 查询 + 意见反馈提交
+ * 客服服务（app 端）：FAQ 查询 + 意见反馈提交 + 人工客服会话
  */
 @Service
 public class KefuService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(KefuService.class);
+
+    /** 固定客服环信账号（客服侧通过环信 Console 或后续工作台登录回复） */
+    private static final String KEFU_AGENT_ID = "kefu0001";
 
     @Autowired
     private FAQMapper faqMapper;
 
     @Autowired
     private FeedbackMapper feedbackMapper;
+
+    @Autowired
+    private HuanXinApi huanXinApi;
+
+    /**
+     * 获取人工客服环信账号 ID
+     * 首次调用时在环信侧幂等注册客服账号（密码规则与用户账号一致：md5(账号 + "_xfjy")）
+     *
+     * @return 客服环信账号 ID
+     */
+    public String getAgentId() {
+        String password = DigestUtils.md5Hex(KEFU_AGENT_ID + "_xfjy");
+        try {
+            boolean registered = this.huanXinApi.registerUser(KEFU_AGENT_ID, password);
+            if (registered) {
+                LOGGER.info("[客服] 客服账号已就绪: {}", KEFU_AGENT_ID);
+            } else {
+                LOGGER.warn("[客服] 客服账号注册失败（环信不可用），仍返回账号ID: {}", KEFU_AGENT_ID);
+            }
+        } catch (Exception e) {
+            LOGGER.error("[客服] 客服账号注册异常: {}", KEFU_AGENT_ID, e);
+        }
+        return KEFU_AGENT_ID;
+    }
 
     /**
      * 查询启用中的 FAQ 列表（按 sort 升序）

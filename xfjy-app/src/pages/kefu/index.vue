@@ -32,10 +32,13 @@
       </view>
     </scroll-view>
 
-    <!-- 底部反馈入口 -->
+    <!-- 底部入口：在线咨询 + 意见反馈 -->
     <view class="bottom-bar safe-area-bottom">
-      <view class="feedback-btn btn-feedback" @click="goFeedback">
-        <text>没有解决？意见反馈</text>
+      <view class="entry-btn btn-feedback consult" @click="goChat">
+        <text>🎧 在线咨询</text>
+      </view>
+      <view class="entry-btn btn-feedback" @click="goFeedback">
+        <text>意见反馈</text>
       </view>
     </view>
   </view>
@@ -81,6 +84,11 @@ async function loadFaqList(): Promise<void> {
 /** 展开/收起 FAQ（手风琴） */
 function toggleItem(id: number): void {
   expandedId.value = expandedId.value === id ? null : id;
+}
+
+/** 跳转在线客服聊天页 */
+function goChat(): void {
+  uni.navigateTo({ url: "/pages/kefu/chat" });
 }
 
 /** 跳转意见反馈页 */
@@ -206,17 +214,30 @@ function goFeedback(): void {
   padding: 20rpx 24rpx;
   background: #fff;
   border-top: 1rpx solid #f0f0f0;
+  display: flex;
+  gap: 20rpx;
 
-  .feedback-btn {
-    background: #ff5e8e;
+  .entry-btn {
+    flex: 1;
+    background: #fff0f5;
+    border: 1rpx solid #ffb3c9;
     border-radius: 44rpx;
     text-align: center;
-    padding: 24rpx 0;
+    padding: 22rpx 0;
 
     text {
-      color: #fff;
-      font-size: 30rpx;
+      color: #ff5e8e;
+      font-size: 28rpx;
       font-weight: 500;
+    }
+
+    &.consult {
+      background: #ff5e8e;
+      border-color: #ff5e8e;
+
+      text {
+        color: #fff;
+      }
     }
   }
 }

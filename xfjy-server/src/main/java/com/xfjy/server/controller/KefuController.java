@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 客服接口（app 端）：FAQ 查询 + 意见反馈
+ * 客服接口（app 端）：FAQ 查询 + 意见反馈 + 人工客服会话
  */
 @RestController
 @RequestMapping("kefu")
@@ -70,6 +70,21 @@ public class KefuController {
         } catch (Exception e) {
             LOGGER.error("查询我的反馈列表失败", e);
             return ResponseEntity.status(500).body(Map.of("message", "查询反馈列表失败"));
+        }
+    }
+
+    /**
+     * GET /kefu/agent — 获取人工客服环信账号 ID（需登录）
+     * 前端用该账号 ID 与客服建立环信单聊会话
+     */
+    @GetMapping("agent")
+    public ResponseEntity getAgent() {
+        try {
+            String agentId = this.kefuService.getAgentId();
+            return ResponseEntity.ok(Map.of("agentId", agentId));
+        } catch (Exception e) {
+            LOGGER.error("获取客服账号失败", e);
+            return ResponseEntity.status(500).body(Map.of("message", "获取客服账号失败"));
         }
     }
 }

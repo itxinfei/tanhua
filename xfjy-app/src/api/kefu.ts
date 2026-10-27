@@ -47,3 +47,17 @@ export function submitFeedbackApi(content: string, contact?: string): Promise<vo
 export function getMyFeedbackApi(): Promise<FeedbackItem[]> {
   return get<FeedbackItem[]>("/kefu/feedback/my");
 }
+
+/** 人工客服账号 */
+export interface KefuAgent {
+  /** 客服环信账号 ID（用于建立单聊会话） */
+  agentId: string;
+}
+
+/**
+ * 获取人工客服环信账号
+ * 对接后端: GET /kefu/agent
+ */
+export function getAgentApi(): Promise<KefuAgent> {
+  return get<KefuAgent>("/kefu/agent");
+}

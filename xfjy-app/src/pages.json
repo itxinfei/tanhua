@@ -138,6 +138,12 @@
 			"style": {
 				"navigationBarTitleText": "意见反馈"
 			}
+		},
+		{
+			"path": "pages/kefu/chat",
+			"style": {
+				"navigationBarTitleText": "在线客服"
+			}
 		}
 	],
 	"globalStyle": {
