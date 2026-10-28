@@ -44,8 +44,30 @@ type MessageHandler = (msg: ReceivedMessage) => void;
 /** 全局消息回调列表 */
 const messageHandlers: MessageHandler[] = [];
 
-/** 环信客户端单例 */
-let client: ReturnType<typeof ChatClient.init> | null = null;
+/**
+ * SDK manager mixin 方法签名（ChatClient 经 WithManagers 混入，TS 严格模式下
+ * 推断为不可调用的 ManagerBase，需断言后调用）
+ */
+interface ChatClientManagers {
+  createTextMessage(opts: {
+    conversationId: string;
+    conversationType: "singleChat";
+    content: string;
+  }): Message;
+  getHistoryMessages(opts: {
+    conversationId: string;
+    conversationType: "singleChat";
+    pageSize: number;
+    searchDirection: "up";
+  }): Promise<{ items: Message[] }>;
+}
+
+/**
+ * 环信客户端单例
+ * SDK 5.x 的 WithManagers 泛型在 TS 严格模式下推断异常（init 返回值不可赋值、
+ * manager 方法不可调用），统一收敛为 ChatClient 类型，调用处局部断言绕过。
+ */
+let client: ChatClient | null = null;
 
 /** 登录状态 */
 let isLoggedIn = false;
@@ -63,13 +85,13 @@ function extractText(message: Message): string {
 /**
  * 初始化环信 SDK（单例，幂等）
  */
-function getClient(): ReturnType<typeof ChatClient.init> {
+function getClient(): ChatClient {
   if (client) {
     return client;
   }
   client = ChatClient.init({
     appKey: EASEMOB_APP_KEY,
-  });
+  }) as unknown as ChatClient;
   client.addEventHandler(HANDLER_ID, {
     onMessage(message: Message) {
       const received: ReceivedMessage = {
@@ -164,7 +186,7 @@ export async function sendTextMessage(
   }
   try {
     const connection = getClient();
-    const message = connection.createTextMessage({
+    const message = (connection as unknown as ChatClientManagers).createTextMessage({
       conversationId: to,
       conversationType: "singleChat",
       content,
@@ -188,7 +210,7 @@ export async function getChatHistory(
   }
   try {
     const connection = getClient();
-    const page = await connection.getHistoryMessages({
+    const page = await (connection as unknown as ChatClientManagers).getHistoryMessages({
       conversationId,
       conversationType: "singleChat",
       pageSize,

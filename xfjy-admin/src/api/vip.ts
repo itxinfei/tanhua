@@ -42,7 +42,7 @@ export interface VipPackageForm {
   name: string
   level: number
   price: number
-  originalPrice?: number
+  originalPrice?: number | null
   durationDays: number
   description?: string
   sort?: number

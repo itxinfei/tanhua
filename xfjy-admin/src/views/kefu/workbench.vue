@@ -134,9 +134,9 @@ function displayName(id: string): string {
   return info?.nickname || `用户${id}`
 }
 
-/** 会话头像：有 logo 用 logo，否则返回 null（模板用首字占位） */
-function displayLogo(id: string): string | null {
-  return userMap.value.get(Number(id))?.logo || null
+/** 会话头像：有 logo 用 logo，否则返回 undefined（模板用首字占位；img src 不接受 null） */
+function displayLogo(id: string): string | undefined {
+  return userMap.value.get(Number(id))?.logo || undefined
 }
 
 /** 批量补查缺失的用户信息（会话刷新后调用，失败静默降级） */

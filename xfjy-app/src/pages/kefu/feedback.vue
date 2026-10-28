@@ -50,7 +50,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onShow } from "vue";
+import { ref, reactive } from "vue";
+import { onShow } from "@dcloudio/uni-app";
 import { submitFeedbackApi, getMyFeedbackApi, type FeedbackItem } from "@/api/kefu";
 
 const form = reactive({
