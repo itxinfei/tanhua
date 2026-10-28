@@ -1,0 +1,223 @@
+# ============================================================
+# 心飞交友中间件一键编排（Linux 服务器）
+# 用法：cd deploy && docker compose -f docker-compose.middleware.yml up -d
+# 或使用 setup.sh 一键启动 + 初始化数据
+# ============================================================
+
+name: xfjy-middleware
+
+networks:
+  xfjy-net:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  redis-data:
+  mongo-data:
+  es-data:
+  nacos-data:
+  rocketmq-namesrv-logs:
+  rocketmq-broker-store:
+  qdrant-data:
+  neo4j-data:
+  jenkins-home:
+
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: xfjy-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123456}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root123456}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - xfjy-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: xfjy-redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - xfjy-net
+
+  mongo:
+    image: mongo:7
+    container_name: xfjy-mongo
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+    command: mongod --wiredTigerCacheSizeGB 0.25
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    networks:
+      - xfjy-net
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
+    container_name: xfjy-es
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      xpack.security.http.ssl.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+      TZ: Asia/Shanghai
+    ports:
+      - "9200:9200"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 12
+      start_period: 60s
+    networks:
+      - xfjy-net
+
+  nacos:
+    image: nacos/nacos-server:v3.0.0
+    container_name: xfjy-nacos
+    restart: unless-stopped
+    environment:
+      MODE: standalone
+      NACOS_AUTH_ENABLE: "false"
+      # Nacos 3.x 启动脚本强制校验以下三项（即使关闭鉴权也必须设置）
+      NACOS_AUTH_TOKEN: "SecretKey012345678901234567890123456789012345678901234567890123456789"
+      NACOS_AUTH_IDENTITY_KEY: "serverIdentity"
+      NACOS_AUTH_IDENTITY_VALUE: "security"
+      JVM_XMS: 256m
+      JVM_XMX: 256m
+      JVM_XMN: 128m
+      TZ: Asia/Shanghai
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+    volumes:
+      - nacos-data:/home/nacos/data
+    healthcheck:
+      # Nacos 3.x 无 /v1/console/health/readiness 端点，用首页 302 判断存活
+      test: ["CMD-SHELL", "curl -sf -o /dev/null http://127.0.0.1:8848/nacos || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - xfjy-net
+
+  rocketmq-namesrv:
+    image: apache/rocketmq:5.3.1
+    container_name: xfjy-rocketmq-namesrv
+    restart: unless-stopped
+    command: sh mqnamesrv
+    environment:
+      JAVA_OPT_EXT: "-Xms128m -Xmx256m"
+    ports:
+      - "9876:9876"
+    volumes:
+      - rocketmq-namesrv-logs:/home/rocketmq/logs
+    networks:
+      - xfjy-net
+
+  rocketmq-broker:
+    image: apache/rocketmq:5.3.1
+    container_name: xfjy-rocketmq-broker
+    restart: unless-stopped
+    depends_on:
+      - rocketmq-namesrv
+    command: sh mqbroker -n rocketmq-namesrv:9876 -c /home/rocketmq/rocketmq-5.3.1/conf/broker.conf
+    environment:
+      JAVA_OPT_EXT: "-Xms256m -Xmx512m"
+    ports:
+      - "10909:10909"
+      - "10911:10911"
+      - "10912:10912"
+    volumes:
+      - rocketmq-broker-store:/home/rocketmq/store
+      - ./rocketmq/broker.conf:/home/rocketmq/rocketmq-5.3.1/conf/broker.conf:ro
+    networks:
+      - xfjy-net
+
+  qdrant:
+    image: qdrant/qdrant:v1.12.0
+    container_name: xfjy-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    networks:
+      - xfjy-net
+
+  neo4j:
+    image: neo4j:5
+    container_name: xfjy-neo4j
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-neo4j123456}
+      NEO4J_server_memory_heap_initial__size: 256m
+      NEO4J_server_memory_heap_max__size: 512m
+      NEO4J_server_memory_pagecache_size: 128m
+      TZ: Asia/Shanghai
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:7474 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks:
+      - xfjy-net
+
+  jenkins:
+    image: jenkins/jenkins:lts-jdk17
+    container_name: xfjy-jenkins
+    restart: unless-stopped
+    user: root
+    ports:
+      - "8888:8080"
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - jenkins-home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker:ro
+    networks:
+      - xfjy-net
