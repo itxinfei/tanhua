@@ -28,7 +28,7 @@ pipeline {
         stage('管理后台构建') {
             steps {
                 dir('xfjy-admin') {
-                    sh 'npm install --no-audit --no-fund'
+                    sh 'rm -f package-lock.json && npm install --no-audit --no-fund'
                     sh 'npm run build'
                 }
             }
@@ -37,7 +37,7 @@ pipeline {
         stage('App H5 构建') {
             steps {
                 dir('xfjy-app') {
-                    sh 'npm install --no-audit --no-fund'
+                    sh 'rm -f package-lock.json && npm install --no-audit --no-fund'
                     sh 'npm run build:h5'
                 }
             }
