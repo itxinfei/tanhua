@@ -28,7 +28,7 @@ pipeline {
         stage('管理后台构建') {
             steps {
                 dir('xfjy-admin') {
-                    sh 'npm ci'
+                    sh 'npm install --no-audit --no-fund'
                     sh 'npm run build'
                 }
             }
@@ -37,7 +37,7 @@ pipeline {
         stage('App H5 构建') {
             steps {
                 dir('xfjy-app') {
-                    sh 'npm ci'
+                    sh 'npm install --no-audit --no-fund'
                     sh 'npm run build:h5'
                 }
             }
@@ -47,6 +47,6 @@ pipeline {
     post {
         success { echo '全部构建通过' }
         failure { echo '构建失败，请查看上方日志定位' }
-        always { cleanWs() }
+        always { deleteDir() }
     }
 }
