@@ -29,6 +29,7 @@ pipeline {
             steps {
                 dir('xfjy-admin') {
                     sh 'rm -f package-lock.json && npm install --legacy-peer-deps --no-audit --no-fund'
+                    sh 'npm install @rolldown/binding-linux-x64-gnu --no-save --no-audit --no-fund'
                     sh 'npm run build'
                 }
             }
