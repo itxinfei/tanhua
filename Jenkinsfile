@@ -55,12 +55,16 @@ pipeline {
             }
         }
 
+        // 注意：管理后台与 App 均在本地电脑运行，CI 中仅做构建校验。
+        // 因此这两阶段失败不阻断后端服务的打包与部署（catchError 兜底）。
         stage('管理后台构建') {
             steps {
                 dir('xfjy-admin') {
-                    sh 'rm -f package-lock.json && npm install --legacy-peer-deps --no-audit --no-fund'
-                    sh 'npm install @rolldown/binding-linux-x64-gnu --no-save --no-audit --no-fund'
-                    sh 'npm run build'
+                    catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                        sh 'rm -f package-lock.json && npm install --legacy-peer-deps --no-audit --no-fund'
+                        sh 'npm install @rolldown/binding-linux-x64-gnu --no-save --no-audit --no-fund'
+                        sh 'npm run build'
+                    }
                 }
             }
         }
@@ -68,8 +72,10 @@ pipeline {
         stage('App H5 构建') {
             steps {
                 dir('xfjy-app') {
-                    sh 'rm -f package-lock.json && npm install --legacy-peer-deps --no-audit --no-fund'
-                    sh 'npm run build:h5'
+                    catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                        sh 'rm -f package-lock.json && npm install --legacy-peer-deps --no-audit --no-fund'
+                        sh 'npm run build:h5'
+                    }
                 }
             }
         }
