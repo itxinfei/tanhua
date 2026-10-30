@@ -45,7 +45,7 @@ public class VideoService {
     @Autowired
     private UserInfoApi userInfoApi;
 
-    @Autowired
+    @Autowired(required = false)
     private MinioClient minioClient;
 
     @Autowired
@@ -67,6 +67,12 @@ public class VideoService {
         video.setSeeType(1);
 
         try {
+            // MinIO 未配置（凭证环境变量未注入）时快速失败
+            if (this.minioClient == null) {
+                LOGGER.error("MinIO 未配置，无法上传视频，请检查 MINIO_ACCESS_KEY/MINIO_SECRET_KEY 环境变量");
+                return null;
+            }
+
             // 上传图片
             PicUploadResult picUploadResult = this.picUploadService.upload(picFile);
             video.setPicUrl(picUploadResult.getName());

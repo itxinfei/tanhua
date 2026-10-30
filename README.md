@@ -128,9 +128,6 @@ flowchart TB
         F7[(Qdrant 向量库)]
         F8[(Neo4j 图库)]
     end
-    subgraph AI 训练
-        G1[xfjy-spark<br/>Python 双塔训练]
-    end
     A1 --> B
     A2 --> B
     B --> C
@@ -193,7 +190,6 @@ xfjy/
 ├── xfjy-recommend/             # 推荐评分消费者（RocketMQ → MongoDB）
 ├── xfjy-elasticsearch/         # ES Geo 地理位置：附近的人
 ├── xfjy-api/                    # 内部 HTTP 接口契约（@HttpExchange）
-├── xfjy-spark/                 # Python 双塔训练工程（PyTorch + Qdrant 导出）
 ├── xfjy-admin/                 # 管理后台前端（Vue3 + Element Plus + Vite 8）
 ├── xfjy-app/                   # 用户端前端（uni-app：H5/小程序/App）
 ├── docs/                       # 需求文档、数据库脚本、logo
@@ -244,19 +240,6 @@ cd xfjy-admin && npm install && npm run dev
 
 # 用户端 H5
 cd xfjy-app && npm install && npm run dev:h5
-```
-
-### 双塔训练（可选）
-
-```bash
-cd xfjy-spark
-pip install -r requirements.txt
-
-# 模拟数据验证管线（无需中间件）
-python train/train.py --mock --epochs 10
-
-# 导出 embedding 到 Qdrant（Qdrant 部署后）
-python train/export_embedding.py
 ```
 
 ---

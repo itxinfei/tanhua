@@ -38,6 +38,11 @@ public class MinioConfig {
     @Bean
     @ConditionalOnProperty(prefix = "minio", name = "endpoint")
     public MinioClient minioClient() {
+        // 凭证未配置（环境变量未注入）时不创建客户端，上传服务走快速失败路径
+        if (accessKeyId == null || accessKeyId.isBlank()
+                || accessKeySecret == null || accessKeySecret.isBlank()) {
+            return null;
+        }
         return MinioClient.builder()
                 .endpoint(endpoint)
                 .credentials(accessKeyId, accessKeySecret)

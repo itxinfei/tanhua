@@ -82,9 +82,6 @@ docs/心飞为你飞.jpg
 # SQL 脚本不入库（统一放 scripts/ 本地管理）
 docs/*.sql
 
-# ===== 训练产出（xfjy-spark）=====
-xfjy-spark/output/
-
 # ===== 根目录临时文件与操作日志 =====
 hist-*.txt
 port-check.txt

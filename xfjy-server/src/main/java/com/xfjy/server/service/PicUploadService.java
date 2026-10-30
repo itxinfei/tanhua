@@ -53,9 +53,9 @@ public class PicUploadService {
 
         PicUploadResult fileUploadResult = new PicUploadResult();
 
-        // MinIO 未配置（minio.properties 缺失或 endpoint 未填）时快速失败
+        // MinIO 未配置（凭证环境变量未注入或 endpoint 未填）时快速失败
         if (this.minioClient == null) {
-            LOGGER.error("MinIO 未配置，无法上传文件，请检查 minio.properties");
+            LOGGER.error("MinIO 未配置，无法上传文件，请检查 MINIO_ACCESS_KEY/MINIO_SECRET_KEY 环境变量");
             fileUploadResult.setStatus("error");
             return fileUploadResult;
         }

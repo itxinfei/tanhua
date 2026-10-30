@@ -61,7 +61,14 @@
     <div class="table-container">
       <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" empty-text="暂无订单数据">
         <el-table-column prop="id" label="ID" width="70" align="center" />
-        <el-table-column prop="orderNo" label="订单号" width="220" show-overflow-tooltip />
+        <el-table-column label="订单号" width="280">
+          <template #default="{ row }">
+            <div class="order-no-cell">
+              <span class="order-no-text">{{ row.orderNo }}</span>
+              <el-button link type="primary" size="small" :icon="CopyDocument" @click="copyOrderNo(row.orderNo)" />
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column prop="userId" label="用户ID" width="90" align="center" />
         <el-table-column prop="packageName" label="套餐" width="110" />
         <el-table-column label="金额" width="100" align="right">
@@ -124,7 +131,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Search, Refresh, Download } from '@element-plus/icons-vue'
+import { Search, Refresh, Download, CopyDocument } from '@element-plus/icons-vue'
 import { getPayOrderPageApi, getPayOrderSummaryApi, exportPayOrdersApi } from '@/api/pay'
 import type { PayOrderItem, PayOrderQuery, PayOrderSummary } from '@/api/pay'
 
@@ -240,6 +247,16 @@ async function handleExport() {
   }
 }
 
+/** 复制订单号 */
+async function copyOrderNo(orderNo: string) {
+  try {
+    await navigator.clipboard.writeText(orderNo)
+    ElMessage.success('订单号已复制')
+  } catch {
+    ElMessage.error('复制失败，请手动复制')
+  }
+}
+
 /** 金额分转元 */
 function formatAmount(amount: number) {
   return (amount / 100).toFixed(2)
@@ -273,3 +290,55 @@ onMounted(() => {
   loadData()
 })
 </script>
+
+<style scoped>
+.order-no-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.order-no-text {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+}
+
+.summary-cards {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.summary-card {
+  flex: 1;
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-left: 4px solid #409eff;
+}
+
+.summary-card.success {
+  border-left-color: #67c23a;
+}
+
+.summary-card.warning {
+  border-left-color: #e6a23c;
+}
+
+.summary-card.primary {
+  border-left-color: #409eff;
+}
+
+.summary-label {
+  font-size: 13px;
+  color: #909399;
+  margin-bottom: 8px;
+}
+
+.summary-value {
+  font-size: 28px;
+  font-weight: 600;
+  color: #303133;
+}
+</style>

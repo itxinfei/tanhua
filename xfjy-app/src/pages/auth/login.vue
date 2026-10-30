@@ -1,9 +1,9 @@
 <template>
   <view class="login-page">
-    <!-- 漂浮装饰圆（增强品牌区氛围） -->
-    <view class="deco-circle deco-1 float" />
-    <view class="deco-circle deco-2 float" />
-    <view class="deco-circle deco-3 float" />
+    <!-- 漂浮装饰心形（增强品牌区氛围） -->
+    <view class="deco-heart deco-1 float" />
+    <view class="deco-heart deco-2 float" />
+    <view class="deco-heart deco-3 float" />
 
     <!-- 品牌区 -->
     <view class="brand">
@@ -165,24 +165,29 @@ async function handleLogin() {
   overflow: hidden;
 }
 
-/* 漂浮装饰圆 */
-.deco-circle {
+/* 漂浮装饰心形 */
+.deco-heart {
   position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.14);
+  line-height: 1;
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &::after {
+    content: '\2665';
+  }
 
   &.deco-1 {
-    width: 300rpx;
-    height: 300rpx;
-    top: 60rpx;
-    right: -80rpx;
+    font-size: 320rpx;
+    top: 40rpx;
+    right: -100rpx;
     animation-duration: 3.5s;
   }
 
   &.deco-2 {
-    width: 200rpx;
-    height: 200rpx;
+    font-size: 200rpx;
     top: 280rpx;
     left: -60rpx;
     animation-duration: 4s;
@@ -190,8 +195,7 @@ async function handleLogin() {
   }
 
   &.deco-3 {
-    width: 120rpx;
-    height: 120rpx;
+    font-size: 120rpx;
     top: 140rpx;
     left: 180rpx;
     animation-duration: 3s;
