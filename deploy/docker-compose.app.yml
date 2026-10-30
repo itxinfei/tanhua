@@ -2,7 +2,8 @@
 # 心飞交友 - 后端 Java 服务容器编排（部署用）
 #
 # 运行（在宿主机，由 Gitea Actions 自动执行）：
-#   docker compose -p xfjy-app -f deploy/docker-compose.app.yml up -d --build
+#   docker compose -p xfjy-app -f deploy/docker-compose.app.yml --env-file deploy/.env up -d --build
+# （deploy/.env 存放真实密码，已被 .gitignore 排除；模板见 deploy/.env.example）
 #
 # 设计要点：
 #   - 每个服务用 network_mode: host，直接复用宿主机网络。
@@ -16,16 +17,17 @@ name: xfjy-app
 
 x-common-env: &common-env
   TZ: Asia/Shanghai
-  MYSQL_USERNAME: xfjy
-  MYSQL_PASSWORD: "123456"
-  NEO4J_PASSWORD: "itxinfei123456"
+  MYSQL_USERNAME: ${MYSQL_USERNAME:-root}
+  # 密码禁止入库：真实值由 deploy/.env（gitignore 排除）注入，启动命令须带 --env-file deploy/.env
+  MYSQL_PASSWORD: ${MYSQL_PASSWORD:-}
+  NEO4J_PASSWORD: ${NEO4J_PASSWORD:-}
 
 services:
 
   xfjy-gateway:
     build:
-      context: .
-      dockerfile: deploy/docker/Dockerfile.java
+      context: ..
+      dockerfile: docker/Dockerfile.java
       args:
         SERVICE: xfjy-gateway
     image: xfjy/xfjy-gateway:latest
@@ -41,8 +43,8 @@ services:
 
   xfjy-sso:
     build:
-      context: .
-      dockerfile: deploy/docker/Dockerfile.java
+      context: ..
+      dockerfile: docker/Dockerfile.java
       args:
         SERVICE: xfjy-sso
     image: xfjy/xfjy-sso:latest
@@ -58,8 +60,8 @@ services:
 
   xfjy-user-service:
     build:
-      context: .
-      dockerfile: deploy/docker/Dockerfile.java
+      context: ..
+      dockerfile: docker/Dockerfile.java
       args:
         SERVICE: xfjy-user-service
     image: xfjy/xfjy-user-service:latest
@@ -75,8 +77,8 @@ services:
 
   xfjy-circle-service:
     build:
-      context: .
-      dockerfile: deploy/docker/Dockerfile.java
+      context: ..
+      dockerfile: docker/Dockerfile.java
       args:
         SERVICE: xfjy-circle-service
     image: xfjy/xfjy-circle-service:latest
@@ -92,8 +94,8 @@ services:
 
   xfjy-video-service:
     build:
-      context: .
-      dockerfile: deploy/docker/Dockerfile.java
+      context: ..
+      dockerfile: docker/Dockerfile.java
       args:
         SERVICE: xfjy-video-service
     image: xfjy/xfjy-video-service:latest
@@ -109,8 +111,8 @@ services:
 
   xfjy-match-service:
     build:
-      context: .
-      dockerfile: deploy/docker/Dockerfile.java
+      context: ..
+      dockerfile: docker/Dockerfile.java
       args:
         SERVICE: xfjy-match-service
     image: xfjy/xfjy-match-service:latest
@@ -126,8 +128,8 @@ services:
 
   xfjy-message-service:
     build:
-      context: .
-      dockerfile: deploy/docker/Dockerfile.java
+      context: ..
+      dockerfile: docker/Dockerfile.java
       args:
         SERVICE: xfjy-message-service
     image: xfjy/xfjy-message-service:latest
@@ -143,8 +145,8 @@ services:
 
   xfjy-server:
     build:
-      context: .
-      dockerfile: deploy/docker/Dockerfile.java
+      context: ..
+      dockerfile: docker/Dockerfile.java
       args:
         SERVICE: xfjy-server
     image: xfjy/xfjy-server:latest
@@ -160,8 +162,8 @@ services:
 
   xfjy-recommend:
     build:
-      context: .
-      dockerfile: deploy/docker/Dockerfile.java
+      context: ..
+      dockerfile: docker/Dockerfile.java
       args:
         SERVICE: xfjy-recommend
     image: xfjy/xfjy-recommend:latest
@@ -177,8 +179,8 @@ services:
 
   xfjy-elasticsearch:
     build:
-      context: .
-      dockerfile: deploy/docker/Dockerfile.java
+      context: ..
+      dockerfile: docker/Dockerfile.java
       args:
         SERVICE: xfjy-elasticsearch
     image: xfjy/xfjy-elasticsearch:latest
@@ -194,8 +196,8 @@ services:
 
   xfjy-pay-service:
     build:
-      context: .
-      dockerfile: deploy/docker/Dockerfile.java
+      context: ..
+      dockerfile: docker/Dockerfile.java
       args:
         SERVICE: xfjy-pay-service
     image: xfjy/xfjy-pay-service:latest

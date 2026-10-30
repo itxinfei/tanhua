@@ -5,7 +5,7 @@
 # jar 已在 CI 的 maven package 阶段生成：<SERVICE>/target/<SERVICE>-1.0-SNAPSHOT.jar
 # 服务用 network_mode: host 运行，故连接串里的 127.0.0.1 直接命中宿主机上已映射的中间件端口。
 # ============================================================
-FROM eclipse-temurin:25-jre
+FROM eclipse-temurin:25-jre-jammy
 
 ARG SERVICE
 ENV JAVA_OPTS="-Xms128m -Xmx320m"

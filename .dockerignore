@@ -1,0 +1,47 @@
+# ============================================================
+# Docker 构建上下文排除项
+#
+# 关键：node_modules / target / dist 体积巨大，若不排除，
+# 每次 docker build 都要把整个工作区传给 daemon，构建极慢且容易撑爆磁盘。
+# ============================================================
+
+# 依赖与构建产物
+**/node_modules/
+**/dist/
+**/.vite/
+**/.nuxt/
+**/coverage/
+# Java target 目录：排除内部非 jar 内容（classes/、maven-status/ 等），
+# 但必须放行 *.jar —— Dockerfile.java 依赖 COPY <svc>/target/<svc>-1.0-SNAPSHOT.jar
+# 注意：不能用 "**/target/" 排除整个目录（Docker 会跳过该目录，否定规则无法救回）
+**/target/*
+!**/target/*.jar
+
+# 版本控制与编辑器
+.git/
+.gitattributes
+.gitignore
+.idea/
+.vscode/
+*.swp
+
+# 中间件数据与日志
+logs/
+*.log
+**/logs/
+
+# 工作区内部配置
+.workbuddy/
+**/.workbuddy/
+
+# 敏感文件（真实密码不入库，也不进构建上下文）
+**/application-local.yml
+**/application-local.yaml
+**/.env
+**/.env.*
+!**/.env.example
+deploy/mysql/data/
+
+# 测试素材与文档
+test-assets/
+docs/

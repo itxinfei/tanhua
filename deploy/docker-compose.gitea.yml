@@ -21,6 +21,7 @@ networks:
 
 volumes:
   gitea-data:
+  runner-config:
 
 services:
 
@@ -59,7 +60,9 @@ services:
     restart: unless-stopped
     # GITEA_RUNNER_TOKEN 来自 Gitea 后台「管理 → Runner → 创建 Runner」生成的注册令牌
     environment:
-      GITEA_INSTANCE: http://gitea:3000
+      # 注意：act_runner 读取的变量名是 GITEA_INSTANCE_URL（不是 GITEA_INSTANCE），
+      # 写成后者会报 "instance address is empty" 导致 runner 无法注册
+      GITEA_INSTANCE_URL: http://gitea:3000
       GITEA_RUNNER_REGISTRATION_TOKEN: ${GITEA_RUNNER_TOKEN}
       GITEA_RUNNER_NAME: xfjy-runner
       # 标签 ubuntu-latest 直接映射到我们的 CI 镜像，保证 job 容器含 JDK25/Maven39/Node22/ssh；
@@ -68,6 +71,8 @@ services:
     volumes:
       # 关键：挂载宿主机 docker.sock，使 runner 能拉起 job 容器（工作流里的 container 镜像）
       - /var/run/docker.sock:/var/run/docker.sock
+      # runner 注册信息持久化，避免容器重启后需重新注册
+      - runner-config:/config
     networks:
       - gitea-net
     depends_on:

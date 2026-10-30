@@ -74,9 +74,24 @@ jobs:
 
       - name: 构建并部署 Java 服务容器
         if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.deploy != 'false' }}
+        env:
+          # 中间件真实密码：优先用 Gitea Actions Secrets（仓库设置 → Actions → Secrets）
+          MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME || 'root' }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          NEO4J_PASSWORD: ${{ secrets.NEO4J_PASSWORD }}
         run: |
           set -e
-          docker compose -p xfjy-app -f deploy/docker-compose.app.yml up -d --build
+          if [ -z "${MYSQL_PASSWORD}" ]; then
+            echo "[ERROR] 未配置 Secrets.MYSQL_PASSWORD，服务将无法连接数据库"
+            echo "       请在 Gitea 仓库 → Settings → Actions → Secrets 添加 MYSQL_PASSWORD"
+            exit 1
+          fi
+          # deploy/.env 被 .gitignore 排除，仓库里没有；密码从 Secrets 注入到临时 env 文件
+          umask 077
+          printf 'MYSQL_USERNAME=%s\nMYSQL_PASSWORD=%s\nNEO4J_PASSWORD=%s\n' \
+            "${MYSQL_USERNAME}" "${MYSQL_PASSWORD}" "${NEO4J_PASSWORD}" > deploy/.env
+          docker compose -p xfjy-app -f deploy/docker-compose.app.yml --env-file deploy/.env up -d --build
+          rm -f deploy/.env
 
       - name: 构建并部署前端容器（容错）
         continue-on-error: true

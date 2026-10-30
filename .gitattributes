@@ -38,3 +38,10 @@ Jenkinsfile text eol=lf
 *.ttf binary
 *.woff binary
 *.woff2 binary
+
+# Docker 构建文件必须 LF（容器内 RUN 脚本遇 CRLF 会报 \r: not found）
+deploy/docker/Dockerfile.* text eol=lf
+deploy/gitea/Dockerfile.ci text eol=lf
+.dockerignore text eol=lf
+.gitea/workflows/*.yml text eol=lf
+deploy/docker-compose.*.yml text eol=lf

@@ -15,8 +15,8 @@ services:
 
   xfjy-admin:
     build:
-      context: .
-      dockerfile: deploy/docker/Dockerfile.admin
+      context: ..
+      dockerfile: docker/Dockerfile.admin
     image: xfjy/admin:latest
     container_name: xfjy-admin
     restart: unless-stopped
@@ -25,8 +25,8 @@ services:
 
   xfjy-h5:
     build:
-      context: .
-      dockerfile: deploy/docker/Dockerfile.h5
+      context: ..
+      dockerfile: docker/Dockerfile.h5
     image: xfjy/h5:latest
     container_name: xfjy-h5
     restart: unless-stopped
