@@ -733,15 +733,25 @@ watch(activeTab, async (tab) => {
 }
 
 .session-contact {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.session-name {
   font-size: 13px;
   font-weight: 500;
-  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .session-id {
   font-size: 11px;
   color: #c0c4cc;
   font-weight: 400;
+  flex-shrink: 0;
 }
 
 .session-msg {

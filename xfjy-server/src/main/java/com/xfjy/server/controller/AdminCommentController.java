@@ -33,9 +33,11 @@ public class AdminCommentController {
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Long userId) {
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
         try {
-            Map<String, Object> result = this.adminCommentService.queryCommentPage(page, pageSize, keyword, userId);
+            Map<String, Object> result = this.adminCommentService.queryCommentPage(page, pageSize, keyword, userId, startDate, endDate);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             LOGGER.error("接口处理异常", e);

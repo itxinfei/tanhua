@@ -173,4 +173,17 @@ public class AdminMovementService {
         item.put("loveCount", loveCountMap.getOrDefault(hexId, 0L));
         return item;
     }
+
+    /**
+     * 将 yyyy-MM-dd 日期字符串转为当天 00:00:00 的时间戳（毫秒）
+     */
+    private Long parseDateToTimestamp(String dateStr) {
+        if (dateStr == null || dateStr.trim().isEmpty()) return null;
+        try {
+            return java.sql.Date.valueOf(dateStr).getTime();
+        } catch (Exception e) {
+            LOGGER.warn("日期解析失败: {}", dateStr);
+            return null;
+        }
+    }
 }

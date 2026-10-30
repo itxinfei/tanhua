@@ -31,8 +31,11 @@ public class AdminCommentService {
      * 分页查询评论列表（合并评论人信息）
      */
     public Map<String, Object> queryCommentPage(Integer page, Integer pageSize,
-                                                 String keyword, Long userId) {
-        PageInfo<Comment> commentPage = this.quanZiApi.queryAllCommentList(page, pageSize, keyword, userId);
+                                                 String keyword, Long userId,
+                                                 String startDate, String endDate) {
+        Long startTime = parseDateToTimestamp(startDate);
+        Long endTime = parseDateToTimestamp(endDate);
+        PageInfo<Comment> commentPage = this.quanZiApi.queryAllCommentList(page, pageSize, keyword, userId, startTime, endTime);
 
         List<Map<String, Object>> items = new ArrayList<>();
         if (commentPage != null && commentPage.getRecords() != null) {
@@ -134,5 +137,18 @@ public class AdminCommentService {
             item.put("userAvatar", "");
         }
         return item;
+    }
+
+    /**
+     * 将 yyyy-MM-dd 日期字符串转为当天 00:00:00 的时间戳（毫秒）
+     */
+    private Long parseDateToTimestamp(String dateStr) {
+        if (dateStr == null || dateStr.trim().isEmpty()) return null;
+        try {
+            return java.sql.Date.valueOf(dateStr).getTime();
+        } catch (Exception e) {
+            LOGGER.warn("日期解析失败: {}", dateStr);
+            return null;
+        }
     }
 }
