@@ -2,6 +2,8 @@
 
 格式：日期 | 模块 | 更新内容 | 开发者
 
+2026-10-30 | Gitea CI/CD | 代码推送至 133 Gitea 完成：①解决 Gitea 1.22 管理员 gitadmin 密码重置（必须以 `docker exec -u git` 非 root 执行 CLI）、强制改密 403（清除数据库 user.must_change_password 标志）、URL 含 @ 密码报 Bad hostname（改用 API Token `git-push`）三个卡点；②Gitea 新建仓库 gitadmin/mytanhua（master 分支）并 `git push gitea master --force` 首推成功（149 文件变更，commit 3322609）；③本地新增 remote `gitea`（http://gitadmin:<TOKEN>@192.168.20.133:3000/gitadmin/mytanhua.git），origin 仍为 Gitee 主仓库；④部署文档新增 10.7 当前部署状态（Gitea 账号/token/踩坑记录、MinIO Docker 容器化现状）| 开发者：itxinfei
+2026-10-30 | MinIO | MinIO 由裸二进制改为 Docker 容器部署：容器 xfjy-minio（minio/minio:latest，--restart unless-stopped，端口 9000/9001，凭据 minioadmin/minioadmin123，数据卷挂载 /home/itxinfei/minio/data 无缝迁移原数据）；镜像经 docker.1panel.live 拉取（第三方仓库镜像专用源，daemon.json 默认 5 源不支持）；桶 test-media 策略 download 公开读（测试素材 APP 直访前提）；MongoDB xfjy 库 video 集合 64 条记录复核全部指向 MinIO 新 URL、抽查 10 个 URL 全 200，旧路径差异已不存在 | 开发者：itxinfei
 2026-10-30 | xfjy-server | 对象存储从阿里云 OSS 全面切换为 MinIO：删除 AliyunConfig.java/aliyun.properties/aliyun.properties.example/OssHuanxinVerifyTest.java；新增 MinioConfig.java（@ConfigurationProperties prefix=minio，endpoint 未配置时不创建客户端避免启动失败）与 minio.properties/minio.properties.example；pom.xml 移除 aliyun-sdk-oss:3.18.5 换 io.minio:minio:8.5.17；PicUploadService/VideoService 上传逻辑改 MinioClient.putObject（自动建桶），返回 URL 前缀改 minio.urlPrefix；UploadController 注释同步；前端 6 文件注释 OSS→MinIO；README 技术栈表与第三方变量表、.gitignore 规则同步；mvn package BUILD SUCCESS。MinIO 部署于 192.168.20.133:9000（桶 test-media，策略 download，凭据 minioadmin/minioadmin123）| 开发者：itxinfei
 
 2026-10-23 | xfjy-match-service | ES 地址配置化增强：@Value 增加本地兜底默认值（es.server.url 缺失时不致启动失败）；catch 块 e.printStackTrace() 替换为 SLF4J 日志（ESUserLocationApiImpl） | 开发者：itxinfei
