@@ -157,7 +157,7 @@ async function handleLogin() {
 <style lang="scss" scoped>
 .login-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #ff5e9c 0%, #ff8fb1 30%, #f5f5f5 60%);
+  background: linear-gradient(180deg, #b13bff 0%, #ff5e9c 30%, #f5f5f5 60%);
   padding: 0 60rpx;
   display: flex;
   flex-direction: column;
@@ -338,7 +338,7 @@ async function handleLogin() {
   height: 96rpx;
   line-height: 96rpx;
   text-align: center;
-  background: linear-gradient(90deg, #ff5e9c, #ff8fb1);
+  background: linear-gradient(90deg, #b13bff, #ff5e9c);
   color: #fff;
   font-size: 34rpx;
   font-weight: bold;

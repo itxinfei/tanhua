@@ -513,7 +513,7 @@ onShareAppMessage(() => ({
     transform: translateY(-50%);
     font-size: 26rpx;
     color: #fff;
-    background: linear-gradient(90deg, #ff5e9c, #ff8fb1);
+    background: linear-gradient(90deg, #b13bff, #ff5e9c);
     padding: 8rpx 24rpx;
     border-radius: 28rpx;
   }

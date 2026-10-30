@@ -99,3 +99,16 @@ __pycache__/
 # ===== CI 构建上下文暂存目录（由 deploy/ci/stage-artifacts.sh 生成） =====
 # 内含 fat jar（约 70MB/个），不入库
 deploy/build/
+
+# ===== AI 工具本地工作目录（个人开发环境，不入库） =====
+.serena/
+.workbuddy/
+.atomcode/
+
+# ===== 部署临时目录与备份文件 =====
+deploy/tmp_sync/
+deploy/manage.sh.bak*
+*.bak
+
+# 本地 npm 配置（无敏感信息但属个人环境）
+.npmrc

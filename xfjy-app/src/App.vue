@@ -47,9 +47,13 @@ onShow(() => {
 /* uview-plus 样式 */
 @import "uview-plus/index.scss";
 
-/* ===== CSS 变量（深色模式 WIP：变量层已就绪，页面硬编码色待逐步迁移到变量引用） ===== */
+/* ===== CSS 变量（品牌色：玫红 + 紫系，与后台管理 xfjy-admin 对齐；深色模式 WIP：变量层已就绪，页面硬编码色待逐步迁移到变量引用） ===== */
 page {
   --color-primary: #ff5e9c;
+  --color-primary-deep: #b13bff;
+  --color-primary-violet: #8a5cf6;
+  --color-primary-soft: #ff8fb1;
+  --color-primary-mist: #ffd1e8;
   --bg-page: #f5f5f5;
   --bg-card: #ffffff;
   --bg-icon-soft: #ffeff5;
@@ -68,6 +72,10 @@ page {
 @media (prefers-color-scheme: dark) {
   page {
     --color-primary: #ff8eb9;
+    --color-primary-deep: #9b5cf6;
+    --color-primary-violet: #a78bfa;
+    --color-primary-soft: #ff8fb1;
+    --color-primary-mist: #7a5a70;
     --bg-page: #1a1a1a;
     --bg-card: #2c2c2c;
     --bg-icon-soft: #3a2a30;
@@ -140,7 +148,7 @@ page {
 
 /* 渐变文字 */
 .gradient-text {
-  background: linear-gradient(90deg, #ff5e9c, #ff8fb1);
+  background: linear-gradient(90deg, #b13bff, #ff5e9c);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -264,15 +272,15 @@ page {
 
 /* 渐变主按钮 */
 .btn-gradient {
-  background: linear-gradient(90deg, #ff5e9c, #ff8fb1);
+  background: linear-gradient(90deg, #b13bff, #ff5e9c);
   color: #fff;
   border: none;
-  box-shadow: 0 8rpx 24rpx rgba(255, 94, 142, 0.35);
+  box-shadow: 0 8rpx 24rpx rgba(177, 59, 255, 0.35);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 
   &:active {
     transform: scale(0.96);
-    box-shadow: 0 4rpx 12rpx rgba(255, 94, 142, 0.25);
+    box-shadow: 0 4rpx 12rpx rgba(177, 59, 255, 0.25);
   }
 }
 

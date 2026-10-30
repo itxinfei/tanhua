@@ -59,7 +59,7 @@ interface NoticeItem {
 const TYPE_META: Record<string, { icon: string; color: string }> = {
   like: { icon: "♥", color: "#ff5e9c" },
   comment: { icon: "💬", color: "#4a90d9" },
-  love: { icon: "★", color: "#ffd700" },
+  love: { icon: "★", color: "#ff5e9c" },
   announcement: { icon: "📢", color: "#4cd964" },
   visitors: { icon: "👁", color: "#a78bfa" },
   fans: { icon: "👥", color: "#ff8fb1" },

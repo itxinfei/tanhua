@@ -8,7 +8,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onLoad } from 'vue'
+import { ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import { getAgreement } from '@/api/agreement'
 
 // 本地兜底文本（接口不可用时展示，需与后台“协议管理”中已发布内容保持一致）

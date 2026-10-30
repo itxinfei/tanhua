@@ -193,7 +193,7 @@ function handleSkip(): void {
 
   .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #ff5e9c, #ff8fb1);
+    background: linear-gradient(90deg, #b13bff, #ff5e9c);
     border-radius: 4rpx;
     transition: width 0.3s ease;
   }
@@ -274,7 +274,7 @@ function handleSkip(): void {
     transition: all 0.2s;
 
     &.active {
-      background: linear-gradient(135deg, #ff5e9c, #ff8fb1);
+      background: linear-gradient(135deg, #b13bff, #ff5e9c);
       color: #fff;
       border-color: #ff5e9c;
       box-shadow: 0 4rpx 14rpx rgba(255, 94, 142, 0.3);
@@ -284,7 +284,7 @@ function handleSkip(): void {
 
 .submit-btn {
   margin-top: 48rpx;
-  background: linear-gradient(90deg, #ff5e9c, #ff8fb1);
+  background: linear-gradient(90deg, #b13bff, #ff5e9c);
   color: #fff;
   font-size: 32rpx;
   font-weight: bold;

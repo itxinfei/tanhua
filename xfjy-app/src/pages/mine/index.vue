@@ -127,7 +127,7 @@ const socialMenuItems: MenuItemConfig[] = [
   {
     icon: "♥",
     label: "我喜欢",
-    color: "#ff3b30",
+    color: "#ff5e9c",
     action: () => goFriends(FRIEND_TYPE.FOLLOW),
   },
   {
@@ -210,7 +210,7 @@ onShow(() => {
 }
 
 .header {
-  background: linear-gradient(180deg, #ff5e9c 0%, #ff8fb1 100%);
+  background: linear-gradient(180deg, #b13bff 0%, #ff5e9c 100%);
   padding: 0 32rpx 32rpx;
   border-radius: 0 0 40rpx 40rpx;
   position: relative;

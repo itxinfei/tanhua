@@ -251,7 +251,7 @@ onShow(async () => {
   &.male.active { background: linear-gradient(135deg, #4a90d9, #6bb0f5); border-color: #4a90d9; box-shadow: 0 4rpx 14rpx rgba(74, 144, 217, 0.3);
     .gender-label { color: #fff; }
   }
-  &.female.active { background: linear-gradient(135deg, #ff5e9c, #ff8fb1); border-color: #ff5e9c; box-shadow: 0 4rpx 14rpx rgba(255, 94, 142, 0.3);
+  &.female.active { background: linear-gradient(135deg, #b13bff, #ff5e9c); border-color: #ff5e9c; box-shadow: 0 4rpx 14rpx rgba(255, 94, 142, 0.3);
     .gender-label { color: #fff; }
   }
 }

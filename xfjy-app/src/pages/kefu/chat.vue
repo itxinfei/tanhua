@@ -267,7 +267,7 @@ onUnmounted(() => {
     &:not(.mine) { border-top-left-radius: 6rpx;
       &::before { left: -16rpx; border-right: 16rpx solid #fff; }
     }
-    &.mine { background: linear-gradient(135deg, #ff5e9c, #ff8fb1); color: #fff; border-top-right-radius: 6rpx;
+    &.mine { background: linear-gradient(135deg, #b13bff, #ff5e9c); color: #fff; border-top-right-radius: 6rpx;
       &::before { right: -16rpx; border-left: 16rpx solid #ff5e9c; }
     }
   }

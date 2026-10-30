@@ -272,7 +272,7 @@ onShareAppMessage(() => ({
     right: 32rpx;
     width: 64rpx;
     height: 64rpx;
-    background: linear-gradient(135deg, #ff5e9c, #ff8fb1);
+    background: linear-gradient(135deg, #b13bff, #ff5e9c);
     color: #fff;
     font-size: 40rpx;
     display: flex;
@@ -364,7 +364,7 @@ onShareAppMessage(() => ({
         }
 
         &.loved {
-          color: #ffd700;
+          color: #ff5e9c;
         }
       }
 

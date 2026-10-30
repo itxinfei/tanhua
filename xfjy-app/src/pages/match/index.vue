@@ -571,7 +571,7 @@ onShareAppMessage(() => ({
 
       .fate-fill {
         height: 100%;
-        background: linear-gradient(90deg, #ff5e9c, #ffd700);
+        background: linear-gradient(90deg, #b13bff, #ff5e9c);
         border-radius: 6rpx;
         transition: width 0.4s ease-out;
       }
@@ -579,7 +579,7 @@ onShareAppMessage(() => ({
       .fate-value {
         font-size: 22rpx;
         font-weight: bold;
-        color: #ffd700;
+        color: #ff5e9c;
         min-width: 36rpx;
         text-align: right;
       }
@@ -647,7 +647,7 @@ onShareAppMessage(() => ({
     &.rewind {
       width: 88rpx;
       height: 88rpx;
-      background: linear-gradient(135deg, #ffd700, #ffb347);
+      background: linear-gradient(135deg, #b13bff, #ff5e9c);
       color: #fff;
       box-shadow: 0 6rpx 20rpx rgba(255, 179, 71, 0.4);
     }

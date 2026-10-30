@@ -72,7 +72,7 @@ const NOTICE_META: Record<
 > = {
   like: { icon: "♥", label: "喜欢", color: "#ff5e9c" },
   comment: { icon: "💬", label: "评论", color: "#4a90d9" },
-  love: { icon: "★", label: "心动", color: "#ffd700" },
+  love: { icon: "★", label: "心动", color: "#ff5e9c" },
   announcement: { icon: "📢", label: "公告", color: "#4cd964" },
 };
 
@@ -241,7 +241,7 @@ onPullDownRefresh(async () => {
         text-align: center;
         font-size: 20rpx;
         color: #fff;
-        background: linear-gradient(135deg, #ff3b30, #ff5e9c);
+        background: linear-gradient(135deg, #b13bff, #ff5e9c);
         border-radius: 16rpx;
         padding: 0 8rpx;
         border: 2rpx solid #fff;
@@ -327,7 +327,7 @@ onPullDownRefresh(async () => {
           text-align: center;
           font-size: 20rpx;
           color: #fff;
-          background: linear-gradient(135deg, #ff3b30, #ff5e9c);
+          background: linear-gradient(135deg, #b13bff, #ff5e9c);
           border-radius: 16rpx;
           padding: 0 8rpx;
           margin-left: 16rpx;
