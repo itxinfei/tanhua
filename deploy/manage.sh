@@ -16,8 +16,6 @@
 #   bash deploy/manage.sh up|deploy xfjy-server xfjy-admin  # 多个（可跨前后端）
 #   bash deploy/manage.sh down|restart|build|status     # 停止/重启/构建/查看状态（同样支持上述目标）
 #   bash deploy/manage.sh logs xfjy-server              # 跟踪日志
-#   bash deploy/manage.sh clean                         # 清理垃圾（悬空镜像/停止容器/构建缓存/旧日志）
-#   bash deploy/manage.sh clean --all                   # 彻底清理（额外含未使用数据卷，慎用）
 #
 # 目标别名：all=全部；backend=全部后端微服务；admin=xfjy-admin；app/h5=xfjy-h5
 #
@@ -186,33 +184,6 @@ do_logs() {
   fi
 }
 
-# 清理磁盘垃圾：悬空镜像/停止容器/构建缓存/旧日志；--all 时额外清理未使用数据卷（慎用）
-do_clean() {
-  local mode="${1:-}"
-  log "清理前 Docker 占用："
-  docker system df 2>/dev/null || true
-
-  # 1. 删除已停止的容器（含 act_runner 跑完的临时 job 容器）
-  docker container prune -f 2>/dev/null || true
-  # 2. 删除悬空镜像（旧版本构建留下的 <none>）
-  docker image prune -f 2>/dev/null || true
-  # 3. 清理构建缓存（保留正在使用的）
-  docker builder prune -f 2>/dev/null || true
-  # 4. 删除未使用网络
-  docker network prune -f 2>/dev/null || true
-  # 5. 清理服务器旧日志/临时文件（CI 构建日志等）
-  rm -f /tmp/ci_build*.log /tmp/ci-build*.log /tmp/act*.html /tmp/*.log 2>/dev/null || true
-
-  if [ "${mode}" = "--all" ]; then
-    warn "--all 模式：删除未使用的数据卷（不影响挂载中的卷，但请确认无残留数据）"
-    docker volume prune -f 2>/dev/null || true
-  fi
-
-  ok "清理完成"
-  log "清理后 Docker 占用："
-  docker system df 2>/dev/null || true
-}
-
 main() {
   local cmd="${1:-help}"; shift || true
   case "${cmd}" in
@@ -255,9 +226,6 @@ main() {
       ;;
     status|ps)
       do_status
-      ;;
-    clean|prune)
-      do_clean "$@"
       ;;
     logs)
       do_logs "$@"

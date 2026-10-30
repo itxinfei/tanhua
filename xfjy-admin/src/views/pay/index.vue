@@ -1,5 +1,25 @@
 <template>
   <div class="page-container">
+    <!-- 汇总卡片 -->
+    <div class="summary-cards">
+      <div class="summary-card">
+        <div class="summary-label">总订单数</div>
+        <div class="summary-value">{{ summary.total }}</div>
+      </div>
+      <div class="summary-card success">
+        <div class="summary-label">已支付</div>
+        <div class="summary-value">{{ summary.paidCount }}</div>
+      </div>
+      <div class="summary-card warning">
+        <div class="summary-label">待支付</div>
+        <div class="summary-value">{{ summary.pendingCount }}</div>
+      </div>
+      <div class="summary-card primary">
+        <div class="summary-label">总收入</div>
+        <div class="summary-value">¥{{ formatAmount(summary.totalAmount) }}</div>
+      </div>
+    </div>
+
     <!-- 搜索栏 -->
     <div class="search-bar">
       <el-form :inline="true" :model="query" @submit.prevent>
@@ -17,9 +37,22 @@
         <el-form-item label="用户ID">
           <el-input v-model.number="query.userId" placeholder="用户ID" clearable style="width: 120px" @keyup.enter="handleSearch" />
         </el-form-item>
+        <el-form-item label="时间范围">
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            value-format="YYYY-MM-DD"
+            style="width: 260px"
+            @change="handleDateChange"
+          />
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
           <el-button :icon="Refresh" @click="handleReset">重置</el-button>
+          <el-button type="success" :icon="Download" @click="handleExport">导出</el-button>
         </el-form-item>
       </el-form>
     </div>
@@ -90,13 +123,23 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { Search, Refresh } from '@element-plus/icons-vue'
-import { getPayOrderPageApi } from '@/api/pay'
-import type { PayOrderItem, PayOrderQuery } from '@/api/pay'
+import { ElMessage } from 'element-plus'
+import { Search, Refresh, Download } from '@element-plus/icons-vue'
+import { getPayOrderPageApi, getPayOrderSummaryApi, exportPayOrdersApi } from '@/api/pay'
+import type { PayOrderItem, PayOrderQuery, PayOrderSummary } from '@/api/pay'
 
 const loading = ref(false)
 const tableData = ref<PayOrderItem[]>([])
 const total = ref(0)
+
+const summary = reactive<PayOrderSummary>({
+  total: 0,
+  paidCount: 0,
+  pendingCount: 0,
+  totalAmount: 0,
+})
+
+const dateRange = ref<[string, string] | null>(null)
 
 const query = reactive<PayOrderQuery>({
   page: 1,
@@ -104,6 +147,8 @@ const query = reactive<PayOrderQuery>({
   orderNo: '',
   status: '',
   userId: undefined,
+  startDate: undefined,
+  endDate: undefined,
 })
 
 async function loadData() {
@@ -118,7 +163,6 @@ async function loadData() {
     tableData.value = res.list
     total.value = res.total
   } catch {
-    // 生产环境显示空列表避免假数据误导，开发环境无后端时也无 mock（订单数据敏感）
     tableData.value = []
     total.value = 0
   } finally {
@@ -126,23 +170,74 @@ async function loadData() {
   }
 }
 
+async function loadSummary() {
+  try {
+    const params: { status?: string; startDate?: string; endDate?: string } = {}
+    if (query.status) params.status = query.status
+    if (query.startDate) params.startDate = query.startDate
+    if (query.endDate) params.endDate = query.endDate
+    const res = await getPayOrderSummaryApi(params)
+    Object.assign(summary, res)
+  } catch {
+    // 汇总加载失败不阻断列表
+  }
+}
+
+function handleDateChange(val: [string, string] | null) {
+  if (val && val.length === 2) {
+    query.startDate = val[0]
+    query.endDate = val[1]
+  } else {
+    query.startDate = undefined
+    query.endDate = undefined
+  }
+}
+
 function handleSearch() {
   query.page = 1
   loadData()
+  loadSummary()
 }
 
 function handleReset() {
   query.orderNo = ''
   query.status = ''
   query.userId = undefined
+  query.startDate = undefined
+  query.endDate = undefined
+  dateRange.value = null
   query.page = 1
   loadData()
+  loadSummary()
 }
 
 /** 切换每页条数时回到第 1 页 */
 function handleSizeChange() {
   query.page = 1
   loadData()
+}
+
+/** 导出订单 */
+async function handleExport() {
+  try {
+    const params: { orderNo?: string; status?: string; userId?: number; startDate?: string; endDate?: string } = {}
+    if (query.orderNo) params.orderNo = query.orderNo
+    if (query.status) params.status = query.status
+    if (query.userId) params.userId = query.userId
+    if (query.startDate) params.startDate = query.startDate
+    if (query.endDate) params.endDate = query.endDate
+
+    const blob = await exportPayOrdersApi(params)
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `pay-orders-${new Date().toISOString().slice(0, 10)}.csv`
+    link.click()
+    window.URL.revokeObjectURL(url)
+    ElMessage.success('导出成功')
+  } catch {
+    ElMessage.error('导出失败')
+  }
 }
 
 /** 金额分转元 */

@@ -62,3 +62,26 @@ export function deleteSensitiveWordApi(id: number) {
 export function refreshSensitiveWordApi() {
   return request.put('/admin/sensitive-words/refresh')
 }
+
+/** 敏感词命中测试 */
+export function testSensitiveWordApi(text: string) {
+  return request.post<any, {
+    action: string
+    filteredText: string
+    hitWords: string[]
+    maxLevel: number
+  }>('/admin/sensitive-words/test', { text })
+}
+
+/** 批量导入敏感词 */
+export function batchImportSensitiveWordsApi(words: string[], category: string, level: number) {
+  return request.post<any, { total: number; success: number; failed: number }>(
+    '/admin/sensitive-words/batch-import',
+    { words, category, level }
+  )
+}
+
+/** 导出敏感词（CSV） */
+export function exportSensitiveWordsApi() {
+  return request.get('/admin/sensitive-words/export', { responseType: 'blob' })
+}
