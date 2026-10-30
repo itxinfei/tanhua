@@ -31,8 +31,14 @@
         value-format="YYYY-MM-DD"
         style="width: 260px"
       />
+      <el-button-group>
+        <el-button size="small" @click="setDateRange(7)">近7天</el-button>
+        <el-button size="small" @click="setDateRange(30)">近30天</el-button>
+        <el-button size="small" @click="setDateRange(90)">近90天</el-button>
+      </el-button-group>
       <el-button type="primary" @click="handleSearch">查询</el-button>
       <el-button @click="handleReset">重置</el-button>
+      <el-button type="success" :icon="Download" @click="handleExport">导出</el-button>
     </div>
 
     <!-- 表格 -->
@@ -74,6 +80,11 @@
         </template>
       </el-table-column>
       <el-table-column label="操作时间" prop="created" width="170" />
+      <el-table-column label="操作" width="80" fixed="right" align="center">
+        <template #default="{ row }">
+          <el-button link type="primary" size="small" @click="showDetail(row)">详情</el-button>
+        </template>
+      </el-table-column>
     </el-table>
 
     <!-- 分页 -->
@@ -88,12 +99,34 @@
         @current-change="loadData"
       />
     </div>
+
+    <!-- 详情弹窗 -->
+    <el-dialog v-model="detailVisible" title="操作日志详情" width="600px">
+      <el-descriptions :column="1" border v-if="currentLog">
+        <el-descriptions-item label="ID">{{ currentLog.id }}</el-descriptions-item>
+        <el-descriptions-item label="操作人">{{ currentLog.adminUsername }}（ID: {{ currentLog.adminId }}）</el-descriptions-item>
+        <el-descriptions-item label="模块">
+          <el-tag size="small" type="info">{{ moduleLabel(currentLog.module) }}</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="动作">
+          <el-tag :type="actionTagType(currentLog.action)" size="small">{{ actionLabel(currentLog.action) }}</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="目标ID">{{ currentLog.targetId || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="详情">
+          <pre style="margin: 0; white-space: pre-wrap; word-break: break-all;">{{ currentLog.detail || '-' }}</pre>
+        </el-descriptions-item>
+        <el-descriptions-item label="IP">{{ currentLog.ip || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="操作时间">{{ currentLog.created }}</el-descriptions-item>
+      </el-descriptions>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { getLogPageApi } from '@/api/log'
+import { ElMessage } from 'element-plus'
+import { Download } from '@element-plus/icons-vue'
+import { getLogPageApi, getLogDetailApi, exportLogsApi } from '@/api/log'
 import type { OperationLogItem } from '@/api/log'
 
 const loading = ref(false)
@@ -158,6 +191,61 @@ function handleReset() {
 function handleSizeChange() {
   page.value = 1
   loadData()
+}
+
+/** 设置日期快捷项 */
+function setDateRange(days: number) {
+  const end = new Date()
+  const start = new Date()
+  start.setDate(start.getDate() - days)
+
+  const fmt = (d: Date) => {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+
+  dateRange.value = [fmt(start), fmt(end)]
+  handleSearch()
+}
+
+/** 导出日志 */
+async function handleExport() {
+  try {
+    const params: { module?: string; adminUsername?: string; startDate?: string; endDate?: string } = {}
+    if (searchModule.value) params.module = searchModule.value
+    if (searchAdmin.value.trim()) params.adminUsername = searchAdmin.value.trim()
+    if (dateRange.value && dateRange.value.length === 2) {
+      params.startDate = dateRange.value[0]
+      params.endDate = dateRange.value[1]
+    }
+
+    const blob = await exportLogsApi(params)
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `operation-logs-${new Date().toISOString().slice(0, 10)}.csv`
+    link.click()
+    window.URL.revokeObjectURL(url)
+    ElMessage.success('导出成功')
+  } catch {
+    ElMessage.error('导出失败')
+  }
+}
+
+/** 详情弹窗 */
+const detailVisible = ref(false)
+const currentLog = ref<OperationLogItem | null>(null)
+
+async function showDetail(row: OperationLogItem) {
+  try {
+    const detail = await getLogDetailApi(row.id)
+    currentLog.value = detail
+    detailVisible.value = true
+  } catch {
+    ElMessage.error('加载详情失败')
+  }
 }
 
 function moduleLabel(module: string): string {

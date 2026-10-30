@@ -33,6 +33,7 @@
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
           <el-button :icon="Refresh" @click="handleReset">重置</el-button>
+          <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" :icon="Download" @click="handleExport">导出</el-button>
         </el-form-item>
       </el-form>
     </div>
@@ -155,8 +156,8 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh } from '@element-plus/icons-vue'
-import { getUserPageApi, freezeUserApi, unfreezeUserApi, resetUserPasswordApi } from '@/api/user'
+import { Search, Refresh, Download } from '@element-plus/icons-vue'
+import { getUserPageApi, freezeUserApi, unfreezeUserApi, resetUserPasswordApi, exportUsersApi } from '@/api/user'
 import type { UserItem, UserQuery } from '@/api/user'
 import request from '@/api/request'
 import UserDetailDrawer from './detail.vue'
@@ -223,6 +224,29 @@ function handleReset() {
 function handleSizeChange() {
   query.page = 1
   loadData()
+}
+
+/** 导出用户列表 */
+async function handleExport() {
+  try {
+    const params: { keyword?: string; gender?: string; status?: string; startDate?: string; endDate?: string } = {}
+    if (query.keyword) params.keyword = query.keyword
+    if (query.gender) params.gender = query.gender
+    if (query.status) params.status = query.status
+    if (query.startDate) params.startDate = query.startDate
+    if (query.endDate) params.endDate = query.endDate
+
+    const blob = await exportUsersApi(params)
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `users-${new Date().toISOString().slice(0, 10)}.csv`
+    link.click()
+    window.URL.revokeObjectURL(url)
+    ElMessage.success('导出成功')
+  } catch {
+    ElMessage.error('导出失败')
+  }
 }
 
 // 详情抽屉

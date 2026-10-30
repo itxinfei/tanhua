@@ -22,6 +22,15 @@ export interface PayOrderQuery {
   orderNo?: string
   status?: string
   userId?: number
+  startDate?: string
+  endDate?: string
+}
+
+export interface PayOrderSummary {
+  total: number
+  paidCount: number
+  pendingCount: number
+  totalAmount: number
 }
 
 export interface PageResult<T> {
@@ -32,4 +41,14 @@ export interface PageResult<T> {
 /** 分页查询支付订单 */
 export function getPayOrderPageApi(params: PayOrderQuery) {
   return request.get<any, PageResult<PayOrderItem>>('/admin/pay-orders', { params })
+}
+
+/** 查询订单汇总 */
+export function getPayOrderSummaryApi(params: { status?: string; startDate?: string; endDate?: string }) {
+  return request.get<any, PayOrderSummary>('/admin/pay-orders/summary', { params })
+}
+
+/** 导出订单（CSV） */
+export function exportPayOrdersApi(params: { orderNo?: string; status?: string; userId?: number; startDate?: string; endDate?: string }) {
+  return request.get('/admin/pay-orders/export', { params, responseType: 'blob' })
 }

@@ -48,10 +48,12 @@
           <template #default="{ row }">{{ row.publishedAt || '-' }}</template>
         </el-table-column>
         <el-table-column prop="createdAt" label="创建时间" width="170" />
-        <el-table-column label="操作" width="240" fixed="right" align="center">
+        <el-table-column label="操作" width="280" fixed="right" align="center">
           <template #default="{ row }">
+            <el-button link type="primary" size="small" @click="handlePreview(row)">预览</el-button>
             <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
             <el-button v-if="row.status === 'DRAFT'" v-perm="['SUPER_ADMIN','ADMIN']" link type="success" size="small" @click="handlePublish(row)">发布</el-button>
+            <el-button v-if="row.status === 'OFFLINE'" v-perm="['SUPER_ADMIN','ADMIN']" link type="success" size="small" @click="handlePublish(row)">重新发布</el-button>
             <el-button v-if="row.status === 'PUBLISHED'" v-perm="['SUPER_ADMIN','ADMIN']" link type="warning" size="small" @click="handleOffline(row)">下线</el-button>
             <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
           </template>
@@ -92,6 +94,21 @@
         <el-button @click="formVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmSave">保存</el-button>
       </template>
+    </el-dialog>
+
+    <!-- 内容预览弹窗 -->
+    <el-dialog v-model="previewVisible" title="公告预览" width="640px">
+      <div v-if="previewData" class="preview-content">
+        <h2 class="preview-title">{{ previewData.title }}</h2>
+        <div class="preview-meta">
+          <el-tag :type="typeColor(previewData.type)" size="small">{{ typeLabel(previewData.type) }}</el-tag>
+          <el-tag :type="statusColor(previewData.status)" size="small">{{ statusLabel(previewData.status) }}</el-tag>
+          <span class="preview-publisher">{{ previewData.publisher }}</span>
+          <span class="preview-time">{{ previewData.publishedAt || previewData.createdAt }}</span>
+        </div>
+        <el-divider />
+        <div class="preview-body">{{ previewData.content }}</div>
+      </div>
     </el-dialog>
   </div>
 </template>
@@ -283,7 +300,54 @@ async function handleDelete(row: NoticeItem) {
   }
 }
 
+// 预览
+const previewVisible = ref(false)
+const previewData = ref<NoticeItem | null>(null)
+
+function handlePreview(row: NoticeItem) {
+  previewData.value = row
+  previewVisible.value = true
+}
+
 onMounted(() => {
   loadData()
 })
 </script>
+
+<style scoped>
+.preview-content {
+  padding: 0 8px;
+}
+
+.preview-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 12px;
+  color: #303133;
+}
+
+.preview-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #909399;
+}
+
+.preview-publisher {
+  color: #606266;
+}
+
+.preview-time {
+  margin-left: auto;
+}
+
+.preview-body {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #303133;
+  white-space: pre-wrap;
+  word-break: break-all;
+  min-height: 120px;
+}
+</style>
