@@ -9,8 +9,9 @@
 
 <script setup lang="ts">
 import { ref, onLoad } from 'vue'
+import { getAgreement } from '@/api/agreement'
 
-// 协议内容（正式法务模板，上线前须经法务审核）
+// 本地兜底文本（接口不可用时展示，需与后台“协议管理”中已发布内容保持一致）
 const CONTENT: Record<string, { title: string; paragraphs: string[] }> = {
   user: {
     title: '用户协议',
@@ -53,11 +54,28 @@ const title = ref('协议')
 const paragraphs = ref<string[]>([])
 
 onLoad((query: any) => {
-  const type = (query && query.type) || 'user'
-  const data = CONTENT[type] || CONTENT.user
-  title.value = data.title
-  paragraphs.value = data.paragraphs
-  uni.setNavigationBarTitle({ title: data.title })
+  const rawType = (query && query.type) || 'user'
+  const type: 'USER' | 'PRIVACY' = rawType === 'privacy' ? 'PRIVACY' : 'USER'
+  const fallback = CONTENT[rawType] || CONTENT.user
+
+  // 先渲染本地兜底文本，避免接口未就绪时白屏
+  title.value = fallback.title
+  paragraphs.value = fallback.paragraphs
+
+  // 再尝试拉取后台已发布协议，成功则用线上版本覆盖
+  getAgreement(type)
+    .then((res) => {
+      if (res && res.content) {
+        title.value = res.title || fallback.title
+        paragraphs.value = res.content
+          .split('\n')
+          .map((s: string) => s.trim())
+          .filter((s: string) => s.length > 0)
+      }
+    })
+    .catch(() => {
+      // 接口失败（如后端未部署），保持本地兜底文本
+    })
 })
 </script>
 
