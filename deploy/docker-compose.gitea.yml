@@ -68,11 +68,16 @@ services:
       # 标签 ubuntu-latest 直接映射到我们的 CI 镜像，保证 job 容器含 JDK25/Maven39/Node22/ssh；
       # 工作流里的 container.image 与之保持一致（双保险）。
       GITEA_RUNNER_LABELS: "ubuntu-latest:docker://xfjy/ci:latest"
+      # 指向 runner 配置文件（关键：container.network 让 job 容器加入 gitea-net，
+      # 否则 job 内 checkout 会报 "Could not resolve host: gitea"）
+      CONFIG_FILE: /config/config.yaml
     volumes:
       # 关键：挂载宿主机 docker.sock，使 runner 能拉起 job 容器（工作流里的 container 镜像）
       - /var/run/docker.sock:/var/run/docker.sock
       # runner 注册信息持久化，避免容器重启后需重新注册
       - runner-config:/config
+      # runner 配置文件：container.network / labels 等
+      - ./gitea/config.yaml:/config/config.yaml:ro
     networks:
       - gitea-net
     depends_on:
