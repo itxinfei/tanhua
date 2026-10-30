@@ -2,20 +2,18 @@ package com.xfjy.server.controller;
 
 import com.xfjy.server.annotation.RequireRole;
 import com.xfjy.server.service.AdminSensitiveWordService;
+import com.xfjy.server.pojo.SensitiveWord;
+import com.xfjy.server.vo.TextDetectResult;
+import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -138,6 +136,77 @@ public class AdminSensitiveWordController {
         } catch (Exception e) {
             LOGGER.error("刷新敏感词库失败", e);
             return ResponseEntity.status(500).body(Map.of("message", "刷新词库失败"));
+        }
+    }
+
+    /**
+     * POST /admin/sensitive-words/test — 敏感词命中测试
+     */
+    @PostMapping("test")
+    public ResponseEntity<TextDetectResult> testSensitiveWord(@RequestBody Map<String, String> body) {
+        try {
+            String text = body.get("text");
+            TextDetectResult result = this.adminSensitiveWordService.testSensitiveWord(text);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            LOGGER.error("敏感词测试失败", e);
+            return ResponseEntity.status(500).body(null);
+        }
+    }
+
+    /**
+     * POST /admin/sensitive-words/batch-import — 批量导入敏感词
+     */
+    @PostMapping("batch-import")
+    public ResponseEntity<Map<String, Object>> batchImportWords(@RequestBody Map<String, Object> body) {
+        try {
+            @SuppressWarnings("unchecked")
+            List<String> words = (List<String>) body.get("words");
+            String category = (String) body.get("category");
+            Integer level = body.get("level") != null ? Integer.valueOf(body.get("level").toString()) : null;
+
+            Map<String, Object> result = this.adminSensitiveWordService.batchImportWords(words, category, level);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            LOGGER.error("批量导入敏感词失败", e);
+            return ResponseEntity.status(500).body(Map.of("message", "批量导入失败"));
+        }
+    }
+
+    /**
+     * GET /admin/sensitive-words/export — 导出敏感词列表（CSV）
+     */
+    @GetMapping("export")
+    public void exportWords(HttpServletResponse response) throws IOException {
+        try {
+            List<SensitiveWord> words = this.adminSensitiveWordService.exportWords();
+
+            response.setContentType("text/csv; charset=UTF-8");
+            response.setHeader("Content-Disposition", "attachment; filename=sensitive-words.csv");
+            PrintWriter writer = response.getWriter();
+
+            // CSV 头
+            writer.println("ID,敏感词,分类,级别,状态,创建时间,更新时间");
+
+            // 数据行
+            for (SensitiveWord word : words) {
+                String created = word.getCreated() != null ? new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(word.getCreated()) : "";
+                String updated = word.getUpdated() != null ? new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(word.getUpdated()) : "";
+                writer.println(String.join(",",
+                    String.valueOf(word.getId()),
+                    word.getWord(),
+                    word.getCategory(),
+                    String.valueOf(word.getLevel()),
+                    String.valueOf(word.getStatus()),
+                    created,
+                    updated
+                ));
+            }
+            writer.flush();
+        } catch (Exception e) {
+            LOGGER.error("导出敏感词失败", e);
+            response.setStatus(500);
+            response.getWriter().println("导出失败: " + e.getMessage());
         }
     }
 }

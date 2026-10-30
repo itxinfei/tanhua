@@ -5,12 +5,14 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xfjy.server.mapper.SensitiveWordMapper;
 import com.xfjy.server.pojo.SensitiveWord;
+import com.xfjy.server.vo.TextDetectResult;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -147,5 +149,73 @@ public class AdminSensitiveWordService {
     public Boolean refresh() {
         this.sensitiveWordService.refresh();
         return true;
+    }
+
+    /**
+     * 敏感词命中测试
+     *
+     * @param text 待检测文本
+     * @return {action, filteredText, hitWords, maxLevel}
+     */
+    public TextDetectResult testSensitiveWord(String text) {
+        return this.sensitiveWordService.checkText(text);
+    }
+
+    /**
+     * 批量导入敏感词
+     *
+     * @param words 敏感词列表（每行一个词）
+     * @param category 分类（POLITICS/PORN/VIOLENCE/AD/OTHER）
+     * @param level 级别（1/2/3）
+     * @return {total, success, failed}
+     */
+    public Map<String, Object> batchImportWords(List<String> words, String category, Integer level) {
+        if (words == null || words.isEmpty()) {
+            Map<String, Object> empty = new HashMap<>();
+            empty.put("total", 0);
+            empty.put("success", 0);
+            empty.put("failed", 0);
+            return empty;
+        }
+
+        int success = 0;
+        int failed = 0;
+        for (String word : words) {
+            String trimmed = word.trim();
+            if (StringUtils.isBlank(trimmed)) {
+                failed++;
+                continue;
+            }
+            try {
+                Boolean result = createWord(trimmed, category, level);
+                if (result) {
+                    success++;
+                } else {
+                    failed++;
+                }
+            } catch (Exception e) {
+                failed++;
+            }
+        }
+
+        // 导入完成后刷新词库
+        if (success > 0) {
+            this.sensitiveWordService.refresh();
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("total", words.size());
+        result.put("success", success);
+        result.put("failed", failed);
+        return result;
+    }
+
+    /**
+     * 导出敏感词列表（返回全部数据，不分页）
+     */
+    public List<SensitiveWord> exportWords() {
+        QueryWrapper<SensitiveWord> wrapper = new QueryWrapper<>();
+        wrapper.orderByDesc("updated");
+        return this.sensitiveWordMapper.selectList(wrapper);
     }
 }

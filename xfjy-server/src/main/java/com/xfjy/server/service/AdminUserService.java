@@ -50,6 +50,38 @@ public class AdminUserService {
     public Map<String, Object> queryUserPage(Integer page, Integer pageSize,
                                               String keyword, String gender, String status,
                                               String startDate, String endDate) {
+        QueryWrapper<User> userWrapper = buildUserFilterWrapper(keyword, gender, status, startDate, endDate);
+        userWrapper.orderByDesc("created");
+
+        IPage<User> userPage = this.userMapper.selectPage(new Page<>(page, pageSize), userWrapper);
+
+        // 组装返回数据（合并UserInfo）
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (User user : userPage.getRecords()) {
+            items.add(buildUserItem(user));
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("total", userPage.getTotal());
+        result.put("list", items);
+        return result;
+    }
+
+    /**
+     * 导出用户列表（返回全部匹配数据，不分页）
+     */
+    public List<User> exportUsers(String keyword, String gender, String status,
+                                  String startDate, String endDate) {
+        QueryWrapper<User> userWrapper = buildUserFilterWrapper(keyword, gender, status, startDate, endDate);
+        userWrapper.orderByDesc("created");
+        return this.userMapper.selectList(userWrapper);
+    }
+
+    /**
+     * 构建用户过滤条件（分页/导出共用）
+     */
+    private QueryWrapper<User> buildUserFilterWrapper(String keyword, String gender, String status,
+                                                      String startDate, String endDate) {
         QueryWrapper<User> userWrapper = new QueryWrapper<>();
         // 根据性别筛选：先查出符合条件的用户ID集合
         if (StringUtils.isNotBlank(gender)) {
@@ -59,10 +91,7 @@ public class AdminUserService {
             List<UserInfo> infoList = this.userInfoApi.queryUserInfoList(genderParam);
             List<Long> userIds = infoList.stream().map(UserInfo::getUserId).collect(java.util.stream.Collectors.toList());
             if (userIds.isEmpty()) {
-                Map<String, Object> empty = new HashMap<>();
-                empty.put("total", 0L);
-                empty.put("list", new ArrayList<>());
-                return empty;
+                return null; // 返回 null 表示无匹配数据
             }
             userWrapper.in("id", userIds);
         }
@@ -88,10 +117,7 @@ public class AdminUserService {
             });
 
             if (keywordUserIds.isEmpty()) {
-                Map<String, Object> empty = new HashMap<>();
-                empty.put("total", 0L);
-                empty.put("list", new ArrayList<>());
-                return empty;
+                return null; // 返回 null 表示无匹配数据
             }
             userWrapper.in("id", keywordUserIds);
         }
@@ -106,45 +132,39 @@ public class AdminUserService {
         if (StringUtils.isNotBlank(endDate)) {
             userWrapper.le("created", parseDateToTimestamp(endDate) + 86399999L); // 包含当天
         }
-        userWrapper.orderByDesc("created");
+        return userWrapper;
+    }
 
-        IPage<User> userPage = this.userMapper.selectPage(new Page<>(page, pageSize), userWrapper);
+    /**
+     * 构建用户信息 Item（合并UserInfo）
+     */
+    private Map<String, Object> buildUserItem(User user) {
+        Map<String, Object> item = new HashMap<>();
+        item.put("id", user.getId());
+        item.put("mobile", user.getMobile());
+        item.put("status", user.getStatus() != null ? user.getStatus() : "NORMAL");
+        item.put("freezeReason", user.getFreezeReason());
+        item.put("createdAt", user.getCreated());
+        item.put("lastActiveAt", user.getUpdated());
 
-        // 组装返回数据（合并UserInfo）
-        List<Map<String, Object>> items = new ArrayList<>();
-        for (User user : userPage.getRecords()) {
-            Map<String, Object> item = new HashMap<>();
-            item.put("id", user.getId());
-            item.put("mobile", user.getMobile());
-            item.put("status", user.getStatus() != null ? user.getStatus() : "NORMAL");
-            item.put("freezeReason", user.getFreezeReason());
-            item.put("createdAt", user.getCreated());
-            item.put("lastActiveAt", user.getUpdated());
-
-            // 查询用户详情
-            UserInfo userInfo = this.userInfoApi.queryByUserId(user.getId());
-            if (userInfo != null) {
-                item.put("nickname", userInfo.getNickName());
-                item.put("avatar", userInfo.getLogo());
-                item.put("gender", userInfo.getSex() != null ? userInfo.getSex().toString() : "未知");
-                item.put("age", userInfo.getAge());
-                item.put("city", userInfo.getCity());
-                item.put("vipLevel", 0); //VIP功能待实现
-            } else {
-                item.put("nickname", "用户" + user.getId());
-                item.put("avatar", "");
-                item.put("gender", "未知");
-                item.put("age", 0);
-                item.put("city", "");
-                item.put("vipLevel", 0);
-            }
-            items.add(item);
+        // 查询用户详情
+        UserInfo userInfo = this.userInfoApi.queryByUserId(user.getId());
+        if (userInfo != null) {
+            item.put("nickname", userInfo.getNickName());
+            item.put("avatar", userInfo.getLogo());
+            item.put("gender", userInfo.getSex() != null ? userInfo.getSex().toString() : "未知");
+            item.put("age", userInfo.getAge());
+            item.put("city", userInfo.getCity());
+            item.put("vipLevel", 0); //VIP功能待实现
+        } else {
+            item.put("nickname", "用户" + user.getId());
+            item.put("avatar", "");
+            item.put("gender", "未知");
+            item.put("age", 0);
+            item.put("city", "");
+            item.put("vipLevel", 0);
         }
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("total", userPage.getTotal());
-        result.put("list", items);
-        return result;
+        return item;
     }
 
     /**

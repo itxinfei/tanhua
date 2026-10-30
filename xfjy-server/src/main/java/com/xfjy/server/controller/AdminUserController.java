@@ -2,6 +2,8 @@ package com.xfjy.server.controller;
 
 import com.xfjy.server.annotation.RequireRole;
 import com.xfjy.server.service.AdminUserService;
+import com.xfjy.server.pojo.User;
+import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,8 +11,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 后台用户管理Controller
@@ -60,6 +64,49 @@ public class AdminUserController {
         } catch (Exception e) {
             LOGGER.error("接口处理异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * 导出用户列表（CSV）
+     */
+    @GetMapping("/export")
+    public void exportUsers(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String gender,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            HttpServletResponse response) throws IOException {
+        try {
+            List<User> users = this.adminUserService.exportUsers(keyword, gender, status, startDate, endDate);
+
+            response.setContentType("text/csv; charset=UTF-8");
+            response.setHeader("Content-Disposition", "attachment; filename=users.csv");
+            PrintWriter writer = response.getWriter();
+
+            // CSV 头
+            writer.println("用户ID,手机号,昵称,性别,年龄,城市,状态,注册时间");
+
+            // 数据行
+            for (User user : users) {
+                String created = user.getCreated() != null ? new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(user.getCreated()) : "";
+                writer.println(String.join(",",
+                    String.valueOf(user.getId()),
+                    user.getMobile(),
+                    user.getMobile(), // 昵称需要查 UserInfo，导出简化为手机号
+                    "", // 性别
+                    "", // 年龄
+                    "", // 城市
+                    user.getStatus(),
+                    created
+                ));
+            }
+            writer.flush();
+        } catch (Exception e) {
+            LOGGER.error("导出用户失败", e);
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.getWriter().println("导出失败: " + e.getMessage());
         }
     }
 

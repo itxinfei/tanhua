@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -65,5 +66,50 @@ public class AdminOperationLogService {
         result.put("total", logPage.getTotal());
         result.put("list", logPage.getRecords());
         return result;
+    }
+
+    /**
+     * 查询日志详情
+     */
+    public OperationLog queryLogDetail(Long id) {
+        return this.operationLogMapper.selectById(id);
+    }
+
+    /**
+     * 导出日志列表（返回全部匹配数据，不分页）
+     */
+    public List<OperationLog> exportLogs(String module, String adminUsername,
+                                         String startDate, String endDate) {
+        QueryWrapper<OperationLog> wrapper = buildLogFilterWrapper(module, adminUsername, startDate, endDate);
+        wrapper.orderByDesc("created");
+        return this.operationLogMapper.selectList(wrapper);
+    }
+
+    /**
+     * 构建日志过滤条件（分页/导出共用）
+     */
+    private QueryWrapper<OperationLog> buildLogFilterWrapper(String module, String adminUsername,
+                                                              String startDate, String endDate) {
+        QueryWrapper<OperationLog> wrapper = new QueryWrapper<>();
+        if (StringUtils.isNotBlank(module)) {
+            wrapper.eq("module", module);
+        }
+        if (StringUtils.isNotBlank(adminUsername)) {
+            wrapper.like("admin_username", adminUsername);
+        }
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        try {
+            if (StringUtils.isNotBlank(startDate)) {
+                wrapper.ge("created", sdf.parse(startDate));
+            }
+            if (StringUtils.isNotBlank(endDate)) {
+                // 结束日期含当天全天
+                wrapper.le("created", new java.util.Date(sdf.parse(endDate).getTime() + 24 * 3600 * 1000 - 1));
+            }
+        } catch (ParseException e) {
+            // 日期格式非法时忽略筛选
+        }
+        return wrapper;
     }
 }
