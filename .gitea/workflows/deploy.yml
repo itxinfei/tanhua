@@ -86,7 +86,10 @@ jobs:
               [ -f "$RES/application-local.yml" ] || cp -f deploy/application-local.ci.yml "$RES/application-local.yml"
             fi
           done
-          mvn -B -ntp package -DskipTests -pl "$SERVICES" -am
+          # SERVICES 是空格分隔的模块列表，-pl 需要逗号分隔
+          PL_LIST="$(echo $SERVICES | tr ' ' ',')"
+          echo "打包模块: ${PL_LIST}"
+          mvn -B -ntp package -DskipTests -pl "${PL_LIST}" -am
           for svc in $SERVICES; do
             if [ ! -f "$svc/target/$svc-1.0-SNAPSHOT.jar" ]; then
               echo "ERROR: 未生成 $svc/target/$svc-1.0-SNAPSHOT.jar"; exit 1

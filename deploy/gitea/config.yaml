@@ -27,8 +27,12 @@ container:
   # job 容器内需要挂载宿主 docker.sock（act_runner 默认已挂载，此处显式声明以便 job 内执行 docker/compose）
   valid_volumes:
     - "/var/run/docker.sock"
-  # 关键：把 gitea 主机名写死到容器 /etc/hosts。
-  # act_runner 给每个 job 自建独立网络，该网络内没有 gitea 服务名，
-  # 导致 checkout 时 "Could not resolve host: gitea"。此处用 --add-host 兜底，
-  # 172.19.0.2 是 gitea 容器在 xfjy-gitea_gitea-net 上的地址。
-  options: "--cpus=4 --memory=4g --add-host gitea:172.19.0.2"
+  # 关键项说明：
+  # 1) --add-host gitea:172.19.0.2
+  #    act_runner 给每个 job 自建独立网络，该网络内没有 gitea 服务名，
+  #    导致 checkout 时 "Could not resolve host: gitea"。这里用 --add-host 兜底，
+  #    172.19.0.2 是 gitea 容器在 xfjy-gitea_gitea-net 上的地址。
+  # 2) -v /home/itxinfei/.cache/m2:/root/.m2 与 npm 缓存
+  #    job 容器每次都是全新的，Maven/npm 依赖会重新下载（150MB+），
+  #    挂载宿主缓存目录后可跨 job 复用，显著缩短构建时间。
+  options: "--cpus=4 --memory=4g --add-host gitea:172.19.0.2 -v /home/itxinfei/.cache/m2:/root/.m2 -v /home/itxinfei/.cache/npm:/root/.npm"

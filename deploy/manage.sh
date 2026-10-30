@@ -8,16 +8,18 @@
 #   - App H5（uni-app）              ：deploy/docker-compose.web.yml  → 工程名 xfjy-web
 #
 # 用法：
-#   bash deploy/manage.sh up                      # 启动全部
-#   bash deploy/manage.sh up xfjy-gateway         # 启动单个服务
-#   bash deploy/manage.sh up xfjy-gateway xfjy-admin   # 启动多个（可跨前后端）
-#   bash deploy/manage.sh down                    # 停止全部
-#   bash deploy/manage.sh down xfjy-video-service # 停止单个
-#   bash deploy/manage.sh restart xfjy-server     # 重启单个
-#   bash deploy/manage.sh status                  # 查看全部状态
-#   bash deploy/manage.sh logs xfjy-server        # 跟踪日志
-#   bash deploy/manage.sh build xfjy-admin        # 只构建镜像不启动
-#   bash deploy/manage.sh deploy                  # 重新构建并启动全部（CI 用）
+#   bash deploy/manage.sh up|deploy all                 # 全部（后端微服务 + admin + h5）
+#   bash deploy/manage.sh up|deploy backend             # 全部后端微服务（11 个）
+#   bash deploy/manage.sh up|deploy admin               # 只部署后台管理系统（Vue3）
+#   bash deploy/manage.sh up|deploy app                 # 只部署 App H5（uni-app，h5 同义）
+#   bash deploy/manage.sh up|deploy xfjy-server         # 只部署某一个微服务
+#   bash deploy/manage.sh up|deploy xfjy-server xfjy-admin  # 多个（可跨前后端）
+#   bash deploy/manage.sh down|restart|build|status     # 停止/重启/构建/查看状态（同样支持上述目标）
+#   bash deploy/manage.sh logs xfjy-server              # 跟踪日志
+#   bash deploy/manage.sh clean                         # 清理垃圾（悬空镜像/停止容器/构建缓存/旧日志）
+#   bash deploy/manage.sh clean --all                   # 彻底清理（额外含未使用数据卷，慎用）
+#
+# 目标别名：all=全部；backend=全部后端微服务；admin=xfjy-admin；app/h5=xfjy-h5
 #
 # 说明：
 #   - 密码等敏感项从 deploy/.env 读取（该文件被 .gitignore 排除，不入库）；
@@ -88,10 +90,33 @@ compose_cmd() {
   fi
 }
 
-# 按服务名分组，分别落到 app / web 两套编排
+# 按服务名/目标别名分组，分别落到 app / web 两套编排
+# 目标别名：all=全部；backend=全部后端微服务；admin=xfjy-admin；app/h5=xfjy-h5；其余为具体服务名
 resolve_targets() {
   local -a targets=("$@")
-  if [ ${#targets[@]} -eq 0 ]; then
+  local -a expanded=()
+  local t
+  for t in "${targets[@]}"; do
+    case "${t}" in
+      all)        expanded+=("${BACKEND_SERVICES[@]}" "${WEB_SERVICES[@]}") ;;
+      backend)    expanded+=("${BACKEND_SERVICES[@]}") ;;
+      admin)      expanded+=("xfjy-admin") ;;
+      app|h5)     expanded+=("xfjy-h5") ;;
+      *)          expanded+=("${t}") ;;
+    esac
+  done
+  # 去重（all 与具体服务名混用时避免重复）
+  local -a uniq=()
+  local s
+  for s in "${expanded[@]}"; do
+    local found=false i
+    for i in "${uniq[@]}"; do
+      [ "${i}" = "${s}" ] && { found=true; break; }
+    done
+    [ "${found}" = false ] && uniq+=("${s}")
+  done
+
+  if [ ${#uniq[@]} -eq 0 ]; then
     APP_TARGETS=("${BACKEND_SERVICES[@]}")
     WEB_TARGETS=("${WEB_SERVICES[@]}")
     return 0
@@ -99,14 +124,14 @@ resolve_targets() {
   APP_TARGETS=()
   WEB_TARGETS=()
   local svc
-  for svc in "${targets[@]}"; do
+  for svc in "${uniq[@]}"; do
     if belongs_to "${svc}" app; then
       APP_TARGETS+=("${svc}")
     elif belongs_to "${svc}" web; then
       WEB_TARGETS+=("${svc}")
     else
       err "未知服务名：${svc}"
-      err "可用服务：${ALL_SERVICES[*]}"
+      err "可用：all / backend / admin / app / h5 / 具体服务名(${ALL_SERVICES[*]})"
       exit 1
     fi
   done
@@ -161,6 +186,33 @@ do_logs() {
   fi
 }
 
+# 清理磁盘垃圾：悬空镜像/停止容器/构建缓存/旧日志；--all 时额外清理未使用数据卷（慎用）
+do_clean() {
+  local mode="${1:-}"
+  log "清理前 Docker 占用："
+  docker system df 2>/dev/null || true
+
+  # 1. 删除已停止的容器（含 act_runner 跑完的临时 job 容器）
+  docker container prune -f 2>/dev/null || true
+  # 2. 删除悬空镜像（旧版本构建留下的 <none>）
+  docker image prune -f 2>/dev/null || true
+  # 3. 清理构建缓存（保留正在使用的）
+  docker builder prune -f 2>/dev/null || true
+  # 4. 删除未使用网络
+  docker network prune -f 2>/dev/null || true
+  # 5. 清理服务器旧日志/临时文件（CI 构建日志等）
+  rm -f /tmp/ci_build*.log /tmp/ci-build*.log /tmp/act*.html /tmp/*.log 2>/dev/null || true
+
+  if [ "${mode}" = "--all" ]; then
+    warn "--all 模式：删除未使用的数据卷（不影响挂载中的卷，但请确认无残留数据）"
+    docker volume prune -f 2>/dev/null || true
+  fi
+
+  ok "清理完成"
+  log "清理后 Docker 占用："
+  docker system df 2>/dev/null || true
+}
+
 main() {
   local cmd="${1:-help}"; shift || true
   case "${cmd}" in
@@ -203,6 +255,9 @@ main() {
       ;;
     status|ps)
       do_status
+      ;;
+    clean|prune)
+      do_clean "$@"
       ;;
     logs)
       do_logs "$@"
