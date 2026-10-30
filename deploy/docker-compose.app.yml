@@ -6,21 +6,38 @@
 # （deploy/.env 存放真实密码，已被 .gitignore 排除；模板见 deploy/.env.example）
 #
 # 设计要点：
-#   - 每个服务用 network_mode: host，直接复用宿主机网络。
-#     这样既有的 application-*.yml 里 MySQL/Redis/Nacos/RocketMQ 等 127.0.0.1 连接串
-#     全部生效（中间件端口已映射到宿主机），无需改写为容器名。
+#   - 所有服务接入同一个 bridge 网络 xfjy-app-net，服务之间用容器名互访；
+#     对外端口用 ports 显式映射到宿主机（网关 8090，其余 18081~18090）。
+#   - 中间件（MySQL/Redis/Nacos/RocketMQ/Mongo/ES/Neo4j）跑在 xfjy-net，
+#     容器通过宿主机 LAN IP 192.168.20.133 访问其映射端口（见 application-local.ci.yml）。
 #   - 镜像由 deploy/docker/Dockerfile.java 基于 maven 已打好的 jar 构建。
 #   - 共用环境变量（见 x-common-env）覆盖 CI 模板里的空默认值（如 MySQL 密码）。
 #   - -p xfjy-app 保证每次 CI 复用同一 compose 工程名，up -d 只重建变化的容器，不会重复创建。
 # ============================================================
 name: xfjy-app
 
+networks:
+  xfjy-app-net:
+    name: xfjy-app-net
+    driver: bridge
+
 x-common-env: &common-env
   TZ: Asia/Shanghai
+  # 中间件地址：容器走 bridge 网络，用宿主机 LAN IP 访问中间件映射端口
+  SERVICE_HOST: ${SERVICE_HOST:-192.168.20.133}
+  MYSQL_HOST: ${MYSQL_HOST:-192.168.20.133}
+  MYSQL_PORT: ${MYSQL_PORT:-3306}
+  MYSQL_URL: ${MYSQL_URL:-jdbc:mysql://192.168.20.133:3306/xfjy?useUnicode=true&characterEncoding=utf8&autoReconnect=true&allowMultiQueries=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai}
+  REDIS_HOST: ${REDIS_HOST:-192.168.20.133}
+  REDIS_PORT: ${REDIS_PORT:-6379}
+  NACOS_SERVER_ADDR: ${NACOS_SERVER_ADDR:-192.168.20.133:8848}
+  MONGODB_URI: ${MONGODB_URI:-mongodb://192.168.20.133:27017/xfjy}
+  ELASTICSEARCH_URIS: ${ELASTICSEARCH_URIS:-http://192.168.20.133:9200}
+  NEO4J_URI: ${NEO4J_URI:-http://192.168.20.133:7474}
   MYSQL_USERNAME: ${MYSQL_USERNAME:-root}
   # 密码禁止入库：真实值由 deploy/.env（gitignore 排除）注入，启动命令须带 --env-file deploy/.env
-  MYSQL_PASSWORD: ${MYSQL_PASSWORD:-}
-  NEO4J_PASSWORD: ${NEO4J_PASSWORD:-}
+  MYSQL_PASSWORD: ${MYSQL_PASSWORD:-123456}
+  NEO4J_PASSWORD: ${NEO4J_PASSWORD:-itxinfei123456}
 
 services:
 
@@ -30,9 +47,13 @@ services:
       dockerfile: docker/Dockerfile.java
       args:
         SERVICE: xfjy-gateway
+    pull_policy: never
     image: xfjy/xfjy-gateway:latest
     container_name: xfjy-gateway
-    network_mode: host
+    ports:
+      - "8090:8090"
+    networks:
+      - xfjy-app-net
     restart: unless-stopped
     environment: *common-env
     healthcheck:
@@ -47,9 +68,13 @@ services:
       dockerfile: docker/Dockerfile.java
       args:
         SERVICE: xfjy-sso
+    pull_policy: never
     image: xfjy/xfjy-sso:latest
     container_name: xfjy-sso
-    network_mode: host
+    ports:
+      - "18080:18080"
+    networks:
+      - xfjy-app-net
     restart: unless-stopped
     environment: *common-env
     healthcheck:
@@ -64,9 +89,13 @@ services:
       dockerfile: docker/Dockerfile.java
       args:
         SERVICE: xfjy-user-service
+    pull_policy: never
     image: xfjy/xfjy-user-service:latest
     container_name: xfjy-user-service
-    network_mode: host
+    ports:
+      - "18090:18090"
+    networks:
+      - xfjy-app-net
     restart: unless-stopped
     environment: *common-env
     healthcheck:
@@ -81,9 +110,13 @@ services:
       dockerfile: docker/Dockerfile.java
       args:
         SERVICE: xfjy-circle-service
+    pull_policy: never
     image: xfjy/xfjy-circle-service:latest
     container_name: xfjy-circle-service
-    network_mode: host
+    ports:
+      - "18084:18084"
+    networks:
+      - xfjy-app-net
     restart: unless-stopped
     environment: *common-env
     healthcheck:
@@ -98,9 +131,13 @@ services:
       dockerfile: docker/Dockerfile.java
       args:
         SERVICE: xfjy-video-service
+    pull_policy: never
     image: xfjy/xfjy-video-service:latest
     container_name: xfjy-video-service
-    network_mode: host
+    ports:
+      - "18085:18085"
+    networks:
+      - xfjy-app-net
     restart: unless-stopped
     environment: *common-env
     healthcheck:
@@ -115,9 +152,13 @@ services:
       dockerfile: docker/Dockerfile.java
       args:
         SERVICE: xfjy-match-service
+    pull_policy: never
     image: xfjy/xfjy-match-service:latest
     container_name: xfjy-match-service
-    network_mode: host
+    ports:
+      - "18082:18082"
+    networks:
+      - xfjy-app-net
     restart: unless-stopped
     environment: *common-env
     healthcheck:
@@ -132,9 +173,13 @@ services:
       dockerfile: docker/Dockerfile.java
       args:
         SERVICE: xfjy-message-service
+    pull_policy: never
     image: xfjy/xfjy-message-service:latest
     container_name: xfjy-message-service
-    network_mode: host
+    ports:
+      - "18086:18086"
+    networks:
+      - xfjy-app-net
     restart: unless-stopped
     environment: *common-env
     healthcheck:
@@ -149,9 +194,13 @@ services:
       dockerfile: docker/Dockerfile.java
       args:
         SERVICE: xfjy-server
+    pull_policy: never
     image: xfjy/xfjy-server:latest
     container_name: xfjy-server
-    network_mode: host
+    ports:
+      - "18081:18081"
+    networks:
+      - xfjy-app-net
     restart: unless-stopped
     environment: *common-env
     healthcheck:
@@ -166,9 +215,13 @@ services:
       dockerfile: docker/Dockerfile.java
       args:
         SERVICE: xfjy-recommend
+    pull_policy: never
     image: xfjy/xfjy-recommend:latest
     container_name: xfjy-recommend
-    network_mode: host
+    ports:
+      - "18087:18087"
+    networks:
+      - xfjy-app-net
     restart: unless-stopped
     environment: *common-env
     healthcheck:
@@ -183,9 +236,13 @@ services:
       dockerfile: docker/Dockerfile.java
       args:
         SERVICE: xfjy-elasticsearch
+    pull_policy: never
     image: xfjy/xfjy-elasticsearch:latest
     container_name: xfjy-elasticsearch
-    network_mode: host
+    ports:
+      - "18088:18088"
+    networks:
+      - xfjy-app-net
     restart: unless-stopped
     environment: *common-env
     healthcheck:
@@ -200,9 +257,13 @@ services:
       dockerfile: docker/Dockerfile.java
       args:
         SERVICE: xfjy-pay-service
+    pull_policy: never
     image: xfjy/xfjy-pay-service:latest
     container_name: xfjy-pay-service
-    network_mode: host
+    ports:
+      - "18089:18089"
+    networks:
+      - xfjy-app-net
     restart: unless-stopped
     environment: *common-env
     healthcheck:

@@ -7,16 +7,16 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+        server-addr: ${NACOS_SERVER_ADDR:192.168.20.133:8848}
         username: ${NACOS_USERNAME:nacos}
         password: ${NACOS_PASSWORD:}
         namespace: ${NACOS_NAMESPACE:}
   profiles:
     active: local
   mongodb:
-    uri: mongodb://127.0.0.1:27017/xfjy
+    uri: mongodb://192.168.20.133:27017/xfjy
 
 # ES服务地址（xfjy-elasticsearch 模块的HTTP接口，附近的人查询）
 es:
   server:
-    url: http://127.0.0.1:18088/es/
+    url: http://192.168.20.133:18088/es/

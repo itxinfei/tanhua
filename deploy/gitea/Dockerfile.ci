@@ -22,7 +22,7 @@
 #   3. Maven 从阿里云 Apache 镜像下载；
 #   4. apt 源指向腾讯云 Ubuntu 镜像。
 # ============================================================
-FROM eclipse-temurin:25-jdk-jammy
+FROM docker.m.daocloud.io/library/eclipse-temurin:25-jdk-jammy
 
 ARG NODE_VERSION=22.11.0
 ARG MAVEN_VERSION=3.9.16
