@@ -81,6 +81,17 @@ jobs:
     # 这里不能再声明 volumes，否则会出现 "Duplicate mount point" 导致容器创建失败。
     container:
       image: xfjy/ci:latest
+      # 持久化挂载（act_runner 需在 config.yaml 的 valid_volumes 中放行这些路径）：
+      #   m2       → Maven 本地仓库（跨任务复用依赖，不再每次下载 150MB+）
+      #   npm      → npm 依赖缓存
+      #   ci-state → 增量构建状态：源码指纹基线 + jar 产物缓存
+      #            没有它每次都会退化成全量重建，增量编译就失去意义。
+      # 注意：/var/run/docker.sock 已由 act_runner 默认挂载，此处不要重复声明，
+      #       否则报 "Duplicate mount point" 导致容器创建失败。
+      volumes:
+        - /home/itxinfei/.cache/m2:/root/.m2/repository
+        - /home/itxinfei/.cache/npm:/root/.npm
+        - /home/itxinfei/.cache/ci-state:/opt/ci-state
 
     steps:
       - name: Checkout

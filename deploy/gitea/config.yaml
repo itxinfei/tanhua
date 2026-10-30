@@ -24,27 +24,25 @@ cache:
 container:
   network: "xfjy-gitea_gitea-net"
   privileged: false
-  # job 容器内需要挂载宿主 docker.sock（act_runner 默认已挂载，此处显式声明以便 job 内执行 docker/compose）
+  # 允许挂载进 job 容器的宿主路径白名单。
+  # 关键：act_runner 只认这个白名单，config.yaml 的 container.options 里写 -v 无效
+  #       （实测 options 里的 -v 从未生效：宿主 .cache/m2 一直是空的）。
+  #       真正生效的方式是在 workflow 的 container.volumes 里声明，
+  #       且此处白名单必须包含对应路径。
+  # 注意：workflow 里已由 act_runner 默认挂载 docker.sock，
+  #       所以 workflow 的 volumes 里不要再重复声明 /var/run/docker.sock
+  #       （否则报 "Duplicate mount point" 导致容器创建失败）。
   valid_volumes:
     - "/var/run/docker.sock"
+    - "/home/itxinfei/.cache/m2"
+    - "/home/itxinfei/.cache/npm"
+    - "/home/itxinfei/.cache/ci-state"
   # 关键项说明：
   # 1) --add-host gitea:172.19.0.2
   #    act_runner 给每个 job 自建独立网络，该网络内没有 gitea 服务名，
   #    导致 checkout 时 "Could not resolve host: gitea"。这里用 --add-host 兜底，
   #    172.19.0.2 是 gitea 容器在 xfjy-gitea_gitea-net 上的地址。
   #
-  # 2) -v /home/itxinfei/.cache/m2:/root/.m2/repository
-  #    job 容器每次都是全新的，Maven 依赖会重新下载（150MB+），挂载宿主缓存后可跨 job 复用。
-  #    注意必须挂到 /root/.m2/repository 而不是 /root/.m2：
-  #    挂整个 /root/.m2 会把镜像内预置的 settings.xml（阿里云镜像源）整个覆盖掉，
-  #    导致 Maven 退回中央仓库直连（国内极慢 / 超时）。
-  #    另外 act 的 checkout 步骤会临时改写 HOME，导致 Maven 默认本地仓库路径漂移，
-  #    所以 workflow 里显式加了 -Dmaven.repo.local=/root/.m2/repository 锁定位置。
-  #
-  # 3) -v /home/itxinfei/.cache/npm:/root/.npm
-  #    npm 依赖缓存，同样跨 job 复用。
-  #
-  # 4) -v /home/itxinfei/.cache/ci-state:/opt/ci-state
-  #    增量构建的持久化状态：源码指纹基线 + jar 产物缓存。
-  #    没有它每次都会退化成全量重建，增量编译就失去意义。
-  options: "--cpus=4 --memory=4g --add-host gitea:172.19.0.2 -v /home/itxinfei/.cache/m2:/root/.m2/repository -v /home/itxinfei/.cache/npm:/root/.npm -v /home/itxinfei/.cache/ci-state:/opt/ci-state"
+  # 2) 资源限制：4 核 / 4G，够跑 Maven 并行构建
+  options: "--cpus=4 --memory=4g --add-host gitea:172.19.0.2"
+
