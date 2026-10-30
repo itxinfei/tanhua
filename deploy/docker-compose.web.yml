@@ -1,0 +1,34 @@
+# ============================================================
+# 心飞交友 - 前端静态站点容器编排（部署用）
+#
+# 运行（在宿主机，由 Gitea Actions 自动执行）：
+#   docker compose -p xfjy-web -f deploy/docker-compose.web.yml up -d --build
+#
+# - admin：Vue3 后台管理，容器 80 → 宿主机 5174（沿用本地开发端口，浏览器访问 192.168.20.133:5174）
+# - h5：uni-app H5 移动端，容器 80 → 宿主机 5173
+# 前端仅提供静态资源；其 API 调用直连网关 192.168.20.133:8090（在 Dockerfile 构建时注入）。
+# 小程序无法容器化，仍走微信开发者工具/公众平台。
+# ============================================================
+name: xfjy-web
+
+services:
+
+  xfjy-admin:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.admin
+    image: xfjy/admin:latest
+    container_name: xfjy-admin
+    restart: unless-stopped
+    ports:
+      - "5174:80"
+
+  xfjy-h5:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.h5
+    image: xfjy/h5:latest
+    container_name: xfjy-h5
+    restart: unless-stopped
+    ports:
+      - "5173:80"

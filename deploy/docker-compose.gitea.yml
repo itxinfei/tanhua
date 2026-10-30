@@ -4,11 +4,14 @@
 # 定位：Gitea 只做 CI，Gitee 仍是主仓库。
 #   - Gitea 作为 Gitee 的镜像仓（或手动 push），代码 + .gitea 工作流都在其中
 #   - act_runner 跑 Gitea Actions，逻辑与原 Jenkinsfile 完全一致
-#   - 部署通道不变：runner 容器 → SSH 到宿主机 172.18.0.1 → deploy-service.sh
+#   - 部署通道：runner 拉起 job 容器(宿主默认桥接) → SSH 到宿主机 LAN IP 192.168.20.133 → deploy-service.sh
 #
 # 用法：
-#   docker compose -f deploy/docker-compose.gitea.yml up -d
-#   # 首次需先在 Gitea 后台「管理 → Runner」创建 runner 拿到 token，写入下方 GITEA_RUNNER_TOKEN
+#   # 1) 先构建 CI 镜像（必须在宿主机跑，镜像才进宿主 docker，act_runner 才能拉起 job 容器）
+#   docker build -f deploy/gitea/Dockerfile.ci -t xfjy/ci:latest deploy/gitea
+#   # 2) 在 Gitea 后台「管理 → Runner → 创建 Runner」拿到注册令牌，写入下方 GITEA_RUNNER_TOKEN
+#   #    （可放 deploy/gitea/.env，切勿把明文提交进仓库）
+#   docker compose -f deploy/docker-compose.gitea.yml --env-file deploy/gitea/.env up -d
 # ============================================================
 name: xfjy-gitea
 
@@ -30,7 +33,9 @@ services:
       GITEA__server__ROOT_URL: http://192.168.20.133:3000/
       GITEA__server__SSH_DOMAIN: 192.168.20.133
       GITEA__server__SSH_PORT: "2222"
+      # 开启 Gitea Actions（CI 必需）
       GITEA__actions__ENABLED: "true"
+      # 从 gitea.com 拉取官方 actions（如 actions/checkout）
       GITEA__actions__DEFAULT_ACTIONS_URL: https://gitea.com
       TZ: Asia/Shanghai
     ports:
@@ -42,6 +47,11 @@ services:
       - /etc/localtime:/etc/localtime:ro
     networks:
       - gitea-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/healthz || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
 
   act_runner:
     image: gitea/act_runner:latest
@@ -52,12 +62,14 @@ services:
       GITEA_INSTANCE: http://gitea:3000
       GITEA_RUNNER_REGISTRATION_TOKEN: ${GITEA_RUNNER_TOKEN}
       GITEA_RUNNER_NAME: xfjy-runner
-      # 默认提供 ubuntu-latest 标签；工作流用 container 显式指定 CI 镜像，标签仅用于匹配
-      GITEA_RUNNER_LABELS: "ubuntu-latest:docker://node:22-bookworm"
+      # 标签 ubuntu-latest 直接映射到我们的 CI 镜像，保证 job 容器含 JDK25/Maven39/Node22/ssh；
+      # 工作流里的 container.image 与之保持一致（双保险）。
+      GITEA_RUNNER_LABELS: "ubuntu-latest:docker://xfjy/ci:latest"
     volumes:
       # 关键：挂载宿主机 docker.sock，使 runner 能拉起 job 容器（工作流里的 container 镜像）
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - gitea-net
     depends_on:
-      - gitea
+      gitea:
+        condition: service_healthy

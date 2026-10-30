@@ -56,18 +56,23 @@ Gitea Actions 在 Gitea 仓库收到「push」时触发。Gitee 是主仓，所�
 
 1. 本地 push 到 Gitee master。
 2. 等几秒，Gitea 仓库 → **Actions** 应出现新 run；观察各阶段日志。
-3. 成功后登录服务器 `192.168.20.133`，`ps -ef | grep xfjy` 应看到 `xfjy-server` / `xfjy-video-service` 是新进程；`/home/itxinfei/logs/` 下日志出现 `Started ... Application`。
-4. 接口验证：`curl http://192.168.20.133:8090/actuator/health`。
+3. 成功后登录服务器 `192.168.20.133`：
+   - `docker ps --filter name=xfjy-` 应看到 13 个容器（11 后端 + admin + h5）处于 Up 状态。
+   - `/home/itxinfei/logs/` 下日志（仅历史 host 进程用）不再产生；容器日志用 `docker logs xfjy-server` 查看，应出现 `Started ... Application`。
+4. 接口验证：`curl http://192.168.20.133:8090/actuator/health`；浏览器访问 `http://192.168.20.133:5174`（admin）、`http://192.168.20.133:5173`（h5）。
 
 ---
 
-## 与原 Jenkins 的差异
+## 与原 Jenkins / host 进程部署的差异
 
-| 项 | Jenkins | Gitea Actions |
+| 项 | Jenkins(host 进程) | Gitea Actions(Docker) |
 |----|---------|---------------|
 | 服务 | xfjy-jenkins 容器 | xfjy-gitea + xfjy-act-runner 容器 |
 | 流水线定义 | `Jenkinsfile` | `.gitea/workflows/deploy.yml` |
 | 触发 | Gitee webhook（原未配） | Gitee webhook → Gitea 镜像同步/dispatch |
-| 工具 | 全局工具 jdk25/maven39/node22 | CI 镜像 `xfjy/ci:latest` 内置 |
-| 部署通道 | 同（SSH 到宿主机 + deploy-service.sh） | 同（SSH 到宿主机 + deploy-service.sh） |
+| 工具 | 全局工具 jdk25/maven39/node22 | CI 镜像 `xfjy/ci:latest` 内置（含 docker-cli） |
+| 部署产物 | jar 经 SSH 投递 + `nohup java -jar` | 构建 Docker 镜像并 `docker compose up -d` 运行容器 |
+| 前端 | 不部署（本地跑） | admin/h5 打成 nginx 容器（:5174/:5173） |
 | 资源占用 | 重（JVM + 插件） | 轻（Go 二进制 + 按需拉起 job 容器） |
+
+> 注意：CI 镜像 `xfjy/ci:latest` 现在额外包含 docker CLI + compose 插件，因为 job 容器需通过挂载的 `/var/run/docker.sock` 在宿主机构建镜像、运行应用容器（单主机，免镜像仓库）。务必先在宿主机执行 `docker build -f deploy/gitea/Dockerfile.ci -t xfjy/ci:latest deploy/gitea`。

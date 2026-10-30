@@ -1,15 +1,22 @@
 # ============================================================
-# 心飞交友 - Gitea Actions 部署流水线
+# 心飞交友 - Gitea Actions 部署流水线（Docker 化）
 #
-# 触发：push 到 master（由 Gitee 推送后镜像同步触发，详见 deploy/gitea/GITEE_WEBHOOK.md）
-#       或手动在 Gitea 仓库 Actions 页点 Run workflow（workflow_dispatch）
+# 触发：
+#   - push 到 master（Gitee 推送后镜像同步进 Gitea，产生 push 事件触发，详见 deploy/gitea/GITEE_WEBHOOK.md）
+#   - 手动：Gitea 仓库 Actions 页 → Run workflow
+#       · deploy       : 是否执行部署（false 仅打包校验，不构建/运行容器）
+#       · deploy_web   : 是否同时部署前端(admin+h5)容器
 #
-# 阶段（与原 Jenkinsfile 一一对应）：
+# 阶段：
 #   1) 后端 Maven 编译
-#   2) 管理后台构建（容错，不阻断部署）
-#   3) App H5 构建（容错，不阻断部署）
-#   4) 后端服务打包（注入 application-local.ci.yml 并校验 jar）
-#   5) 投递产物 + 重启服务（SSH 到宿主机，复用 deploy-service.sh）
+#   2) 后端服务打包（为 11 个 Spring Boot 应用注入 application-local.yml 并校验 jar）
+#   3) 构建并部署 Java 服务容器（docker compose up -d --build，必选）
+#   4) 构建并部署前端容器（docker compose up -d --build，容错，失败不影响后端）
+#
+# 部署模型：
+#   - job 容器挂载 /var/run/docker.sock，直接调用宿主机 docker 构建镜像并运行容器（单主机，免 registry）。
+#   - Java 服务用 network_mode: host，复用既有 127.0.0.1 中间件连接串；前端用 nginx 容器 + 端口映射。
+#   - 约定：CI 只构建与部署，不向 Gitee 写回任何东西。
 # ============================================================
 name: deploy
 
@@ -17,13 +24,29 @@ on:
   push:
     branches: [master]
   workflow_dispatch:
+    inputs:
+      deploy:
+        description: '是否执行部署（false 仅构建校验，不部署）'
+        required: true
+        default: 'true'
+      deploy_web:
+        description: '是否同时部署前端(admin + h5)容器'
+        required: true
+        default: 'true'
+
+env:
+  DEPLOY_WEB: ${{ github.event.inputs.deploy_web || 'true' }}
+  # 11 个可部署 Spring Boot 应用（xfjy-api 仅为接口库，不打包）
+  SERVICES: "xfjy-gateway xfjy-sso xfjy-user-service xfjy-circle-service xfjy-video-service xfjy-match-service xfjy-message-service xfjy-server xfjy-recommend xfjy-elasticsearch xfjy-pay-service"
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    # 挂载宿主机 docker.sock，使 job 容器内可直接驱动宿主机 docker 构建镜像/运行容器
     container:
-      # 在服务器宿主机 build 该镜像（见 deploy/gitea/Dockerfile.ci）
       image: xfjy/ci:latest
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
 
     steps:
       - name: Checkout
@@ -32,55 +55,32 @@ jobs:
       - name: 后端 Maven 编译
         run: mvn -B -ntp compile -DskipTests
 
-      - name: 管理后台构建（容错）
-        continue-on-error: true
-        working-directory: xfjy-admin
-        run: |
-          rm -f package-lock.json
-          npm install --legacy-peer-deps --no-audit --no-fund
-          npm install @rolldown/binding-linux-x64-gnu --no-save --no-audit --no-fund
-          npm run build
-
-      - name: App H5 构建（容错）
-        continue-on-error: true
-        working-directory: xfjy-app
-        run: |
-          rm -f package-lock.json
-          npm install --legacy-peer-deps --no-audit --no-fund
-          npm run build:h5
-
-      - name: 后端服务打包（注入 application-local.ci.yml）
-        env:
-          DEPLOY_SERVICES: xfjy-server,xfjy-video-service
+      - name: 后端服务打包（注入 application-local.yml）
         run: |
           set -e
-          for svc in ${DEPLOY_SERVICES//,/ }; do
+          for svc in $SERVICES; do
             RES="$svc/src/main/resources"
-            if [ -d "$RES" ] && [ -f "$RES/application-test.yml" ]; then
+            if [ -f "$RES/application.yml" ]; then
               [ -f "$RES/application-local.yml" ] || cp -f deploy/application-local.ci.yml "$RES/application-local.yml"
-              if [ ! -f "$RES/aliyun.properties" ] && [ -f "$RES/aliyun.properties.example" ]; then
-                cp -f "$RES/aliyun.properties.example" "$RES/aliyun.properties"
-              fi
             fi
-            mvn -B -ntp package -DskipTests -pl "$svc" -am
-            if [ -f "$svc/src/main/resources/application-test.yml" ]; then
-              unzip -l "$svc/target/$svc-1.0-SNAPSHOT.jar" | grep -q 'BOOT-INF/classes/application-local.yml' \
-                || { echo "ERROR: jar 缺 application-local.yml，无法部署"; exit 1; }
+          done
+          mvn -B -ntp package -DskipTests -pl "$SERVICES" -am
+          for svc in $SERVICES; do
+            if [ ! -f "$svc/target/$svc-1.0-SNAPSHOT.jar" ]; then
+              echo "ERROR: 未生成 $svc/target/$svc-1.0-SNAPSHOT.jar"; exit 1
             fi
+            echo "OK jar: $svc"
           done
 
-      - name: 投递产物 + 重启服务（SSH）
-        env:
-          SSH_DEPLOY_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
-          DEPLOY_HOST: 172.18.0.1
-          DEPLOY_USER: itxinfei
+      - name: 构建并部署 Java 服务容器
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.deploy != 'false' }}
         run: |
           set -e
-          printf '%s\n' "$SSH_DEPLOY_KEY" > /tmp/deploy_key
-          chmod 600 /tmp/deploy_key
-          SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=15 -o BatchMode=yes -i /tmp/deploy_key"
-          for svc in xfjy-server xfjy-video-service; do
-            ssh $SSH_OPTS "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p /home/itxinfei/mytanhua/$svc/target"
-            scp $SSH_OPTS "$svc/target/$svc-1.0-SNAPSHOT.jar" "$DEPLOY_USER@$DEPLOY_HOST:/home/itxinfei/mytanhua/$svc/target/"
-            ssh $SSH_OPTS "$DEPLOY_USER@$DEPLOY_HOST" "cd /home/itxinfei/mytanhua && bash deploy/deploy-service.sh $svc"
-          done
+          docker compose -p xfjy-app -f deploy/docker-compose.app.yml up -d --build
+
+      - name: 构建并部署前端容器（容错）
+        continue-on-error: true
+        if: ${{ (github.event_name != 'workflow_dispatch' || github.event.inputs.deploy != 'false') && env.DEPLOY_WEB != 'false' }}
+        run: |
+          set -e
+          docker compose -p xfjy-web -f deploy/docker-compose.web.yml up -d --build

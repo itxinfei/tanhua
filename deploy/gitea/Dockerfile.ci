@@ -1,8 +1,9 @@
 # ============================================================
-# 心飞交友 CI 镜像（Gitea Actions runner 使用的 job 容器）
+# 心飞交友 CI 镜像（Gitea Actions runner 拉起的 job 容器）
 #
 # 需包含：JDK 25、Maven 3.9、Node 22、ssh 客户端、git。
-# 因工作流用 container 显式指定本镜像，runner 只需有 docker.sock 即可拉起它。
+# 工作流用 container 显式指定本镜像（见 .gitea/workflows/deploy.yml），
+# runner 只需挂载宿主 docker.sock 即可拉起它（镜像须在宿主机构建）。
 #
 # 构建（在服务器宿主机执行，使镜像进入宿主 docker，act_runner 可直接用）：
 #   docker build -f deploy/gitea/Dockerfile.ci -t xfjy/ci:latest deploy/gitea
@@ -15,10 +16,13 @@ FROM node:22-bookworm
 ARG JDK_VERSION=25
 ENV JAVA_HOME=/opt/jdk25
 ENV MAVEN_HOME=/opt/maven
+# Maven 构建内存控制（SpringBoot 打包较吃内存）；npm 走国内镜像加速
+ENV MAVEN_OPTS="-Xmx2g -XX:+UseG1GC"
 ENV PATH="${JAVA_HOME}/bin:${MAVEN_HOME}/bin:${PATH}"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates wget git openssh-client bash tar gzip \
+      ca-certificates wget git openssh-client bash tar gzip curl \
+      docker.io docker-compose-plugin \
     && rm -rf /var/lib/apt/lists/*
 
 # Eclipse Temurin JDK 25（Spring Boot 4.1.1 最低 JDK 17，本项目用 25）
@@ -32,4 +36,8 @@ RUN wget -q "https://archive.apache.org/dist/maven/maven-3/3.9.9/binaries/apache
     && ln -s /opt/apache-maven-3.9.9 /opt/maven \
     && rm -f /tmp/mvn.tgz
 
-RUN mvn -v && node -v && ssh -V
+# 国内网络下 npm 安装加速；git 允许容器挂载的工作区（避免 dubious ownership 报错）
+RUN npm config set registry https://registry.npmmirror.com \
+    && git config --global --safe.directory '*'
+
+RUN mvn -v && node -v && npm -v && ssh -V
