@@ -102,6 +102,7 @@ echo "[INFO] 已下发启动命令，日志: ${LOG_FILE}"
 
 # ---------- 6) 健康检查 ----------
 echo "[INFO] 等待服务启动 (最多 90s)..."
+FAILED_MARK=0
 for i in $(seq 1 90); do
   if pgrep -f "${SERVICE}-1.0-SNAPSHOT.jar" > /dev/null 2>&1 \
      && grep -aq "Started .*Application in" "$LOG_FILE" 2>/dev/null; then
@@ -109,11 +110,27 @@ for i in $(seq 1 90); do
     grep -a "Started .*Application in" "$LOG_FILE" | tail -1
     exit 0
   fi
-  # 进程挂了就不再等了
-  if ! pgrep -f "${SERVICE}-1.0-SNAPSHOT.jar" > /dev/null 2>&1 && [ "$i" -gt 10 ]; then
-    echo "[ERROR] ${SERVICE} 进程已退出，日志尾部:"
-    tail -n 30 "$LOG_FILE" 2>/dev/null
-    exit 1
+  # 进程退出 => 启动失败，快速失败并打印关键错误（不再空等 90s）
+  if ! pgrep -f "${SERVICE}-1.0-SNAPSHOT.jar" > /dev/null 2>&1; then
+    if [ "$FAILED_MARK" = "0" ]; then
+      FAILED_MARK=1
+      echo "[ERROR] ${SERVICE} 进程已退出，诊断中..."
+      sleep 2
+    fi
+    # 给 JVM 一点时间把异常刷进日志
+    if grep -aq "APPLICATION FAILED TO START\|Error starting ApplicationContext\|Failed to configure a DataSource" "$LOG_FILE" 2>/dev/null; then
+      echo "[ERROR] ${SERVICE} 启动失败，关键日志："
+      grep -aE "APPLICATION FAILED TO START|Error starting ApplicationContext|Description:|Reason:|Action:|Failed to configure a DataSource|Caused by:" "$LOG_FILE" 2>/dev/null | head -20
+      echo "----- 日志尾部 -----"
+      tail -n 20 "$LOG_FILE" 2>/dev/null
+      exit 1
+    fi
+    # 还没看到明确错误，继续短暂等待（最多 20s）
+    if [ "$i" -ge 20 ]; then
+      echo "[ERROR] ${SERVICE} 启动超时，日志尾部:"
+      tail -n 30 "$LOG_FILE" 2>/dev/null
+      exit 1
+    fi
   fi
   sleep 1
 done

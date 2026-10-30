@@ -89,11 +89,50 @@ pipeline {
                     if (!services) {
                         error('DEPLOY_SERVICES 为空，没有可打包的服务')
                     }
+                    // 关键前置：application-local.yml 被 .gitignore 排除（防泄露本地密码），
+                    // CI 检出代码里没有该文件。若某模块需要数据源（如 xfjy-server 用 MySQL），
+                    // 直接打包会导致 jar 缺少 application-local.yml，启动报
+                    //   Failed to configure a DataSource: 'url' attribute is not specified
+                    // 判定依据：模块存在 application-test.yml 说明它确实需要 local 配置
+                    // （仅用 MongoDB/Redis 的模块如 video-service 没有该文件，不需要注入）。
+                    // 模板 deploy/application-local.ci.yml 中所有连接信息均为 ${ENV:默认值}，
+                    // 由部署时的环境变量注入真实值，模板本身不含任何真实密码。
+                    services.each { svc ->
+                        sh """
+                            echo '>>> preparing CI config for ${svc}'
+                            RES='${svc}/src/main/resources'
+                            if [ -d "\$RES" ] && [ -f "\$RES/application-test.yml" ]; then
+                              if [ ! -f "\$RES/application-local.yml" ]; then
+                                cp -f 'deploy/application-local.ci.yml' "\$RES/application-local.yml"
+                                echo '    generated application-local.yml from deploy/application-local.ci.yml'
+                              else
+                                echo '    application-local.yml already exists'
+                              fi
+                              # aliyun.properties 同样被 gitignore，如缺失则用 example 模板占位
+                              if [ ! -f "\$RES/aliyun.properties" ] && [ -f "\$RES/aliyun.properties.example" ]; then
+                                cp -f "\$RES/aliyun.properties.example" "\$RES/aliyun.properties"
+                                echo '    generated aliyun.properties from example template'
+                              fi
+                            else
+                              echo '    module does not require local config, skip'
+                            fi
+                        """
+                    }
                     // 逐个模块打包（-am 带上依赖模块，保证接口变更能打进 jar）
                     services.each { svc ->
                         sh """
                             echo '>>> packaging ${svc}'
                             mvn -B -ntp package -DskipTests -pl ${svc} -am
+                            echo '>>> verifying ${svc} jar config'
+                            JAR='${svc}/target/${svc}-1.0-SNAPSHOT.jar'
+                            # 需要数据源的模块必须有 application-local.yml，否则部署必失败
+                            if [ -f '${svc}/src/main/resources/application-test.yml' ]; then
+                              unzip -l \$JAR | grep -q 'BOOT-INF/classes/application-local.yml' || \\
+                                (echo 'ERROR: jar 缺少 application-local.yml，无法部署' && exit 1)
+                              echo '    OK: application-local.yml 已打包'
+                            else
+                              echo '    module needs no local config'
+                            fi
                         """
                     }
                 }

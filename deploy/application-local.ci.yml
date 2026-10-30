@@ -1,0 +1,43 @@
+# ============================================================
+# CI 打包用的 application-local.yml 模板
+#
+# 用途：application-local.yml 被 .gitignore 排除（避免本地真实密码入库），
+#      但 CI 构建的 jar 必须携带一份数据源配置，否则服务启动失败：
+#      Failed to configure a DataSource: 'url' attribute is not specified
+#
+# 使用方式（Jenkinsfile「后端服务打包」阶段）：
+#      cp deploy/application-local.ci.yml <module>/src/main/resources/application-local.yml
+#
+# 所有连接信息均为 ${ENV_VAR:默认值} 形式：
+#   - 部署时由 deploy-service.sh 注入真实的环境变量（优先级最高）
+#   - 未注入时使用下方默认值（仅供本地/CI 自测）
+# ============================================================
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${MYSQL_URL:jdbc:mysql://127.0.0.1:3306/xfjy?useUnicode=true&characterEncoding=utf8&autoReconnect=true&allowMultiQueries=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai}
+    username: ${MYSQL_USERNAME:xfjy}
+    password: ${MYSQL_PASSWORD:}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 10s
+      lettuce:
+        pool:
+          max-wait: 5000ms
+          max-idle: 100
+          min-idle: 10
+
+xfjy:
+  sso:
+    url: http://127.0.0.1:18080
+    default:
+      user: 2
