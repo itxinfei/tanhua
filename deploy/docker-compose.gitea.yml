@@ -78,8 +78,9 @@ services:
     volumes:
       # 关键：挂载宿主机 docker.sock，使 runner 能拉起 job 容器（工作流里的 container 镜像）
       - /var/run/docker.sock:/var/run/docker.sock
-      # runner 注册信息持久化，避免容器重启后需重新注册
-      - runner-config:/config
+      # Runner 2.0.0 的工作目录是 /data，注册信息（.runner）持久化在这里，
+      # 避免容器重启后需重新注册（旧版 act_runner 存在 /config 下）
+      - runner-config:/data
       # runner 配置文件：container.network / labels 等
       - ./gitea/config.yaml:/config/config.yaml:ro
     networks:
