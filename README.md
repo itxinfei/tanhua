@@ -312,7 +312,6 @@ curl http://127.0.0.1:18081/actuator/health
 
 - 📄 [需求文档](docs/需求文档.md)
 - 🗄️ 数据库脚本：本地 `scripts/mytanhua.sql`（全量表结构 + 初始数据，一键导入，不入库）
-- 🤖 [双塔训练工程](xfjy-spark/README.md)
 
 ---
 
