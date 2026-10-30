@@ -1,9 +1,9 @@
 # ============================================================
-# 心飞交友 - Gitea + act_runner（替代 Jenkins 做 CI/CD）
+# 心飞交友 - Gitea + Runner（替代 Jenkins 做 CI/CD）
 #
 # 定位：Gitea 只做 CI，Gitee 仍是主仓库。
 #   - Gitea 作为 Gitee 的镜像仓（或手动 push），代码 + .gitea 工作流都在其中
-#   - act_runner 跑 Gitea Actions，逻辑与原 Jenkinsfile 完全一致
+#   - Runner 跑 Gitea Actions，逻辑与原 Jenkinsfile 完全一致
 #   - 部署通道：runner 拉起 job 容器(宿主默认桥接) → SSH 到宿主机 LAN IP 192.168.20.133 → deploy-service.sh
 #
 # 用法：
@@ -26,7 +26,9 @@ volumes:
 services:
 
   gitea:
-    image: gitea/gitea:1.22
+    # Gitea 1.27.3：1.x 系列最后一个稳定版（官方在 1.27 之后改用 28.x 命名）
+    # 1.27 官方建议搭配 Gitea Runner 2.0.0（job summary / cancelling 状态 / continue-on-error 聚合）
+    image: gitea/gitea:1.27.3
     container_name: xfjy-gitea
     restart: unless-stopped
     environment:
@@ -54,13 +56,15 @@ services:
       timeout: 5s
       retries: 10
 
-  act_runner:
-    image: gitea/act_runner:latest
+  runner:
+    # Gitea Runner 2.0.0（官方发布说明：用 gitea/runner:2.0.0 替换旧的 gitea/act_runner 标签）
+    # 1.27 官方建议搭配 Runner 2.0.0：job summary / cancelling 状态 / continue-on-error 聚合
+    image: gitea/runner:2.0.0
     container_name: xfjy-act-runner
     restart: unless-stopped
     # GITEA_RUNNER_TOKEN 来自 Gitea 后台「管理 → Runner → 创建 Runner」生成的注册令牌
     environment:
-      # 注意：act_runner 读取的变量名是 GITEA_INSTANCE_URL（不是 GITEA_INSTANCE），
+      # 注意：Runner 读取的变量名是 GITEA_INSTANCE_URL（不是 GITEA_INSTANCE），
       # 写成后者会报 "instance address is empty" 导致 runner 无法注册
       GITEA_INSTANCE_URL: http://gitea:3000
       GITEA_RUNNER_REGISTRATION_TOKEN: ${GITEA_RUNNER_TOKEN}
