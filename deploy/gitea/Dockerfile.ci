@@ -77,8 +77,21 @@ RUN set -eux; \
 # 注意：
 #   1) 直接写 .npmrc 文件而不是用 `npm config set`，后者在不同 npm 版本下行为不一致（报 exit 129）
 #   2) 写到 /etc/npmrc（全局生效），不要写 /root/.npmrc —— 该路径在部分基础镜像里已存在同名目录
+#   3) Maven 走阿里云镜像（settings.xml），否则从 Maven 中央仓库拉依赖极慢甚至超时
 RUN set -eux; \
     printf 'registry=https://registry.npmmirror.com\n' > /etc/npmrc; \
+    mkdir -p /root/.m2; \
+    printf '%s\n' \
+      '<settings>' \
+      '  <mirrors>' \
+      '    <mirror>' \
+      '      <id>aliyun</id>' \
+      '      <name>Aliyun Maven</name>' \
+      '      <url>https://maven.aliyun.com/repository/public</url>' \
+      '      <mirrorOf>central</mirrorOf>' \
+      '    </mirror>' \
+      '  </mirrors>' \
+      '</settings>' > /root/.m2/settings.xml; \
     git config --global --add safe.directory "*"
 
 # 自检：确保 JDK/Maven/Node/docker/ssh 都可用，否则 runner 起 job 容器才报错难排查
