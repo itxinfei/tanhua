@@ -83,5 +83,5 @@ export function batchImportSensitiveWordsApi(words: string[], category: string, 
 
 /** 导出敏感词（CSV） */
 export function exportSensitiveWordsApi() {
-  return request.get('/admin/sensitive-words/export', { responseType: 'blob' })
+  return request.get<any, Blob>('/admin/sensitive-words/export', { responseType: 'blob' })
 }

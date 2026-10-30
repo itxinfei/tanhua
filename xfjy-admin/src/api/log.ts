@@ -38,5 +38,5 @@ export function getLogDetailApi(id: number) {
 
 /** 导出日志（CSV） */
 export function exportLogsApi(params: { module?: string; adminUsername?: string; startDate?: string; endDate?: string }) {
-  return request.get('/admin/operation-logs/export', { params, responseType: 'blob' })
+  return request.get<any, Blob>('/admin/operation-logs/export', { params, responseType: 'blob' })
 }

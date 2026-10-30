@@ -50,5 +50,5 @@ export function getPayOrderSummaryApi(params: { status?: string; startDate?: str
 
 /** 导出订单（CSV） */
 export function exportPayOrdersApi(params: { orderNo?: string; status?: string; userId?: number; startDate?: string; endDate?: string }) {
-  return request.get('/admin/pay-orders/export', { params, responseType: 'blob' })
+  return request.get<any, Blob>('/admin/pay-orders/export', { params, responseType: 'blob' })
 }

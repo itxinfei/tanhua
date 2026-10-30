@@ -103,5 +103,5 @@ export function getUserChatMessagesApi(id: number, contactId: string, pageSize?:
 
 /** 导出用户列表（CSV） */
 export function exportUsersApi(params: { keyword?: string; gender?: string; status?: string; startDate?: string; endDate?: string }) {
-  return request.get('/admin/users/export', { params, responseType: 'blob' })
+  return request.get<any, Blob>('/admin/users/export', { params, responseType: 'blob' })
 }

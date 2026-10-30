@@ -114,10 +114,10 @@ const appStore = useAppStore()
 // ==================== 统计卡片 ====================
 // 修改点：统计卡片背景统一为品牌变量（玫红/紫系），去除旧主题蓝
 const statCards = ref([
-  { label: '日活跃用户(DAU)', value: 0, suffix: '', change: 0, icon: 'User', bg: 'linear-gradient(135deg, var(--xfjy-primary-deep), var(--xfjy-primary)) },
-  { label: '今日新增用户', value: 0, suffix: '', change: 0, icon: 'Plus', bg: 'linear-gradient(135deg, var(--xfjy-primary), var(--xfjy-primary-soft)) },
-  { label: '匹配成功率', value: 0, suffix: '%', change: 0, icon: 'Connection', bg: 'linear-gradient(135deg, var(--xfjy-primary-violet), var(--xfjy-primary-deep)) },
-  { label: '付费转化率', value: 0, suffix: '%', change: 0, icon: 'Wallet', bg: 'linear-gradient(135deg, var(--xfjy-primary-soft), var(--xfjy-primary-mist)) },
+  { label: '日活跃用户(DAU)', value: 0, suffix: '', change: 0, icon: 'User', bg: 'linear-gradient(135deg, var(--xfjy-primary-deep), var(--xfjy-primary))' },
+  { label: '今日新增用户', value: 0, suffix: '', change: 0, icon: 'Plus', bg: 'linear-gradient(135deg, var(--xfjy-primary), var(--xfjy-primary-soft))' },
+  { label: '匹配成功率', value: 0, suffix: '%', change: 0, icon: 'Connection', bg: 'linear-gradient(135deg, var(--xfjy-primary-violet), var(--xfjy-primary-deep))' },
+  { label: '付费转化率', value: 0, suffix: '%', change: 0, icon: 'Wallet', bg: 'linear-gradient(135deg, var(--xfjy-primary-soft), var(--xfjy-primary-mist))' },
 ])
 
 const overview = reactive({
@@ -230,7 +230,7 @@ function initGenderChart(male: number, female: number) {
   genderChart?.dispose()
   genderChart = echarts.init(genderChartRef.value)
   genderChart.setOption({
-    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%) },
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
     legend: { bottom: 0 },
     series: [
       {
@@ -293,8 +293,8 @@ function initAgeChart(ranges: string[], counts: number[]) {
         barWidth: '50%',
         itemStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: BRAND.primaryDeep },,
-            { offset: 1, color: BRAND.primary },,
+            { offset: 0, color: BRAND.primaryDeep },
+            { offset: 1, color: BRAND.primary },
           ]),
           borderRadius: [4, 4, 0, 0],
         },

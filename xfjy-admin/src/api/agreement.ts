@@ -17,6 +17,7 @@ export interface AgreementItem {
 export interface AgreementQuery {
   page: number
   pageSize: number
+  title?: string
   type?: string
   status?: string
 }
