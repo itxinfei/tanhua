@@ -7,21 +7,21 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: ${NACOS_SERVER_ADDR:192.168.20.133:8848}
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
         username: ${NACOS_USERNAME:nacos}
         password: ${NACOS_PASSWORD:}
         namespace: ${NACOS_NAMESPACE:}
   mongodb:
-    uri: mongodb://192.168.20.133:27017/xfjy
+    uri: mongodb://127.0.0.1:27017/xfjy
   data:
     redis:
-      host: 192.168.20.133
+      host: 127.0.0.1
       port: 6379
       password: ${REDIS_PASSWORD:}
       timeout: 10s
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: ${MYSQL_URL:jdbc:mysql://192.168.20.133:3306/xfjy?useUnicode=true&characterEncoding=utf8&autoReconnect=true&allowMultiQueries=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai}
+    url: ${MYSQL_URL:jdbc:mysql://127.0.0.1:3306/xfjy?useUnicode=true&characterEncoding=utf8&autoReconnect=true&allowMultiQueries=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai}
     username: ${MYSQL_USERNAME:xfjy}
     password: ${MYSQL_PASSWORD:}
     hikari:
