@@ -84,6 +84,14 @@ export function getVideoList(params: PageParam): Promise<PageResult<Video>> {
 }
 
 /**
+ * 查询「关注」流视频（仅当前登录用户关注的人发布的视频）
+ * 对接后端: GET /smallVideos/focus
+ */
+export function getFollowVideoList(params: PageParam): Promise<PageResult<Video>> {
+  return get<PageResult<Video>>("/smallVideos/focus", params as any);
+}
+
+/**
  * 视频点赞
  * 对接后端: POST /smallVideos/{id}/like
  *

@@ -72,4 +72,36 @@ public interface VideoApi {
     @PostExchange("/removeVideo")
     @PostMapping("/removeVideo")
     boolean removeVideo(@RequestParam("videoId") String videoId);
+
+    /**
+     * 管理后台全量分页查询视频（按创建时间倒序，支持关键词/用户ID筛选）
+     *
+     * @param page     页码（从1开始，默认1）
+     * @param pageSize 每页条数（默认10）
+     * @param keyword  文字内容关键词（模糊匹配，可选）
+     * @param userId   发布者用户ID（可选）
+     * @return 分页结果（含总条数）
+     */
+    @GetExchange("/queryAllVideoList")
+    @GetMapping("/queryAllVideoList")
+    PageInfo<Video> queryAllVideoList(@RequestParam(value = "page", required = false) Integer page,
+                                       @RequestParam(value = "pageSize", required = false) Integer pageSize,
+                                       @RequestParam(value = "keyword", required = false) String keyword,
+                                       @RequestParam(value = "userId", required = false) Long userId);
+
+    /**
+     * 查询用户关注的用户ID列表
+     */
+    @GetExchange("/queryFollowUserIds")
+    @GetMapping("/queryFollowUserIds")
+    List<Long> queryFollowUserIds(@RequestParam("userId") Long userId);
+
+    /**
+     * 按作者用户ID列表分页查询视频（关注流使用）
+     */
+    @GetExchange("/queryVideoListByUserIds")
+    @GetMapping("/queryVideoListByUserIds")
+    PageInfo<Video> queryVideoListByUserIds(@RequestParam("userIds") List<Long> userIds,
+                                            @RequestParam("page") Integer page,
+                                            @RequestParam("pageSize") Integer pageSize);
 }

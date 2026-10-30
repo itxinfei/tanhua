@@ -411,6 +411,18 @@ public class TodayBestService {
             this.imService.contactUser(likeUserId);
             // 推送匹配成功通知给对方（旁路，失败仅日志不阻断）
             this.pushService.pushMatchNotification(likeUserId);
+            // 环信透传匹配消息：App 在线时实时触发"It's a Match"弹窗（旁路，失败仅日志不阻断）
+            try {
+                UserInfo likeUserInfo = this.userInfoApi.queryUserInfoById(user.getId());
+                Map<String, Object> msg = new HashMap<>();
+                msg.put("type", "match");
+                msg.put("userId", user.getId().toString());
+                msg.put("nickname", likeUserInfo != null ? likeUserInfo.getNickName() : "");
+                msg.put("avatar", likeUserInfo != null ? likeUserInfo.getLogo() : "");
+                this.huanXinApi.sendMessage(likeUserId.toString(), MAPPER.writeValueAsString(msg));
+            } catch (Exception e) {
+                LOGGER.warn("匹配成功环信消息发送失败：userId={}", likeUserId, e);
+            }
         }
         return mutualLike;
     }

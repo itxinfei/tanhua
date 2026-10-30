@@ -1,0 +1,40 @@
+# ============================================================
+# 行尾与差异规则
+# 目标：Windows 开发、Linux 服务器执行，避免 CRLF 导致脚本无法运行
+# ============================================================
+
+# 默认：文本文件按 LF 入库（检出时由 core.autocrlf 决定）
+* text=auto
+
+# Shell 脚本：强制 LF，且视为二进制避免任何行尾转换（Linux 直接执行）
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Jenkinsfile：Jenkins 按行解析，强制 LF
+Jenkinsfile text eol=lf
+
+# Java / Vue / TS / JS / JSON / YAML：强制 LF
+*.java text eol=lf
+*.vue text eol=lf
+*.ts text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.xml text eol=lf
+*.sql text eol=lf
+*.md text eol=lf
+
+# 二进制资源：不做任何处理
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.gif binary
+*.ico binary
+*.mp4 binary
+*.webm binary
+*.jar binary
+*.zip binary
+*.ttf binary
+*.woff binary
+*.woff2 binary

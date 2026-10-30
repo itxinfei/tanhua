@@ -100,6 +100,26 @@ public class VideoController {
     }
 
     /**
+     * 查询「关注」流：仅返回当前用户关注的人发布的视频（分页）
+     */
+    @GetMapping("/focus")
+    public ResponseEntity<PageResult> queryFocusVideoList(@RequestParam(value = "page", defaultValue = "1") Integer page,
+                                                         @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize) {
+        try {
+            if (page <= 0) {
+                page = 1;
+            }
+            PageResult pageResult = this.videoService.queryFollowVideoList(page, pageSize);
+            if (null != pageResult) {
+                return ResponseEntity.ok(pageResult);
+            }
+        } catch (Exception e) {
+            LOGGER.error("接口处理异常", e);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+
+    /**
      * 视频点赞
      *
      * @param videoId 视频id

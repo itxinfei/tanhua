@@ -162,4 +162,74 @@ public class VideoApiImpl implements VideoApi {
             return false;
         }
     }
+
+    @Override
+    @GetMapping("/queryAllVideoList")
+    public PageInfo<Video> queryAllVideoList(@RequestParam(value = "page", required = false) Integer page,
+                                              @RequestParam(value = "pageSize", required = false) Integer pageSize,
+                                              @RequestParam(value = "keyword", required = false) String keyword,
+                                              @RequestParam(value = "userId", required = false) Long userId) {
+        int p = (page == null || page < 1) ? 1 : page;
+        int size = (pageSize == null || pageSize < 1 || pageSize > 100) ? 10 : pageSize;
+
+        Criteria criteria = new Criteria();
+        java.util.List<Criteria> conditions = new java.util.ArrayList<>();
+        if (userId != null) {
+            conditions.add(Criteria.where("userId").is(userId));
+        }
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            conditions.add(Criteria.where("text").regex(".*" + java.util.regex.Pattern.quote(keyword.trim()) + ".*", "i"));
+        }
+        if (!conditions.isEmpty()) {
+            criteria.andOperator(conditions.toArray(new Criteria[0]));
+        }
+
+        long total = this.mongoTemplate.count(new Query(criteria), Video.class);
+
+        Pageable pageable = PageRequest.of(p - 1, size, Sort.by(Sort.Order.desc("created")));
+        List<Video> records = this.mongoTemplate.find(new Query(criteria).with(pageable), Video.class);
+
+        PageInfo<Video> pageInfo = new PageInfo<>();
+        pageInfo.setPageNum(p);
+        pageInfo.setPageSize(size);
+        pageInfo.setTotal((int) total);
+        pageInfo.setRecords(records);
+        return pageInfo;
+    }
+
+    @Override
+    @GetMapping("/queryFollowUserIds")
+    public List<Long> queryFollowUserIds(@RequestParam("userId") Long userId) {
+        Query query = Query.query(Criteria.where("userId").is(userId));
+        List<FollowUser> list = this.mongoTemplate.find(query, FollowUser.class);
+        List<Long> ids = new java.util.ArrayList<>();
+        for (FollowUser fu : list) {
+            ids.add(fu.getFollowUserId());
+        }
+        return ids;
+    }
+
+    @Override
+    @GetMapping("/queryVideoListByUserIds")
+    public PageInfo<Video> queryVideoListByUserIds(@RequestParam("userIds") List<Long> userIds,
+                                                  @RequestParam("page") Integer page,
+                                                  @RequestParam("pageSize") Integer pageSize) {
+        if (userIds == null || userIds.isEmpty()) {
+            PageInfo<Video> empty = new PageInfo<>();
+            empty.setRecords(new java.util.ArrayList<>());
+            empty.setPageNum(page);
+            empty.setPageSize(pageSize);
+            empty.setTotal(0);
+            return empty;
+        }
+        Pageable pageable = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Order.desc("created")));
+        Query query = Query.query(Criteria.where("userId").in(userIds)).with(pageable);
+        List<Video> videos = this.mongoTemplate.find(query, Video.class);
+        PageInfo<Video> pageInfo = new PageInfo<>();
+        pageInfo.setRecords(videos);
+        pageInfo.setPageNum(page);
+        pageInfo.setPageSize(pageSize);
+        pageInfo.setTotal(0);
+        return pageInfo;
+    }
 }

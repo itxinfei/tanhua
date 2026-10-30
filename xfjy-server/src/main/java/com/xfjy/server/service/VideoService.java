@@ -120,6 +120,16 @@ public class VideoService {
         }
 
         List<Video> records = pageInfo.getRecords();
+        List<VideoVo> videoVoList = this.assembleVideoVoList(records, user.getId());
+        pageResult.setItems(videoVoList);
+
+        return pageResult;
+    }
+
+    /**
+     * 将 Mongo Video 列表组装为前端 VideoVo（统一填充评论数、关注/点赞态、作者信息）
+     */
+    private List<VideoVo> assembleVideoVoList(List<Video> records, Long userId) {
         List<VideoVo> videoVoList = new ArrayList<>();
         List<Long> userIds = new ArrayList<>();
 
@@ -147,17 +157,17 @@ public class VideoService {
             videoVo.setVideoUrl(record.getVideoUrl());
             videoVo.setId(record.getId().toHexString());
             // 签名：取用户标签作为个性签名（UserInfo 无独立签名字段，tags 为最接近的真实数据）
-            videoVo.setSignature(null); //先置空，下方匹配 UserInfo 后填充
+            videoVo.setSignature(null);
 
             // 评论数（来自上方批量查询）
             Long commentCount = commentCountMap.get(videoVo.getId());
             videoVo.setCommentCount(commentCount == null ? 0 : commentCount.intValue());
 
             // 是否关注：查询 Redis 中已记录的关注关系
-            String focusKey = "VIDEO_FOLLOW_USER_" + user.getId() + "_" + record.getUserId();
+            String focusKey = "VIDEO_FOLLOW_USER_" + userId + "_" + record.getUserId();
             videoVo.setHasFocus(this.redisTemplate.hasKey(focusKey) ? 1 : 0);
 
-            String likeUserCommentKey = "QUANZI_COMMENT_LIKE_USER_" + user.getId() + "_" + videoVo.getId();
+            String likeUserCommentKey = "QUANZI_COMMENT_LIKE_USER_" + userId + "_" + videoVo.getId();
             videoVo.setHasLiked(this.redisTemplate.hasKey(likeUserCommentKey) ? 1 : 0); //是否点赞
 
             String likeCommentKey = "QUANZI_COMMENT_LIKE_" + videoVo.getId();
@@ -195,6 +205,33 @@ public class VideoService {
 
         }
 
+        return videoVoList;
+    }
+
+    /**
+     * 查询「关注」流：当前用户关注的人发布的视频（分页）
+     */
+    public PageResult queryFollowVideoList(Integer page, Integer pageSize) {
+        User user = UserThreadLocal.get();
+
+        PageResult pageResult = new PageResult();
+        pageResult.setPage(page);
+        pageResult.setPagesize(pageSize);
+        pageResult.setPages(0);
+        pageResult.setCounts(0);
+
+        List<Long> followIds = this.videoApi.queryFollowUserIds(user.getId());
+        if (followIds == null || followIds.isEmpty()) {
+            pageResult.setItems(new ArrayList<>());
+            return pageResult;
+        }
+
+        PageInfo<Video> pageInfo = this.videoApi.queryVideoListByUserIds(followIds, page, pageSize);
+        List<Video> records = pageInfo.getRecords();
+        if (records == null) {
+            records = new ArrayList<>();
+        }
+        List<VideoVo> videoVoList = this.assembleVideoVoList(records, user.getId());
         pageResult.setItems(videoVoList);
 
         return pageResult;
