@@ -20,7 +20,6 @@ volumes:
   rocketmq-broker-store:
   qdrant-data:
   neo4j-data:
-  jenkins-home:
 
 services:
 
@@ -29,7 +28,7 @@ services:
     container_name: xfjy-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123456}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
       TZ: Asia/Shanghai
     command:
       - --character-set-server=utf8mb4
@@ -40,7 +39,7 @@ services:
       - mysql-data:/var/lib/mysql
       - ./mysql/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root123456}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-123456}"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -187,7 +186,7 @@ services:
     container_name: xfjy-neo4j
     restart: unless-stopped
     environment:
-      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-neo4j123456}
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-itxinfei123456}
       NEO4J_server_memory_heap_initial__size: 256m
       NEO4J_server_memory_heap_max__size: 512m
       NEO4J_server_memory_pagecache_size: 128m
@@ -206,18 +205,4 @@ services:
     networks:
       - xfjy-net
 
-  jenkins:
-    image: jenkins/jenkins:lts-jdk17
-    container_name: xfjy-jenkins
-    restart: unless-stopped
-    user: root
-    ports:
-      - "8888:8080"
-    environment:
-      TZ: Asia/Shanghai
-    volumes:
-      - jenkins-home:/var/jenkins_home
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /usr/bin/docker:/usr/bin/docker:ro
-    networks:
-      - xfjy-net
+  # CI/CD 已迁移到 Gitea：见 deploy/docker-compose.gitea.yml（xfjy-gitea + xfjy-act-runner）

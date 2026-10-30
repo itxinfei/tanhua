@@ -1,0 +1,35 @@
+# ============================================================
+# 心飞交友 CI 镜像（Gitea Actions runner 使用的 job 容器）
+#
+# 需包含：JDK 25、Maven 3.9、Node 22、ssh 客户端、git。
+# 因工作流用 container 显式指定本镜像，runner 只需有 docker.sock 即可拉起它。
+#
+# 构建（在服务器宿主机执行，使镜像进入宿主 docker，act_runner 可直接用）：
+#   docker build -f deploy/gitea/Dockerfile.ci -t xfjy/ci:latest deploy/gitea
+#
+# 若用私有镜像仓库，把 tag 改成 registry.example.com/xfjy/ci:latest，
+# 并同步修改 .gitea/workflows/deploy.yml 的 container.image。
+# ============================================================
+FROM node:22-bookworm
+
+ARG JDK_VERSION=25
+ENV JAVA_HOME=/opt/jdk25
+ENV MAVEN_HOME=/opt/maven
+ENV PATH="${JAVA_HOME}/bin:${MAVEN_HOME}/bin:${PATH}"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates wget git openssh-client bash tar gzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Eclipse Temurin JDK 25（Spring Boot 4.1.1 最低 JDK 17，本项目用 25）
+RUN wget -qO- "https://api.adoptium.net/v3/binary/latest/${JDK_VERSION}/ga/linux/x64/jdk/hotspot/normal/eclipse" \
+      | tar xz -C /opt \
+    && mv /opt/jdk-25* /opt/jdk25
+
+# Apache Maven 3.9
+RUN wget -q "https://archive.apache.org/dist/maven/maven-3/3.9.9/binaries/apache-maven-3.9.9-bin.tar.gz" -O /tmp/mvn.tgz \
+    && tar xzf /tmp/mvn.tgz -C /opt \
+    && ln -s /opt/apache-maven-3.9.9 /opt/maven \
+    && rm -f /tmp/mvn.tgz
+
+RUN mvn -v && node -v && ssh -V

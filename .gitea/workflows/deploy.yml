@@ -1,0 +1,86 @@
+# ============================================================
+# 心飞交友 - Gitea Actions 部署流水线
+#
+# 触发：push 到 master（由 Gitee 推送后镜像同步触发，详见 deploy/gitea/GITEE_WEBHOOK.md）
+#       或手动在 Gitea 仓库 Actions 页点 Run workflow（workflow_dispatch）
+#
+# 阶段（与原 Jenkinsfile 一一对应）：
+#   1) 后端 Maven 编译
+#   2) 管理后台构建（容错，不阻断部署）
+#   3) App H5 构建（容错，不阻断部署）
+#   4) 后端服务打包（注入 application-local.ci.yml 并校验 jar）
+#   5) 投递产物 + 重启服务（SSH 到宿主机，复用 deploy-service.sh）
+# ============================================================
+name: deploy
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    container:
+      # 在服务器宿主机 build 该镜像（见 deploy/gitea/Dockerfile.ci）
+      image: xfjy/ci:latest
+
+    steps:
+      - name: Checkout
+        uses: https://gitea.com/actions/checkout@v4
+
+      - name: 后端 Maven 编译
+        run: mvn -B -ntp compile -DskipTests
+
+      - name: 管理后台构建（容错）
+        continue-on-error: true
+        working-directory: xfjy-admin
+        run: |
+          rm -f package-lock.json
+          npm install --legacy-peer-deps --no-audit --no-fund
+          npm install @rolldown/binding-linux-x64-gnu --no-save --no-audit --no-fund
+          npm run build
+
+      - name: App H5 构建（容错）
+        continue-on-error: true
+        working-directory: xfjy-app
+        run: |
+          rm -f package-lock.json
+          npm install --legacy-peer-deps --no-audit --no-fund
+          npm run build:h5
+
+      - name: 后端服务打包（注入 application-local.ci.yml）
+        env:
+          DEPLOY_SERVICES: xfjy-server,xfjy-video-service
+        run: |
+          set -e
+          for svc in ${DEPLOY_SERVICES//,/ }; do
+            RES="$svc/src/main/resources"
+            if [ -d "$RES" ] && [ -f "$RES/application-test.yml" ]; then
+              [ -f "$RES/application-local.yml" ] || cp -f deploy/application-local.ci.yml "$RES/application-local.yml"
+              if [ ! -f "$RES/aliyun.properties" ] && [ -f "$RES/aliyun.properties.example" ]; then
+                cp -f "$RES/aliyun.properties.example" "$RES/aliyun.properties"
+              fi
+            fi
+            mvn -B -ntp package -DskipTests -pl "$svc" -am
+            if [ -f "$svc/src/main/resources/application-test.yml" ]; then
+              unzip -l "$svc/target/$svc-1.0-SNAPSHOT.jar" | grep -q 'BOOT-INF/classes/application-local.yml' \
+                || { echo "ERROR: jar 缺 application-local.yml，无法部署"; exit 1; }
+            fi
+          done
+
+      - name: 投递产物 + 重启服务（SSH）
+        env:
+          SSH_DEPLOY_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
+          DEPLOY_HOST: 172.18.0.1
+          DEPLOY_USER: itxinfei
+        run: |
+          set -e
+          printf '%s\n' "$SSH_DEPLOY_KEY" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+          SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=15 -o BatchMode=yes -i /tmp/deploy_key"
+          for svc in xfjy-server xfjy-video-service; do
+            ssh $SSH_OPTS "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p /home/itxinfei/mytanhua/$svc/target"
+            scp $SSH_OPTS "$svc/target/$svc-1.0-SNAPSHOT.jar" "$DEPLOY_USER@$DEPLOY_HOST:/home/itxinfei/mytanhua/$svc/target/"
+            ssh $SSH_OPTS "$DEPLOY_USER@$DEPLOY_HOST" "cd /home/itxinfei/mytanhua && bash deploy/deploy-service.sh $svc"
+          done

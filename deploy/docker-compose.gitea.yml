@@ -1,0 +1,63 @@
+# ============================================================
+# 心飞交友 - Gitea + act_runner（替代 Jenkins 做 CI/CD）
+#
+# 定位：Gitea 只做 CI，Gitee 仍是主仓库。
+#   - Gitea 作为 Gitee 的镜像仓（或手动 push），代码 + .gitea 工作流都在其中
+#   - act_runner 跑 Gitea Actions，逻辑与原 Jenkinsfile 完全一致
+#   - 部署通道不变：runner 容器 → SSH 到宿主机 172.18.0.1 → deploy-service.sh
+#
+# 用法：
+#   docker compose -f deploy/docker-compose.gitea.yml up -d
+#   # 首次需先在 Gitea 后台「管理 → Runner」创建 runner 拿到 token，写入下方 GITEA_RUNNER_TOKEN
+# ============================================================
+name: xfjy-gitea
+
+networks:
+  gitea-net:
+    driver: bridge
+
+volumes:
+  gitea-data:
+
+services:
+
+  gitea:
+    image: gitea/gitea:1.22
+    container_name: xfjy-gitea
+    restart: unless-stopped
+    environment:
+      GITEA__server__APP_DATA_PATH: /data/gitea
+      GITEA__server__ROOT_URL: http://192.168.20.133:3000/
+      GITEA__server__SSH_DOMAIN: 192.168.20.133
+      GITEA__server__SSH_PORT: "2222"
+      GITEA__actions__ENABLED: "true"
+      GITEA__actions__DEFAULT_ACTIONS_URL: https://gitea.com
+      TZ: Asia/Shanghai
+    ports:
+      - "3000:3000"
+      - "2222:2222"
+    volumes:
+      - gitea-data:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - gitea-net
+
+  act_runner:
+    image: gitea/act_runner:latest
+    container_name: xfjy-act-runner
+    restart: unless-stopped
+    # GITEA_RUNNER_TOKEN 来自 Gitea 后台「管理 → Runner → 创建 Runner」生成的注册令牌
+    environment:
+      GITEA_INSTANCE: http://gitea:3000
+      GITEA_RUNNER_REGISTRATION_TOKEN: ${GITEA_RUNNER_TOKEN}
+      GITEA_RUNNER_NAME: xfjy-runner
+      # 默认提供 ubuntu-latest 标签；工作流用 container 显式指定 CI 镜像，标签仅用于匹配
+      GITEA_RUNNER_LABELS: "ubuntu-latest:docker://node:22-bookworm"
+    volumes:
+      # 关键：挂载宿主机 docker.sock，使 runner 能拉起 job 容器（工作流里的 container 镜像）
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - gitea-net
+    depends_on:
+      - gitea
