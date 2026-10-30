@@ -113,6 +113,12 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/views/sensitive/index.vue'),
         meta: { title: '敏感词库', icon: 'Filter', roles: ['SUPER_ADMIN', 'ADMIN'] },
       },
+      {
+        path: 'agreement',
+        name: 'AgreementManage',
+        component: () => import('@/views/agreement/index.vue'),
+        meta: { title: '协议管理', icon: 'Document', roles: ['SUPER_ADMIN', 'ADMIN'] },
+      },
     ],
   },
   {
