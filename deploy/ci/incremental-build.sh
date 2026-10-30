@@ -152,8 +152,8 @@ for m in "${ALL_MODULES[@]}"; do
   CUR_FP["${m}"]="$(dir_fingerprint "${m}/src" "${m}/pom.xml" | sha256sum | cut -d' ' -f1)"
 done
 CUR_FP["__root_pom__"]="$(sha256sum pom.xml | cut -d' ' -f1)"
-CUR_FP["__admin__"]="$(dir_fingerprint xfjy-admin/src xfjy-admin/package.json xfjy-admin/vite.config.js xfjy-admin/index.html | sha256sum | cut -d' ' -f1)"
-CUR_FP["__app__"]="$(dir_fingerprint xfjy-app/src xfjy-app/package.json xfjy-app/vite.config.js xfjy-app/manifest.json | sha256sum | cut -d' ' -f1)"
+CUR_FP["__admin__"]="$(dir_fingerprint xfjy-admin/src xfjy-admin/package.json xfjy-admin/vite.config.ts xfjy-admin/index.html | sha256sum | cut -d' ' -f1)"
+CUR_FP["__app__"]="$(dir_fingerprint xfjy-app/src xfjy-app/package.json xfjy-app/vite.config.ts xfjy-app/manifest.json | sha256sum | cut -d' ' -f1)"
 CUR_FP["__deploy_web__"]="$(dir_fingerprint deploy/docker deploy/docker-compose.web.yml | sha256sum | cut -d' ' -f1)"
 CUR_FP["__deploy_app__"]="$(dir_fingerprint deploy/docker deploy/docker-compose.app.yml | sha256sum | cut -d' ' -f1)"
 

@@ -12,11 +12,11 @@ spring:
         password: ${NACOS_PASSWORD:}
         namespace: ${NACOS_NAMESPACE:}
   mongodb:
-    uri: mongodb://127.0.0.1:27017/xfjy
+    uri: ${MONGODB_URI:mongodb://127.0.0.1:27017/xfjy}
   data:
     redis:
-      host: 127.0.0.1
-      port: 6379
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
       database: 0
       timeout: 10s

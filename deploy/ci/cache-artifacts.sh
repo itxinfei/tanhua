@@ -73,8 +73,8 @@ save_fingerprints() {
     dir_fingerprint "${m}/src" "${m}/pom.xml" | sha256sum | cut -d' ' -f1 > "${FINGERPRINT_DIR}/${m}.fp"
   done
   sha256sum pom.xml | cut -d' ' -f1 > "${FINGERPRINT_DIR}/__root_pom__.fp"
-  dir_fingerprint xfjy-admin/src xfjy-admin/package.json xfjy-admin/vite.config.js xfjy-admin/index.html | sha256sum | cut -d' ' -f1 > "${FINGERPRINT_DIR}/__admin__.fp"
-  dir_fingerprint xfjy-app/src xfjy-app/package.json xfjy-app/vite.config.js xfjy-app/manifest.json | sha256sum | cut -d' ' -f1 > "${FINGERPRINT_DIR}/__app__.fp"
+  dir_fingerprint xfjy-admin/src xfjy-admin/package.json xfjy-admin/vite.config.ts xfjy-admin/index.html | sha256sum | cut -d' ' -f1 > "${FINGERPRINT_DIR}/__admin__.fp"
+  dir_fingerprint xfjy-app/src xfjy-app/package.json xfjy-app/vite.config.ts xfjy-app/manifest.json | sha256sum | cut -d' ' -f1 > "${FINGERPRINT_DIR}/__app__.fp"
   dir_fingerprint deploy/docker deploy/docker-compose.web.yml | sha256sum | cut -d' ' -f1 > "${FINGERPRINT_DIR}/__deploy_web__.fp"
   dir_fingerprint deploy/docker deploy/docker-compose.app.yml | sha256sum | cut -d' ' -f1 > "${FINGERPRINT_DIR}/__deploy_app__.fp"
 

@@ -34,10 +34,11 @@ public class AdminMovementController {
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) Integer seeType,
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate) {
         try {
-            Map<String, Object> result = this.adminMovementService.queryMovementPage(page, pageSize, keyword, userId, startDate, endDate);
+            Map<String, Object> result = this.adminMovementService.queryMovementPage(page, pageSize, keyword, userId, seeType, startDate, endDate);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             LOGGER.error("接口处理异常", e);

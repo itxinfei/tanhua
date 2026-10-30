@@ -157,12 +157,18 @@ jobs:
           du -sh deploy/build/* 2>/dev/null || true
 
       - name: 准备部署参数（注入中间件密码）
-        if: ${{ env.SKIP_CI != 'true' && env.ACTION == 'deploy' }}
+        # deploy 动作无论是否跳过编译（SKIP_CI）都需要密码文件：
+        # SKIP_CI=true + deploy = 用已有产物重建镜像部署，同样要连数据库
+        if: ${{ env.ACTION == 'deploy' }}
         env:
           # 中间件真实密码：来自 Gitea Actions Secrets（仓库设置 → Actions → Secrets）
           MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME || 'root' }}
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           NEO4J_PASSWORD: ${{ secrets.NEO4J_PASSWORD }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+          HANXIN_CLIENT_ID: ${{ secrets.HANXIN_CLIENT_ID }}
+          HANXIN_CLIENT_SECRET: ${{ secrets.HANXIN_CLIENT_SECRET }}
         run: |
           set -e
           if [ -z "${MYSQL_PASSWORD}" ]; then
@@ -170,13 +176,25 @@ jobs:
             echo "       请在 Gitea 仓库 → Settings → Actions → Secrets 添加 MYSQL_PASSWORD"
             exit 1
           fi
+          # MinIO / 环信凭证为可选功能：未配置时打 WARN 降级，不阻断部署
+          [ -z "${MINIO_ACCESS_KEY}" ] && echo "[WARN] 未配置 Secrets.MINIO_ACCESS_KEY，视频/图片上传将不可用"
+          [ -z "${HANXIN_CLIENT_ID}" ] && echo "[WARN] 未配置 Secrets.HANXIN_CLIENT_ID，IM 功能将不可用"
           # deploy/.env 被 .gitignore 排除，仓库里没有；密码从 Secrets 注入到临时 env 文件
           umask 077
-          printf 'MYSQL_USERNAME=%s\nMYSQL_PASSWORD=%s\nNEO4J_PASSWORD=%s\n' \
-            "${MYSQL_USERNAME}" "${MYSQL_PASSWORD}" "${NEO4J_PASSWORD}" > deploy/.env
+          {
+            printf 'MYSQL_USERNAME=%s\n' "${MYSQL_USERNAME}"
+            printf 'MYSQL_PASSWORD=%s\n' "${MYSQL_PASSWORD}"
+            printf 'NEO4J_PASSWORD=%s\n' "${NEO4J_PASSWORD}"
+            printf 'MINIO_ACCESS_KEY=%s\n' "${MINIO_ACCESS_KEY}"
+            printf 'MINIO_SECRET_KEY=%s\n' "${MINIO_SECRET_KEY}"
+            printf 'HANXIN_CLIENT_ID=%s\n' "${HANXIN_CLIENT_ID}"
+            printf 'HANXIN_CLIENT_SECRET=%s\n' "${HANXIN_CLIENT_SECRET}"
+          } > deploy/.env
 
       - name: 执行部署动作
-        if: ${{ env.SKIP_CI != 'true' || env.ACTION != 'deploy' }}
+        # deploy 依赖「准备部署参数」成功（密码缺失则中断）；
+        # 其余动作（start/stop/status/logs）不依赖密码，前面编译失败也能执行
+        if: ${{ env.ACTION != 'deploy' || success() }}
         run: |
           set -e
           chmod +x deploy/manage.sh

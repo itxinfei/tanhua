@@ -38,6 +38,19 @@ x-common-env: &common-env
   # 密码禁止入库：真实值由 deploy/.env（gitignore 排除）注入，启动命令须带 --env-file deploy/.env
   MYSQL_PASSWORD: ${MYSQL_PASSWORD:-123456}
   NEO4J_PASSWORD: ${NEO4J_PASSWORD:-itxinfei123456}
+  # RocketMQ（circle/video/recommend 生产消费，name-server 指向宿主映射端口）
+  ROCKETMQ_NAME_SERVER: ${ROCKETMQ_NAME_SERVER:-192.168.20.133:9876}
+  # match-service 调 xfjy-elasticsearch 服务的 HTTP 接口（区别于 ES 中间件 9200）
+  ES_SERVER_URL: ${ES_SERVER_URL:-http://192.168.20.133:18088/es/}
+  # MinIO 对象存储（视频/图片上传，凭证留空则上传功能快速失败）
+  MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://192.168.20.133:9000}
+  MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-}
+  MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-}
+  MINIO_BUCKET: ${MINIO_BUCKET:-test-media}
+  MINIO_URL_PREFIX: ${MINIO_URL_PREFIX:-http://192.168.20.133:9000/test-media/}
+  # 环信 IM（凭证留空则 IM 接口报错，真实值由 deploy/.env 注入）
+  HANXIN_CLIENT_ID: ${HANXIN_CLIENT_ID:-}
+  HANXIN_CLIENT_SECRET: ${HANXIN_CLIENT_SECRET:-}
 
 services:
 

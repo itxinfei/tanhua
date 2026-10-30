@@ -32,6 +32,7 @@ public class AdminMovementService {
      */
     public Map<String, Object> queryMovementPage(Integer page, Integer pageSize,
                                                   String keyword, Long userId,
+                                                  Integer seeType,
                                                   String startDate, String endDate) {
         Long startTime = parseDateToTimestamp(startDate);
         Long endTime = parseDateToTimestamp(endDate);
@@ -39,9 +40,21 @@ public class AdminMovementService {
 
         List<Map<String, Object>> items = new ArrayList<>();
         if (publishPage != null && publishPage.getRecords() != null) {
+            // seeType 过滤：在 Service 层过滤，避免改动 QuanZiApi 接口
+            List<Publish> filteredRecords = new ArrayList<>();
+            if (seeType != null) {
+                for (Publish publish : publishPage.getRecords()) {
+                    if (publish.getSeeType() != null && publish.getSeeType().equals(seeType)) {
+                        filteredRecords.add(publish);
+                    }
+                }
+            } else {
+                filteredRecords = new ArrayList<>(publishPage.getRecords());
+            }
+
             // 批量收集用户ID，减少远程调用
             Set<Long> userIds = new HashSet<>();
-            for (Publish publish : publishPage.getRecords()) {
+            for (Publish publish : filteredRecords) {
                 if (publish.getUserId() != null) {
                     userIds.add(publish.getUserId());
                 }
@@ -50,7 +63,7 @@ public class AdminMovementService {
 
             // 批量查询互动数（点赞1/评论2/喜欢3）
             List<String> publishIds = new ArrayList<>();
-            for (Publish publish : publishPage.getRecords()) {
+            for (Publish publish : filteredRecords) {
                 if (publish.getId() != null) {
                     publishIds.add(publish.getId().toHexString());
                 }
@@ -59,13 +72,13 @@ public class AdminMovementService {
             Map<String, Long> commentCountMap = safeBatchCount(publishIds, 2);
             Map<String, Long> loveCountMap = safeBatchCount(publishIds, 3);
 
-            for (Publish publish : publishPage.getRecords()) {
+            for (Publish publish : filteredRecords) {
                 items.add(convertToItem(publish, userMap, likeCountMap, commentCountMap, loveCountMap));
             }
         }
 
         Map<String, Object> result = new HashMap<>();
-        result.put("total", publishPage != null ? publishPage.getTotal() : 0);
+        result.put("total", seeType != null && publishPage != null ? items.size() : (publishPage != null ? publishPage.getTotal() : 0));
         result.put("list", items);
         return result;
     }

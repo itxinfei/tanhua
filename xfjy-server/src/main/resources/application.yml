@@ -33,21 +33,21 @@ mybatis-plus:
 xfjy:
   match:
     service:
-      url: http://127.0.0.1:18082  # 探花匹配服务（推荐用户/地理位置/附近的人）
+      url: http://${SERVICE_HOST:127.0.0.1}:18082  # 探花匹配服务（推荐用户/地理位置/附近的人）
   user:
     service:
-      url: http://127.0.0.1:18090  # 用户关系服务（好友/喜欢/访客）
+      url: http://${SERVICE_HOST:127.0.0.1}:18090  # 用户关系服务（好友/喜欢/访客）
   circle:
     service:
-      url: http://127.0.0.1:18084  # 圈子动态服务（动态/评论/时间线）
+      url: http://${SERVICE_HOST:127.0.0.1}:18084  # 圈子动态服务（动态/评论/时间线）
   video:
     service:
-      url: http://127.0.0.1:18085  # 小视频服务（视频/关注作者）
+      url: http://${SERVICE_HOST:127.0.0.1}:18085  # 小视频服务（视频/关注作者）
   message:
     service:
-      url: http://127.0.0.1:18086  # 消息/IM服务（环信集成：好友注册/消息下发）
+      url: http://${SERVICE_HOST:127.0.0.1}:18086  # 消息/IM服务（环信集成：好友注册/消息下发）
   sso:
-    url: http://127.0.0.1:18080
+    url: http://${SERVICE_HOST:127.0.0.1}:18080
     default:
       user: 2
       recommend:
@@ -73,7 +73,7 @@ xfjy:
     vector-size: 64
   # Neo4j 图数据库（P2 二度好友推荐，中间件后期部署，不可用时自动降级空召回）
   neo4j:
-    uri: http://127.0.0.1:7474
+    uri: ${NEO4J_URI:http://127.0.0.1:7474}
     username: neo4j
     password: ${NEO4J_PASSWORD:}
   # 极光推送 JPush（凭证环境变量外置，留空走 mock 模式仅打日志不实际推送）
