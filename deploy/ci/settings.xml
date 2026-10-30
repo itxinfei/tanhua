@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ============================================================
+  Maven 国内镜像配置（阿里云）
+  ============================================================
+  为什么放在仓库里而不是只写在 CI 镜像里：
+    act_runner 用 -v /home/itxinfei/.cache/m2:/root/.m2 挂载持久化依赖缓存，
+    整个 /root/.m2 会被宿主目录覆盖，镜像内预置的 settings.xml 会失效，
+    Maven 就会退回中央仓库（国内极慢 / 超时）。
+    现在改为：
+      1) 只挂载 /root/.m2/repository（依赖缓存），保留镜像内 settings.xml；
+      2) 本文件入库，CI 用 mvn -s deploy/ci/settings.xml 显式指定，双保险；
+      3) 本地开发同样可用：mvn -s deploy/ci/settings.xml clean package
+
+  镜像选择：
+    aliyun-central  → 代理 Maven Central（Spring Boot / Spring Cloud / 第三方库）
+    aliyun-public   → 聚合仓库（central + jcenter），作为公共依赖兜底
+    aliyun-spring   → Spring 官方仓库代理（milestone/snapshot）
+  官方源（repo.maven.apache.org / repo.spring.io）作为最后兜底保留，
+  阿里云未同步的新版本仍能从官方拉到，不会因为镜像滞后而构建失败。
+  ============================================================
+-->
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+
+  <mirrors>
+    <!-- 中央仓库主镜像：绝大多数依赖走这里 -->
+    <mirror>
+      <id>aliyun-central</id>
+      <name>Aliyun Maven Central Mirror</name>
+      <url>https://maven.aliyun.com/repository/central</url>
+      <mirrorOf>central</mirrorOf>
+    </mirror>
+  </mirrors>
+
+  <profiles>
+    <profile>
+      <id>cn-mirrors</id>
+
+      <repositories>
+        <!-- 公共聚合仓库（central + jcenter） -->
+        <repository>
+          <id>aliyun-public</id>
+          <name>Aliyun Public Repository</name>
+          <url>https://maven.aliyun.com/repository/public</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+        <!-- Spring 官方仓库代理（spring-boot 4.x / spring-cloud 新版本可能只在 Spring 仓库先发布） -->
+        <repository>
+          <id>aliyun-spring</id>
+          <name>Aliyun Spring Repository</name>
+          <url>https://maven.aliyun.com/repository/spring</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+        <!-- 官方兜底：阿里云同步滞后时仍可拉到 -->
+        <repository>
+          <id>maven-central-fallback</id>
+          <name>Maven Central (official fallback)</name>
+          <url>https://repo.maven.apache.org/maven2</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+      </repositories>
+
+      <pluginRepositories>
+        <pluginRepository>
+          <id>aliyun-plugin</id>
+          <name>Aliyun Maven Plugin Repository</name>
+          <url>https://maven.aliyun.com/repository/public</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>false</enabled></snapshots>
+        </pluginRepository>
+        <pluginRepository>
+          <id>maven-plugin-fallback</id>
+          <name>Maven Central Plugins (official fallback)</name>
+          <url>https://repo.maven.apache.org/maven2</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>false</enabled></snapshots>
+        </pluginRepository>
+      </pluginRepositories>
+
+    </profile>
+  </profiles>
+
+  <activeProfiles>
+    <activeProfile>cn-mirrors</activeProfile>
+  </activeProfiles>
+
+</settings>

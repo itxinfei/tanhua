@@ -44,7 +44,7 @@ services:
   xfjy-gateway:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.java
+      dockerfile: deploy/docker/Dockerfile.java
       args:
         SERVICE: xfjy-gateway
     pull_policy: never
@@ -65,7 +65,7 @@ services:
   xfjy-sso:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.java
+      dockerfile: deploy/docker/Dockerfile.java
       args:
         SERVICE: xfjy-sso
     pull_policy: never
@@ -86,7 +86,7 @@ services:
   xfjy-user-service:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.java
+      dockerfile: deploy/docker/Dockerfile.java
       args:
         SERVICE: xfjy-user-service
     pull_policy: never
@@ -107,7 +107,7 @@ services:
   xfjy-circle-service:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.java
+      dockerfile: deploy/docker/Dockerfile.java
       args:
         SERVICE: xfjy-circle-service
     pull_policy: never
@@ -128,7 +128,7 @@ services:
   xfjy-video-service:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.java
+      dockerfile: deploy/docker/Dockerfile.java
       args:
         SERVICE: xfjy-video-service
     pull_policy: never
@@ -149,7 +149,7 @@ services:
   xfjy-match-service:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.java
+      dockerfile: deploy/docker/Dockerfile.java
       args:
         SERVICE: xfjy-match-service
     pull_policy: never
@@ -170,7 +170,7 @@ services:
   xfjy-message-service:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.java
+      dockerfile: deploy/docker/Dockerfile.java
       args:
         SERVICE: xfjy-message-service
     pull_policy: never
@@ -191,7 +191,7 @@ services:
   xfjy-server:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.java
+      dockerfile: deploy/docker/Dockerfile.java
       args:
         SERVICE: xfjy-server
     pull_policy: never
@@ -212,7 +212,7 @@ services:
   xfjy-recommend:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.java
+      dockerfile: deploy/docker/Dockerfile.java
       args:
         SERVICE: xfjy-recommend
     pull_policy: never
@@ -233,7 +233,7 @@ services:
   xfjy-elasticsearch:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.java
+      dockerfile: deploy/docker/Dockerfile.java
       args:
         SERVICE: xfjy-elasticsearch
     pull_policy: never
@@ -254,7 +254,7 @@ services:
   xfjy-pay-service:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.java
+      dockerfile: deploy/docker/Dockerfile.java
       args:
         SERVICE: xfjy-pay-service
     pull_policy: never

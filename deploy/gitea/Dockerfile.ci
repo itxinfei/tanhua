@@ -80,19 +80,57 @@ RUN set -eux; \
 #   1) 直接写 .npmrc 文件而不是用 `npm config set`，后者在不同 npm 版本下行为不一致（报 exit 129）
 #   2) 写到 /etc/npmrc（全局生效），不要写 /root/.npmrc —— 该路径在部分基础镜像里已存在同名目录
 #   3) Maven 走阿里云镜像（settings.xml），否则从 Maven 中央仓库拉依赖极慢甚至超时
+#      这里写入的 /root/.m2/settings.xml 是「兜底」配置：
+#      act_runner 只挂载 /root/.m2/repository（不挂整个 /root/.m2），
+#      所以本文件不会被宿主目录覆盖；而 workflow 里还显式带了
+#      -s deploy/ci/settings.xml（仓库内版本，含官方源兜底），双保险。
 RUN set -eux; \
     printf 'registry=https://registry.npmmirror.com\n' > /etc/npmrc; \
-    mkdir -p /root/.m2; \
+    mkdir -p /root/.m2/repository; \
     printf '%s\n' \
       '<settings>' \
       '  <mirrors>' \
       '    <mirror>' \
-      '      <id>aliyun</id>' \
-      '      <name>Aliyun Maven</name>' \
-      '      <url>https://maven.aliyun.com/repository/public</url>' \
+      '      <id>aliyun-central</id>' \
+      '      <name>Aliyun Maven Central</name>' \
+      '      <url>https://maven.aliyun.com/repository/central</url>' \
       '      <mirrorOf>central</mirrorOf>' \
       '    </mirror>' \
       '  </mirrors>' \
+      '  <profiles>' \
+      '    <profile>' \
+      '      <id>cn-mirrors</id>' \
+      '      <repositories>' \
+      '        <repository>' \
+      '          <id>aliyun-public</id>' \
+      '          <url>https://maven.aliyun.com/repository/public</url>' \
+      '          <releases><enabled>true</enabled></releases>' \
+      '          <snapshots><enabled>false</enabled></snapshots>' \
+      '        </repository>' \
+      '        <repository>' \
+      '          <id>aliyun-spring</id>' \
+      '          <url>https://maven.aliyun.com/repository/spring</url>' \
+      '          <releases><enabled>true</enabled></releases>' \
+      '          <snapshots><enabled>false</enabled></snapshots>' \
+      '        </repository>' \
+      '        <repository>' \
+      '          <id>maven-central-fallback</id>' \
+      '          <url>https://repo.maven.apache.org/maven2</url>' \
+      '          <releases><enabled>true</enabled></releases>' \
+      '          <snapshots><enabled>false</enabled></snapshots>' \
+      '        </repository>' \
+      '      </repositories>' \
+      '      <pluginRepositories>' \
+      '        <pluginRepository>' \
+      '          <id>aliyun-plugin</id>' \
+      '          <url>https://maven.aliyun.com/repository/public</url>' \
+      '        </pluginRepository>' \
+      '      </pluginRepositories>' \
+      '    </profile>' \
+      '  </profiles>' \
+      '  <activeProfiles>' \
+      '    <activeProfile>cn-mirrors</activeProfile>' \
+      '  </activeProfiles>' \
       '</settings>' > /root/.m2/settings.xml; \
     git config --global --add safe.directory "*"
 

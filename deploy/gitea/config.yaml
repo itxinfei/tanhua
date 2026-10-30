@@ -32,7 +32,19 @@ container:
   #    act_runner 给每个 job 自建独立网络，该网络内没有 gitea 服务名，
   #    导致 checkout 时 "Could not resolve host: gitea"。这里用 --add-host 兜底，
   #    172.19.0.2 是 gitea 容器在 xfjy-gitea_gitea-net 上的地址。
-  # 2) -v /home/itxinfei/.cache/m2:/root/.m2 与 npm 缓存
-  #    job 容器每次都是全新的，Maven/npm 依赖会重新下载（150MB+），
-  #    挂载宿主缓存目录后可跨 job 复用，显著缩短构建时间。
-  options: "--cpus=4 --memory=4g --add-host gitea:172.19.0.2 -v /home/itxinfei/.cache/m2:/root/.m2 -v /home/itxinfei/.cache/npm:/root/.npm"
+  #
+  # 2) -v /home/itxinfei/.cache/m2:/root/.m2/repository
+  #    job 容器每次都是全新的，Maven 依赖会重新下载（150MB+），挂载宿主缓存后可跨 job 复用。
+  #    注意必须挂到 /root/.m2/repository 而不是 /root/.m2：
+  #    挂整个 /root/.m2 会把镜像内预置的 settings.xml（阿里云镜像源）整个覆盖掉，
+  #    导致 Maven 退回中央仓库直连（国内极慢 / 超时）。
+  #    另外 act 的 checkout 步骤会临时改写 HOME，导致 Maven 默认本地仓库路径漂移，
+  #    所以 workflow 里显式加了 -Dmaven.repo.local=/root/.m2/repository 锁定位置。
+  #
+  # 3) -v /home/itxinfei/.cache/npm:/root/.npm
+  #    npm 依赖缓存，同样跨 job 复用。
+  #
+  # 4) -v /home/itxinfei/.cache/ci-state:/opt/ci-state
+  #    增量构建的持久化状态：源码指纹基线 + jar 产物缓存。
+  #    没有它每次都会退化成全量重建，增量编译就失去意义。
+  options: "--cpus=4 --memory=4g --add-host gitea:172.19.0.2 -v /home/itxinfei/.cache/m2:/root/.m2/repository -v /home/itxinfei/.cache/npm:/root/.npm -v /home/itxinfei/.cache/ci-state:/opt/ci-state"
