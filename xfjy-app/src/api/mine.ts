@@ -22,8 +22,12 @@ export interface UserProfile {
   income: string;
   profession: string;
   marriage: number;
-  /** 照片墙：JSON数组字符串（OSS URL 列表） */
+  /** 照片墙：JSON数组字符串（MinIO URL 列表） */
   photoAlbum?: string;
+  /** 个性签名 */
+  signature?: string;
+  /** 身高(cm) */
+  height?: string;
 }
 
 /** 关系统计（后端 CountsVo 结构） */
@@ -87,7 +91,7 @@ export function updateUserProfile(profile: Partial<UserProfile>): Promise<void> 
 /** 图片上传结果（后端 PicUploadResult 结构） */
 export interface PicUploadResult {
   uid: string;
-  /** OSS 访问 URL（status=done 时有效） */
+  /** MinIO 访问 URL（status=done 时有效） */
   name: string;
   /** 状态：done / error */
   status: string;
@@ -99,7 +103,7 @@ export interface PicUploadResult {
  * 对接后端: POST /upload/image（multipart/form-data）
  *
  * @param filePath 本地临时文件路径（uni.chooseImage 的 tempFilePaths[0]）
- * @returns PicUploadResult，status=done 时 name 为 OSS URL
+ * @returns PicUploadResult，status=done 时 name 为 MinIO URL
  */
 export function uploadImage(filePath: string): Promise<PicUploadResult> {
   return upload<PicUploadResult>("/upload/image", [filePath], "file");

@@ -44,12 +44,15 @@
         </view>
       </view>
     </view>
+    <!-- 匹配成功弹窗（全局，由 match store 驱动） -->
+    <MatchPopup />
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { onShow, onPullDownRefresh } from "@dcloudio/uni-app";
+import MatchPopup from "@/components/match-popup.vue";
 import { getContacts, type Contact } from "@/api/chat";
 import { useChatStore, type NoticeType } from "@/store/chat";
 import { loginEasemob, getConversations } from "@/utils/easemob";
@@ -67,7 +70,7 @@ const NOTICE_META: Record<
   NoticeType,
   { icon: string; label: string; color: string }
 > = {
-  like: { icon: "♥", label: "喜欢", color: "#ff5e8e" },
+  like: { icon: "♥", label: "喜欢", color: "#ff5e9c" },
   comment: { icon: "💬", label: "评论", color: "#4a90d9" },
   love: { icon: "★", label: "心动", color: "#ffd700" },
   announcement: { icon: "📢", label: "公告", color: "#4cd964" },
@@ -238,7 +241,7 @@ onPullDownRefresh(async () => {
         text-align: center;
         font-size: 20rpx;
         color: #fff;
-        background: linear-gradient(135deg, #ff3b30, #ff5e8e);
+        background: linear-gradient(135deg, #ff3b30, #ff5e9c);
         border-radius: 16rpx;
         padding: 0 8rpx;
         border: 2rpx solid #fff;
@@ -324,7 +327,7 @@ onPullDownRefresh(async () => {
           text-align: center;
           font-size: 20rpx;
           color: #fff;
-          background: linear-gradient(135deg, #ff3b30, #ff5e8e);
+          background: linear-gradient(135deg, #ff3b30, #ff5e9c);
           border-radius: 16rpx;
           padding: 0 8rpx;
           margin-left: 16rpx;

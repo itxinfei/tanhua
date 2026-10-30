@@ -1,6 +1,10 @@
 #!/bin/bash
 # ============================================================
-# 心飞交友 - 后端服务部署脚本（CI/CD 部署阶段调用）
+# 心飞交友 - 后端服务部署脚本【LEGACY 归档】
+#
+# 状态：CI/CD 已改为 Gitea Actions + docker compose（见 .gitea/workflows/deploy.yml
+#       与 deploy/docker-compose.app.yml），本脚本不再被流水线调用，仅保留供
+#       裸进程方式手动部署/应急回退时参考。新部署请勿使用本脚本。
 #
 # 用法（在宿主机上下文执行）:
 #   bash deploy-service.sh <service-name> [jar路径]

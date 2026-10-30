@@ -85,7 +85,7 @@ const form = ref({
 });
 const submitting = ref(false);
 
-/** 更换头像：选图后上传 OSS，成功写入 OSS URL（随保存提交后端） */
+/** 更换头像：选图后上传 MinIO，成功写入 MinIO URL（随保存提交后端） */
 function changeAvatar(): void {
   uni.chooseImage({ count: 1, sizeType: ["compressed"], success: async (res) => {
     const tempPath = res.tempFilePaths[0];
@@ -104,7 +104,7 @@ function changeAvatar(): void {
   }});
 }
 
-/** 添加照片墙图片：逐张上传 OSS，成功 URL 入数组 */
+/** 添加照片墙图片：逐张上传 MinIO，成功 URL 入数组 */
 function addPhoto(): void {
   const remain = MAX_ALBUM_COUNT - form.value.photoAlbum.length;
   if (remain <= 0) { uni.showToast({ title: "照片墙已满", icon: "none" }); return; }
@@ -158,8 +158,10 @@ async function handleSave(): Promise<void> {
     await updateUserProfile({
       avatar: form.value.avatar,
       nickname: form.value.nickname,
+      signature: form.value.signature,
       gender: form.value.gender,
       city: form.value.city,
+      height: form.value.height,
       education: form.value.education,
       profession: form.value.industry,
       photoAlbum: JSON.stringify(form.value.photoAlbum),
@@ -186,8 +188,10 @@ onShow(async () => {
     if (profile) {
       form.value.avatar = profile.avatar || form.value.avatar;
       form.value.nickname = profile.nickname || form.value.nickname;
+      form.value.signature = profile.signature || form.value.signature;
       form.value.gender = profile.gender || form.value.gender;
       form.value.city = profile.city || form.value.city;
+      form.value.height = profile.height || form.value.height;
       form.value.education = profile.education || form.value.education;
       form.value.industry = profile.profession || form.value.industry;
       form.value.photoAlbum = normalizeAlbum(profile.photoAlbum);
@@ -205,7 +209,7 @@ onShow(async () => {
 .avatar-row { display: flex; align-items: center; padding: 32rpx; background: #fff;
   .label { flex: 1; font-size: 28rpx; color: #333; font-weight: 500; }
   .avatar-wrap { position: relative; width: 120rpx; height: 120rpx;
-    .avatar { width: 100%; height: 100%; border-radius: 50%; border: 4rpx solid #fff0f5; }
+    .avatar { width: 100%; height: 100%; border-radius: 50%; border: 4rpx solid #ffeff5; }
     .avatar-mask { position: absolute; bottom: 0; left: 0; right: 0; height: 40rpx; background: rgba(0, 0, 0, 0.45); border-radius: 0 0 60rpx 60rpx; display: flex; align-items: center; justify-content: center;
       text { font-size: 18rpx; color: #fff; }
     }
@@ -247,7 +251,7 @@ onShow(async () => {
   &.male.active { background: linear-gradient(135deg, #4a90d9, #6bb0f5); border-color: #4a90d9; box-shadow: 0 4rpx 14rpx rgba(74, 144, 217, 0.3);
     .gender-label { color: #fff; }
   }
-  &.female.active { background: linear-gradient(135deg, #ff5e8e, #ff8fab); border-color: #ff5e8e; box-shadow: 0 4rpx 14rpx rgba(255, 94, 142, 0.3);
+  &.female.active { background: linear-gradient(135deg, #ff5e9c, #ff8fb1); border-color: #ff5e9c; box-shadow: 0 4rpx 14rpx rgba(255, 94, 142, 0.3);
     .gender-label { color: #fff; }
   }
 }

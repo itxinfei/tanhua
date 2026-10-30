@@ -1,5 +1,6 @@
 package com.xfjy.server.controller;
 
+import com.xfjy.server.annotation.RequireRole;
 import com.xfjy.server.service.AdminKefuService;
 import com.xfjy.server.service.KefuService;
 import org.slf4j.Logger;
@@ -23,6 +24,7 @@ import java.util.Map;
  * 后台客服管理接口：意见反馈处理 + FAQ 维护
  */
 @RestController
+@RequireRole({"ADMIN", "OPERATOR"})
 @RequestMapping("admin/kefu")
 public class AdminKefuController {
 
@@ -93,6 +95,7 @@ public class AdminKefuController {
      * PUT /admin/kefu/feedback/{id}/reply — 回复反馈
      * body: { reply }
      */
+    @RequireRole("ADMIN")
     @PutMapping("feedback/{id}/reply")
     public ResponseEntity replyFeedback(@PathVariable("id") Long id, @RequestBody Map<String, String> body) {
         try {
@@ -111,6 +114,7 @@ public class AdminKefuController {
     /**
      * PUT /admin/kefu/feedback/{id}/close — 关闭反馈
      */
+    @RequireRole("ADMIN")
     @PutMapping("feedback/{id}/close")
     public ResponseEntity closeFeedback(@PathVariable("id") Long id) {
         try {
@@ -147,6 +151,7 @@ public class AdminKefuController {
      * POST /admin/kefu/faq — 新增 FAQ
      * body: { category, question, answer, sort }
      */
+    @RequireRole("ADMIN")
     @PostMapping("faq")
     public ResponseEntity createFaq(@RequestBody Map<String, Object> body) {
         try {
@@ -168,6 +173,7 @@ public class AdminKefuController {
     /**
      * PUT /admin/kefu/faq/{id} — 编辑 FAQ
      */
+    @RequireRole("ADMIN")
     @PutMapping("faq/{id}")
     public ResponseEntity updateFaq(@PathVariable("id") Long id, @RequestBody Map<String, Object> body) {
         try {
@@ -186,6 +192,7 @@ public class AdminKefuController {
      * PUT /admin/kefu/faq/{id}/status — FAQ 启用/停用
      * body: { status }
      */
+    @RequireRole("ADMIN")
     @PutMapping("faq/{id}/status")
     public ResponseEntity toggleFaq(@PathVariable("id") Long id, @RequestBody Map<String, String> body) {
         try {
@@ -204,6 +211,7 @@ public class AdminKefuController {
     /**
      * DELETE /admin/kefu/faq/{id} — 删除 FAQ
      */
+    @RequireRole("ADMIN")
     @DeleteMapping("faq/{id}")
     public ResponseEntity deleteFaq(@PathVariable("id") Long id) {
         try {

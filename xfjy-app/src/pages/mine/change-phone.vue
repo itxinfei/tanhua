@@ -82,11 +82,11 @@ async function submit() {
     input { flex: 1; font-size: 28rpx; color: #333; }
   }
 }
-.send-btn { font-size: 26rpx; color: #ff5e8e; flex-shrink: 0; margin-left: 16rpx;
+.send-btn { font-size: 26rpx; color: #ff5e9c; flex-shrink: 0; margin-left: 16rpx;
   &.disabled { color: #ccc; }
 }
 .ph { color: #ccc; }
-.submit-btn { margin-top: 60rpx; background: #ff5e8e; color: #fff; font-size: 30rpx; border-radius: 48rpx; height: 88rpx; line-height: 88rpx;
+.submit-btn { margin-top: 60rpx; background: #ff5e9c; color: #fff; font-size: 30rpx; border-radius: 48rpx; height: 88rpx; line-height: 88rpx;
   &[disabled] { opacity: 0.6; }
 }
 </style>

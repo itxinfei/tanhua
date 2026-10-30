@@ -26,7 +26,7 @@
 
     <!-- 表格 -->
     <div class="table-container">
-      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
+      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" empty-text="暂无订单数据">
         <el-table-column prop="id" label="ID" width="70" align="center" />
         <el-table-column prop="orderNo" label="订单号" width="220" show-overflow-tooltip />
         <el-table-column prop="userId" label="用户ID" width="90" align="center" />
@@ -60,7 +60,7 @@
           :total="total"
           :page-sizes="[10, 20, 50]"
           layout="total, sizes, prev, pager, next, jumper"
-          @size-change="loadData"
+          @size-change="handleSizeChange"
           @current-change="loadData"
         />
       </div>
@@ -109,7 +109,12 @@ const query = reactive<PayOrderQuery>({
 async function loadData() {
   loading.value = true
   try {
-    const res = await getPayOrderPageApi(query)
+    // userId 非数字时忽略该筛选条件，避免传 NaN 给后端
+    const params = { ...query }
+    if (params.userId != null && Number.isNaN(Number(params.userId))) {
+      params.userId = undefined
+    }
+    const res = await getPayOrderPageApi(params)
     tableData.value = res.list
     total.value = res.total
   } catch {
@@ -130,6 +135,12 @@ function handleReset() {
   query.orderNo = ''
   query.status = ''
   query.userId = undefined
+  query.page = 1
+  loadData()
+}
+
+/** 切换每页条数时回到第 1 页 */
+function handleSizeChange() {
   query.page = 1
   loadData()
 }

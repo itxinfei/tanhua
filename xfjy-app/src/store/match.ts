@@ -68,6 +68,10 @@ export const useMatchStore = defineStore("match", () => {
   const rewindCount = ref(restoreDailyCount(REWIND_COUNT_STORAGE_KEY));
   /** 是否拥有无限滑动权益（VIP unlimited_swipe，每次进入匹配页刷新） */
   const hasUnlimitedSwipe = ref(false);
+  /** 匹配成功弹窗（互喜或收到对方匹配消息时展示，null=隐藏） */
+  const matchPopup = ref<{ userId: number | string; nickname: string; avatar: string } | null>(
+    null
+  );
 
   // ===== actions =====
   /**
@@ -169,6 +173,20 @@ export const useMatchStore = defineStore("match", () => {
   }
 
   /**
+   * 展示匹配成功弹窗
+   */
+  function showMatchPopup(data: { userId: number | string; nickname: string; avatar: string }): void {
+    matchPopup.value = data;
+  }
+
+  /**
+   * 关闭匹配成功弹窗
+   */
+  function closeMatchPopup(): void {
+    matchPopup.value = null;
+  }
+
+  /**
    * 重置状态（登出时调用）
    */
   function clear(): void {
@@ -177,6 +195,7 @@ export const useMatchStore = defineStore("match", () => {
     swipeCount.value = 0;
     rewindCount.value = 0;
     hasUnlimitedSwipe.value = false;
+    matchPopup.value = null;
     loading.value = false;
     clearDailyCountStorage();
   }
@@ -188,6 +207,7 @@ export const useMatchStore = defineStore("match", () => {
     swipeCount,
     rewindCount,
     hasUnlimitedSwipe,
+    matchPopup,
     loadCards,
     doSwipe,
     undoSwipe,
@@ -196,6 +216,8 @@ export const useMatchStore = defineStore("match", () => {
     loadSwipeBenefit,
     canRewind,
     useRewind,
+    showMatchPopup,
+    closeMatchPopup,
     clear,
   };
 });

@@ -8,7 +8,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 COMPOSE_FILE="docker-compose.middleware.yml"
-MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-root123456}"
+MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-123456}"
 SQL_FILE="../scripts/mytanhua.sql"
 
 log()  { echo -e "\033[32m[setup]\033[0m $*"; }
@@ -90,14 +90,13 @@ check "Nacos 8848"    "curl -sf -o /dev/null http://127.0.0.1:8848/nacos"
 check "RocketMQ 9876" "docker exec xfjy-rocketmq-broker sh mqadmin clusterList -n rocketmq-namesrv:9876"
 check "Qdrant 6333"   "curl -sf http://127.0.0.1:6333/healthz"
 check "Neo4j 7474"    "curl -sf http://127.0.0.1:7474"
-check "Jenkins 8888"  "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8888 | grep -qE '200|403'"
 
 # 7. 数据库表数
 TABLE_COUNT=$(docker exec xfjy-mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -N -e \
   "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='xfjy'" 2>/dev/null || echo 0)
 log "xfjy 库表数量：$TABLE_COUNT（预期 15）"
 
-log "部署完成。"
-log "Jenkins 初始密码：docker exec xfjy-jenkins cat /var/jenkins_home/secrets/initialAdminPassword"
+log "部署完成（8 件中间件）。"
+log "CI/CD（Gitea）不在本编排，需单独启动：docker compose -f docker-compose.gitea.yml --env-file gitea/.env up -d，详见部署文档 10.6"
 log "Nacos 控制台：http://192.168.20.133:8848/nacos"
 log "Neo4j Browser：http://192.168.20.133:7474"

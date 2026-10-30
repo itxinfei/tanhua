@@ -97,6 +97,8 @@ public class UsersService {
         userInfoVo.setNickname(userInfo.getNickName());
         userInfoVo.setProfession(userInfo.getIndustry());
         userInfoVo.setPhotoAlbum(userInfo.getPhotoAlbum());
+        userInfoVo.setSignature(userInfo.getSignature());
+        userInfoVo.setHeight(userInfo.getHeight());
         return userInfoVo;
     }
 
@@ -104,15 +106,25 @@ public class UsersService {
         User user = UserThreadLocal.get();
         UserInfo userInfo = new UserInfo();
         userInfo.setUserId(user.getId());
-        userInfo.setAge(Integer.valueOf(userInfoVo.getAge()));
-        userInfo.setSex(StringUtils.equalsIgnoreCase(userInfoVo.getGender(), "man") ? SexEnum.MAN : SexEnum.WOMAN);
+        // 逐字段 null 安全映射：前端 partial 提交时未传字段为 null，
+        // MyBatis-Plus 默认 NOT_NULL 策略跳过 null 列，不会覆盖 DB 已有值
+        if (userInfoVo.getAge() != null) {
+            userInfo.setAge(Integer.valueOf(userInfoVo.getAge()));
+        }
+        if (userInfoVo.getGender() != null) {
+            userInfo.setSex(StringUtils.equalsIgnoreCase(userInfoVo.getGender(), "man") ? SexEnum.MAN : SexEnum.WOMAN);
+        }
         userInfo.setBirthday(userInfoVo.getBirthday());
         userInfo.setCity(userInfoVo.getCity());
         userInfo.setEdu(userInfoVo.getEducation());
         userInfo.setIncome(StringUtils.replaceAll(userInfoVo.getIncome(), "K", ""));
         userInfo.setIndustry(userInfoVo.getProfession());
-        userInfo.setMarriage(userInfoVo.getMarriage() == 1 ? "已婚" : "未婚");
+        if (userInfoVo.getMarriage() != null) {
+            userInfo.setMarriage(userInfoVo.getMarriage() == 1 ? "已婚" : "未婚");
+        }
         userInfo.setPhotoAlbum(userInfoVo.getPhotoAlbum());
+        userInfo.setSignature(userInfoVo.getSignature());
+        userInfo.setHeight(userInfoVo.getHeight());
         return this.userInfoApi.updateUserInfoByUserId(userInfo);
     }
 

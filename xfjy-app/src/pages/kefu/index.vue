@@ -183,7 +183,7 @@ function goFeedback(): void {
 
     .group-tag {
       font-size: 26rpx;
-      color: #ff5e8e;
+      color: #ff5e9c;
       font-weight: bold;
     }
   }
@@ -280,21 +280,21 @@ function goFeedback(): void {
 
   .entry-btn {
     flex: 1;
-    background: #fff0f5;
+    background: #ffeff5;
     border: 1rpx solid #ffb3c9;
     border-radius: 44rpx;
     text-align: center;
     padding: 22rpx 0;
 
     text {
-      color: #ff5e8e;
+      color: #ff5e9c;
       font-size: 28rpx;
       font-weight: 500;
     }
 
     &.consult {
-      background: #ff5e8e;
-      border-color: #ff5e8e;
+      background: #ff5e9c;
+      border-color: #ff5e9c;
 
       text {
         color: #fff;

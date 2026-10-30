@@ -23,14 +23,14 @@
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
           <el-button :icon="Refresh" @click="handleReset">重置</el-button>
-          <el-button type="success" :icon="Plus" @click="handleAdd">新增公告</el-button>
+          <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" :icon="Plus" @click="handleAdd">新增公告</el-button>
         </el-form-item>
       </el-form>
     </div>
 
     <!-- 表格 -->
     <div class="table-container">
-      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
+      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" empty-text="暂无公告数据">
         <el-table-column prop="id" label="ID" width="70" align="center" />
         <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip />
         <el-table-column label="类型" width="100" align="center">
@@ -50,10 +50,10 @@
         <el-table-column prop="createdAt" label="创建时间" width="170" />
         <el-table-column label="操作" width="240" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
-            <el-button v-if="row.status === 'DRAFT'" link type="success" size="small" @click="handlePublish(row)">发布</el-button>
-            <el-button v-if="row.status === 'PUBLISHED'" link type="warning" size="small" @click="handleOffline(row)">下线</el-button>
-            <el-button link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+            <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
+            <el-button v-if="row.status === 'DRAFT'" v-perm="['SUPER_ADMIN','ADMIN']" link type="success" size="small" @click="handlePublish(row)">发布</el-button>
+            <el-button v-if="row.status === 'PUBLISHED'" v-perm="['SUPER_ADMIN','ADMIN']" link type="warning" size="small" @click="handleOffline(row)">下线</el-button>
+            <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -65,7 +65,7 @@
           :total="total"
           :page-sizes="[10, 20, 50]"
           layout="total, sizes, prev, pager, next, jumper"
-          @size-change="loadData"
+          @size-change="handleSizeChange"
           @current-change="loadData"
         />
       </div>
@@ -170,6 +170,12 @@ function handleReset() {
   loadData()
 }
 
+/** 切换每页条数时回到第 1 页 */
+function handleSizeChange() {
+  query.page = 1
+  loadData()
+}
+
 function typeLabel(type: string) {
   const map: Record<string, string> = { SYSTEM: '系统公告', ACTIVITY: '活动公告', UPDATE: '更新公告' }
   return map[type] || type
@@ -248,8 +254,8 @@ async function handlePublish(row: NoticeItem) {
     await ElMessageBox.confirm(`确定发布公告「${row.title}」吗？`, '提示', { type: 'success' })
     await publishNoticeApi(row.id)
     ElMessage.success('发布成功')
-    row.status = 'PUBLISHED'
-    row.publishedAt = new Date().toLocaleString('zh-CN')
+    // 重新拉取列表，保证发布时间/状态与服务端一致
+    loadData()
   } catch {
     // 取消
   }
@@ -260,7 +266,7 @@ async function handleOffline(row: NoticeItem) {
     await ElMessageBox.confirm(`确定下线公告「${row.title}」吗？`, '提示', { type: 'warning' })
     await offlineNoticeApi(row.id)
     ElMessage.success('已下线')
-    row.status = 'OFFLINE'
+    loadData()
   } catch {
     // 取消
   }

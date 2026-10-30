@@ -63,11 +63,11 @@
             <artifactId>mysql-connector-j</artifactId>
         </dependency>
 
-        <!-- OSS对象存储（统一，移除FastDFS） -->
+        <!-- MinIO对象存储（替代阿里云OSS） -->
         <dependency>
-            <groupId>com.aliyun.oss</groupId>
-            <artifactId>aliyun-sdk-oss</artifactId>
-            <version>3.18.5</version>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>8.5.17</version>
         </dependency>
 
         <!-- Sa-Token 认证鉴权（版本由根pom管理） -->
@@ -103,6 +103,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <!-- AOP（操作日志切面，SB4.0+ 更名为 aspectj） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aspectj</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

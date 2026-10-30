@@ -71,7 +71,7 @@
 | 缓存 | Spring Cache + Lettuce Redis | SB4 托管 |
 | 消息队列 | rocketmq-spring-boot-starter | 2.3.6 |
 | 服务间通信 | HTTP Service Clients（@HttpExchange + RestClient） | — |
-| 对象存储 | 阿里云 OSS | 3.18.5 |
+| 对象存储 | MinIO（S3 兼容） | 8.5.17 |
 | 即时通讯 | 环信 IM | — |
 | 向量检索 | Qdrant（纯 REST 接入） | — |
 | 图数据库 | Neo4j（纯 HTTP Cypher 接入） | 5.x |
@@ -284,7 +284,7 @@ python train/export_embedding.py
 | 变量 | 说明 |
 |------|------|
 | SMS_ACCESS_KEY_ID / SECRET | 阿里云短信 |
-| OSS_ACCESS_KEY_ID / SECRET / BUCKET / ENDPOINT | 阿里云 OSS |
+| MINIO_ENDPOINT / ACCESS_KEY_ID / ACCESS_KEY_SECRET / BUCKET / URL_PREFIX | MinIO 对象存储（minio.properties） |
 | BAIDU_FACE_API_KEY / SECRET_KEY | 百度 AI 人脸 |
 | EASEMOB_CLIENT_ID / SECRET | 环信 IM |
 | NEO4J_PASSWORD | Neo4j 密码 |

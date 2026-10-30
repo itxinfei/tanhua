@@ -48,7 +48,7 @@ function goChat(): void {
     .match-title {
       font-size: 64rpx;
       font-weight: 900;
-      background: linear-gradient(90deg, #ff5e8e, #ffd700);
+      background: linear-gradient(90deg, #ff5e9c, #ffd700);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -65,12 +65,12 @@ function goChat(): void {
         width: 160rpx;
         height: 160rpx;
         border-radius: 50%;
-        border: 6rpx solid #ff5e8e;
+        border: 6rpx solid #ff5e9c;
       }
 
       .match-heart {
         font-size: 56rpx;
-        color: #ff5e8e;
+        color: #ff5e9c;
       }
     }
 
@@ -85,7 +85,7 @@ function goChat(): void {
       gap: 32rpx;
 
       .send-msg {
-        background: linear-gradient(90deg, #ff5e8e, #ff8fab);
+        background: linear-gradient(90deg, #ff5e9c, #ff8fb1);
         color: #fff;
         font-size: 30rpx;
         padding: 0 48rpx;

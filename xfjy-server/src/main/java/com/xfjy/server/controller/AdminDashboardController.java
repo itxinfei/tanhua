@@ -1,5 +1,6 @@
 package com.xfjy.server.controller;
 
+import com.xfjy.server.annotation.RequireRole;
 import com.xfjy.server.service.AdminDashboardService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +15,7 @@ import java.util.Map;
  * 后台数据看板Controller
  */
 @RestController
+@RequireRole({"SUPER_ADMIN", "ADMIN", "OPERATOR"})
 @RequestMapping("admin/dashboard")
 public class AdminDashboardController {
 

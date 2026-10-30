@@ -19,7 +19,7 @@
 
     <!-- 表格 -->
     <div class="table-container">
-      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
+      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" empty-text="暂无反馈数据">
         <el-table-column prop="id" label="ID" width="70" align="center" />
         <el-table-column prop="userId" label="用户ID" width="90" align="center" />
         <el-table-column prop="content" label="反馈内容" min-width="220" show-overflow-tooltip />
@@ -35,7 +35,7 @@
         </el-table-column>
         <el-table-column label="反馈时间" width="170">
           <template #default="{ row }">
-            <span>{{ fmtDate(row.created) }}</span>
+            <span>{{ formatDateTime(row.created) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="150" fixed="right" align="center">
@@ -57,7 +57,7 @@
           :total="total"
           :page-sizes="[10, 20, 50]"
           layout="total, sizes, prev, pager, next, jumper"
-          @size-change="loadData"
+          @size-change="handleSizeChange"
           @current-change="loadData"
         />
       </div>
@@ -96,6 +96,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh } from '@element-plus/icons-vue'
 import { getFeedbackPageApi, replyFeedbackApi, closeFeedbackApi } from '@/api/kefu'
 import type { FeedbackItem, FeedbackQuery } from '@/api/kefu'
+import { formatDateTime } from '@/utils/format'
 
 const loading = ref(false)
 const tableData = ref<FeedbackItem[]>([])
@@ -131,23 +132,18 @@ function handleReset() {
   loadData()
 }
 
+/** 切换每页条数时回到第 1 页 */
+function handleSizeChange() {
+  query.page = 1
+  loadData()
+}
+
 function statusLabel(status: number) {
   return ['待处理', '已回复', '已关闭'][status] || '未知'
 }
 
 function statusColor(status: number) {
   return (['warning', 'success', 'info'] as const)[status] || 'info'
-}
-
-/** 兼容后端 Date 序列化的多种格式（时间戳 / ISO 字符串 / 已格式化字符串） */
-function fmtDate(val: string | number): string {
-  if (val == null) return '-'
-  if (typeof val === 'number') {
-    const d = new Date(val)
-    const pad = (n: number) => String(n).padStart(2, '0')
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
-  }
-  return val
 }
 
 // 回复

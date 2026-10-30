@@ -100,6 +100,22 @@ public class CommentsService {
                 comments.setLikeCount(0); //点赞数
             }
 
+            // 层级信息：回复评论带父评论 id 与被回复人昵称（旁路，失败仅置空不阻断）
+            if (record.getParentId() != null) {
+                comments.setParentId(record.getParentId().toHexString());
+                try {
+                    Comment parent = this.quanZiApi.queryCommentById(comments.getParentId());
+                    if (parent != null && parent.getUserId() != null) {
+                        UserInfo parentUser = this.userInfoApi.queryUserInfoById(parent.getUserId());
+                        if (parentUser != null) {
+                            comments.setReplyNickname(parentUser.getNickName());
+                        }
+                    }
+                } catch (Exception e) {
+                    LOGGER.warn("查询被回复人信息失败：commentId={}", comments.getId());
+                }
+            }
+
             commentsList.add(comments);
         }
 
@@ -108,9 +124,15 @@ public class CommentsService {
         return pageResult;
     }
 
-    public Boolean saveComments(String publishId, String content) {
+    public Boolean saveComments(String publishId, String content, String replyCommentId) {
         User user = UserThreadLocal.get();
-        boolean success = this.quanZiApi.saveComment(user.getId(), publishId, 2, content);
+        boolean success;
+        if (StringUtils.isNotBlank(replyCommentId)) {
+            // 回复评论：由圈子服务归一到根评论后挂载
+            success = this.quanZiApi.saveReplyComment(user.getId(), publishId, replyCommentId, content);
+        } else {
+            success = this.quanZiApi.saveComment(user.getId(), publishId, 2, content);
+        }
         if (!success) {
             return false;
         }

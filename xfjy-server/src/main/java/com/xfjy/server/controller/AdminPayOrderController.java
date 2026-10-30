@@ -1,5 +1,6 @@
 package com.xfjy.server.controller;
 
+import com.xfjy.server.annotation.RequireRole;
 import com.xfjy.server.service.AdminPayOrderService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +15,7 @@ import java.util.Map;
  * 后台支付订单管理Controller（只读查询）
  */
 @RestController
+@RequireRole("ADMIN")
 @RequestMapping("admin/pay-orders")
 public class AdminPayOrderController {
 

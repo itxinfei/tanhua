@@ -181,8 +181,8 @@ async function handleRemove(userId: string): Promise<void> {
     font-size: 24rpx;
     padding: 12rpx 32rpx;
     border-radius: 28rpx;
-    color: #ff5e8e;
-    background: #fff0f5;
+    color: #ff5e9c;
+    background: #ffeff5;
     font-weight: 500;
   }
 }

@@ -21,5 +21,7 @@ public class UserInfoVo {
     private String profession; //行业 枚举: IT行业,服务行业,公务员
     private Integer marriage; //婚姻状态（0未婚 1已婚
     private String photoAlbum; //照片墙：JSON数组存OSS URL列表
+    private String signature; //个性签名
+    private String height; //身高(cm)
 
 }

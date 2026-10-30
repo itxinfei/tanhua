@@ -168,7 +168,9 @@ public class VideoApiImpl implements VideoApi {
     public PageInfo<Video> queryAllVideoList(@RequestParam(value = "page", required = false) Integer page,
                                               @RequestParam(value = "pageSize", required = false) Integer pageSize,
                                               @RequestParam(value = "keyword", required = false) String keyword,
-                                              @RequestParam(value = "userId", required = false) Long userId) {
+                                              @RequestParam(value = "userId", required = false) Long userId,
+                                              @RequestParam(value = "startTime", required = false) Long startTime,
+                                              @RequestParam(value = "endTime", required = false) Long endTime) {
         int p = (page == null || page < 1) ? 1 : page;
         int size = (pageSize == null || pageSize < 1 || pageSize > 100) ? 10 : pageSize;
 
@@ -179,6 +181,12 @@ public class VideoApiImpl implements VideoApi {
         }
         if (keyword != null && !keyword.trim().isEmpty()) {
             conditions.add(Criteria.where("text").regex(".*" + java.util.regex.Pattern.quote(keyword.trim()) + ".*", "i"));
+        }
+        if (startTime != null) {
+            conditions.add(Criteria.where("created").gte(startTime));
+        }
+        if (endTime != null) {
+            conditions.add(Criteria.where("created").lte(endTime));
         }
         if (!conditions.isEmpty()) {
             criteria.andOperator(conditions.toArray(new Criteria[0]));
@@ -231,5 +239,37 @@ public class VideoApiImpl implements VideoApi {
         pageInfo.setPageSize(pageSize);
         pageInfo.setTotal(0);
         return pageInfo;
+    }
+
+    @Override
+    @PostMapping("/batchRemoveVideo")
+    public Map<String, Object> batchRemoveVideo(@RequestBody List<String> videoIds) {
+        if (videoIds == null || videoIds.isEmpty()) {
+            Map<String, Object> empty = new HashMap<>();
+            empty.put("success", 0);
+            empty.put("failed", 0);
+            return empty;
+        }
+
+        int success = 0;
+        int failed = 0;
+        for (String videoId : videoIds) {
+            try {
+                if (removeVideo(videoId)) {
+                    success++;
+                } else {
+                    failed++;
+                }
+            } catch (Exception e) {
+                LOGGER.error("批量删除视频失败 videoId={}", videoId, e);
+                failed++;
+            }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", success);
+        result.put("failed", failed);
+        LOGGER.info("批量删除视频完成: success={}, failed={}", success, failed);
+        return result;
     }
 }

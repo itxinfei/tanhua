@@ -20,3 +20,8 @@ export function getAdminInfoApi() {
 export function changePasswordApi(oldPassword: string, newPassword: string) {
   return request.put('/admin/password', { oldPassword, newPassword })
 }
+
+/** 修改个人资料（昵称/头像） */
+export function updateProfileApi(nickname: string, avatar: string) {
+  return request.put('/admin/profile', { nickname, avatar })
+}

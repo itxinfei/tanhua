@@ -166,7 +166,7 @@ function statusClass(status: number): string {
 
   .submit-btn {
     margin-top: 32rpx;
-    background: #ff5e8e;
+    background: #ff5e9c;
     border-radius: 44rpx;
     text-align: center;
     padding: 22rpx 0;
@@ -255,12 +255,12 @@ function statusClass(status: number): string {
   .item-reply {
     margin-top: 16rpx;
     padding: 16rpx 20rpx;
-    background: #fff0f5;
+    background: #ffeff5;
     border-radius: 12rpx;
 
     .reply-label {
       font-size: 24rpx;
-      color: #ff5e8e;
+      color: #ff5e9c;
       font-weight: 500;
     }
 

@@ -17,7 +17,7 @@
             <el-form-item>
               <el-button type="primary" :icon="Search" @click="loadPackages">查询</el-button>
               <el-button :icon="Refresh" @click="resetPkgQuery">重置</el-button>
-              <el-button type="success" :icon="Plus" @click="handlePkgAdd">新增套餐</el-button>
+              <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" :icon="Plus" @click="handlePkgAdd">新增套餐</el-button>
             </el-form-item>
           </el-form>
         </div>
@@ -44,9 +44,9 @@
             <el-table-column prop="sort" label="排序" width="70" align="center" />
             <el-table-column label="操作" width="160" fixed="right" align="center">
               <template #default="{ row }">
-                <el-button link type="primary" size="small" @click="handlePkgEdit(row)">编辑</el-button>
-                <el-button v-if="row.status === 1" link type="warning" size="small" @click="handlePkgToggle(row, 0)">下架</el-button>
-                <el-button v-else link type="success" size="small" @click="handlePkgToggle(row, 1)">上架</el-button>
+                <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="primary" size="small" @click="handlePkgEdit(row)">编辑</el-button>
+                <el-button v-if="row.status === 1" v-perm="['SUPER_ADMIN','ADMIN']" link type="warning" size="small" @click="handlePkgToggle(row, 0)">下架</el-button>
+                <el-button v-else v-perm="['SUPER_ADMIN','ADMIN']" link type="success" size="small" @click="handlePkgToggle(row, 1)">上架</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -58,7 +58,7 @@
               :total="pkgTotal"
               :page-sizes="[10, 20, 50]"
               layout="total, sizes, prev, pager, next, jumper"
-              @size-change="loadPackages"
+              @size-change="handlePkgSizeChange"
               @current-change="loadPackages"
             />
           </div>
@@ -104,9 +104,9 @@
             </el-table-column>
             <el-table-column label="操作" width="160" fixed="right" align="center">
               <template #default="{ row }">
-                <el-button link type="primary" size="small" @click="handleBenefitEdit(row)">编辑</el-button>
-                <el-button v-if="row.status === 1" link type="warning" size="small" @click="handleBenefitToggle(row, 0)">停用</el-button>
-                <el-button v-else link type="success" size="small" @click="handleBenefitToggle(row, 1)">启用</el-button>
+                <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="primary" size="small" @click="handleBenefitEdit(row)">编辑</el-button>
+                <el-button v-if="row.status === 1" v-perm="['SUPER_ADMIN','ADMIN']" link type="warning" size="small" @click="handleBenefitToggle(row, 0)">停用</el-button>
+                <el-button v-else v-perm="['SUPER_ADMIN','ADMIN']" link type="success" size="small" @click="handleBenefitToggle(row, 1)">启用</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -118,7 +118,7 @@
               :total="benefitTotal"
               :page-sizes="[10, 20, 50]"
               layout="total, sizes, prev, pager, next, jumper"
-              @size-change="loadBenefits"
+              @size-change="handleBenefitSizeChange"
               @current-change="loadBenefits"
             />
           </div>
@@ -200,7 +200,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Search, Refresh, Plus } from '@element-plus/icons-vue'
 import {
@@ -249,6 +249,12 @@ async function loadPackages() {
 function resetPkgQuery() {
   pkgQuery.name = ''
   pkgQuery.status = undefined
+  pkgQuery.page = 1
+  loadPackages()
+}
+
+/** 切换每页条数时回到第 1 页 */
+function handlePkgSizeChange() {
   pkgQuery.page = 1
   loadPackages()
 }
@@ -320,11 +326,16 @@ async function confirmPkgSave() {
 
 async function handlePkgToggle(row: VipPackageItem, status: number) {
   try {
+    await ElMessageBox.confirm(
+      `确定${status === 1 ? '上架' : '下架'}套餐「${row.name}」吗？`,
+      '提示',
+      { type: 'warning' }
+    )
     await toggleVipPackageApi(row.id, status)
     ElMessage.success(status === 1 ? '已上架' : '已下架')
     loadPackages()
   } catch {
-    // 错误已由拦截器处理
+    // 取消或失败（失败已由拦截器提示）
   }
 }
 
@@ -351,6 +362,12 @@ async function loadBenefits() {
 function resetBenefitQuery() {
   benefitQuery.name = ''
   benefitQuery.status = undefined
+  benefitQuery.page = 1
+  loadBenefits()
+}
+
+/** 切换每页条数时回到第 1 页 */
+function handleBenefitSizeChange() {
   benefitQuery.page = 1
   loadBenefits()
 }
@@ -404,11 +421,16 @@ async function confirmBenefitSave() {
 
 async function handleBenefitToggle(row: BenefitItem, status: number) {
   try {
+    await ElMessageBox.confirm(
+      `确定${status === 1 ? '启用' : '停用'}权益「${row.name}」吗？`,
+      '提示',
+      { type: 'warning' }
+    )
     await toggleBenefitApi(row.id, status)
     ElMessage.success(status === 1 ? '已启用' : '已停用')
     loadBenefits()
   } catch {
-    // 错误已由拦截器处理
+    // 取消或失败（失败已由拦截器提示）
   }
 }
 

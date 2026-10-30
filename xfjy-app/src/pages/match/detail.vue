@@ -66,11 +66,11 @@
     <view v-if="movements.length > 0" class="movements-card shadow-card">
       <text class="section-title">TA的动态</text>
       <view v-for="m in movements" :key="m.id" class="movement-item" @click="goMovementDetail(m.id)">
-        <image v-if="m.medias && m.medias.length > 0" class="m-cover" :src="m.medias[0]" mode="aspectFill" lazy-load />
+        <image v-if="m.imageContent && m.imageContent.length > 0" class="m-cover" :src="m.imageContent[0]" mode="aspectFill" lazy-load />
         <view class="m-body">
           <text class="m-text ellipsis-2">{{ m.textContent }}</text>
           <view class="m-stats">
-            <text>♥ {{ m.loveLikeCount }}</text>
+            <text>♥ {{ m.likeCount }}</text>
             <text>💬 {{ m.commentCount }}</text>
           </view>
         </view>
@@ -153,7 +153,7 @@ async function loadUserInfo(): Promise<void> {
     const avatar = info?.avatar || "";
     const albumPhotos = normalizeAlbum(info?.photoAlbum);
     const mediaPhotos = movements.value
-      .flatMap((m) => m.medias || [])
+      .flatMap((m) => m.imageContent || [])
       .filter((url) => /\.(jpe?g|png|webp|gif)$/i.test(url));
     const all = [...(avatar ? [avatar] : []), ...albumPhotos, ...mediaPhotos];
     photos.value = [...new Set(all)];
@@ -313,15 +313,15 @@ onLoad(async (options: any) => {
 
 .name-row { display: flex; align-items: center; gap: 16rpx;
   .nickname { font-size: 42rpx; font-weight: bold; color: #222; }
-  .age-badge { background: linear-gradient(135deg, #ff5e8e, #ff8fab); color: #fff; font-size: 24rpx; padding: 4rpx 16rpx; border-radius: 16rpx; }
+  .age-badge { background: linear-gradient(135deg, #ff5e9c, #ff8fb1); color: #fff; font-size: 24rpx; padding: 4rpx 16rpx; border-radius: 16rpx; }
 }
 
 /* 缘分值进度条 */
 .fate-row { display: flex; align-items: center; gap: 16rpx; margin-top: 24rpx;
   .fate-label { font-size: 24rpx; color: #999; flex-shrink: 0; }
   .fate-bar { flex: 1; height: 16rpx; background: #f0f0f0; border-radius: 8rpx; overflow: hidden; }
-  .fate-fill { height: 100%; background: linear-gradient(90deg, #ff5e8e, #ffd700); border-radius: 8rpx; transition: width 0.6s ease-out; }
-  .fate-score { font-size: 30rpx; font-weight: bold; color: #ff5e8e; flex-shrink: 0; min-width: 48rpx; text-align: right; }
+  .fate-fill { height: 100%; background: linear-gradient(90deg, #ff5e9c, #ffd700); border-radius: 8rpx; transition: width 0.6s ease-out; }
+  .fate-score { font-size: 30rpx; font-weight: bold; color: #ff5e9c; flex-shrink: 0; min-width: 48rpx; text-align: right; }
 }
 
 .meta-grid { display: flex; flex-wrap: wrap; gap: 20rpx; margin-top: 28rpx;
@@ -334,13 +334,13 @@ onLoad(async (options: any) => {
 /* 个人标签 */
 .tags-section { margin-top: 28rpx;
   .tags-wrap { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 16rpx; }
-  .tag { background: #fff0f5; color: #ff5e8e; font-size: 24rpx; padding: 8rpx 20rpx; border-radius: 20rpx; border: 1rpx solid #ffd6e4; }
+  .tag { background: #ffeff5; color: #ff5e9c; font-size: 24rpx; padding: 8rpx 20rpx; border-radius: 20rpx; border: 1rpx solid #ffd6e4; }
 }
 
 .question-section { margin-top: 32rpx;
   .question-item { display: flex; align-items: flex-start; gap: 16rpx; padding: 18rpx 0; border-bottom: 1rpx solid #f5f5f5;
     &:last-child { border-bottom: none; }
-    .q-index { width: 36rpx; height: 36rpx; border-radius: 50%; background: linear-gradient(135deg, #ff5e8e, #ff8fab); color: #fff; font-size: 22rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2rpx; }
+    .q-index { width: 36rpx; height: 36rpx; border-radius: 50%; background: linear-gradient(135deg, #ff5e9c, #ff8fb1); color: #fff; font-size: 22rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2rpx; }
     .question { font-size: 26rpx; color: #555; line-height: 1.5; }
   }
 }
@@ -371,6 +371,6 @@ onLoad(async (options: any) => {
   }
   /* 主按钮：超级喜欢 / 喜欢 */
   &.super-like { width: 100rpx; height: 100rpx; font-size: 46rpx; background: linear-gradient(135deg, #ffd700, #ffb347); color: #fff; box-shadow: 0 8rpx 22rpx rgba(255, 179, 71, 0.4); }
-  &.like { width: 110rpx; height: 110rpx; font-size: 52rpx; background: linear-gradient(135deg, #ff5e8e, #ff8fab); color: #fff; box-shadow: 0 8rpx 24rpx rgba(255, 94, 142, 0.4); }
+  &.like { width: 110rpx; height: 110rpx; font-size: 52rpx; background: linear-gradient(135deg, #ff5e9c, #ff8fb1); color: #fff; box-shadow: 0 8rpx 24rpx rgba(255, 94, 142, 0.4); }
 }
 </style>

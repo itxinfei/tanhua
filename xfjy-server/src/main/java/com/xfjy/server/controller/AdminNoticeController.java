@@ -1,5 +1,6 @@
 package com.xfjy.server.controller;
 
+import com.xfjy.server.annotation.RequireRole;
 import com.xfjy.server.pojo.Notice;
 import com.xfjy.server.service.AdminNoticeService;
 import org.slf4j.Logger;
@@ -15,6 +16,7 @@ import java.util.Map;
  * 后台公告管理Controller
  */
 @RestController
+@RequireRole("ADMIN")
 @RequestMapping("admin/notices")
 public class AdminNoticeController {
 

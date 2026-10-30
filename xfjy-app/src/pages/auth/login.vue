@@ -54,20 +54,21 @@
         </view>
         <text class="agreement-text">
           我已阅读并同意
-          <text class="link">《用户协议》</text>
+          <text class="link" @click.stop="openAgreement('user')">《用户协议》</text>
           和
-          <text class="link">《隐私政策》</text>
+          <text class="link" @click.stop="openAgreement('privacy')">《隐私政策》</text>
         </text>
       </view>
 
       <!-- 登录按钮 -->
       <button
         class="login-btn btn-feedback"
-        :disabled="!canLogin"
-        :class="{ disabled: !canLogin }"
+        :disabled="!canLogin || logging"
+      :loading="logging"
+        :class="{ disabled: !canLogin || logging }"
         @click="handleLogin"
       >
-        登录 / 注册
+        {{ logging ? '登录中...' : '登录 / 注册' }}
       </button>
     </view>
   </view>
@@ -131,6 +132,11 @@ function startCountdown() {
   }, COUNTDOWN_INTERVAL_MS);
 }
 
+// 跳转用户协议 / 隐私政策落地页
+function openAgreement(type: 'user' | 'privacy') {
+  uni.navigateTo({ url: `/pages/mine/agreement?type=${type}` })
+}
+
 // 登录
 async function handleLogin() {
   if (!canLogin.value) return;
@@ -151,7 +157,7 @@ async function handleLogin() {
 <style lang="scss" scoped>
 .login-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #ff5e8e 0%, #ff8fab 30%, #f5f5f5 60%);
+  background: linear-gradient(180deg, #ff5e9c 0%, #ff8fb1 30%, #f5f5f5 60%);
   padding: 0 60rpx;
   display: flex;
   flex-direction: column;
@@ -247,7 +253,7 @@ async function handleLogin() {
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
     &:focus {
-      border-color: #ff5e8e;
+      border-color: #ff5e9c;
       box-shadow: 0 0 0 4rpx rgba(255, 94, 142, 0.12);
       background: #fff;
     }
@@ -273,8 +279,8 @@ async function handleLogin() {
     line-height: 88rpx;
     text-align: center;
     font-size: 26rpx;
-    color: #ff5e8e;
-    border: 2rpx solid #ff5e8e;
+    color: #ff5e9c;
+    border: 2rpx solid #ff5e9c;
     border-radius: 16rpx;
     background: #fff;
     padding: 0;
@@ -303,8 +309,8 @@ async function handleLogin() {
     justify-content: center;
 
     &.checked {
-      background: #ff5e8e;
-      border-color: #ff5e8e;
+      background: #ff5e9c;
+      border-color: #ff5e9c;
     }
 
     .check-icon {
@@ -318,7 +324,7 @@ async function handleLogin() {
     color: #999;
 
     .link {
-      color: #ff5e8e;
+      color: #ff5e9c;
     }
   }
 }
@@ -328,7 +334,7 @@ async function handleLogin() {
   height: 96rpx;
   line-height: 96rpx;
   text-align: center;
-  background: linear-gradient(90deg, #ff5e8e, #ff8fab);
+  background: linear-gradient(90deg, #ff5e9c, #ff8fb1);
   color: #fff;
   font-size: 34rpx;
   font-weight: bold;

@@ -1,3 +1,22 @@
+/* ==================== 品牌主题（心飞交友） ==================== */
+:root {
+  /* 品牌主色：玫红 #ff5e9c，辅助紫 #b13bff */
+  --xfjy-primary: #ff5e9c;
+  --xfjy-primary-deep: #b13bff;
+  --xfjy-primary-soft: #ff8fb1;
+  --xfjy-primary-violet: #8a5cf6;
+  --xfjy-primary-mist: #ffd1e8;
+
+  /* 覆盖 Element Plus 默认主色（默认蓝 #409EFF），统一全站按钮/链接/高亮态 */
+  --el-color-primary: #ff5e9c;
+  --el-color-primary-light-3: #ff7eb0;
+  --el-color-primary-light-5: #ffafce;
+  --el-color-primary-light-7: #ffcfe1;
+  --el-color-primary-light-8: #ffdfeb;
+  --el-color-primary-light-9: #ffeff5;
+  --el-color-primary-dark-2: #cc4b7d;
+}
+
 /* 全局样式重置 */
 * {
   margin: 0;

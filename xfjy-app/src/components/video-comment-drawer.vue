@@ -13,7 +13,7 @@
           <view v-else class="avatar avatar-ph">{{ c.nickname ? c.nickname.charAt(0) : '?' }}</view>
           <view class="comment-body">
             <text class="nickname">{{ c.nickname }}</text>
-            <text class="content">{{ c.comment }}</text>
+            <text class="content">{{ c.content }}</text>
             <text class="date">{{ c.createDate }}</text>
           </view>
           <view class="like-box" @click="toggleLike(c)">
@@ -125,21 +125,21 @@ async function send() {
 .empty { text-align: center; color: #999; font-size: 26rpx; padding: 80rpx 0; }
 .comment-item { display: flex; padding: 24rpx 0; border-bottom: 1rpx solid #f5f5f5;
   .avatar { width: 72rpx; height: 72rpx; border-radius: 50%; flex-shrink: 0; background: #eee; }
-  .avatar-ph { display: flex; align-items: center; justify-content: center; font-size: 28rpx; color: #fff; background: #ff5e8e; }
+  .avatar-ph { display: flex; align-items: center; justify-content: center; font-size: 28rpx; color: #fff; background: #ff5e9c; }
   .comment-body { flex: 1; margin-left: 20rpx; display: flex; flex-direction: column;
     .nickname { font-size: 26rpx; color: #666; }
     .content { font-size: 28rpx; color: #333; margin: 8rpx 0; word-break: break-all; }
     .date { font-size: 22rpx; color: #bbb; }
   }
   .like-box { display: flex; flex-direction: column; align-items: center; padding: 8rpx 0 0 16rpx;
-    .like-icon { font-size: 32rpx; color: #ccc; &.liked { color: #ff5e8e; } }
+    .like-icon { font-size: 32rpx; color: #ccc; &.liked { color: #ff5e9c; } }
     .like-count { font-size: 22rpx; color: #999; margin-top: 4rpx; }
   }
 }
 .load-more { text-align: center; color: #bbb; font-size: 24rpx; padding: 24rpx 0; }
 .input-bar { display: flex; align-items: center; padding: 16rpx 24rpx; padding-bottom: calc(16rpx + env(safe-area-inset-bottom)); border-top: 1rpx solid #f5f5f5; background: #fff;
   input { flex: 1; height: 72rpx; background: #f5f5f5; border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; }
-  .send-btn { margin-left: 20rpx; font-size: 28rpx; color: #ccc; &.active { color: #ff5e8e; } }
+  .send-btn { margin-left: 20rpx; font-size: 28rpx; color: #ccc; &.active { color: #ff5e9c; } }
 }
 .ph { color: #bbb; }
 </style>

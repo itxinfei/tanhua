@@ -60,22 +60,22 @@
         <!-- 文字内容 -->
         <view v-if="item.textContent" class="post-content ellipsis-2">{{ item.textContent }}</view>
         <!-- 九宫格图片 -->
-        <view v-if="item.medias && item.medias.length" class="image-grid" :class="`grid-${Math.min(item.medias.length, GRID_COLUMN_COUNT)}`">
+        <view v-if="item.imageContent && item.imageContent.length" class="image-grid" :class="`grid-${Math.min(item.imageContent.length, GRID_COLUMN_COUNT)}`">
           <image
-            v-for="(img, i) in item.medias.slice(0, MAX_GRID_IMAGE_COUNT)"
+            v-for="(img, i) in item.imageContent.slice(0, MAX_GRID_IMAGE_COUNT)"
             :key="i"
             class="grid-image"
             :src="img"
             mode="aspectFill"
             lazy-load
-            @click="previewImage(item.medias, i)"
+            @click="previewImage(item.imageContent, i)"
           />
         </view>
         <!-- 互动栏 -->
         <view class="action-row">
           <view class="action btn-feedback" @click="handleLike(item)">
             <text class="action-icon" :class="{ liked: item.hasLiked, 'heart-beat': item.hasLiked }">{{ item.hasLiked ? '♥' : '♡' }}</text>
-            <text class="count">{{ item.loveLikeCount || '' }}</text>
+            <text class="count">{{ item.likeCount || '' }}</text>
           </view>
           <view class="action btn-feedback" @click="goDetail(item)">
             <text class="action-icon">💬</text>
@@ -89,12 +89,15 @@
       <!-- 加载更多 -->
       <view v-if="loading" class="loading">加载中...</view>
     </scroll-view>
+    <!-- 匹配成功弹窗（全局，由 match store 驱动） -->
+    <MatchPopup />
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { onShow, onShareAppMessage } from "@dcloudio/uni-app";
+import MatchPopup from "@/components/match-popup.vue";
 import { useCircleStore } from "@/store/circle";
 import type { Movement } from "@/api/circle";
 
@@ -258,7 +261,7 @@ onShareAppMessage(() => ({
         transform: translateX(-50%);
         width: 48rpx;
         height: 6rpx;
-        background: #ff5e8e;
+        background: #ff5e9c;
         border-radius: 3rpx;
       }
     }
@@ -269,7 +272,7 @@ onShareAppMessage(() => ({
     right: 32rpx;
     width: 64rpx;
     height: 64rpx;
-    background: linear-gradient(135deg, #ff5e8e, #ff8fab);
+    background: linear-gradient(135deg, #ff5e9c, #ff8fb1);
     color: #fff;
     font-size: 40rpx;
     display: flex;
@@ -357,7 +360,7 @@ onShareAppMessage(() => ({
         line-height: 1;
 
         &.liked {
-          color: #ff5e8e;
+          color: #ff5e9c;
         }
 
         &.loved {

@@ -19,5 +19,7 @@ public class Comments {
     private String createDate; //评论时间: 08:27
     private Integer likeCount; //点赞数
     private Integer hasLiked; //是否点赞（1是，0否）
+    private String parentId; //父评论id（空=顶层评论）
+    private String replyNickname; //被回复人昵称（仅回复可见）
 
 }

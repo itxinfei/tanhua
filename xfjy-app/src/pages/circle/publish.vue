@@ -96,7 +96,7 @@ function chooseImage(): void {
     count: MAX_IMAGE_COUNT - images.value.length,
     sizeType: ["compressed"],
     success: (res) => {
-      // TODO: 上传 OSS 后替换为线上 URL
+      // 图片由 publishMovement 内部 upload() 直传后端，此处仅暂存本地路径
       images.value.push(...res.tempFilePaths);
     },
   });
@@ -166,7 +166,7 @@ async function handlePublish(): Promise<void> {
 }
 .topic-list { display: flex; flex-wrap: wrap; gap: 16rpx; }
 .topic-tag { padding: 10rpx 24rpx; border-radius: 28rpx; font-size: 24rpx; color: #666; background: #f5f5f5; border: 2rpx solid transparent; transition: all 0.2s;
-  &.active { background: #fff0f5; color: #ff5e8e; border-color: #ff5e8e; }
+  &.active { background: #ffeff5; color: #ff5e9c; border-color: #ff5e9c; }
 }
 
 /* ===== 图片选择 ===== */

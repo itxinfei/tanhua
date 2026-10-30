@@ -10,8 +10,8 @@
         </view>
       </view>
       <view class="post-content">{{ post.textContent }}</view>
-      <view v-if="post.medias?.length" class="image-grid">
-        <image v-for="(img, i) in post.medias" :key="i" class="grid-img" :src="img" mode="aspectFill" @click="previewImg(i)" />
+      <view v-if="post.imageContent?.length" class="image-grid">
+        <image v-for="(img, i) in post.imageContent" :key="i" class="grid-img" :src="img" mode="aspectFill" @click="previewImg(i)" />
       </view>
     </view>
 
@@ -22,7 +22,7 @@
         <image class="avatar" :src="c.avatar" mode="aspectFill" />
         <view class="comment-info">
           <text class="nickname">{{ c.nickname }}</text>
-          <text class="content">{{ c.comment }}</text>
+          <text class="content">{{ c.content }}</text>
           <text class="time">{{ c.createDate }}</text>
         </view>
       </view>
@@ -50,8 +50,8 @@ const sending = ref(false);
 
 function previewImg(index: number | string) {
   const i = Number(index);
-  const medias = post.value?.medias || [];
-  uni.previewImage({ urls: medias, current: medias[i] });
+  const images = post.value?.imageContent || [];
+  uni.previewImage({ urls: images, current: images[i] });
 }
 
 /** 加载动态详情 */
@@ -101,7 +101,7 @@ onLoad((options: any) => {
 .post-detail { min-height: 100vh; background: #f5f5f5; padding: 20rpx 24rpx 120rpx; }
 .post-card { background: #fff; padding: 28rpx; margin-bottom: 16rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   .post-header { display: flex; align-items: center;
-    .avatar { width: 76rpx; height: 76rpx; border-radius: 50%; border: 3rpx solid #fff0f5; }
+    .avatar { width: 76rpx; height: 76rpx; border-radius: 50%; border: 3rpx solid #ffeff5; }
     .user-info { margin-left: 16rpx;
       .nickname { font-size: 28rpx; font-weight: bold; display: block; color: #333; }
       .time { font-size: 22rpx; color: #ccc; margin-top: 4rpx; display: block; }
@@ -118,7 +118,7 @@ onLoad((options: any) => {
     &:last-child { border-bottom: none; }
     .avatar { width: 64rpx; height: 64rpx; border-radius: 50%; background: #f0f0f0; }
     .comment-info { margin-left: 16rpx; flex: 1;
-      .nickname { font-size: 24rpx; color: #ff5e8e; display: block; }
+      .nickname { font-size: 24rpx; color: #ff5e9c; display: block; }
       .content { font-size: 28rpx; color: #333; margin-top: 6rpx; display: block; }
       .time { font-size: 20rpx; color: #ccc; margin-top: 6rpx; display: block; }
     }

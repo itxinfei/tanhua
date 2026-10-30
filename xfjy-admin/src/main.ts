@@ -6,6 +6,7 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import App from './App.vue'
 import router from './router'
+import { perm } from './directives/perm'
 import './style.css'
 
 const app = createApp(App)
@@ -16,6 +17,7 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 }
 
 app.use(createPinia())
+app.directive('perm', perm)
 app.use(router)
 app.use(ElementPlus, { locale: zhCn })
 app.mount('#app')

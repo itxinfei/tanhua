@@ -16,8 +16,10 @@ import org.springframework.web.client.RestTemplate;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -284,5 +286,171 @@ public class HuanXinApiImpl implements HuanXinApi {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + token);
         return headers;
+    }
+
+    /**
+     * 获取用户会话列表
+     *
+     * 先拉取用户联系人列表，再对每个联系人拉取最后一条消息组装会话摘要。
+     * 环信 REST API: GET /{org}/{app}/users/{username}/contacts
+     * 环信 REST API: GET /{org}/{app}/chatmessages/{from}/{to}?limit=1
+     */
+    @Override
+    @PostMapping("/chat-sessions")
+    public List<Map<String, Object>> getChatSessions(@RequestParam("userId") String userId,
+                                                      @RequestParam("limit") Integer limit) {
+        try {
+            String token = getAppToken();
+            if (token == null) {
+                log.warn("[环信] 获取token失败，无法查询会话列表: {}", userId);
+                return Collections.emptyList();
+            }
+
+            // 1. 拉取联系人列表
+            String contactsUrl = buildUrl("users/" + userId + "/contacts");
+            HttpHeaders listHeaders = authHeader(token);
+            ResponseEntity<String> contactsResp = restTemplate.exchange(contactsUrl, HttpMethod.GET,
+                    new HttpEntity<>(listHeaders), String.class);
+            if (!contactsResp.getStatusCode().is2xxSuccessful() || contactsResp.getBody() == null) {
+                log.warn("[环信] 获取联系人列表失败: {}, status={}", userId, contactsResp.getStatusCode());
+                return Collections.emptyList();
+            }
+
+            JsonNode contactsNode = MAPPER.readTree(contactsResp.getBody());
+            JsonNode entriesNode = contactsNode.path("entries");
+            if (!entriesNode.isArray()) {
+                return Collections.emptyList();
+            }
+
+            // 2. 对每个联系人拉取最后一条消息（最多 limit 个）
+            List<Map<String, Object>> sessions = new ArrayList<>();
+            int count = 0;
+            for (JsonNode contact : entriesNode) {
+                if (count >= limit) break;
+                String contactId = contact.path("username").asString(null);
+                if (contactId == null || contactId.isEmpty()) continue;
+
+                try {
+                    String msgUrl = buildUrl("chatmessages/" + userId + "/" + contactId + "?limit=1");
+                    ResponseEntity<String> msgResp = restTemplate.exchange(msgUrl, HttpMethod.GET,
+                            new HttpEntity<>(authHeader(token)), String.class);
+                    if (msgResp.getStatusCode().is2xxSuccessful() && msgResp.getBody() != null) {
+                        JsonNode msgNode = MAPPER.readTree(msgResp.getBody());
+                        JsonNode msgEntries = msgNode.path("entries");
+                        if (msgEntries.isArray() && msgEntries.size() > 0) {
+                            JsonNode lastMsg = msgEntries.get(0);
+                            Map<String, Object> session = new HashMap<>();
+                            session.put("contactId", contactId);
+                            session.put("lastMessage", extractMessageText(lastMsg));
+                            session.put("lastTime", lastMsg.path("timestamp").asLong(0L));
+                            sessions.add(session);
+                            count++;
+                        } else {
+                            // 无聊天记录的联系人也展示
+                            Map<String, Object> session = new HashMap<>();
+                            session.put("contactId", contactId);
+                            session.put("lastMessage", "");
+                            session.put("lastTime", 0L);
+                            sessions.add(session);
+                            count++;
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("[环信] 获取与{}的最后消息失败: {}", contactId, e.getMessage());
+                }
+            }
+
+            log.info("[环信] 查询会话列表成功: {}, 共{}条", userId, sessions.size());
+            return sessions;
+        } catch (Exception e) {
+            log.error("[环信] 查询会话列表异常: {}", userId, e);
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * 获取两用户之间的聊天记录
+     *
+     * 环信 REST API: GET /{org}/{app}/chatmessages/{from}/{to}?limit=N&cursor=...
+     * 返回格式: {entries: [...], cursor: "..."}
+     */
+    @Override
+    @PostMapping("/chat-messages")
+    public Map<String, Object> getChatMessages(@RequestParam("fromUserId") String fromUserId,
+                                                @RequestParam("toUserId") String toUserId,
+                                                @RequestParam("limit") Integer limit,
+                                                @RequestParam(value = "cursor", required = false) String cursor) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            String token = getAppToken();
+            if (token == null) {
+                log.warn("[环信] 获取token失败，无法查询聊天记录: {} -> {}", fromUserId, toUserId);
+                result.put("messages", Collections.emptyList());
+                result.put("cursor", "");
+                return result;
+            }
+
+            StringBuilder url = new StringBuilder(buildUrl("chatmessages/" + fromUserId + "/" + toUserId));
+            url.append("?limit=").append(limit);
+            if (cursor != null && !cursor.isEmpty()) {
+                url.append("&cursor=").append(cursor);
+            }
+
+            ResponseEntity<String> resp = restTemplate.exchange(url.toString(), HttpMethod.GET,
+                    new HttpEntity<>(authHeader(token)), String.class);
+            if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
+                log.warn("[环信] 查询聊天记录失败: {} -> {}, status={}", fromUserId, toUserId, resp.getStatusCode());
+                result.put("messages", Collections.emptyList());
+                result.put("cursor", "");
+                return result;
+            }
+
+            JsonNode node = MAPPER.readTree(resp.getBody());
+            JsonNode entries = node.path("entries");
+            List<Map<String, Object>> messages = new ArrayList<>();
+            if (entries.isArray()) {
+                for (JsonNode msg : entries) {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("from", msg.path("from").asString(""));
+                    m.put("content", extractMessageText(msg));
+                    m.put("time", msg.path("timestamp").asLong(0L));
+                    m.put("type", msg.path("type").asString("text"));
+                    messages.add(m);
+                }
+                // 环信返回的是按时间倒序，前端需要正序
+                Collections.reverse(messages);
+            }
+
+            String nextCursor = node.path("cursor").asString("");
+            log.info("[环信] 查询聊天记录成功: {} -> {}, 共{}条", fromUserId, toUserId, messages.size());
+            result.put("messages", messages);
+            result.put("cursor", nextCursor);
+            return result;
+        } catch (Exception e) {
+            log.error("[环信] 查询聊天记录异常: {} -> {}", fromUserId, toUserId, e);
+            result.put("messages", Collections.emptyList());
+            result.put("cursor", "");
+            return result;
+        }
+    }
+
+    /**
+     * 从环信消息节点提取文本内容
+     *
+     * text 类型直接取 content；image/video 等类型返回占位描述
+     */
+    private String extractMessageText(JsonNode msgNode) {
+        String type = msgNode.path("type").asString("text");
+        if ("text".equals(type)) {
+            return msgNode.path("content").asString("");
+        } else if ("image".equals(type)) {
+            return "[图片]";
+        } else if ("video".equals(type)) {
+            return "[视频]";
+        } else if ("audio".equals(type)) {
+            return "[语音]";
+        } else {
+            return "[" + type + "]";
+        }
     }
 }

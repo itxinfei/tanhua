@@ -1,0 +1,10 @@
+# MinIO 对象存储配置模板（复制为 minio.properties 并填入真实值）
+# MinIO 服务地址（服务器 IP:端口）
+minio.endpoint = http://192.168.20.133:9000
+# 访问密钥（MinIO 启动时 MINIO_ROOT_USER / MINIO_ROOT_PASSWORD）
+minio.accessKeyId = minioadmin
+minio.accessKeySecret = minioadmin123
+# 存储桶名称（需已在 MinIO 中创建，且桶策略设为 download 以支持公开访问）
+minio.bucketName = test-media
+# 公网访问 URL 前缀（http://<服务器IP>:9000/<桶名>/）
+minio.urlPrefix = http://192.168.20.133:9000/test-media/

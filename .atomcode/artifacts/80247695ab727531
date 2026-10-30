@@ -1,0 +1,37 @@
+
+added 374 packages, and changed 1 package in 23s
+
+95 packages are looking for funding
+  run `npm fund` for details
+[stderr]
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @vue/server-renderer@3.4.21
+npm warn Found: vue@3.5.44
+npm warn node_modules/vue
+npm warn   peer vue@"^3.2.25" from @vitejs/plugin-vue@5.2.4
+npm warn   node_modules/@vitejs/plugin-vue
+npm warn     @vitejs/plugin-vue@"5.2.4" from @dcloudio/uni-app-vite@3.0.0-5020620260917001
+npm warn     node_modules/@dcloudio/uni-app-vite
+npm warn     1 more (@dcloudio/vite-plugin-uni)
+npm warn   6 more (@vitejs/plugin-vue-jsx, @vue/tsconfig, pinia, vue-i18n, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer vue@"3.4.21" from @vue/server-renderer@3.4.21
+npm warn node_modules/@vue/server-renderer
+npm warn   @vue/server-renderer@"3.4.21" from @dcloudio/uni-cli-shared@3.0.0-5020620260917001
+npm warn   node_modules/@dcloudio/uni-cli-shared
+npm warn   3 more (@dcloudio/uni-h5, @dcloudio/uni-h5-vite, @dcloudio/uni-h5-vue)
+npm warn
+npm warn Conflicting peer dependency: vue@3.4.21
+npm warn node_modules/vue
+npm warn   peer vue@"3.4.21" from @vue/server-renderer@3.4.21
+npm warn   node_modules/@vue/server-renderer
+npm warn     @vue/server-renderer@"3.4.21" from @dcloudio/uni-cli-shared@3.0.0-5020620260917001
+npm warn     node_modules/@dcloudio/uni-cli-shared
+npm warn     3 more (@dcloudio/uni-h5, @dcloudio/uni-h5-vite, @dcloudio/uni-h5-vue)
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated abab@2.0.6: Use your platform's native atob() and btoa() methods instead
+npm warn deprecated domexception@2.0.1: Use your platform's native DOMException instead
+npm warn deprecated w3c-hr-time@1.0.2: Use your platform's native performance.now() and performance.timeOrigin.

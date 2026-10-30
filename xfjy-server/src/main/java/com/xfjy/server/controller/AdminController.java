@@ -95,4 +95,31 @@ public class AdminController {
         }
         return ResponseEntity.ok().build();
     }
+
+    /**
+     * 修改个人资料（昵称/头像）
+     */
+    @PutMapping("profile")
+    public ResponseEntity<Admin> updateProfile(@RequestBody Map<String, String> param) {
+        Admin admin = AdminThreadLocal.get();
+        if (admin == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        String nickname = param.get("nickname");
+        String avatar = param.get("avatar");
+        if (StringUtils.isBlank(nickname)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+
+        Admin dbAdmin = this.adminService.queryAdminById(admin.getId());
+        if (dbAdmin == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+        dbAdmin.setNickname(nickname);
+        dbAdmin.setAvatar(avatar);
+        this.adminService.updateAdmin(dbAdmin);
+        return ResponseEntity.ok(dbAdmin);
+    }
 }

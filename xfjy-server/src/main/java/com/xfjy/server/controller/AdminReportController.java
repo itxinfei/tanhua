@@ -1,5 +1,6 @@
 package com.xfjy.server.controller;
 
+import com.xfjy.server.annotation.RequireRole;
 import com.xfjy.server.service.AdminReportService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +16,7 @@ import java.util.Map;
  * 后台举报处理Controller
  */
 @RestController
+@RequireRole({"ADMIN", "OPERATOR"})
 @RequestMapping("admin/reports")
 public class AdminReportController {
 
@@ -31,9 +33,10 @@ public class AdminReportController {
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) String targetType) {
+            @RequestParam(required = false) String targetType,
+            @RequestParam(required = false) Long targetUserId) {
         try {
-            return ResponseEntity.ok(this.adminReportService.queryReportPage(page, pageSize, status, targetType));
+            return ResponseEntity.ok(this.adminReportService.queryReportPage(page, pageSize, status, targetType, targetUserId));
         } catch (Exception e) {
             LOGGER.error("接口处理异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

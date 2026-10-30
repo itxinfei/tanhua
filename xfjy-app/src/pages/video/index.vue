@@ -1,6 +1,6 @@
 <template>
   <view class="video-page">
-    <!-- 顶部 关注 / 推荐 Tab（抖音标志性） -->
+    <!-- 顶部 关注 / 推荐 Tab（抖音标志性）+ 发布入口 -->
     <view class="top-tabs">
       <view
         class="tab"
@@ -12,6 +12,7 @@
         :class="{ active: activeTab === 'recommend' }"
         @click="switchTab('recommend')"
       >推荐</view>
+      <view class="publish-btn btn-feedback" @click="chooseAndPublish">＋ 发布</view>
     </view>
 
     <swiper
@@ -178,6 +179,7 @@ import {
   dislikeVideo,
   focusVideoUser,
   unfocusVideoUser,
+  publishVideo,
   type Video,
 } from "@/api/video";
 import VideoCommentDrawer from "@/components/video-comment-drawer.vue";
@@ -393,6 +395,35 @@ function doShare(channel: "wechat" | "moments" | "copy") {
   }
 }
 
+/** 发布流程：选视频 → 封面兜底 → 上传发布 → 刷新列表 */
+function chooseAndPublish(): void {
+  uni.chooseVideo({
+    sourceType: ["album", "camera"],
+    compressed: true,
+    success: (res) => {
+      const videoPath = res.tempFilePath;
+      if (!videoPath) {
+        uni.showToast({ title: "未选择视频", icon: "none" });
+        return;
+      }
+      // 部分平台不返回封面（H5），用默认封面兜底；thumbTempFilePath 运行时存在但类型定义缺失
+      const thumb = (res as { thumbTempFilePath?: string }).thumbTempFilePath;
+      const thumbnailPath = thumb || "/static/logo/logo-horizontal.jpg";
+      uni.showLoading({ title: "发布中", mask: true });
+      publishVideo({ thumbnailPath, videoPath })
+        .then(() => {
+          uni.hideLoading();
+          uni.showToast({ title: "发布成功", icon: "success" });
+          loadVideos();
+        })
+        .catch(() => {
+          uni.hideLoading();
+          // request 层已统一 toast 失败原因
+        });
+    },
+  });
+}
+
 /**
  * 加载视频列表首页
  */
@@ -471,8 +502,21 @@ onShareAppMessage(() => ({
   right: 0;
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 48rpx;
   z-index: 30;
+
+  .publish-btn {
+    position: absolute;
+    right: 24rpx;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 26rpx;
+    color: #fff;
+    background: linear-gradient(90deg, #ff5e9c, #ff8fb1);
+    padding: 8rpx 24rpx;
+    border-radius: 28rpx;
+  }
   pointer-events: auto;
 
   .tab {
@@ -627,7 +671,7 @@ onShareAppMessage(() => ({
       height: 32rpx;
       line-height: 28rpx;
       text-align: center;
-      background: #ff5e8e;
+      background: #ff5e9c;
       color: #fff;
       border-radius: 50%;
       font-size: 24rpx;
@@ -856,7 +900,7 @@ onShareAppMessage(() => ({
 
           &.ico-wechat { background: #07c160; }
           &.ico-moments { background: #ff8200; }
-          &.ico-copy { background: #ff5e8e; }
+          &.ico-copy { background: #ff5e9c; }
         }
 
         .share-label {

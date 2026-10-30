@@ -18,6 +18,18 @@
             <el-option label="已封禁" value="FROZEN" />
           </el-select>
         </el-form-item>
+        <el-form-item label="注册时间">
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            value-format="YYYY-MM-DD"
+            style="width: 260px"
+            @change="handleDateChange"
+          />
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
           <el-button :icon="Refresh" @click="handleReset">重置</el-button>
@@ -25,9 +37,18 @@
       </el-form>
     </div>
 
+    <!-- 批量操作栏 -->
+    <div class="batch-bar" v-if="selectedRows.length > 0">
+      <span class="batch-count">已选 {{ selectedRows.length }} 项</span>
+      <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="danger" size="small" @click="handleBatchFreeze">批量封禁</el-button>
+      <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" size="small" @click="handleBatchUnfreeze">批量解封</el-button>
+      <el-button size="small" @click="selectedRows = []">取消选择</el-button>
+    </div>
+
     <!-- 表格 -->
     <div class="table-container">
-      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
+      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" @selection-change="handleSelectionChange">
+        <el-table-column type="selection" width="50" align="center" :selectable="() => true" />
         <el-table-column type="index" label="#" width="50" align="center" />
         <el-table-column label="头像" width="70" align="center">
           <template #default="{ row }">
@@ -63,9 +84,9 @@
         <el-table-column label="操作" width="220" fixed="right" align="center">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="goDetail(row.id)">详情</el-button>
-            <el-button v-if="row.status === 'NORMAL'" link type="danger" size="small" @click="handleFreeze(row)">封禁</el-button>
-            <el-button v-else link type="success" size="small" @click="handleUnfreeze(row)">解封</el-button>
-            <el-button link type="warning" size="small" @click="handleResetPwd(row)">重置密码</el-button>
+            <el-button v-if="row.status === 'NORMAL'" v-perm="['SUPER_ADMIN','ADMIN']" link type="danger" size="small" @click="handleFreeze(row)">封禁</el-button>
+            <el-button v-else v-perm="['SUPER_ADMIN','ADMIN']" link type="success" size="small" @click="handleUnfreeze(row)">解封</el-button>
+            <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="warning" size="small" @click="handleResetPwd(row)">重置密码</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -77,7 +98,7 @@
           :total="total"
           :page-sizes="[10, 20, 50]"
           layout="total, sizes, prev, pager, next, jumper"
-          @size-change="loadData"
+          @size-change="handleSizeChange"
           @current-change="loadData"
         />
       </div>
@@ -102,21 +123,50 @@
         <el-button type="danger" @click="confirmFreeze">确认封禁</el-button>
       </template>
     </el-dialog>
+
+    <!-- 批量封禁弹窗 -->
+    <el-dialog v-model="batchFreezeDialogVisible" title="批量封禁用户" width="440px">
+      <el-form label-width="80px">
+        <el-form-item label="数量">
+          <span>{{ selectedRows.length }} 个用户</span>
+        </el-form-item>
+        <el-form-item label="封禁原因">
+          <el-select v-model="batchFreezeReason" placeholder="选择或输入封禁原因" filterable allow-create style="width: 100%">
+            <el-option label="发布违规内容" value="发布违规内容" />
+            <el-option label="涉嫌欺诈" value="涉嫌欺诈" />
+            <el-option label="骚扰其他用户" value="骚扰其他用户" />
+            <el-option label="恶意注册" value="恶意注册" />
+            <el-option label="其他" value="其他" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="batchFreezeDialogVisible = false">取消</el-button>
+        <el-button type="danger" @click="confirmBatchFreeze">确认封禁</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 用户详情抽屉 -->
+    <UserDetailDrawer v-model="detailVisible" :user-id="detailUserId" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh } from '@element-plus/icons-vue'
 import { getUserPageApi, freezeUserApi, unfreezeUserApi, resetUserPasswordApi } from '@/api/user'
 import type { UserItem, UserQuery } from '@/api/user'
+import request from '@/api/request'
+import UserDetailDrawer from './detail.vue'
 
-const router = useRouter()
+const route = useRoute()
 const loading = ref(false)
 const tableData = ref<UserItem[]>([])
 const total = ref(0)
+const selectedRows = ref<UserItem[]>([])
+const dateRange = ref<[string, string] | null>(null)
 
 const query = reactive<UserQuery>({
   page: 1,
@@ -124,33 +174,22 @@ const query = reactive<UserQuery>({
   keyword: '',
   gender: '',
   status: '',
+  startDate: '',
+  endDate: '',
 })
 
-// Mock 数据
-function getMockUsers(page: number, pageSize: number): { total: number; list: UserItem[] } {
-  const cities = ['北京', '上海', '广州', '深圳', '杭州', '成都', '武汉', '南京']
-  const nicknames = ['小鹿乱撞', '星辰大海', '柠檬精', '温柔的风', '夜空守望', '甜甜圈', '流浪猫', '月光宝盒', '向日葵', '北极星', '暖阳', '清欢', '南风知我意', '一叶知秋', '夏至未至', '半夏时光', '浅笑安然', '岁月静好', '浮生若梦', '烟雨江南']
-  const list: UserItem[] = []
-  const start = (page - 1) * pageSize
-  for (let i = 0; i < pageSize; i++) {
-    const idx = start + i
-    if (idx >= 200) break
-    const gender = idx % 3 === 0 ? '女' : '男'
-    list.push({
-      id: 10001 + idx,
-      mobile: `138${String(10000000 + idx * 137).slice(0, 8)}`,
-      nickname: nicknames[idx % nicknames.length] + (idx > 19 ? idx : ''),
-      avatar: '',
-      gender,
-      age: 18 + (idx % 20),
-      city: cities[idx % cities.length],
-      status: idx % 15 === 0 ? 'FROZEN' : 'NORMAL',
-      vipLevel: idx % 4 === 0 ? (idx % 3) + 1 : 0,
-      createdAt: `2026-${String((idx % 10) + 1).padStart(2, '0')}-${String((idx % 28) + 1).padStart(2, '0')} 10:${String(idx % 60).padStart(2, '0')}:00`,
-      lastActiveAt: `2026-10-${String((idx % 22) + 1).padStart(2, '0')} 15:30:00`,
-    })
+function handleDateChange(val: [string, string] | null) {
+  if (val) {
+    query.startDate = val[0]
+    query.endDate = val[1]
+  } else {
+    query.startDate = ''
+    query.endDate = ''
   }
-  return { total: 200, list }
+}
+
+function handleSelectionChange(rows: UserItem[]) {
+  selectedRows.value = rows
 }
 
 async function loadData() {
@@ -160,15 +199,8 @@ async function loadData() {
     tableData.value = res.list
     total.value = res.total
   } catch {
-    // Mock 兜底仅开发环境生效，生产环境显示空列表避免假数据误导
-    if (import.meta.env.DEV) {
-      const mock = getMockUsers(query.page, query.pageSize)
-      tableData.value = mock.list
-      total.value = mock.total
-    } else {
-      tableData.value = []
-      total.value = 0
-    }
+    tableData.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }
@@ -187,8 +219,19 @@ function handleReset() {
   loadData()
 }
 
+/** 切换每页条数时回到第 1 页，避免停留在不存在的页码 */
+function handleSizeChange() {
+  query.page = 1
+  loadData()
+}
+
+// 详情抽屉
+const detailVisible = ref(false)
+const detailUserId = ref(0)
+
 function goDetail(id: number) {
-  router.push(`/user/detail/${id}`)
+  detailUserId.value = id
+  detailVisible.value = true
 }
 
 // 封禁
@@ -240,13 +283,79 @@ async function handleResetPwd(row: UserItem) {
   }
 }
 
+// 批量封禁
+const batchFreezeDialogVisible = ref(false)
+const batchFreezeReason = ref('')
+
+function handleBatchFreeze() {
+  batchFreezeReason.value = ''
+  batchFreezeDialogVisible.value = true
+}
+
+async function confirmBatchFreeze() {
+  if (!batchFreezeReason.value) {
+    ElMessage.warning('请选择或输入封禁原因')
+    return
+  }
+  const ids = selectedRows.value.map(r => r.id)
+  try {
+    const res: any = await request.put('/admin/users/batch-freeze', { userIds: ids, reason: batchFreezeReason.value })
+    const { success, failed } = res
+    ElMessage.success(`批量封禁完成：成功 ${success}，失败 ${failed}`)
+    batchFreezeDialogVisible.value = false
+    selectedRows.value = []
+    loadData()
+  } catch {
+    ElMessage.error('批量封禁失败')
+  }
+}
+
+async function handleBatchUnfreeze() {
+  const ids = selectedRows.value.map(r => r.id)
+  try {
+    await ElMessageBox.confirm(`确定解封选中的 ${ids.length} 个用户吗？`, '提示', { type: 'warning' })
+    const res: any = await request.put('/admin/users/batch-unfreeze', { userIds: ids })
+    const { success, failed } = res
+    ElMessage.success(`批量解封完成：成功 ${success}，失败 ${failed}`)
+    selectedRows.value = []
+    loadData()
+  } catch {
+    // 取消
+  }
+}
+
 onMounted(() => {
   loadData()
+  // 从举报处理跳转过来时自动打开详情抽屉
+  const detailUserIdParam = route.query.detailUserId
+  if (detailUserIdParam) {
+    const id = Number(detailUserIdParam)
+    if (id) {
+      detailUserId.value = id
+      detailVisible.value = true
+    }
+  }
 })
 </script>
 
 <style scoped>
 .text-muted {
   color: #c0c4cc;
+}
+
+.batch-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  margin-bottom: 12px;
+  background: #f5f7fa;
+  border-radius: 6px;
+}
+
+.batch-count {
+  font-size: 13px;
+  color: #606266;
+  margin-right: auto;
 }
 </style>

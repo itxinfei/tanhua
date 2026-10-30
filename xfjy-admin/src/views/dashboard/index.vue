@@ -9,8 +9,8 @@
           </div>
           <div>
             <div class="stat-value">
-              {{ card.value }}{{ card.suffix }}
-              <span class="stat-change" :class="card.change >= 0 ? 'up' : 'down'">
+              {{ formatNumber(card.value) }}{{ card.value != null ? card.suffix : '' }}
+              <span v-if="card.change != null" class="stat-change" :class="card.change >= 0 ? 'up' : 'down'">
                 {{ card.change >= 0 ? '+' : '' }}{{ card.change }}%
               </span>
             </div>
@@ -95,8 +95,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAppStore } from '@/stores/app'
 import * as echarts from 'echarts'
 import {
   getStatOverviewApi,
@@ -104,15 +105,19 @@ import {
   getGenderRatioApi,
   getAgeDistributionApi,
 } from '@/api/dashboard'
+import { getBrandColors, hexToRgba } from '@/utils/brand'
+const BRAND = getBrandColors()
 
 const router = useRouter()
+const appStore = useAppStore()
 
 // ==================== 统计卡片 ====================
+// 修改点：统计卡片背景统一为品牌变量（玫红/紫系），去除旧主题蓝
 const statCards = ref([
-  { label: '日活跃用户(DAU)', value: 0, suffix: '', change: 0, icon: 'User', bg: 'linear-gradient(135deg, #667eea, #764ba2)' },
-  { label: '今日新增用户', value: 0, suffix: '', change: 0, icon: 'Plus', bg: 'linear-gradient(135deg, #f093fb, #f5576c)' },
-  { label: '匹配成功率', value: 0, suffix: '%', change: 0, icon: 'Connection', bg: 'linear-gradient(135deg, #4facfe, #00f2fe)' },
-  { label: '付费转化率', value: 0, suffix: '%', change: 0, icon: 'Wallet', bg: 'linear-gradient(135deg, #43e97b, #38f9d7)' },
+  { label: '日活跃用户(DAU)', value: 0, suffix: '', change: 0, icon: 'User', bg: 'linear-gradient(135deg, var(--xfjy-primary-deep), var(--xfjy-primary)) },
+  { label: '今日新增用户', value: 0, suffix: '', change: 0, icon: 'Plus', bg: 'linear-gradient(135deg, var(--xfjy-primary), var(--xfjy-primary-soft)) },
+  { label: '匹配成功率', value: 0, suffix: '%', change: 0, icon: 'Connection', bg: 'linear-gradient(135deg, var(--xfjy-primary-violet), var(--xfjy-primary-deep)) },
+  { label: '付费转化率', value: 0, suffix: '%', change: 0, icon: 'Wallet', bg: 'linear-gradient(135deg, var(--xfjy-primary-soft), var(--xfjy-primary-mist)) },
 ])
 
 const overview = reactive({
@@ -132,9 +137,9 @@ const overview = reactive({
 
 // 待处理事项
 const todoList = ref([
-  { label: '待审核内容', count: 0, action: () => router.push('/review/workbench') },
-  { label: '待处理举报', count: 0, action: () => router.push('/report/list') },
-  { label: '草稿公告', count: 0, action: () => router.push('/notice/list') },
+  { label: '待审核内容', count: 0, action: () => router.push('/audit/review') },
+  { label: '待处理举报', count: 0, action: () => router.push('/audit/report') },
+  { label: '草稿公告', count: 0, action: () => router.push('/operation/notice') },
 ])
 
 // ==================== 图表 ====================
@@ -149,6 +154,12 @@ let rateChart: echarts.ECharts | null = null
 let ageChart: echarts.ECharts | null = null
 
 const trendDays = ref(7)
+
+// 数字千分位；null/NaN 显示"待接入"，避免误导性零值
+function formatNumber(n: number | null | undefined): string {
+  if (n === null || n === undefined || isNaN(n)) return '待接入'
+  return n.toLocaleString('zh-CN')
+}
 
 // Mock 数据生成
 function generateMockTrend(days: number) {
@@ -171,6 +182,7 @@ function generateMockTrend(days: number) {
 
 function initTrendChart(data: ReturnType<typeof generateMockTrend>) {
   if (!trendChartRef.value) return
+  trendChart?.dispose()
   trendChart = echarts.init(trendChartRef.value)
   trendChart.setOption({
     tooltip: { trigger: 'axis' },
@@ -187,11 +199,11 @@ function initTrendChart(data: ReturnType<typeof generateMockTrend>) {
         type: 'line',
         smooth: true,
         data: data.dauList,
-        itemStyle: { color: '#667eea' },
+        itemStyle: { color: BRAND.primaryDeep },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(102,126,234,0.3)' },
-            { offset: 1, color: 'rgba(102,126,234,0.02)' },
+            { offset: 0, color: hexToRgba(BRAND.primaryDeep, 0.3) },
+            { offset: 1, color: hexToRgba(BRAND.primaryDeep, 0.02) },
           ]),
         },
       },
@@ -201,11 +213,11 @@ function initTrendChart(data: ReturnType<typeof generateMockTrend>) {
         smooth: true,
         yAxisIndex: 1,
         data: data.newUserList,
-        itemStyle: { color: '#f5576c' },
+        itemStyle: { color: BRAND.primary },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(245,87,108,0.3)' },
-            { offset: 1, color: 'rgba(245,87,108,0.02)' },
+            { offset: 0, color: hexToRgba(BRAND.primary, 0.3) },
+            { offset: 1, color: hexToRgba(BRAND.primary, 0.02) },
           ]),
         },
       },
@@ -215,9 +227,10 @@ function initTrendChart(data: ReturnType<typeof generateMockTrend>) {
 
 function initGenderChart(male: number, female: number) {
   if (!genderChartRef.value) return
+  genderChart?.dispose()
   genderChart = echarts.init(genderChartRef.value)
   genderChart.setOption({
-    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%) },
     legend: { bottom: 0 },
     series: [
       {
@@ -227,8 +240,8 @@ function initGenderChart(male: number, female: number) {
         avoidLabelOverlap: false,
         label: { show: true, formatter: '{b}\n{d}%' },
         data: [
-          { value: male, name: '男性', itemStyle: { color: '#4facfe' } },
-          { value: female, name: '女性', itemStyle: { color: '#f5576c' } },
+          { value: male, name: '男性', itemStyle: { color: BRAND.primaryDeep } },
+          { value: female, name: '女性', itemStyle: { color: BRAND.primary } },
         ],
       },
     ],
@@ -237,6 +250,7 @@ function initGenderChart(male: number, female: number) {
 
 function initRateChart(data: ReturnType<typeof generateMockTrend>) {
   if (!rateChartRef.value) return
+  rateChart?.dispose()
   rateChart = echarts.init(rateChartRef.value)
   rateChart.setOption({
     tooltip: { trigger: 'axis', formatter: '{b}<br/>{a}: {c}%' },
@@ -257,7 +271,7 @@ function initRateChart(data: ReturnType<typeof generateMockTrend>) {
         type: 'line',
         smooth: true,
         data: data.payRateList,
-        itemStyle: { color: '#fa709a' },
+        itemStyle: { color: BRAND.primary },
       },
     ],
   })
@@ -265,6 +279,7 @@ function initRateChart(data: ReturnType<typeof generateMockTrend>) {
 
 function initAgeChart(ranges: string[], counts: number[]) {
   if (!ageChartRef.value) return
+  ageChart?.dispose()
   ageChart = echarts.init(ageChartRef.value)
   ageChart.setOption({
     tooltip: { trigger: 'axis' },
@@ -278,8 +293,8 @@ function initAgeChart(ranges: string[], counts: number[]) {
         barWidth: '50%',
         itemStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: '#667eea' },
-            { offset: 1, color: '#764ba2' },
+            { offset: 0, color: BRAND.primaryDeep },,
+            { offset: 1, color: BRAND.primary },,
           ]),
           borderRadius: [4, 4, 0, 0],
         },
@@ -375,6 +390,14 @@ function handleResize() {
   ageChart?.resize()
 }
 
+// 侧边栏折叠时图表自适应（等待 0.3s CSS transition 完成后再 resize）
+watch(
+  () => appStore.sidebarCollapsed,
+  () => {
+    setTimeout(handleResize, 350)
+  }
+)
+
 onMounted(async () => {
   await loadOverview()
   await nextTick()
@@ -458,7 +481,7 @@ onBeforeUnmount(() => {
 }
 
 .todo-item:hover {
-  background: #ecf5ff;
+  background: var(--el-color-primary-light-9);
 }
 
 .todo-label {

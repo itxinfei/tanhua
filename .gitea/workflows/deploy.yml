@@ -20,21 +20,29 @@
 # ============================================================
 name: deploy
 
+# ── 触发器 ──────────────────────────────────────────────────
+# 注意（Gitea 1.22 兼容性）：Gitea 内置的 act v0.259.1 在解析 on: 时，
+# 会把每个事件的值当作"分支过滤条件"处理。若在 workflow_dispatch 下写 inputs，
+# 会触发 "unknown on type" 并导致整个 workflow 被忽略（push 也不再触发）。
+# 因此 dispatch 参数统一放在顶层 inputs:，on.workflow_dispatch 留空。
 on:
   push:
     branches: [master]
   workflow_dispatch:
-    inputs:
-      deploy:
-        description: '是否执行部署（false 仅构建校验，不部署）'
-        required: true
-        default: 'true'
-      deploy_web:
-        description: '是否同时部署前端(admin + h5)容器'
-        required: true
-        default: 'true'
+
+# 手动触发的输入项（Gitea 1.22 顶层 inputs 语法）
+inputs:
+  deploy:
+    description: '是否执行部署（false 仅构建校验，不部署）'
+    required: true
+    default: 'true'
+  deploy_web:
+    description: '是否同时部署前端(admin + h5)容器'
+    required: true
+    default: 'true'
 
 env:
+  DEPLOY: ${{ github.event.inputs.deploy || 'true' }}
   DEPLOY_WEB: ${{ github.event.inputs.deploy_web || 'true' }}
   # 11 个可部署 Spring Boot 应用（xfjy-api 仅为接口库，不打包）
   SERVICES: "xfjy-gateway xfjy-sso xfjy-user-service xfjy-circle-service xfjy-video-service xfjy-match-service xfjy-message-service xfjy-server xfjy-recommend xfjy-elasticsearch xfjy-pay-service"
@@ -42,15 +50,14 @@ env:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    # 挂载宿主机 docker.sock，使 job 容器内可直接驱动宿主机 docker 构建镜像/运行容器
+    # 说明：act_runner 已默认把宿主 /var/run/docker.sock 挂进 job 容器，
+    # 这里不能再声明 volumes，否则会出现 "Duplicate mount point" 导致容器创建失败。
     container:
       image: xfjy/ci:latest
-      volumes:
-        - /var/run/docker.sock:/var/run/docker.sock
 
     steps:
       - name: Checkout
-        uses: https://gitea.com/actions/checkout@v4
+        uses: actions/checkout@v4
 
       - name: 后端 Maven 编译
         run: mvn -B -ntp compile -DskipTests
@@ -73,7 +80,7 @@ jobs:
           done
 
       - name: 构建并部署 Java 服务容器
-        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.deploy != 'false' }}
+        if: ${{ env.DEPLOY != 'false' }}
         env:
           # 中间件真实密码：优先用 Gitea Actions Secrets（仓库设置 → Actions → Secrets）
           MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME || 'root' }}
@@ -95,7 +102,7 @@ jobs:
 
       - name: 构建并部署前端容器（容错）
         continue-on-error: true
-        if: ${{ (github.event_name != 'workflow_dispatch' || github.event.inputs.deploy != 'false') && env.DEPLOY_WEB != 'false' }}
+        if: ${{ env.DEPLOY != 'false' && env.DEPLOY_WEB != 'false' }}
         run: |
           set -e
           docker compose -p xfjy-web -f deploy/docker-compose.web.yml up -d --build

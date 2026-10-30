@@ -24,6 +24,11 @@ export interface UserDetail extends UserItem {
   matchCount: number
   reportCount: number
   freezeReason?: string
+  coverPic?: string
+  edu?: string
+  industry?: string
+  income?: string
+  marriage?: string
 }
 
 export interface UserQuery {
@@ -39,6 +44,23 @@ export interface UserQuery {
 export interface PageResult<T> {
   total: number
   list: T[]
+}
+
+/** 聊天会话摘要 */
+export interface ChatSession {
+  contactId: string
+  lastMessage: string
+  lastTime: number
+  nickname?: string
+  avatar?: string
+}
+
+/** 聊天消息 */
+export interface ChatMessage {
+  from: string
+  content: string
+  time: number
+  type: string
 }
 
 /** 分页查询用户 */
@@ -64,4 +86,17 @@ export function unfreezeUserApi(id: number) {
 /** 重置用户密码 */
 export function resetUserPasswordApi(id: number) {
   return request.put(`/admin/users/${id}/reset-password`)
+}
+
+/** 获取用户会话列表 */
+export function getUserChatSessionsApi(id: number) {
+  return request.get<any, PageResult<ChatSession>>(`/admin/users/${id}/chat-sessions`)
+}
+
+/** 获取与某用户的聊天记录 */
+export function getUserChatMessagesApi(id: number, contactId: string, pageSize?: number) {
+  return request.get<any, { messages: ChatMessage[]; cursor: string }>(
+    `/admin/users/${id}/chat-messages`,
+    { params: { contactId, pageSize } }
+  )
 }

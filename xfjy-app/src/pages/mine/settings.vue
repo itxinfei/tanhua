@@ -24,7 +24,7 @@
       <text class="group-title">通知设置</text>
       <view class="item" v-for="s in notificationSettings" :key="s.key">
         <text class="label">{{ s.label }}</text>
-        <switch :checked="s.value" color="#ff5e8e" @change="toggleNotification(s.key, $event)" />
+        <switch :checked="s.value" color="#ff5e9c" @change="toggleNotification(s.key, $event)" />
       </view>
     </view>
 
@@ -33,7 +33,7 @@
       <text class="group-title">隐私</text>
       <view class="item">
         <text class="label">显示距离</text>
-        <switch :checked="showDistance" color="#ff5e8e" @change="showDistance = ($event as any).detail.value" />
+        <switch :checked="showDistance" color="#ff5e9c" @change="showDistance = ($event as any).detail.value" />
       </view>
     </view>
 
@@ -64,10 +64,15 @@
 import { ref, computed } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import { useUserStore } from "@/store/user";
+import { useMatchStore } from "@/store/match";
+import { useChatStore } from "@/store/chat";
+import { getToken, setToken } from "@/utils/request";
 import { getUserSettings, deleteAccount, getVerifyStatus, updateNotificationSetting } from "@/api/mine";
 import { sendSmsCode } from "@/api/auth";
 
 const userStore = useUserStore();
+const matchStore = useMatchStore();
+const chatStore = useChatStore();
 const phoneMasked = ref('');
 const isVerified = ref(false);
 const showDistance = ref(true);
@@ -145,7 +150,10 @@ function clearCache() {
     content: `将清除 ${cacheSize.value} 缓存数据`,
     success: (res) => {
       if (res.confirm) {
+        // 保留登录 token，避免清缓存后被登出
+        const savedToken = getToken();
         uni.clearStorageSync();
+        if (savedToken) setToken(savedToken);
         cacheSize.value = '0MB';
         uni.showToast({ title: '清除成功', icon: 'success' });
       }
@@ -162,7 +170,12 @@ function handleLogout() {
     title: '退出登录',
     content: '确定要退出登录吗？',
     success: (res) => {
-      if (res.confirm) userStore.logout();
+      if (res.confirm) {
+        // 清理业务 store，避免换账号登录后残留上一账号的滑动计数/通知已读标记
+        matchStore.clear();
+        chatStore.clear();
+        userStore.logout();
+      }
     },
   });
 }
@@ -241,7 +254,7 @@ function inputDeleteCode() {
     &:last-child { border-bottom: none; }
     .label { flex: 1; font-size: 28rpx; color: #333; }
     .value { font-size: 26rpx; color: #999; margin-right: 8rpx; }
-    .value.verified { color: #ff5e8e; font-weight: 500; }
+    .value.verified { color: #ff5e9c; font-weight: 500; }
     .arrow { font-size: 32rpx; color: #ccc; }
   }
 }

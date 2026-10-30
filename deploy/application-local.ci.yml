@@ -5,19 +5,20 @@
 #      但 CI 构建的 jar 必须携带一份数据源配置，否则服务启动失败：
 #      Failed to configure a DataSource: 'url' attribute is not specified
 #
-# 使用方式（Jenkinsfile「后端服务打包」阶段）：
+# 使用方式（.gitea/workflows/deploy.yml「后端服务打包」阶段）：
 #      cp deploy/application-local.ci.yml <module>/src/main/resources/application-local.yml
 #
 # 所有连接信息均为 ${ENV_VAR:默认值} 形式：
-#   - 部署时由 deploy-service.sh 注入真实的环境变量（优先级最高）
-#   - 未注入时使用下方默认值（仅供本地/CI 自测）
+#   - 默认值已按服务器中间件实际账号填好（root/123456、neo4j/itxinfei123456），
+#     即使运行时未注入环境变量，jar 也能直接连上库；
+#   - 如需覆盖，部署时通过容器环境变量传入同名变量即可（优先级最高）。
 # ============================================================
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: ${MYSQL_URL:jdbc:mysql://127.0.0.1:3306/xfjy?useUnicode=true&characterEncoding=utf8&autoReconnect=true&allowMultiQueries=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai}
-    username: ${MYSQL_USERNAME:xfjy}
-    password: ${MYSQL_PASSWORD:}
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:123456}
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
@@ -37,6 +38,9 @@ spring:
           min-idle: 10
 
 xfjy:
+  neo4j:
+    # 覆盖 base application.yml 的空默认值，直连运行中 Neo4j 的真实密码
+    password: ${NEO4J_PASSWORD:itxinfei123456}
   sso:
     url: http://127.0.0.1:18080
     default:

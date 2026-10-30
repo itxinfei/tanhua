@@ -112,8 +112,8 @@ onPullDownRefresh(async () => {
 /* ===== 筛选栏 ===== */
 .filter-bar { display: flex; gap: 12rpx; padding: 20rpx 24rpx; background: #fff; position: sticky; top: 0; z-index: 10; box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
   .filter-item { padding: 10rpx 26rpx; border-radius: 28rpx; font-size: 24rpx; color: #666; background: #f5f5f5; transition: all 0.2s;
-    &.active { background: linear-gradient(135deg, #ff5e8e, #ff8fab); color: #fff; box-shadow: 0 4rpx 12rpx rgba(255, 94, 142, 0.3); }
-    &.gender.active { background: linear-gradient(135deg, #ff5e8e, #ff8fab); }
+    &.active { background: linear-gradient(135deg, #ff5e9c, #ff8fb1); color: #fff; box-shadow: 0 4rpx 12rpx rgba(255, 94, 142, 0.3); }
+    &.gender.active { background: linear-gradient(135deg, #ff5e9c, #ff8fb1); }
   }
 }
 
@@ -122,19 +122,19 @@ onPullDownRefresh(async () => {
 
 .user-item { display: flex; align-items: center; padding: 24rpx; background: #fff; border-radius: 24rpx; margin-bottom: 16rpx;
   .avatar-wrap { position: relative; flex-shrink: 0;
-    .avatar { width: 100rpx; height: 100rpx; border-radius: 50%; background: #f0f0f0; border: 3rpx solid #fff0f5; }
+    .avatar { width: 100rpx; height: 100rpx; border-radius: 50%; background: #f0f0f0; border: 3rpx solid #ffeff5; }
   }
   .info { flex: 1; margin-left: 24rpx;
     .name-row { display: flex; align-items: center; gap: 12rpx;
       .nickname { font-size: 30rpx; font-weight: bold; color: #333; }
-      .age-badge { background: linear-gradient(135deg, #ff5e8e, #ff8fab); color: #fff; font-size: 20rpx; padding: 2rpx 12rpx; border-radius: 12rpx; }
+      .age-badge { background: linear-gradient(135deg, #ff5e9c, #ff8fb1); color: #fff; font-size: 20rpx; padding: 2rpx 12rpx; border-radius: 12rpx; }
     }
-    .distance-tag { margin-top: 10rpx; display: inline-flex; background: #fff0f5; border-radius: 16rpx; padding: 4rpx 16rpx;
-      text { font-size: 22rpx; color: #ff5e8e; }
+    .distance-tag { margin-top: 10rpx; display: inline-flex; background: #ffeff5; border-radius: 16rpx; padding: 4rpx 16rpx;
+      text { font-size: 22rpx; color: #ff5e9c; }
     }
   }
-  .like-btn { width: 72rpx; height: 72rpx; border-radius: 50%; background: #fff0f5; display: flex; align-items: center; justify-content: center; font-size: 36rpx; color: #ff5e8e; flex-shrink: 0; transition: all 0.2s;
-    &:active { background: #ff5e8e; color: #fff; }
+  .like-btn { width: 72rpx; height: 72rpx; border-radius: 50%; background: #ffeff5; display: flex; align-items: center; justify-content: center; font-size: 36rpx; color: #ff5e9c; flex-shrink: 0; transition: all 0.2s;
+    &:active { background: #ff5e9c; color: #fff; }
   }
 }
 

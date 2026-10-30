@@ -30,4 +30,6 @@ public class UserInfo extends BasePojo implements java.io.Serializable {
     private String industry; //行业
     private String income; //收入
     private String marriage; //婚姻状况
+    private String signature; //个性签名
+    private String height; //身高(cm)
 }

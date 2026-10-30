@@ -1,5 +1,46 @@
 <script setup lang="ts">
-// 全局生命周期暂无逻辑，App 初始化由各页面 onLoad/onShow 自行处理
+import { onLaunch, onShow } from "@dcloudio/uni-app";
+import { installAuthGuard } from "@/utils/auth-guard";
+import { getToken } from "@/utils/request";
+import { getHuanXinUser } from "@/api/chat";
+import { loginEasemob, isEasemobLoggedIn, onMatchReceived } from "@/utils/easemob";
+import { useMatchStore } from "@/store/match";
+
+onLaunch(() => {
+  // 安装全局登录路由守卫（需先于任何页面导航）
+  installAuthGuard();
+  // 启动兜底：冷启动落在非登录页且无 token 时，重定向到登录页
+  const pages = getCurrentPages();
+  const current = pages.length ? pages[pages.length - 1].route : "";
+  if (!getToken() && current && !current.startsWith("pages/auth/login")) {
+    uni.reLaunch({ url: "/pages/auth/login" });
+  }
+
+  // 全局监听环信匹配消息：互喜时后端透传，任意页面实时弹 "It's a Match"
+  const matchStore = useMatchStore();
+  onMatchReceived((event) => {
+    matchStore.showMatchPopup({
+      userId: event.from,
+      nickname: event.nickname,
+      avatar: event.avatar || "/static/logo/logo-icon-transparent.png",
+    });
+  });
+});
+
+onShow(() => {
+  // 全局环信登录（幂等）：保证任意页面都能实时收到匹配消息
+  if (!getToken() || isEasemobLoggedIn()) return;
+  getHuanXinUser()
+    .then((credential) => {
+      if (credential.username && credential.token) {
+        return loginEasemob(credential.username, credential.token);
+      }
+      return false;
+    })
+    .catch(() => {
+      // 登录失败静默降级：聊天相关功能按原有页面级逻辑兜底
+    });
+});
 </script>
 
 <style lang="scss">
@@ -8,10 +49,10 @@
 
 /* ===== CSS 变量（深色模式 WIP：变量层已就绪，页面硬编码色待逐步迁移到变量引用） ===== */
 page {
-  --color-primary: #ff5e8e;
+  --color-primary: #ff5e9c;
   --bg-page: #f5f5f5;
   --bg-card: #ffffff;
-  --bg-icon-soft: #fff0f5;
+  --bg-icon-soft: #ffeff5;
   --text-primary: #333333;
   --text-secondary: #666666;
   --text-hint: #999999;
@@ -26,7 +67,7 @@ page {
 
 @media (prefers-color-scheme: dark) {
   page {
-    --color-primary: #ff7ba5;
+    --color-primary: #ff8eb9;
     --bg-page: #1a1a1a;
     --bg-card: #2c2c2c;
     --bg-icon-soft: #3a2a30;
@@ -60,11 +101,11 @@ page {
 
 /* 主题色 */
 .text-primary {
-  color: #ff5e8e;
+  color: #ff5e9c;
 }
 
 .bg-primary {
-  background-color: #ff5e8e;
+  background-color: #ff5e9c;
 }
 
 /* 渐变遮罩（卡片底部） */
@@ -99,7 +140,7 @@ page {
 
 /* 渐变文字 */
 .gradient-text {
-  background: linear-gradient(90deg, #ff5e8e, #ff8fab);
+  background: linear-gradient(90deg, #ff5e9c, #ff8fb1);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -223,7 +264,7 @@ page {
 
 /* 渐变主按钮 */
 .btn-gradient {
-  background: linear-gradient(90deg, #ff5e8e, #ff8fab);
+  background: linear-gradient(90deg, #ff5e9c, #ff8fb1);
   color: #fff;
   border: none;
   box-shadow: 0 8rpx 24rpx rgba(255, 94, 142, 0.35);

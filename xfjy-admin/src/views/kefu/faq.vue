@@ -17,14 +17,14 @@
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
           <el-button :icon="Refresh" @click="handleReset">重置</el-button>
-          <el-button type="success" :icon="Plus" @click="openCreate">新增FAQ</el-button>
+          <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" :icon="Plus" @click="openCreate">新增FAQ</el-button>
         </el-form-item>
       </el-form>
     </div>
 
     <!-- 表格 -->
     <div class="table-container">
-      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
+      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" empty-text="暂无FAQ数据">
         <el-table-column prop="id" label="ID" width="70" align="center" />
         <el-table-column prop="category" label="分类" width="110" align="center">
           <template #default="{ row }">
@@ -44,8 +44,8 @@
         </el-table-column>
         <el-table-column label="操作" width="130" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
-            <el-button link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+            <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
+            <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -57,7 +57,7 @@
           :total="total"
           :page-sizes="[10, 20, 50]"
           layout="total, sizes, prev, pager, next, jumper"
-          @size-change="loadData"
+          @size-change="handleSizeChange"
           @current-change="loadData"
         />
       </div>
@@ -138,6 +138,12 @@ function handleSearch() {
 function handleReset() {
   query.category = undefined
   query.status = undefined
+  query.page = 1
+  loadData()
+}
+
+/** 切换每页条数时回到第 1 页 */
+function handleSizeChange() {
   query.page = 1
   loadData()
 }

@@ -1,7 +1,7 @@
 <template>
   <el-container class="layout-container">
     <!-- 侧边栏 -->
-    <el-aside :width="appStore.sidebarCollapsed ? '64px' : '220px'" class="layout-aside">
+    <el-aside :width="appStore.sidebarCollapsed ? '54px' : '210px'" class="layout-aside">
       <Sidebar />
     </el-aside>
 
@@ -11,11 +11,13 @@
         <Header />
       </el-header>
 
-      <!-- 主内容区 -->
+      <!-- 主内容区：keep-alive 缓存列表页状态（搜索条件/分页），切回不丢 -->
       <el-main class="layout-main">
         <router-view v-slot="{ Component }">
           <transition name="fade" mode="out-in">
-            <component :is="Component" />
+            <keep-alive>
+              <component :is="Component" />
+            </keep-alive>
           </transition>
         </router-view>
       </el-main>
@@ -37,8 +39,8 @@ const appStore = useAppStore()
 }
 
 .layout-aside {
-  background-color: #304156;
-  transition: width 0.3s;
+  background-color: #001529;
+  transition: width 0.28s;
   overflow: hidden;
 }
 

@@ -30,13 +30,16 @@ public class AdminReportService {
      * 分页查询举报列表
      */
     public Map<String, Object> queryReportPage(Integer page, Integer pageSize,
-                                                String status, String targetType) {
+                                                String status, String targetType, Long targetUserId) {
         QueryWrapper<Report> wrapper = new QueryWrapper<>();
         if (StringUtils.isNotBlank(status)) {
             wrapper.eq("status", status);
         }
         if (StringUtils.isNotBlank(targetType)) {
             wrapper.eq("target_type", targetType);
+        }
+        if (targetUserId != null) {
+            wrapper.eq("target_user_id", targetUserId);
         }
         wrapper.orderByDesc("created");
 

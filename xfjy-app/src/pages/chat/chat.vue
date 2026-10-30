@@ -15,6 +15,27 @@
             <view class="bubble pop-in" :class="{ mine: msg.isMine }">
               <text v-if="msg.type === 'text'">{{ msg.content }}</text>
               <image v-else-if="msg.type === 'image'" class="msg-image" :src="msg.content" mode="widthFix" @click="previewImg(msg.content)" />
+              <!-- 语音：点击播放，播放中显示波动态 -->
+              <view v-else-if="msg.type === 'voice'" class="msg-voice" @click="toggleVoicePlay(msg)">
+                <text class="voice-icon">{{ playingVoiceId === msg.id ? "❚❚" : "▶" }}</text>
+                <view class="voice-wave" :class="{ playing: playingVoiceId === msg.id }">
+                  <text v-for="n in 4" :key="n" class="wave-bar" />
+                </view>
+                <text class="voice-duration">{{ msg.extra?.duration || 0 }}"</text>
+              </view>
+              <!-- 位置：点击打开地图查看 -->
+              <view v-else-if="msg.type === 'location'" class="msg-location" @click="openLocation(msg)">
+                <text class="location-icon">📍</text>
+                <text class="location-address">{{ msg.content }}</text>
+              </view>
+              <!-- 名片：点击跳转对方主页 -->
+              <view v-else-if="msg.type === 'card'" class="msg-card" @click="openCard(msg)">
+                <image class="card-avatar" :src="msg.extra?.avatar || DEFAULT_AVATAR" mode="aspectFill" />
+                <view class="card-info">
+                  <text class="card-name">{{ msg.content }}</text>
+                  <text class="card-hint">个人名片</text>
+                </view>
+              </view>
             </view>
           </view>
           <image v-if="msg.isMine" class="avatar" :src="msg.avatar || DEFAULT_AVATAR" mode="aspectFill" />
@@ -74,12 +95,13 @@
 import { ref, nextTick, onUnmounted } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import { useUserStore } from "@/store/user";
-import { getHuanXinUser } from "@/api/chat";
+import { getHuanXinUser, uploadChatImage, uploadChatAudio, getContacts } from "@/api/chat";
 import { getUserProfile } from "@/api/mine";
 import {
   loginEasemob,
   onMessageReceived,
   sendTextMessage,
+  sendStructuredMessage,
   getChatHistory,
 } from "@/utils/easemob";
 
@@ -98,10 +120,10 @@ const EMOJI_LIST: string[] = [
 /** 更多面板快捷操作配置（表驱动） */
 interface QuickAction { icon: string; label: string; bg: string; handler: () => void; }
 const QUICK_ACTIONS: QuickAction[] = [
-  { icon: "🖼️", label: "图片", bg: "#ff5e8e", handler: chooseImage },
+  { icon: "🖼️", label: "图片", bg: "#ff5e9c", handler: chooseImage },
   { icon: "📸", label: "拍照", bg: "#4a90d9", handler: () => showTodoToast("拍照") },
-  { icon: "📍", label: "位置", bg: "#4cd964", handler: () => showTodoToast("位置分享") },
-  { icon: "👤", label: "名片", bg: "#a78bfa", handler: () => showTodoToast("名片分享") },
+  { icon: "📍", label: "位置", bg: "#4cd964", handler: chooseLocation },
+  { icon: "👤", label: "名片", bg: "#a78bfa", handler: chooseCardContact },
 ];
 
 /** 消息发送状态 */
@@ -109,8 +131,10 @@ type MsgStatus = "sending" | "sent" | "read";
 /** 聊天消息结构 */
 interface Message {
   id: string;
-  type: "text" | "image";
+  type: "text" | "image" | "voice" | "location" | "card";
   content: string;
+  /** 结构化附加字段（语音时长/位置经纬度/名片信息） */
+  extra?: Record<string, any>;
   isMine: boolean;
   avatar: string;
   timestamp: number;
@@ -132,6 +156,43 @@ const activePanel = ref<PanelType>("none");
 const isVoiceMode = ref(false);
 const isVoicePressing = ref(false);
 const isInputFocus = ref(false);
+
+/** 语音消息最长录制时长（ms） */
+const MAX_VOICE_DURATION_MS = 60000;
+/** 有效语音最短时长（ms），过短视为误触 */
+const MIN_VOICE_DURATION_MS = 1000;
+
+/** 录音管理器（单例） */
+const recorderManager = uni.getRecorderManager();
+/** 正在播放的语音消息 id（空=无） */
+const playingVoiceId = ref("");
+/** 音频播放上下文（同一时刻仅一个） */
+let audioContext: UniApp.InnerAudioContext | null = null;
+/** 录音起始时间戳（计算有效时长用） */
+let voiceStartAt = 0;
+
+// 录音完成：上传 → 以 JSON 管道发送（type:"voice", url, duration）
+recorderManager.onStop((res) => {
+  const duration = Date.now() - voiceStartAt;
+  if (duration < MIN_VOICE_DURATION_MS) {
+    uni.showToast({ title: "说话时间太短", icon: "none" });
+    return;
+  }
+  if (!res.tempFilePath) return;
+  pushMessage("voice", res.tempFilePath, { duration: Math.round(duration / 1000) });
+});
+
+/** 语音按钮按下：开始录音 */
+function onVoiceStart(): void {
+  isVoicePressing.value = true;
+  voiceStartAt = Date.now();
+  try {
+    recorderManager.start({ format: "mp3", duration: MAX_VOICE_DURATION_MS });
+  } catch {
+    isVoicePressing.value = false;
+    uni.showToast({ title: "当前设备不支持录音", icon: "none" });
+  }
+}
 
 /**
  * 判断是否显示时间分隔线
@@ -190,17 +251,23 @@ function chooseImage(): void {
     },
   });
 }
-
 /**
  * 追加消息并通过环信 SDK 发送（失败时标记状态保持 sending）
+ * 图片/语音：先本地预览，OSS 上传成功后发 URL，成功后把气泡替换为远程地址
  * @param type 消息类型
- * @param content 消息内容
+ * @param content 消息内容（图片/语音为本地临时路径）
+ * @param extra 结构化附加字段
  */
-async function pushMessage(type: Message["type"], content: string): Promise<void> {
+async function pushMessage(
+  type: Message["type"],
+  content: string,
+  extra?: Record<string, any>
+): Promise<void> {
   const msg: Message = {
     id: Date.now().toString(),
     type,
     content,
+    extra,
     isMine: true,
     avatar: myAvatar.value,
     timestamp: Date.now(),
@@ -208,9 +275,37 @@ async function pushMessage(type: Message["type"], content: string): Promise<void
   };
   messageList.value.push(msg);
   scrollToBottom();
-  if (type !== "text") {
-    // 图片消息走 OSS 上传后发送链接，当前仅本地预览
-    msg.status = "sent";
+  if (type === "image" || type === "voice") {
+    // 媒体消息：OSS 上传 → 环信发 URL（JSON 文本承载）
+    const url = type === "voice" ? await uploadChatAudio(content) : await uploadChatImage(content);
+    if (!url) {
+      msg.status = "sending";
+      uni.showToast({ title: "上传失败，请稍后重试", icon: "none" });
+      return;
+    }
+    msg.content = url;
+    const payload =
+      type === "voice"
+        ? { type: "voice", url, duration: extra?.duration || 0 }
+        : { type: "image", url };
+    const ok = await sendStructuredMessage(userId.value, payload);
+    msg.status = ok ? "sent" : "sending";
+    if (!ok) {
+      uni.showToast({ title: "发送失败，请稍后重试", icon: "none" });
+    }
+    return;
+  }
+  if (type === "location" || type === "card") {
+    // 位置/名片：结构化 JSON 承载（与接收端解析契约一致）
+    const payload =
+      type === "location"
+        ? { type: "location", latitude: extra?.latitude, longitude: extra?.longitude, address: content }
+        : { type: "card", userId: extra?.userId, nickname: content, avatar: extra?.avatar || "" };
+    const ok = await sendStructuredMessage(userId.value, payload);
+    msg.status = ok ? "sent" : "sending";
+    if (!ok) {
+      uni.showToast({ title: "发送失败，请稍后重试", icon: "none" });
+    }
     return;
   }
   const ok = await sendTextMessage(userId.value, content);
@@ -237,15 +332,95 @@ function togglePanel(panel: PanelType): void {
   isVoiceMode.value = false;
 }
 
-/** 语音按钮按下 */
-function onVoiceStart(): void {
-  isVoicePressing.value = true;
-}
-
-/** 语音按钮松开（开发期占位） */
+/** 语音按钮松开：停止录音，onStop 回调中上传发送 */
 function onVoiceEnd(): void {
   isVoicePressing.value = false;
-  showTodoToast("语音消息");
+  recorderManager.stop();
+}
+
+/** 选位置并发送（uni.chooseLocation；平台不支持时给出提示） */
+function chooseLocation(): void {
+  activePanel.value = "none";
+  uni.chooseLocation({
+    success: (res) => {
+      pushMessage("location", res.name || res.address || "位置", {
+        latitude: res.latitude,
+        longitude: res.longitude,
+      });
+    },
+    fail: (err) => {
+      const msg = (err as { errMsg?: string }).errMsg || "";
+      // 用户主动取消不算失败，其余（如未配置地图 key）明确提示
+      if (!msg.includes("cancel")) {
+        uni.showToast({ title: "当前平台暂不支持选点", icon: "none" });
+      }
+    },
+  });
+}
+
+/** 点击位置气泡：打开地图查看 */
+function openLocation(msg: Message): void {
+  const lat = msg.extra?.latitude;
+  const lng = msg.extra?.longitude;
+  if (lat === undefined || lng === undefined) return;
+  uni.openLocation({ latitude: lat, longitude: lng, name: msg.content });
+}
+
+/** 选联系人并发送名片（从好友列表选取） */
+async function chooseCardContact(): Promise<void> {
+  activePanel.value = "none";
+  try {
+    const result = await getContacts({ page: 1, pagesize: 50 });
+    const contacts = result.items || [];
+    if (contacts.length === 0) {
+      uni.showToast({ title: "暂无好友可分享", icon: "none" });
+      return;
+    }
+    uni.showActionSheet({
+      itemList: contacts.map((c) => c.nickname || c.userId).slice(0, 6),
+      success: (res) => {
+        const picked = contacts[res.tapIndex];
+        if (!picked) return;
+        pushMessage("card", picked.nickname || picked.userId, {
+          userId: picked.userId,
+          avatar: picked.avatar,
+        });
+      },
+    });
+  } catch {
+    // request 层统一 toast
+  }
+}
+
+/** 点击名片气泡：跳转对方主页 */
+function openCard(msg: Message): void {
+  const cardUserId = msg.extra?.userId;
+  if (!cardUserId) return;
+  uni.navigateTo({ url: `/pages/match/detail?userId=${cardUserId}` });
+}
+
+/**
+ * 播放/暂停语音消息（同一时刻只播一条）
+ */
+function toggleVoicePlay(msg: Message): void {
+  if (playingVoiceId.value === msg.id) {
+    audioContext?.stop();
+    playingVoiceId.value = "";
+    return;
+  }
+  audioContext?.destroy();
+  const ctx = uni.createInnerAudioContext();
+  audioContext = ctx;
+  ctx.src = msg.content;
+  playingVoiceId.value = msg.id;
+  ctx.play();
+  ctx.onEnded(() => {
+    playingVoiceId.value = "";
+  });
+  ctx.onError(() => {
+    playingVoiceId.value = "";
+    uni.showToast({ title: "语音播放失败", icon: "none" });
+  });
 }
 
 /** 预览图片消息 */
@@ -295,8 +470,9 @@ onLoad(async (options: any) => {
         const myId = credential.username;
         messageList.value = history.map((msg, i) => ({
           id: `hist-${i}-${msg.time}`,
-          type: "text" as const,
+          type: msg.type,
           content: msg.content,
+          extra: msg.extra,
           isMine: msg.from === myId,
           avatar: msg.from === myId ? myAvatar.value : peerAvatar.value,
           timestamp: msg.time,
@@ -309,8 +485,9 @@ onLoad(async (options: any) => {
           if (msg.from !== userId.value) return;
           messageList.value.push({
             id: `recv-${msg.time}`,
-            type: "text",
+            type: msg.type,
             content: msg.content,
+            extra: msg.extra,
             isMine: false,
             avatar: peerAvatar.value,
             timestamp: msg.time,
@@ -330,6 +507,8 @@ onUnmounted(() => {
     unregisterMessage();
     unregisterMessage = null;
   }
+  audioContext?.destroy();
+  audioContext = null;
 });
 </script>
 
@@ -349,21 +528,50 @@ onUnmounted(() => {
   .bubble-wrap { display: flex; align-items: center; gap: 12rpx; max-width: 480rpx;
     &.mine { flex-direction: row-reverse; }
   }
-  .status-loading { width: 28rpx; height: 28rpx; border: 3rpx solid #e0e0e0; border-top-color: #ff5e8e; border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+  .status-loading { width: 28rpx; height: 28rpx; border: 3rpx solid #e0e0e0; border-top-color: #ff5e9c; border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
   .bubble { position: relative; padding: 20rpx 24rpx; border-radius: 20rpx; background: #fff; font-size: 28rpx; line-height: 1.5; color: #333; box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
     /* 气泡尾巴 */
     &::before { content: ""; position: absolute; top: 28rpx; width: 0; height: 0; border-top: 10rpx solid transparent; border-bottom: 10rpx solid transparent; }
     &:not(.mine) { border-top-left-radius: 6rpx;
       &::before { left: -16rpx; border-right: 16rpx solid #fff; }
     }
-    &.mine { background: linear-gradient(135deg, #ff5e8e, #ff8fab); color: #fff; border-top-right-radius: 6rpx;
-      &::before { right: -16rpx; border-left: 16rpx solid #ff5e8e; }
+    &.mine { background: linear-gradient(135deg, #ff5e9c, #ff8fb1); color: #fff; border-top-right-radius: 6rpx;
+      &::before { right: -16rpx; border-left: 16rpx solid #ff5e9c; }
     }
     .msg-image { max-width: 360rpx; border-radius: 12rpx; display: block; }
+
+    /* 语音气泡 */
+    .msg-voice { display: flex; align-items: center; gap: 12rpx; min-width: 180rpx;
+      .voice-icon { font-size: 26rpx; }
+      .voice-wave { display: flex; align-items: center; gap: 4rpx;
+        .wave-bar { width: 4rpx; height: 16rpx; border-radius: 2rpx; background: currentColor; opacity: 0.6; }
+        &.playing .wave-bar { animation: wave 0.8s ease-in-out infinite; }
+      }
+      .voice-duration { font-size: 24rpx; opacity: 0.85; }
+    }
+
+    /* 位置气泡 */
+    .msg-location { display: flex; align-items: center; gap: 10rpx; max-width: 400rpx;
+      .location-icon { font-size: 30rpx; }
+      .location-address { font-size: 28rpx; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    }
+
+    /* 名片气泡 */
+    .msg-card { display: flex; align-items: center; gap: 16rpx;
+      .card-avatar { width: 72rpx; height: 72rpx; border-radius: 50%; background: #f0f0f0; }
+      .card-info { display: flex; flex-direction: column; gap: 4rpx;
+        .card-name { font-size: 28rpx; }
+        .card-hint { font-size: 22rpx; opacity: 0.7; }
+      }
+    }
   }
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes wave {
+  0%, 100% { height: 12rpx; }
+  50% { height: 24rpx; }
+}
 
 /* ===== 输入区 ===== */
 .input-area { background: #fff; border-top: 1rpx solid #eee; }

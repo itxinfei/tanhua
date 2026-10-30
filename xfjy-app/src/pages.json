@@ -128,6 +128,12 @@
 			}
 		},
 		{
+			"path": "pages/mine/agreement",
+			"style": {
+				"navigationBarTitleText": "协议"
+			}
+		},
+		{
 			"path": "pages/kefu/index",
 			"style": {
 				"navigationBarTitleText": "在线客服"
@@ -154,7 +160,7 @@
 	},
 	"tabBar": {
 		"color": "#999999",
-		"selectedColor": "#FF5E8E",
+		"selectedColor": "#FF5E9C",
 		"backgroundColor": "#FFFFFF",
 		"borderStyle": "white",
 		"list": [

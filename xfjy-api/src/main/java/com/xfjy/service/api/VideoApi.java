@@ -11,6 +11,7 @@ import org.springframework.web.service.annotation.HttpExchange;
 import org.springframework.web.service.annotation.PostExchange;
 
 import java.util.List;
+import java.util.Map;
 
 @HttpExchange("/api/video")
 public interface VideoApi {
@@ -74,12 +75,14 @@ public interface VideoApi {
     boolean removeVideo(@RequestParam("videoId") String videoId);
 
     /**
-     * 管理后台全量分页查询视频（按创建时间倒序，支持关键词/用户ID筛选）
+     * 管理后台全量分页查询视频（按创建时间倒序，支持关键词/用户ID/日期范围筛选）
      *
      * @param page     页码（从1开始，默认1）
      * @param pageSize 每页条数（默认10）
      * @param keyword  文字内容关键词（模糊匹配，可选）
      * @param userId   发布者用户ID（可选）
+     * @param startTime 开始时间戳（可选，毫秒）
+     * @param endTime   结束时间戳（可选，毫秒）
      * @return 分页结果（含总条数）
      */
     @GetExchange("/queryAllVideoList")
@@ -87,7 +90,9 @@ public interface VideoApi {
     PageInfo<Video> queryAllVideoList(@RequestParam(value = "page", required = false) Integer page,
                                        @RequestParam(value = "pageSize", required = false) Integer pageSize,
                                        @RequestParam(value = "keyword", required = false) String keyword,
-                                       @RequestParam(value = "userId", required = false) Long userId);
+                                       @RequestParam(value = "userId", required = false) Long userId,
+                                       @RequestParam(value = "startTime", required = false) Long startTime,
+                                       @RequestParam(value = "endTime", required = false) Long endTime);
 
     /**
      * 查询用户关注的用户ID列表
@@ -104,4 +109,14 @@ public interface VideoApi {
     PageInfo<Video> queryVideoListByUserIds(@RequestParam("userIds") List<Long> userIds,
                                             @RequestParam("page") Integer page,
                                             @RequestParam("pageSize") Integer pageSize);
+
+    /**
+     * 批量删除视频
+     *
+     * @param videoIds 视频ID列表（MongoDB ObjectId 字符串）
+     * @return {success: n, failed: m}
+     */
+    @PostExchange("/batchRemoveVideo")
+    @PostMapping("/batchRemoveVideo")
+    Map<String, Object> batchRemoveVideo(@RequestBody List<String> videoIds);
 }

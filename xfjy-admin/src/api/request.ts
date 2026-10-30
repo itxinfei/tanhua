@@ -39,10 +39,16 @@ request.interceptors.response.use(
     if (error.response) {
       const { status } = error.response
       if (status === 401) {
-        localStorage.removeItem('xfjy_admin_token')
-        localStorage.removeItem('xfjy_admin_info')
-        router.push('/login')
-        ElMessage.error('登录已过期，请重新登录')
+        // 优先展示后端返回的具体原因（如登录接口的"账号或密码错误"）
+        const backendMsg = error.response.data?.message
+        ElMessage.error(backendMsg || '登录已过期，请重新登录')
+        // 登录接口本身返回 401 时不跳转（用户已在登录页），其余 401 清 token 跳登录
+        const isLoginRequest = error.config?.url?.includes('/login')
+        if (!isLoginRequest) {
+          localStorage.removeItem('xfjy_admin_token')
+          localStorage.removeItem('xfjy_admin_info')
+          router.push('/login')
+        }
       } else if (status === 403) {
         ElMessage.error('没有权限执行此操作')
       } else if (status === 500) {

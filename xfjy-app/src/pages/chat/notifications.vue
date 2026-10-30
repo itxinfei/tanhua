@@ -57,12 +57,12 @@ interface NoticeItem {
 
 /** 通知类型元数据（图标+颜色，与会话列表 NOTICE_META 保持一致） */
 const TYPE_META: Record<string, { icon: string; color: string }> = {
-  like: { icon: "♥", color: "#ff5e8e" },
+  like: { icon: "♥", color: "#ff5e9c" },
   comment: { icon: "💬", color: "#4a90d9" },
   love: { icon: "★", color: "#ffd700" },
   announcement: { icon: "📢", color: "#4cd964" },
   visitors: { icon: "👁", color: "#a78bfa" },
-  fans: { icon: "👥", color: "#ff8fab" },
+  fans: { icon: "👥", color: "#ff8fb1" },
 };
 
 /** 页面标题映射 */
@@ -191,7 +191,7 @@ onPullDownRefresh(async () => {
 
 .notice-item { display: flex; align-items: center; padding: 24rpx; background: #fff; border-radius: 24rpx; margin-bottom: 16rpx;
   .avatar-wrap { position: relative; flex-shrink: 0;
-    .avatar { width: 88rpx; height: 88rpx; border-radius: 50%; background: #f0f0f0; border: 3rpx solid #fff0f5; }
+    .avatar { width: 88rpx; height: 88rpx; border-radius: 50%; background: #f0f0f0; border: 3rpx solid #ffeff5; }
     .type-badge { position: absolute; bottom: -4rpx; right: -4rpx; width: 36rpx; height: 36rpx; border-radius: 50%; border: 3rpx solid #fff; display: flex; align-items: center; justify-content: center; font-size: 18rpx; color: #fff; }
   }
   .info { flex: 1; margin-left: 20rpx;

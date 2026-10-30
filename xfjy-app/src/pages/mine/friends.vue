@@ -238,7 +238,7 @@ function goDetail(userId: string): void {
     position: relative;
 
     &.active {
-      color: #ff5e8e;
+      color: #ff5e9c;
       font-weight: bold;
 
       &::after {
@@ -249,7 +249,7 @@ function goDetail(userId: string): void {
         transform: translateX(-50%);
         width: 48rpx;
         height: 6rpx;
-        background: #ff5e8e;
+        background: #ff5e9c;
         border-radius: 3rpx;
       }
     }
@@ -288,7 +288,7 @@ function goDetail(userId: string): void {
     height: 100rpx;
     border-radius: 50%;
     background: #f0f0f0;
-    border: 3rpx solid #fff0f5;
+    border: 3rpx solid #ffeff5;
   }
 
   .user-info {
@@ -322,7 +322,7 @@ function goDetail(userId: string): void {
 
     &.follow {
       color: #fff;
-      background: linear-gradient(135deg, #ff5e8e, #ff8fab);
+      background: linear-gradient(135deg, #ff5e9c, #ff8fb1);
       box-shadow: 0 4rpx 14rpx rgba(255, 94, 142, 0.3);
     }
   }

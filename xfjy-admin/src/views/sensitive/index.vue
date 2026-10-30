@@ -31,15 +31,15 @@
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
           <el-button :icon="Refresh" @click="handleReset">重置</el-button>
-          <el-button type="success" :icon="Plus" @click="handleAdd">新增</el-button>
-          <el-button type="warning" :icon="RefreshRight" @click="handleRefresh">刷新词库</el-button>
+          <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" :icon="Plus" @click="handleAdd">新增</el-button>
+          <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="warning" :icon="RefreshRight" @click="handleRefresh">刷新词库</el-button>
         </el-form-item>
       </el-form>
     </div>
 
     <!-- 表格 -->
     <div class="table-container">
-      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
+      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" empty-text="暂无敏感词数据">
         <el-table-column prop="id" label="ID" width="70" align="center" />
         <el-table-column prop="word" label="敏感词" min-width="160" show-overflow-tooltip />
         <el-table-column label="分类" width="90" align="center">
@@ -60,10 +60,10 @@
         <el-table-column prop="updated" label="更新时间" width="170" />
         <el-table-column label="操作" width="200" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
-            <el-button v-if="row.status === 1" link type="warning" size="small" @click="handleToggle(row, 0)">停用</el-button>
-            <el-button v-else link type="success" size="small" @click="handleToggle(row, 1)">启用</el-button>
-            <el-button link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+            <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
+            <el-button v-if="row.status === 1" v-perm="['SUPER_ADMIN','ADMIN']" link type="warning" size="small" @click="handleToggle(row, 0)">停用</el-button>
+            <el-button v-else v-perm="['SUPER_ADMIN','ADMIN']" link type="success" size="small" @click="handleToggle(row, 1)">启用</el-button>
+            <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -75,7 +75,7 @@
           :total="total"
           :page-sizes="[10, 20, 50]"
           layout="total, sizes, prev, pager, next, jumper"
-          @size-change="loadData"
+          @size-change="handleSizeChange"
           @current-change="loadData"
         />
       </div>
@@ -169,6 +169,12 @@ function handleReset() {
   loadData()
 }
 
+/** 切换每页条数时回到第 1 页 */
+function handleSizeChange() {
+  query.page = 1
+  loadData()
+}
+
 function categoryLabel(category: string) {
   const map: Record<string, string> = { POLITICS: '政治', PORN: '色情', VIOLENCE: '暴力', AD: '广告', OTHER: '其他' }
   return map[category] || category
@@ -244,11 +250,16 @@ async function confirmSave() {
 
 async function handleToggle(row: SensitiveWordItem, status: number) {
   try {
+    await ElMessageBox.confirm(
+      `确定${status === 1 ? '启用' : '停用'}敏感词「${row.word}」吗？词库将同步刷新。`,
+      '提示',
+      { type: 'warning' }
+    )
     await toggleSensitiveWordApi(row.id, status)
     ElMessage.success(status === 1 ? '已启用，词库已刷新' : '已停用，词库已刷新')
     loadData()
   } catch {
-    // 错误已由拦截器处理
+    // 取消或失败（失败已由拦截器提示）
   }
 }
 

@@ -49,20 +49,17 @@ public class AdminDashboardService {
         todayWrapper.ge("created", todayStart);
         Long newUsers = this.userMapper.selectCount(todayWrapper);
         result.put("newUsers", newUsers);
-        result.put("newUsersChange", 0);
+        result.put("newUsersChange", null);
 
-        // DAU（暂以总用户数代替，后续接入Redis统计）
-        result.put("dau", totalUsers);
-        result.put("dauChange", 0);
-
-        // 匹配率 / 付费率（后续接入业务统计）
-        result.put("matchRate", 0);
-        result.put("matchRateChange", 0);
-        result.put("payRate", 0);
-        result.put("payRateChange", 0);
-
-        // 动态总数（存储在MongoDB中，暂返回0）
-        result.put("totalPosts", 0);
+        // DAU / 匹配率 / 付费率 / 动态总数：暂无真实统计源，返回 null 由前端显示"待接入"，
+        // 严禁用总用户数或 0 冒充真实指标误导运营决策
+        result.put("dau", null);
+        result.put("dauChange", null);
+        result.put("matchRate", null);
+        result.put("matchRateChange", null);
+        result.put("payRate", null);
+        result.put("payRateChange", null);
+        result.put("totalPosts", null);
 
         // 待处理举报数
         QueryWrapper<com.xfjy.server.pojo.Report> reportWrapper = new QueryWrapper<>();

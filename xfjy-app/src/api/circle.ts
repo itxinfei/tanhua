@@ -15,7 +15,7 @@ export interface PageParam {
   pagesize: number;
 }
 
-/** 圈子动态 */
+/** 圈子动态（与后端 com.xfjy.server.vo.Movements 精确对齐） */
 export interface Movement {
   id: string;
   userId: string;
@@ -23,16 +23,20 @@ export interface Movement {
   avatar: string;
   gender: string;
   age: number;
-  city: string;
+  tags?: string[];
   textContent: string;
-  medias: string[];
-  location: string;
-  longitude: string;
-  latitude: string;
-  loveLikeCount: number;
-  commentCount: number;
-  distance: number;
+  /** 图片URL数组（后端字段名 imageContent） */
+  imageContent: string[];
+  /** 距离（后端为字符串，如"1.2km"） */
+  distance?: string;
+  /** 发布位置（后端 Movements VO 字段） */
+  location?: string;
   createDate: string;
+  /** 点赞数 */
+  likeCount: number;
+  commentCount: number;
+  /** 喜欢数 */
+  loveCount: number;
   hasLiked: number;
   hasLoved: number;
 }
@@ -49,17 +53,20 @@ export interface Visitor {
   date: string;
 }
 
-/** 评论 */
+/** 评论（与后端 com.xfjy.server.vo.Comments 精确对齐） */
 export interface Comment {
   id: string;
-  publishId: string;
-  comment: string;
-  userId: string;
-  nickname: string;
   avatar: string;
+  nickname: string;
+  /** 评论内容（后端字段名 content） */
+  content: string;
   createDate: string;
-  hasLiked: number;
   likeCount: number;
+  hasLiked: number;
+  /** 父评论id（空=顶层评论） */
+  parentId?: string;
+  /** 被回复人昵称（仅回复可见） */
+  replyNickname?: string;
 }
 
 /** 发布动态参数 */

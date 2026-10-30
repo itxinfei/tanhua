@@ -68,12 +68,15 @@
         <text class="menu-arrow">›</text>
       </view>
     </view>
+    <!-- 匹配成功弹窗（全局，由 match store 驱动） -->
+    <MatchPopup />
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { onShow } from "@dcloudio/uni-app";
+import MatchPopup from "@/components/match-popup.vue";
 import { useUserStore } from "@/store/user";
 import { getRelationCounts, FRIEND_TYPE, type RelationCounts } from "@/api/mine";
 
@@ -106,7 +109,7 @@ const socialMenuItems: MenuItemConfig[] = [
   {
     icon: "✏️",
     label: "编辑资料",
-    color: "#ff5e8e",
+    color: "#ff5e9c",
     action: () => goPage("/pages/mine/profile"),
   },
   {
@@ -146,7 +149,7 @@ const settingsMenuItems: MenuItemConfig[] = [
   {
     icon: "🎧",
     label: "在线客服",
-    color: "#ff5e8e",
+    color: "#ff5e9c",
     action: () => goPage("/pages/kefu/index"),
   },
   {
@@ -207,7 +210,7 @@ onShow(() => {
 }
 
 .header {
-  background: linear-gradient(180deg, #ff5e8e 0%, #ff8fab 100%);
+  background: linear-gradient(180deg, #ff5e9c 0%, #ff8fb1 100%);
   padding: 0 32rpx 32rpx;
   border-radius: 0 0 40rpx 40rpx;
   position: relative;

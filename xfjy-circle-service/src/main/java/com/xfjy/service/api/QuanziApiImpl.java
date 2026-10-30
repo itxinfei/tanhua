@@ -306,6 +306,55 @@ public class QuanziApiImpl implements QuanZiApi {
     }
 
     @Override
+    @PostMapping("/saveReplyComment")
+    public boolean saveReplyComment(@RequestParam("userId") Long userId,
+                                    @RequestParam("publishId") String publishId,
+                                    @RequestParam("parentId") String parentId,
+                                    @RequestParam("content") String content) {
+        try {
+            Comment parent = this.mongoTemplate.findById(new ObjectId(parentId), Comment.class);
+            if (parent == null) {
+                return false;
+            }
+            // 归一到根评论：回复"回复"时统一挂到顶层，保持两级结构
+            ObjectId rootId = Boolean.TRUE.equals(parent.getIsParent())
+                    ? parent.getId() : parent.getParentId();
+            if (rootId == null) {
+                return false;
+            }
+
+            Comment reply = new Comment();
+            reply.setContent(content);
+            reply.setIsParent(false);
+            reply.setParentId(rootId);
+            reply.setCommentType(2);
+            reply.setPublishId(new ObjectId(publishId));
+            reply.setUserId(userId);
+            reply.setId(ObjectId.get());
+            reply.setCreated(System.currentTimeMillis());
+
+            // 设置发布人的id
+            Publish publish = this.mongoTemplate.findById(reply.getPublishId(), Publish.class);
+            if (null != publish) {
+                reply.setPublishUserId(publish.getUserId());
+            } else {
+                Video video = this.mongoTemplate.findById(reply.getPublishId(), Video.class);
+                if (null != video) {
+                    reply.setPublishUserId(video.getUserId());
+                }
+            }
+
+            this.mongoTemplate.save(reply);
+            this.sendScoringMsg(5, userId, publish);
+            return true;
+        } catch (Exception e) {
+            LOGGER.error("圈子服务处理异常", e);
+        }
+
+        return false;
+    }
+
+    @Override
     @GetMapping("/queryCommentCount")
     public Long queryCommentCount(@RequestParam("publishId") String publishId,
                                   @RequestParam("type") Integer type) {
@@ -488,6 +537,48 @@ public class QuanziApiImpl implements QuanZiApi {
     }
 
     @Override
+    @GetMapping("/queryAllPublishList")
+    public PageInfo<Publish> queryAllPublishList(@RequestParam(value = "page", required = false) Integer page,
+                                                  @RequestParam(value = "pageSize", required = false) Integer pageSize,
+                                                  @RequestParam(value = "keyword", required = false) String keyword,
+                                                  @RequestParam(value = "userId", required = false) Long userId,
+                                                  @RequestParam(value = "startTime", required = false) Long startTime,
+                                                  @RequestParam(value = "endTime", required = false) Long endTime) {
+        int p = (page == null || page < 1) ? 1 : page;
+        int size = (pageSize == null || pageSize < 1 || pageSize > 100) ? 10 : pageSize;
+
+        Criteria criteria = new Criteria();
+        List<Criteria> conditions = new ArrayList<>();
+        if (userId != null) {
+            conditions.add(Criteria.where("userId").is(userId));
+        }
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            conditions.add(Criteria.where("text").regex(".*" + java.util.regex.Pattern.quote(keyword.trim()) + ".*", "i"));
+        }
+        if (startTime != null) {
+            conditions.add(Criteria.where("created").gte(startTime));
+        }
+        if (endTime != null) {
+            conditions.add(Criteria.where("created").lte(endTime));
+        }
+        if (!conditions.isEmpty()) {
+            criteria.andOperator(conditions.toArray(new Criteria[0]));
+        }
+
+        long total = this.mongoTemplate.count(new Query(criteria), Publish.class);
+
+        Pageable pageable = PageRequest.of(p - 1, size, Sort.by(Sort.Order.desc("created")));
+        List<Publish> records = this.mongoTemplate.find(new Query(criteria).with(pageable), Publish.class);
+
+        PageInfo<Publish> pageInfo = new PageInfo<>();
+        pageInfo.setPageNum(p);
+        pageInfo.setPageSize(size);
+        pageInfo.setTotal((int) total);
+        pageInfo.setRecords(records);
+        return pageInfo;
+    }
+
+    @Override
     @PostMapping("/recordPublishView")
     public boolean recordPublishView(@RequestParam("userId") Long userId,
                                      @RequestParam("publishId") String publishId) {
@@ -495,6 +586,163 @@ public class QuanziApiImpl implements QuanZiApi {
         Publish publish = this.mongoTemplate.findById(new ObjectId(publishId), Publish.class);
         this.sendScoringMsg(2, userId, publish);
         return true;
+    }
+
+    @Override
+    @GetMapping("/queryAllCommentList")
+    public PageInfo<Comment> queryAllCommentList(@RequestParam(value = "page", required = false) Integer page,
+                                                  @RequestParam(value = "pageSize", required = false) Integer pageSize,
+                                                  @RequestParam(value = "keyword", required = false) String keyword,
+                                                  @RequestParam(value = "userId", required = false) Long userId,
+                                                  @RequestParam(value = "startTime", required = false) Long startTime,
+                                                  @RequestParam(value = "endTime", required = false) Long endTime) {
+        int p = (page == null || page < 1) ? 1 : page;
+        int size = (pageSize == null || pageSize < 1 || pageSize > 100) ? 10 : pageSize;
+
+        // 只查文字评论（commentType=2）
+        Criteria criteria = new Criteria();
+        List<Criteria> conditions = new ArrayList<>();
+        conditions.add(Criteria.where("commentType").is(2));
+        if (userId != null) {
+            conditions.add(Criteria.where("userId").is(userId));
+        }
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            conditions.add(Criteria.where("content").regex(".*" + java.util.regex.Pattern.quote(keyword.trim()) + ".*", "i"));
+        }
+        if (startTime != null) {
+            conditions.add(Criteria.where("created").gte(startTime));
+        }
+        if (endTime != null) {
+            conditions.add(Criteria.where("created").lte(endTime));
+        }
+        criteria.andOperator(conditions.toArray(new Criteria[0]));
+
+        long total = this.mongoTemplate.count(new Query(criteria), Comment.class);
+
+        Pageable pageable = PageRequest.of(p - 1, size, Sort.by(Sort.Order.desc("created")));
+        List<Comment> records = this.mongoTemplate.find(new Query(criteria).with(pageable), Comment.class);
+
+        PageInfo<Comment> pageInfo = new PageInfo<>();
+        pageInfo.setPageNum(p);
+        pageInfo.setPageSize(size);
+        pageInfo.setTotal((int) total);
+        pageInfo.setRecords(records);
+        return pageInfo;
+    }
+
+    @Override
+    @PostMapping("/removeCommentById")
+    public boolean removeCommentById(@RequestParam("commentId") String commentId) {
+        if (commentId == null || commentId.isEmpty()) {
+            return false;
+        }
+        ObjectId oid;
+        try {
+            oid = new ObjectId(commentId);
+        } catch (IllegalArgumentException e) {
+            LOGGER.warn("removeCommentById 非法的 commentId: {}", commentId);
+            return false;
+        }
+
+        Query query = Query.query(Criteria.where("_id").is(oid).and("commentType").is(2));
+        DeleteResult deleteResult = this.mongoTemplate.remove(query, Comment.class);
+        boolean result = deleteResult.getDeletedCount() > 0;
+        if (result) {
+            LOGGER.info("评论已删除 commentId={}", commentId);
+        }
+        return result;
+    }
+
+    @Override
+    @GetMapping("/countPublishByUser")
+    public Long countPublishByUser(@RequestParam("userId") Long userId) {
+        Query query = Query.query(Criteria.where("userId").is(userId));
+        return this.mongoTemplate.count(query, Publish.class);
+    }
+
+    @Override
+    @GetMapping("/countFollowerByUser")
+    public Long countFollowerByUser(@RequestParam("userId") Long userId) {
+        Query query = Query.query(Criteria.where("followUserId").is(userId));
+        return this.mongoTemplate.count(query, FollowUser.class);
+    }
+
+    @Override
+    @GetMapping("/countFollowingByUser")
+    public Long countFollowingByUser(@RequestParam("userId") Long userId) {
+        Query query = Query.query(Criteria.where("userId").is(userId));
+        return this.mongoTemplate.count(query, FollowUser.class);
+    }
+
+    @Override
+    @PostMapping("/countLikeByUser")
+    public Long countLikeByUser(@RequestParam("userId") Long userId) {
+        Query query = Query.query(Criteria.where("likeUserId").is(userId));
+        return this.mongoTemplate.count(query, UserLike.class);
+    }
+
+    @Override
+    @PostMapping("/batchRemovePublish")
+    public Map<String, Object> batchRemovePublish(@RequestBody List<String> publishIds) {
+        if (publishIds == null || publishIds.isEmpty()) {
+            Map<String, Object> empty = new HashMap<>();
+            empty.put("success", 0);
+            empty.put("failed", 0);
+            return empty;
+        }
+
+        int success = 0;
+        int failed = 0;
+        for (String publishId : publishIds) {
+            try {
+                if (removePublish(publishId)) {
+                    success++;
+                } else {
+                    failed++;
+                }
+            } catch (Exception e) {
+                LOGGER.error("批量删除动态失败 publishId={}", publishId, e);
+                failed++;
+            }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", success);
+        result.put("failed", failed);
+        LOGGER.info("批量删除动态完成: success={}, failed={}", success, failed);
+        return result;
+    }
+
+    @Override
+    @PostMapping("/batchRemoveCommentByIds")
+    public Map<String, Object> batchRemoveCommentByIds(@RequestBody List<String> commentIds) {
+        if (commentIds == null || commentIds.isEmpty()) {
+            Map<String, Object> empty = new HashMap<>();
+            empty.put("success", 0);
+            empty.put("failed", 0);
+            return empty;
+        }
+
+        int success = 0;
+        int failed = 0;
+        for (String commentId : commentIds) {
+            try {
+                if (removeCommentById(commentId)) {
+                    success++;
+                } else {
+                    failed++;
+                }
+            } catch (Exception e) {
+                LOGGER.error("批量删除评论失败 commentId={}", commentId, e);
+                failed++;
+            }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", success);
+        result.put("failed", failed);
+        LOGGER.info("批量删除评论完成: success={}, failed={}", success, failed);
+        return result;
     }
 
 }

@@ -1,4 +1,4 @@
-import { get, post } from "@/utils/request";
+import { get, post, upload } from "@/utils/request";
 import type { PageResult, PageParam } from "@/api/circle";
 
 /** 环信用户凭证（SDK 5.x token 登录用） */
@@ -15,6 +15,8 @@ export interface Contact {
   gender: string;
   age: number;
   city: string;
+  /** 在线状态（后端按需返回，前端展示绿点） */
+  online?: boolean;
 }
 
 /** 互动消息（点赞/评论/喜欢） */
@@ -100,4 +102,50 @@ export function getAnnouncementMessages(
   params: PageParam
 ): Promise<PageResult<MessageAnnouncement>> {
   return get<PageResult<MessageAnnouncement>>("/messages/announcements", params as any);
+}
+
+/** 上传接口返回体（PicUploadResult，status=done 时 name 为 MinIO 访问 URL） */
+interface PicUploadResult {
+  uid: string;
+  name: string;
+  status: string;
+  response: string;
+}
+
+/**
+ * 上传到 MinIO
+ * 对接后端: POST /upload/image
+ *
+ * @param filePath 本地图片临时路径
+ * @returns 图片 MinIO 访问 URL，上传失败返回空串
+ */
+export async function uploadChatImage(filePath: string): Promise<string> {
+  try {
+    const result = await upload<PicUploadResult>("/upload/image", [filePath], "file");
+    if (result && result.status === "done" && result.name) {
+      return result.name;
+    }
+    return "";
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * 上传到 MinIO
+ * 对接后端: POST /upload/audio（支持 mp3/aac/m4a/wav/amr/mp4）
+ *
+ * @param filePath 本地音频临时路径
+ * @returns 音频 MinIO 访问 URL，上传失败返回空串
+ */
+export async function uploadChatAudio(filePath: string): Promise<string> {
+  try {
+    const result = await upload<PicUploadResult>("/upload/audio", [filePath], "file");
+    if (result && result.status === "done" && result.name) {
+      return result.name;
+    }
+    return "";
+  } catch {
+    return "";
+  }
 }

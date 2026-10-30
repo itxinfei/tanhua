@@ -174,6 +174,13 @@ export function upload<T = any>(
       formData,
       header,
       success: (res: any) => {
+        // 401 登录过期：清 token 跳登录页（与 request 函数对齐）
+        if (res.statusCode === 401) {
+          removeToken();
+          uni.reLaunch({ url: "/pages/auth/login" });
+          reject(new Error("登录已过期，请重新登录"));
+          return;
+        }
         // 429 风控限流
         if (res.statusCode === 429) {
           uni.showToast({ title: "操作过于频繁，请稍后再试", icon: "none" });

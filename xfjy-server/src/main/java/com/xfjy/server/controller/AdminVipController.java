@@ -1,5 +1,6 @@
 package com.xfjy.server.controller;
 
+import com.xfjy.server.annotation.RequireRole;
 import com.xfjy.server.service.AdminVipService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +21,7 @@ import java.util.Map;
  * 后台 VIP 套餐与增值权益管理接口
  */
 @RestController
+@RequireRole("ADMIN")
 @RequestMapping("admin/vip")
 public class AdminVipController {
 

@@ -1,8 +1,7 @@
 package com.xfjy.server.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import com.aliyun.oss.OSSClient;
-import com.xfjy.server.config.AliyunConfig;
+import com.xfjy.server.config.MinioConfig;
 import com.xfjy.service.api.QuanZiApi;
 import com.xfjy.service.api.UserInfoApi;
 import com.xfjy.service.api.VideoApi;
@@ -15,6 +14,10 @@ import com.xfjy.server.utils.UserThreadLocal;
 import com.xfjy.server.vo.PageResult;
 import com.xfjy.server.vo.PicUploadResult;
 import com.xfjy.server.vo.VideoVo;
+import io.minio.BucketExistsArgs;
+import io.minio.MakeBucketArgs;
+import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -43,10 +46,10 @@ public class VideoService {
     private UserInfoApi userInfoApi;
 
     @Autowired
-    private OSSClient ossClient;
+    private MinioClient minioClient;
 
     @Autowired
-    private AliyunConfig aliyunConfig;
+    private MinioConfig minioConfig;
 
     @Autowired
     private RedisTemplate<String,String> redisTemplate;
@@ -68,11 +71,20 @@ public class VideoService {
             PicUploadResult picUploadResult = this.picUploadService.upload(picFile);
             video.setPicUrl(picUploadResult.getName());
 
-            //上传视频到OSS
+            //上传视频到 MinIO
             String videoFilePath = getVideoFilePath(videoFile.getOriginalFilename());
-            ossClient.putObject(aliyunConfig.getBucketName(), videoFilePath,
-                    new java.io.ByteArrayInputStream(videoFile.getBytes()));
-            video.setVideoUrl(aliyunConfig.getUrlPrefix() + videoFilePath);
+            try (java.io.InputStream in = new java.io.ByteArrayInputStream(videoFile.getBytes())) {
+                if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(minioConfig.getBucketName()).build())) {
+                    minioClient.makeBucket(MakeBucketArgs.builder().bucket(minioConfig.getBucketName()).build());
+                }
+                minioClient.putObject(PutObjectArgs.builder()
+                        .bucket(minioConfig.getBucketName())
+                        .object(videoFilePath)
+                        .stream(in, videoFile.getSize(), -1)
+                        .contentType(videoFile.getContentType())
+                        .build());
+            }
+            video.setVideoUrl(minioConfig.getUrlPrefix() + videoFilePath);
 
             return this.videoApi.saveVideo(video);
         } catch (Exception e) {

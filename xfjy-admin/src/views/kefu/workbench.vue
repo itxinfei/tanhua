@@ -81,8 +81,8 @@ import {
   type ReceivedMessage,
 } from '@/utils/easemob'
 
-/** 客服环信账号（消息归属判断：from === AGENT_ID 为客服发送） */
-const AGENT_ID = 'kefu0001'
+/** 客服环信账号（消息归属判断：from === agentId 为客服发送），登录后由后端凭证下发，不再硬编码 */
+const agentId = ref('')
 
 interface ChatMessage {
   id: string
@@ -172,7 +172,7 @@ async function openSession(conversationId: string): Promise<void> {
   messages.value = history.map((msg, i) => ({
     id: `hist-${i}-${msg.time}`,
     content: msg.content,
-    isMine: msg.from === AGENT_ID,
+    isMine: msg.from === agentId.value,
     timestamp: msg.time,
   }))
   scrollToBottom()
@@ -216,6 +216,8 @@ onMounted(async () => {
       ElMessage.error('环信登录失败')
       return
     }
+    // 记录当前客服环信账号（由后端凭证下发），用于消息归属判断
+    agentId.value = credential.username
     await refreshSessions()
     // 实时消息：当前会话追加展示，其余会话刷新未读
     unregisterMessage = onMessageReceived((msg: ReceivedMessage) => {

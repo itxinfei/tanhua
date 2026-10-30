@@ -131,11 +131,11 @@ export const useCircleStore = defineStore("circle", () => {
 
     if (movement.hasLiked) {
       movement.hasLiked = 0;
-      movement.loveLikeCount = Math.max(0, movement.loveLikeCount - 1);
+      movement.likeCount = Math.max(0, movement.likeCount - 1);
       await dislikeMovement(movementId);
     } else {
       movement.hasLiked = 1;
-      movement.loveLikeCount += 1;
+      movement.likeCount += 1;
       await likeMovement(movementId);
     }
   }

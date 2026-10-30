@@ -193,7 +193,7 @@ function handleSkip(): void {
 
   .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #ff5e8e, #ff8fab);
+    background: linear-gradient(90deg, #ff5e9c, #ff8fb1);
     border-radius: 4rpx;
     transition: width 0.3s ease;
   }
@@ -203,7 +203,7 @@ function handleSkip(): void {
     right: 0;
     top: 16rpx;
     font-size: 24rpx;
-    color: #ff5e8e;
+    color: #ff5e9c;
     white-space: nowrap;
   }
 }
@@ -252,7 +252,7 @@ function handleSkip(): void {
 
   .avatar-hint {
     font-size: 26rpx;
-    color: #ff5e8e;
+    color: #ff5e9c;
   }
 }
 
@@ -274,9 +274,9 @@ function handleSkip(): void {
     transition: all 0.2s;
 
     &.active {
-      background: linear-gradient(135deg, #ff5e8e, #ff8fab);
+      background: linear-gradient(135deg, #ff5e9c, #ff8fb1);
       color: #fff;
-      border-color: #ff5e8e;
+      border-color: #ff5e9c;
       box-shadow: 0 4rpx 14rpx rgba(255, 94, 142, 0.3);
     }
   }
@@ -284,7 +284,7 @@ function handleSkip(): void {
 
 .submit-btn {
   margin-top: 48rpx;
-  background: linear-gradient(90deg, #ff5e8e, #ff8fab);
+  background: linear-gradient(90deg, #ff5e9c, #ff8fb1);
   color: #fff;
   font-size: 32rpx;
   font-weight: bold;

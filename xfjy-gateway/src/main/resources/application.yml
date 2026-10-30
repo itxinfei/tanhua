@@ -38,7 +38,7 @@ spring:
             - id: xfjy-server
               uri: lb://xfjy-server
               predicates:
-                - Path=/users/**,/movements/**,/comments/**,/messages/**,/smallVideos/**,/huanxin/**,/baidu/**,/xfjy/**,/admin/**,/test-media/**
+                - Path=/users/**,/movements/**,/comments/**,/messages/**,/smallVideos/**,/huanxin/**,/baidu/**,/xfjy/**,/admin/**,/test-media/**,/kefu/**,/upload/**
           # 测试素材静态资源：/test-media/** → gateway → server(18081) → file:d:/MyCode/mytanhua/test-assets/
           # 编排层(BFF)决策：前端业务请求统一经 gateway → server(18081)，server 通过 @HttpExchange 契约代理
           # 调用各域服务(user 18090 / match 18082 / circle 18084 / video 18085 / message 18086)，

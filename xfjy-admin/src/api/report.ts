@@ -25,6 +25,7 @@ export interface ReportQuery {
   pageSize: number
   status?: string
   targetType?: string
+  targetUserId?: number
 }
 
 /** 分页查询举报 */

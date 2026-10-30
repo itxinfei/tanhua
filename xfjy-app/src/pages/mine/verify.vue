@@ -82,11 +82,11 @@ async function submit() {
   }
 }
 .ph { color: #ccc; }
-.submit-btn { margin-top: 60rpx; background: #ff5e8e; color: #fff; font-size: 30rpx; border-radius: 48rpx; height: 88rpx; line-height: 88rpx;
+.submit-btn { margin-top: 60rpx; background: #ff5e9c; color: #fff; font-size: 30rpx; border-radius: 48rpx; height: 88rpx; line-height: 88rpx;
   &[disabled] { opacity: 0.6; }
 }
 .verified-card { background: #fff; border-radius: 24rpx; padding: 80rpx 32rpx; text-align: center; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
-  .verified-icon { display: block; width: 96rpx; height: 96rpx; line-height: 96rpx; margin: 0 auto 24rpx; border-radius: 50%; background: #ff5e8e; color: #fff; font-size: 48rpx; }
+  .verified-icon { display: block; width: 96rpx; height: 96rpx; line-height: 96rpx; margin: 0 auto 24rpx; border-radius: 50%; background: #ff5e9c; color: #fff; font-size: 48rpx; }
   .verified-text { font-size: 30rpx; color: #333; }
 }
 </style>

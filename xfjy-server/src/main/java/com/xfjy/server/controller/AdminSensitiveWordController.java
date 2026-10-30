@@ -1,5 +1,6 @@
 package com.xfjy.server.controller;
 
+import com.xfjy.server.annotation.RequireRole;
 import com.xfjy.server.service.AdminSensitiveWordService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +24,7 @@ import java.util.Map;
  * <p>词库变更后由 Service 层自动重建 DFA 检测树，线上检测实时生效。</p>
  */
 @RestController
+@RequireRole("ADMIN")
 @RequestMapping("admin/sensitive-words")
 public class AdminSensitiveWordController {
 

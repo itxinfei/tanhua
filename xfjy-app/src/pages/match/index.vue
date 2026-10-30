@@ -2,7 +2,7 @@
   <view class="match-page">
     <!-- 顶部栏 -->
     <view class="top-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
-      <view class="city" @click="showCityPicker = true" aria-label="选择城市">
+      <view class="city" @click="openCityPicker" aria-label="选择城市">
         <text class="city-name">{{ currentCity }}</text>
         <text class="arrow">▾</text>
       </view>
@@ -104,22 +104,8 @@
       </view>
     </view>
 
-    <!-- 匹配成功弹窗 -->
-    <view v-if="matchPopup" class="match-popup" @click="matchPopup = null">
-      <view class="match-content pop-in">
-        <text class="match-title gradient-text">It's a Match!</text>
-        <view class="match-avatars">
-          <image class="match-avatar" :src="matchPopup.avatar" mode="aspectFill" />
-          <text class="match-heart heart-beat">♥</text>
-          <image class="match-avatar" src="/static/logo/logo-icon-transparent.png" mode="aspectFill" />
-        </view>
-        <text class="match-name">你和 {{ matchPopup.nickname }} 互相喜欢了</text>
-        <view class="match-actions">
-          <button class="send-msg" @click.stop="goChat(matchPopup.userId)">发消息</button>
-          <button class="keep-swipe" @click.stop="matchPopup = null">继续滑动</button>
-        </view>
-      </view>
-    </view>
+    <!-- 匹配成功弹窗（全局组件，由 match store 驱动；同步匹配与环信匹配消息共用） -->
+    <MatchPopup />
   </view>
 </template>
 
@@ -130,6 +116,7 @@ import { useMatchStore } from "@/store/match";
 import { getCards, type TodayBest } from "@/api/match";
 import { checkBenefit, recordBenefitUsage } from "@/api/mine";
 import { useUserStore } from "@/store/user";
+import MatchPopup from "@/components/match-popup.vue";
 
 const matchStore = useMatchStore();
 const userStore = useUserStore();
@@ -171,17 +158,13 @@ const DEFAULT_WINDOW_WIDTH_PX = 375;
 /** 默认状态栏高度兜底值（px） */
 const DEFAULT_STATUS_BAR_HEIGHT_PX = 20;
 
-/** 匹配成功弹窗数据（后端 love 接口无匹配结果返回，保留 UI 供后续消息推送触发） */
-interface MatchPopupData {
-  userId: number | string;
-  nickname: string;
-  avatar: string;
-}
-
 // 状态栏高度（自定义导航栏适配）
 const statusBarHeight = ref(0);
 const currentCity = ref("北京");
-const showCityPicker = ref(false);
+/** 城市选择暂未上线，点击给出明确提示（避免死交互） */
+function openCityPicker() {
+  uni.showToast({ title: "城市选择功能即将上线", icon: "none" });
+}
 
 // 卡片数据
 const cardList = ref<TodayBest[]>([]);
@@ -194,9 +177,6 @@ const isDragging = ref(false);
 const touchStartX = ref(0);
 const touchStartY = ref(0);
 const currentCardIndex = ref(0); // 当前顶部卡片在 cardList 中的索引
-
-// 匹配弹窗
-const matchPopup = ref<MatchPopupData | null>(null);
 
 /** 上一张卡片的滑动记录（用于撤销回滚后端操作） */
 interface SwipeRecord {
@@ -306,11 +286,11 @@ async function swipeOut(action: "like" | "dislike" | "superlike") {
     // 记录本次滑动，供撤销回滚使用
     lastSwipe.value = { card, action };
     if (matched) {
-      matchPopup.value = {
+      matchStore.showMatchPopup({
         userId: card.id,
         nickname: card.nickname,
         avatar: card.avatar,
-      };
+      });
     }
   } catch {
     // 静默处理，不影响滑动手感
@@ -401,10 +381,6 @@ function handleBoost() {
 }
 
 // ===== 跳转 =====
-function goChat(userId: number | string) {
-  matchPopup.value = null;
-  uni.navigateTo({ url: `/pages/chat/chat?userId=${userId}` });
-}
 function goNearby() {
   uni.navigateTo({ url: "/pages/match/nearby" });
 }
@@ -490,8 +466,8 @@ onShareAppMessage(() => ({
 
   .filter-btn {
     font-size: 28rpx;
-    color: #ff5e8e;
-    background: #fff0f5;
+    color: #ff5e9c;
+    background: #ffeff5;
     padding: 8rpx 24rpx;
     border-radius: 24rpx;
   }
@@ -595,7 +571,7 @@ onShareAppMessage(() => ({
 
       .fate-fill {
         height: 100%;
-        background: linear-gradient(90deg, #ff5e8e, #ffd700);
+        background: linear-gradient(90deg, #ff5e9c, #ffd700);
         border-radius: 6rpx;
         transition: width 0.4s ease-out;
       }
@@ -697,8 +673,8 @@ onShareAppMessage(() => ({
       width: 100rpx;
       height: 100rpx;
       background: #fff;
-      color: #ff5e8e;
-      border: 4rpx solid #ff5e8e;
+      color: #ff5e9c;
+      border: 4rpx solid #ff5e9c;
       box-shadow: 0 6rpx 20rpx rgba(255, 94, 142, 0.3);
     }
 
@@ -708,84 +684,6 @@ onShareAppMessage(() => ({
       background: linear-gradient(135deg, #a78bfa, #8b5cf6);
       color: #fff;
       box-shadow: 0 6rpx 20rpx rgba(139, 92, 246, 0.4);
-    }
-  }
-}
-
-.match-popup {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.75);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-
-  .match-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-
-    .match-title {
-      font-size: 64rpx;
-      font-weight: 900;
-      background: linear-gradient(90deg, #ff5e8e, #ffd700);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 48rpx;
-    }
-
-    .match-avatars {
-      display: flex;
-      align-items: center;
-      gap: 32rpx;
-      margin-bottom: 32rpx;
-
-      .match-avatar {
-        width: 160rpx;
-        height: 160rpx;
-        border-radius: 50%;
-        border: 6rpx solid #ff5e8e;
-      }
-
-      .match-heart {
-        font-size: 56rpx;
-        color: #ff5e8e;
-      }
-    }
-
-    .match-name {
-      font-size: 30rpx;
-      color: #fff;
-      margin-bottom: 48rpx;
-    }
-
-    .match-actions {
-      display: flex;
-      gap: 32rpx;
-
-      .send-msg {
-        background: linear-gradient(90deg, #ff5e8e, #ff8fab);
-        color: #fff;
-        font-size: 30rpx;
-        padding: 0 48rpx;
-        height: 88rpx;
-        line-height: 88rpx;
-        border-radius: 44rpx;
-        border: none;
-      }
-
-      .keep-swipe {
-        background: transparent;
-        color: #fff;
-        font-size: 30rpx;
-        padding: 0 48rpx;
-        height: 88rpx;
-        line-height: 88rpx;
-        border-radius: 44rpx;
-        border: 2rpx solid rgba(255, 255, 255, 0.5);
-      }
     }
   }
 }

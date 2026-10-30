@@ -72,6 +72,8 @@ public class CommentsController {
         try {
             String publishId = param.get("movementId");
             String content = param.get("comment");
+            // 回复目标评论 id（可选，传了即为回复）
+            String replyCommentId = param.get("commentId");
 
             // 风控：评论频率限制
             if (!this.riskControlService.allow(UserThreadLocal.get().getId(), RiskControlService.ACTION_COMMENT)) {
@@ -84,7 +86,7 @@ public class CommentsController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
             }
 
-            Boolean bool = this.commentsService.saveComments(publishId, detect.getFilteredText());
+            Boolean bool = this.commentsService.saveComments(publishId, detect.getFilteredText(), replyCommentId);
             if (bool) {
 
                 return ResponseEntity.ok(null);
