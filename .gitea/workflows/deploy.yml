@@ -130,6 +130,21 @@ jobs:
         if: ${{ env.SKIP_CI != 'true' && success() }}
         run: bash deploy/ci/cache-artifacts.sh save
 
+      - name: 暂存构建上下文（最小化 docker build 传输量）
+        if: ${{ env.SKIP_CI != 'true' && success() }}
+        run: |
+          set -e
+          # shellcheck disable=SC1091
+          . "${CI_STATE_DIR}/affected.env"
+          # 后端：只暂存受影响服务的 jar（未变更的走产物缓存）
+          bash deploy/ci/stage-artifacts.sh ${BACKEND_AFFECTED}
+          # 前端：只暂存受影响的前端
+          if [ -n "${FRONTEND_AFFECTED}" ]; then
+            bash deploy/ci/stage-artifacts.sh --frontend-only
+          fi
+          echo "---- 暂存结果 ----"
+          du -sh deploy/build/* 2>/dev/null || true
+
       - name: 准备部署参数（注入中间件密码）
         if: ${{ env.SKIP_CI != 'true' && env.ACTION == 'deploy' }}
         env:

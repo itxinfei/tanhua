@@ -171,6 +171,24 @@ do_status() {
   docker ps --filter "name=xfjy-" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || true
 }
 
+# 暂存最小构建上下文
+# compose 的 build.context 指向 deploy/build/<服务名>/（只含该服务需要的
+# app.jar / 前端源码 / Dockerfile），而不是仓库根目录。
+# 原因：仓库根含所有 target/ 产物（11 个 fat jar 共约 770MB），
+#       用它当 context 会让每次 docker build 传输整个仓库，累计近 10GB。
+stage_contexts() {
+  [ -f "deploy/ci/stage-artifacts.sh" ] || {
+    warn "缺少 deploy/ci/stage-artifacts.sh，跳过构建上下文暂存"
+    return 0
+  }
+  if [ ${#APP_TARGETS[@]} -gt 0 ]; then
+    bash deploy/ci/stage-artifacts.sh "${APP_TARGETS[@]}"
+  fi
+  if [ ${#WEB_TARGETS[@]} -gt 0 ]; then
+    bash deploy/ci/stage-artifacts.sh --frontend-only
+  fi
+}
+
 do_logs() {
   local svc="${1:-}"
   if [ -z "${svc}" ]; then
@@ -242,6 +260,7 @@ main() {
       ;;
     build)
       resolve_targets "$@"
+      stage_contexts
       run_compose "build" app
       run_compose "build" web
       ok "已构建镜像：${APP_TARGETS[*]} ${WEB_TARGETS[*]}"
@@ -249,6 +268,7 @@ main() {
     deploy)
       # 重新构建并启动（CI 部署入口）
       resolve_targets "$@"
+      stage_contexts
       run_compose "up -d --build" app
       run_compose "up -d --build" web
       ok "部署完成：${APP_TARGETS[*]} ${WEB_TARGETS[*]}"

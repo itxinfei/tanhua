@@ -15,8 +15,10 @@ services:
 
   xfjy-admin:
     build:
-      context: ..
-      dockerfile: deploy/docker/Dockerfile.admin
+      # 最小构建上下文：只含前端源码 + nginx.conf + Dockerfile
+      # 由 deploy/ci/stage-artifacts.sh 生成，避免传输整个仓库（~10GB）
+      context: build/xfjy-admin
+      dockerfile: Dockerfile
     pull_policy: never
     image: xfjy/admin:latest
     container_name: xfjy-admin
@@ -26,8 +28,10 @@ services:
 
   xfjy-h5:
     build:
-      context: ..
-      dockerfile: deploy/docker/Dockerfile.h5
+      # 最小构建上下文：只含前端源码 + nginx.conf + Dockerfile
+      # 由 deploy/ci/stage-artifacts.sh 生成，避免传输整个仓库（~10GB）
+      context: build/xfjy-h5
+      dockerfile: Dockerfile
     pull_policy: never
     image: xfjy/h5:latest
     container_name: xfjy-h5

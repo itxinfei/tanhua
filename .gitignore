@@ -95,3 +95,7 @@ mvn-*.log
 # Python 编译缓存
 __pycache__/
 *.pyc
+
+# ===== CI 构建上下文暂存目录（由 deploy/ci/stage-artifacts.sh 生成） =====
+# 内含 fat jar（约 70MB/个），不入库
+deploy/build/
