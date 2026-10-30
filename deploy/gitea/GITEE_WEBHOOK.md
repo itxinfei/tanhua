@@ -8,7 +8,7 @@ Gitee 只作为受控主仓，**CI 不会向 Gitee 写回任何东西**，也不
 ## 1. 准备 Gitea 仓库
 
 1. 打开 `http://192.168.20.133:3000`，用管理员登录（首次启动按引导初始化）。
-2. 新建仓库 `mytanhua`，**或** 直接把它设为 Gitee 的镜像仓：
+2. 新建仓库 `xfjy`（仓库名已由 mytanhua 改名而来），**或** 直接把它设为 Gitee 的镜像仓：
    - 新建仓库时勾选「镜像仓库」，源地址填 `https://gitee.com/itxinfei/mytanhua.git`（需 Gitee 只读账号/令牌）。
    - 这样 Gitee 有更新后，Gitea 可在「镜像同步」时拉取最新代码（含 `.gitea/workflows/deploy.yml`）。
 3. 仓库 → **Settings → Actions → Secrets**，新增：
@@ -40,7 +40,7 @@ Gitea Actions 在 Gitea 仓库收到「push」时触发。Gitee 是主仓，所�
 
 ### 方案 A（推荐）：Gitee webhook 触发 Gitea 镜像同步
 在 **Gitee 仓库 → 管理 → WebHooks → 添加**：
-- URL：`https://<GITEE_TOKEN>@192.168.20.133:3000/api/v1/repos/itxinfei/mytanhua/mirror-sync`
+- URL：`https://<GITEE_TOKEN>@192.168.20.133:3000/api/v1/repos/admin/xfjy/mirror-sync`
 - 方式：`POST`
 - 触发事件：Push
 - 说明：Gitee 推送后调用该接口让 Gitea 立即拉取镜像；同步产生 push 事件即触发 Actions。

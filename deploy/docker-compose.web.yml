@@ -17,6 +17,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.admin
+    pull_policy: never
     image: xfjy/admin:latest
     container_name: xfjy-admin
     restart: unless-stopped
@@ -27,6 +28,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.h5
+    pull_policy: never
     image: xfjy/h5:latest
     container_name: xfjy-h5
     restart: unless-stopped

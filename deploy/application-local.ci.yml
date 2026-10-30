@@ -9,14 +9,16 @@
 #      cp deploy/application-local.ci.yml <module>/src/main/resources/application-local.yml
 #
 # 所有连接信息均为 ${ENV_VAR:默认值} 形式：
-#   - 默认值已按服务器中间件实际账号填好（root/123456、neo4j/itxinfei123456），
+#   - 默认值已按服务器实际部署填好：
+#     · 中间件地址 192.168.20.133（容器走 bridge 网络，用宿主机 LAN IP 访问中间件）
+#     · MySQL root/123456、Neo4j itxinfei123456
 #     即使运行时未注入环境变量，jar 也能直接连上库；
 #   - 如需覆盖，部署时通过容器环境变量传入同名变量即可（优先级最高）。
 # ============================================================
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: ${MYSQL_URL:jdbc:mysql://127.0.0.1:3306/xfjy?useUnicode=true&characterEncoding=utf8&autoReconnect=true&allowMultiQueries=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai}
+    url: ${MYSQL_URL:jdbc:mysql://192.168.20.133:3306/xfjy?useUnicode=true&characterEncoding=utf8&autoReconnect=true&allowMultiQueries=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai}
     username: ${MYSQL_USERNAME:root}
     password: ${MYSQL_PASSWORD:123456}
     hikari:
@@ -27,7 +29,7 @@ spring:
       max-lifetime: 1800000
   data:
     redis:
-      host: ${REDIS_HOST:127.0.0.1}
+      host: ${REDIS_HOST:192.168.20.133}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
       timeout: 10s
@@ -36,12 +38,18 @@ spring:
           max-wait: 5000ms
           max-idle: 100
           min-idle: 10
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:192.168.20.133:8848}
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PASSWORD:}
 
 xfjy:
   neo4j:
     # 覆盖 base application.yml 的空默认值，直连运行中 Neo4j 的真实密码
     password: ${NEO4J_PASSWORD:itxinfei123456}
   sso:
-    url: http://127.0.0.1:18080
+    url: http://${SERVICE_HOST:192.168.20.133}:18080
     default:
       user: 2
