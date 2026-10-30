@@ -8,16 +8,16 @@
 #   - App H5（uni-app）              ：deploy/docker-compose.web.yml  → 工程名 xfjy-web
 #
 # 用法：
-#   bash deploy/manage.sh up                      # 启动全部
-#   bash deploy/manage.sh up xfjy-gateway         # 启动单个服务
-#   bash deploy/manage.sh up xfjy-gateway xfjy-admin   # 启动多个（可跨前后端）
-#   bash deploy/manage.sh down                    # 停止全部
-#   bash deploy/manage.sh down xfjy-video-service # 停止单个
-#   bash deploy/manage.sh restart xfjy-server     # 重启单个
-#   bash deploy/manage.sh status                  # 查看全部状态
-#   bash deploy/manage.sh logs xfjy-server        # 跟踪日志
-#   bash deploy/manage.sh build xfjy-admin        # 只构建镜像不启动
-#   bash deploy/manage.sh deploy                  # 重新构建并启动全部（CI 用）
+#   bash deploy/manage.sh up|deploy all                 # 全部（后端微服务 + admin + h5）
+#   bash deploy/manage.sh up|deploy backend             # 全部后端微服务（11 个）
+#   bash deploy/manage.sh up|deploy admin               # 只部署后台管理系统（Vue3）
+#   bash deploy/manage.sh up|deploy app                 # 只部署 App H5（uni-app，h5 同义）
+#   bash deploy/manage.sh up|deploy xfjy-server         # 只部署某一个微服务
+#   bash deploy/manage.sh up|deploy xfjy-server xfjy-admin  # 多个（可跨前后端）
+#   bash deploy/manage.sh down|restart|build|status     # 停止/重启/构建/查看状态（同样支持上述目标）
+#   bash deploy/manage.sh logs xfjy-server              # 跟踪日志
+#
+# 目标别名：all=全部；backend=全部后端微服务；admin=xfjy-admin；app/h5=xfjy-h5
 #
 # 说明：
 #   - 密码等敏感项从 deploy/.env 读取（该文件被 .gitignore 排除，不入库）；
@@ -88,10 +88,33 @@ compose_cmd() {
   fi
 }
 
-# 按服务名分组，分别落到 app / web 两套编排
+# 按服务名/目标别名分组，分别落到 app / web 两套编排
+# 目标别名：all=全部；backend=全部后端微服务；admin=xfjy-admin；app/h5=xfjy-h5；其余为具体服务名
 resolve_targets() {
   local -a targets=("$@")
-  if [ ${#targets[@]} -eq 0 ]; then
+  local -a expanded=()
+  local t
+  for t in "${targets[@]}"; do
+    case "${t}" in
+      all)        expanded+=("${BACKEND_SERVICES[@]}" "${WEB_SERVICES[@]}") ;;
+      backend)    expanded+=("${BACKEND_SERVICES[@]}") ;;
+      admin)      expanded+=("xfjy-admin") ;;
+      app|h5)     expanded+=("xfjy-h5") ;;
+      *)          expanded+=("${t}") ;;
+    esac
+  done
+  # 去重（all 与具体服务名混用时避免重复）
+  local -a uniq=()
+  local s
+  for s in "${expanded[@]}"; do
+    local found=false i
+    for i in "${uniq[@]}"; do
+      [ "${i}" = "${s}" ] && { found=true; break; }
+    done
+    [ "${found}" = false ] && uniq+=("${s}")
+  done
+
+  if [ ${#uniq[@]} -eq 0 ]; then
     APP_TARGETS=("${BACKEND_SERVICES[@]}")
     WEB_TARGETS=("${WEB_SERVICES[@]}")
     return 0
@@ -99,14 +122,14 @@ resolve_targets() {
   APP_TARGETS=()
   WEB_TARGETS=()
   local svc
-  for svc in "${targets[@]}"; do
+  for svc in "${uniq[@]}"; do
     if belongs_to "${svc}" app; then
       APP_TARGETS+=("${svc}")
     elif belongs_to "${svc}" web; then
       WEB_TARGETS+=("${svc}")
     else
       err "未知服务名：${svc}"
-      err "可用服务：${ALL_SERVICES[*]}"
+      err "可用：all / backend / admin / app / h5 / 具体服务名(${ALL_SERVICES[*]})"
       exit 1
     fi
   done
