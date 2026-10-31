@@ -207,7 +207,7 @@ onShow(() => {
 });
 </script>
 
-
+<style lang="scss" scoped>
 .mine-page {
   min-height: calc(100vh - var(--window-bottom, 0px));
   background: var(--bg-sub);
@@ -434,3 +434,4 @@ onShow(() => {
     }
   }
 }
+</style>

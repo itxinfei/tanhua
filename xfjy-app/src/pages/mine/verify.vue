@@ -75,7 +75,7 @@ async function submit() {
 }
 </script>
 
-
+<style lang="scss" scoped>
 .verify-page { min-height: 100vh; background: var(--bg-sub); padding: 24rpx; }
 .tips { font-size: 24rpx; color: var(--text-hint); line-height: 1.6; margin-bottom: 24rpx; }
 .form-card { background: var(--bg-card); border-radius: 24rpx; padding: 8rpx 32rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
@@ -93,3 +93,4 @@ async function submit() {
   .verified-icon { display: block; width: 96rpx; height: 96rpx; line-height: 96rpx; margin: 0 auto 24rpx; border-radius: 50%; background: var(--color-primary); color: #fff; font-size: 48rpx; }
   .verified-text { font-size: 30rpx; color: var(--text-primary); }
 }
+</style>

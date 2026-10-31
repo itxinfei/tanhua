@@ -23,14 +23,9 @@
       <view class="skeleton skeleton--dark sk-desc" />
     </template>
 
-    <!-- match：卡片堆叠占位（探花首页，模拟真实卡片堆叠层级） -->
+    <!-- match：卡片页占位（探花首页，与真实卡片同几何：全屏单卡铺底） -->
     <template v-else-if="variant === 'match'">
-      <view
-        v-for="i in stackCount"
-        :key="i"
-        class="skeleton sk-match-card"
-        :style="matchCardStyle(i)"
-      />
+      <view class="skeleton sk-match-card" />
     </template>
   </view>
 </template>
@@ -40,29 +35,17 @@ import { computed, withDefaults, defineProps } from 'vue';
 
 const props = withDefaults(
   defineProps<{
-    /** 骨架形态：feed=信息流卡片 / video=视频全屏 / match=卡片堆叠 */
+    /** 骨架形态：feed=信息流卡片 / video=视频全屏 / match=卡片页全屏 */
     variant?: 'feed' | 'video' | 'match';
     /** feed 形态下的占位卡片数量 */
     count?: number;
     /** feed 形态九宫格列数 */
     gridCols?: number;
-    /** match 形态堆叠卡片数量 */
-    stackCount?: number;
-    /** match 形态每层缩放步长 */
-    stackScaleStep?: number;
-    /** match 形态每层纵向偏移(rpx) */
-    stackOffsetStep?: number;
-    /** match 形态基础层级 */
-    stackBaseZ?: number;
   }>(),
   {
     variant: 'feed',
     count: 3,
     gridCols: 3,
-    stackCount: 3,
-    stackScaleStep: 0.05,
-    stackOffsetStep: 20,
-    stackBaseZ: 30,
   }
 );
 
@@ -71,18 +54,9 @@ const rootClass = computed(() => {
   if (props.variant === 'match') return 'sk-match';
   return '';
 });
-
-/** match 堆叠卡片的变换：i 从 1 开始，第 1 张不缩放、不偏移、层级最高 */
-function matchCardStyle(i: number): Record<string, string | number> {
-  const idx = i - 1;
-  return {
-    transform: `scale(${1 - idx * props.stackScaleStep}) translateY(${idx * props.stackOffsetStep}rpx)`,
-    zIndex: props.stackBaseZ - idx,
-  };
-}
 </script>
 
-
+<style lang="scss" scoped>
 .skeleton-root {
   /* 容器本身透明，仅承载布局；闪烁动画由全局 .skeleton 提供 */
 }
@@ -166,18 +140,15 @@ function matchCardStyle(i: number): Record<string, string | number> {
   }
 }
 
-/* ===== match：卡片堆叠占位（绝对定位铺满卡片区） ===== */
+/* ===== match：卡片堆叠占位（与真实卡片同几何：全屏铺底） ===== */
 .sk-match {
   position: absolute;
-  left: 24rpx;
-  right: 24rpx;
-  top: 24rpx;
-  bottom: 24rpx;
+  inset: 0;
 
   .sk-match-card {
     position: absolute;
     inset: 0;
-    border-radius: 32rpx;
+    border-radius: 0;
   }
 }
-
+</style>

@@ -9,7 +9,7 @@
       @refresherrefresh="onRefresh"
       @scrolltolower="loadMore"
     >
-      <empty-state title="黑名单为空" desc="被拉黑的用户将无法与你互动" />
+      <empty-state v-if="userList.length === 0 && !loading" title="黑名单为空" desc="被拉黑的用户将无法与你互动" />
 
       <!-- 行容器：信息区与操作按钮分离，避免可聚焦控件嵌套 -->
       <view v-for="user in userList" :key="user.id" class="user-row">
@@ -128,7 +128,7 @@ async function handleRemove(userId: string): Promise<void> {
 }
 </script>
 
-
+<style lang="scss" scoped>
 .blacklist-page {
   height: 100vh;
   background: var(--bg-sub);
@@ -203,3 +203,4 @@ async function handleRemove(userId: string): Promise<void> {
     color: var(--text-hint);
   }
 }
+</style>

@@ -125,6 +125,67 @@ page {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* #ifdef H5 */
+/* ===== 底部 tabBar 美化（仅 H5；小程序端为原生 tabBar，由 theme.json 控制） =====
+   默认 1px 灰线生硬，交友 App 改为：毛玻璃底栏 + 品牌色渐变发丝线 + 柔光投影 */
+.uni-tabbar {
+  background: rgba(255, 255, 255, 0.82) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  backdrop-filter: blur(24px) saturate(1.5);
+  box-shadow: 0 -8px 28px rgba(255, 94, 156, 0.1);
+}
+
+/* 中间发布键：对标抖音，无方块底色，仅绘制深色粗体实心“+”（圆润端点） */
+.uni-tabbar__mid {
+  position: relative;
+  background: transparent !important;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.uni-tabbar__mid::before,
+.uni-tabbar__mid::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 5px;
+  /* 抖音主黑实心，笔画饱满 */
+  background: #161823;
+  transform: translate(-50%, -50%);
+}
+
+.uni-tabbar__mid::before {
+  /* 横笔 */
+  width: 28px;
+  height: 5px;
+}
+
+.uni-tabbar__mid::after {
+  /* 竖笔 */
+  width: 5px;
+  height: 28px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .uni-tabbar {
+    background: rgba(26, 26, 26, 0.82) !important;
+    box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.35);
+  }
+
+  .uni-tabbar__mid {
+    /* 透明底，暗色模式下无需额外投影 */
+    box-shadow: none;
+  }
+
+  /* 深色底上的加号改为白色 */
+  .uni-tabbar__mid::before,
+  .uni-tabbar__mid::after {
+    background: #ffffff;
+  }
+}
+/* #endif */
+
 /* 单行省略 */
 .ellipsis {
   overflow: hidden;
@@ -355,5 +416,25 @@ textarea:focus-visible,
 button:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+/* ===== H5 原生 tabBar 视觉优化（仅 H5 运行时类名，小程序端不生效）===== */
+/* 毛玻璃半透明底栏，融入沉浸式视频页，消除白色硬切割感 */
+.uni-tabbar {
+  background-color: rgba(255, 255, 255, 0.82) !important;
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  backdrop-filter: saturate(180%) blur(18px);
+}
+
+/* tabbar 顶部分割线：对标抖音发丝线，高度锁定 1px，颜色用品牌主色（深色模式自动跟随 --color-primary） */
+.uni-tabbar-border {
+  height: 1px !important;
+  background-color: var(--color-primary) !important;
+}
+
+/* 发布键兜底：保持透明、无圆角方块，加号由前面的 ::before/::after 绘制 */
+.uni-tabbar__mid {
+  background-color: transparent !important;
+  border-radius: 0 !important;
 }
 </style>

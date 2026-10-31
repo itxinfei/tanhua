@@ -90,7 +90,7 @@ onLoad((options: any) => {
 });
 </script>
 
-
+<style lang="scss" scoped>
 .tag-page {
   min-height: 100vh;
   background: var(--bg-sub);
@@ -170,4 +170,4 @@ onLoad((options: any) => {
   color: var(--color-primary);
   font-size: 26rpx;
 }
-
+</style>

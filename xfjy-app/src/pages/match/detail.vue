@@ -115,6 +115,7 @@ import { useMatchStore } from "@/store/match";
 import { submitReport, REPORT_TARGET_TYPE, checkBenefit, recordBenefitUsage } from "@/api/mine";
 import { getPersonalInfo, getStrangerQuestion, loveUser, unloveUser, type TodayBest } from "@/api/match";
 import { getUserMovements, type Movement } from "@/api/circle";
+import { safeGoBack } from "@/utils/nav";
 
 /** 缘分值满分 */
 const FATE_SCORE_MAX = 100;
@@ -139,9 +140,9 @@ const fateScore = ref(0);
 /** 缘分值百分比（用于进度条宽度） */
 const fatePercent = computed(() => `${Math.min(fateScore.value / FATE_SCORE_MAX, 1) * 100}%`);
 
-/** 返回上一页 */
+/** 返回上一页（无历史栈时兜底回匹配 tab） */
 function goBack(): void {
-  uni.navigateBack();
+  safeGoBack("/pages/match/index");
 }
 
 /** 轮播切换回调，更新照片计数 */
@@ -225,7 +226,8 @@ async function handleLike(): Promise<void> {
       });
     }
     uni.showToast({ title: matched ? "互相喜欢，已匹配！" : "已喜欢", icon: "success" });
-    setTimeout(goBack, 800);
+    // 匹配成功时留在本页展示匹配弹窗，由弹窗承接后续；未匹配才自动返回
+    if (!matched) setTimeout(goBack, 800);
   } catch {
     // 请求失败由 request 层统一 toast
   } finally {
@@ -248,13 +250,13 @@ async function handleSuperLike(): Promise<void> {
       uni.showToast({ title: "今日超级喜欢次数已用完", icon: "none" });
       return;
     }
+    // 先上报喜欢，成功后再扣权益：后端无权益回滚接口，先扣后爱会导致请求失败白扣一次
+    const matched = await loveUser(userId.value);
     const ok = await recordBenefitUsage("super_like");
     if (!ok) {
+      // 并发下名额可能已被用尽：喜欢已生效，仅提示
       uni.showToast({ title: "今日超级喜欢次数已用完", icon: "none" });
-      return;
     }
-    // 超级喜欢=加权喜欢，复用喜欢接口上报
-    const matched = await loveUser(userId.value);
     if (matched) {
       matchStore.showMatchPopup({
         userId: userId.value,
@@ -263,7 +265,7 @@ async function handleSuperLike(): Promise<void> {
       });
     }
     uni.showToast({ title: matched ? "超级喜欢，已匹配！" : "已超级喜欢", icon: "success" });
-    setTimeout(goBack, 800);
+    if (!matched) setTimeout(goBack, 800);
   } catch {
     // 请求失败由 request 层统一 toast
   } finally {
@@ -344,7 +346,7 @@ onLoad(async (options: any) => {
 });
 </script>
 
-
+<style lang="scss" scoped>
 .detail-page { min-height: 100vh; background: var(--bg-sub); padding-bottom: 160rpx; }
 
 /* ===== 照片轮播 ===== */
@@ -423,3 +425,4 @@ onLoad(async (options: any) => {
   &.super-like { width: 100rpx; height: 100rpx; font-size: 46rpx; background: var(--gradient-brand); color: #fff; box-shadow: 0 8rpx 22rpx rgba(177, 59, 255, 0.4); }
   &.like { width: 110rpx; height: 110rpx; font-size: 52rpx; background: var(--gradient-brand); color: #fff; box-shadow: 0 8rpx 24rpx rgba(255, 94, 142, 0.4); }
 }
+</style>

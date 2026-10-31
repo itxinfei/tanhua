@@ -44,6 +44,10 @@
     </view>
 
     <!-- 套餐选择：语义单选组（涉及支付，必须可用键盘操作） -->
+    <view class="section-head">
+      <text class="section-title">会员套餐</text>
+      <text class="section-hint">开通后立即生效</text>
+    </view>
     <a11y-radio-group
       class="plans"
       label="会员套餐"
@@ -82,6 +86,7 @@ import {
   type ValueAddedService,
 } from "@/api/mine";
 import { getPayChannel } from "@/utils/pay";
+import { safeGoBack } from "@/utils/nav";
 
 /** 默认状态栏高度（px） */
 const DEFAULT_STATUS_BAR_HEIGHT = 20;
@@ -104,7 +109,7 @@ const plans = computed(() =>
   packages.value.map((p) => {
     const priceYuan = Number((p.price / 100).toFixed(2));
     const months = Math.max(1, Math.round(p.durationDays / 30));
-    const perMonth = (priceYuan / months).toFixed(2);
+    const perMonth = String(parseFloat((priceYuan / months).toFixed(2)));
     let tag = "";
     if (p.durationDays >= 365) {
       tag = "最划算";
@@ -209,7 +214,7 @@ async function handlePay(): Promise<void> {
     // 3. 渠道支付（utils/pay.ts 抽象：当前为模拟渠道，生产替换为微信/支付宝渠道实现）
     const paid = await getPayChannel().requestPayment({
       orderNo: order.orderNo,
-      amountFen: plan.priceYuan * 100,
+      amountFen: Math.round(plan.priceYuan * 100),
       subject: plan.name,
     });
     if (!paid) {
@@ -226,12 +231,10 @@ async function handlePay(): Promise<void> {
   }
 }
 
-/** 返回上一页（直接打开无上级页面时兜底回「我的」Tab） */
+/** 返回上一页（直接打开无上级页面时兜底回「我的」Tab；
+ *  不能用 navigateBack 的 fail 回调做兜底——H5 无栈时 fail 不触发，会静默无动作） */
 function goBack(): void {
-  uni.navigateBack({
-    delta: 1,
-    fail: () => uni.switchTab({ url: "/pages/mine/index" }),
-  });
+  safeGoBack("/pages/mine/index");
 }
 
 onLoad(() => {
@@ -241,7 +244,7 @@ onLoad(() => {
 });
 </script>
 
-
+<style lang="scss" scoped>
 .vip-page { min-height: 100vh; background: #1a1a2e; padding-bottom: 180rpx; overflow: hidden; }
 
 /* ===== 顶部权益区 ===== */
@@ -301,14 +304,24 @@ onLoad(() => {
 }
 
 /* ===== 套餐选择 ===== */
-.plans { display: flex; gap: 16rpx; margin: 32rpx; }
-.plan-card { flex: 1; background: rgba(255, 255, 255, 0.08); border-radius: 20rpx; padding: 36rpx 16rpx 32rpx; text-align: center; position: relative; border: 2rpx solid transparent; transition: all 0.25s ease;
-  &.selected { border-color: #ffd700; background: rgba(255, 215, 0, 0.12); box-shadow: 0 0 24rpx rgba(255, 215, 0, 0.25); transform: translateY(-8rpx); }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; margin: 40rpx 32rpx 0; }
+.section-title { font-size: 30rpx; font-weight: bold; color: #fff; }
+.section-hint { font-size: 22rpx; color: rgba(255, 255, 255, 0.6); }
+
+.plans { display: flex; gap: 16rpx; margin: 20rpx 32rpx 32rpx; }
+
+/* 选项节点由 a11y-radio-group 内部渲染，页面 scoped 样式必须 :deep 穿透，
+   否则卡片外观/选中态全部丢失，plan-tag 也会因失去 relative 锚点飘到页顶 */
+.plans :deep(.plan-card) {
+  flex: 1; background: rgba(255, 255, 255, 0.08); border-radius: 20rpx; padding: 40rpx 12rpx 28rpx; text-align: center; position: relative; border: 2rpx solid transparent; transition: all 0.25s ease;
+  &.active { border-color: #ffd700; background: rgba(255, 215, 0, 0.12); box-shadow: 0 0 24rpx rgba(255, 215, 0, 0.25); transform: translateY(-8rpx); }
+}
+.plan-card {
   /* 18rpx≈9px 低于最小可读字号，放大至 22rpx */
-  .plan-tag { position: absolute; top: -16rpx; left: 50%; transform: translateX(-50%); background: var(--gradient-brand-h); color: #fff; font-size: 22rpx; padding: 4rpx 18rpx; border-radius: 16rpx; white-space: nowrap; }
+  .plan-tag { position: absolute; top: -18rpx; left: 50%; transform: translateX(-50%); background: var(--gradient-brand-h); color: #fff; font-size: 22rpx; padding: 4rpx 18rpx; border-radius: 16rpx; white-space: nowrap; z-index: 1; }
   .plan-name { font-size: 28rpx; color: #fff; display: block; }
   .plan-price { font-size: 48rpx; font-weight: 900; color: #ffd700; display: block; margin: 12rpx 0 4rpx; }
-  .plan-unit { font-size: 20rpx; color: rgba(255, 255, 255, 0.78); display: block; }
+  .plan-unit { font-size: 22rpx; color: rgba(255, 255, 255, 0.78); display: block; }
 }
 
 /* ===== 支付按钮 ===== */
@@ -318,3 +331,4 @@ onLoad(() => {
   box-shadow: 0 8rpx 28rpx rgba(255, 179, 71, 0.4);
   &[disabled] { opacity: 0.6; box-shadow: none; }
 }
+</style>

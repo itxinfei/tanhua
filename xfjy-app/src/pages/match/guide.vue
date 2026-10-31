@@ -190,7 +190,7 @@ function handleSkip(): void {
 }
 </script>
 
-
+<style lang="scss" scoped>
 .guide-page {
   min-height: 100vh;
   background: var(--bg-sub);
@@ -274,7 +274,8 @@ function handleSkip(): void {
   display: flex;
   gap: 24rpx;
 
-  .gender-btn {
+  /* 选项节点由 a11y-radio-group 内部渲染，页面 scoped 样式需 :deep 穿透才能命中 */
+  :deep(.gender-btn) {
     flex: 1;
     height: 80rpx;
     display: flex;
@@ -323,3 +324,4 @@ function handleSkip(): void {
   min-height: 48rpx;
   padding: 12rpx 0;
 }
+</style>

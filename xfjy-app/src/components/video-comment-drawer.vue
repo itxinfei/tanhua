@@ -17,7 +17,7 @@
           <view class="comment-body">
             <text class="nickname">{{ c.nickname }}</text>
             <text class="content">{{ c.content }}</text>
-            <text class="date">{{ c.createDate }}</text>
+            <text class="date">{{ formatDate(c.createDate) }}</text>
           </view>
           <a11y-button
             class="like-box"
@@ -25,7 +25,7 @@
             @tap="toggleLike(c)"
           >
             <uni-icons class="like-icon" :type="c.hasLiked === 1 ? 'heart-filled' : 'heart'" size="32" :color="c.hasLiked === 1 ? 'var(--color-primary-text)' : 'var(--text-hint)'"></uni-icons>
-            <text class="like-count">{{ c.likeCount > 0 ? c.likeCount : '' }}</text>
+            <text class="like-count">{{ c.likeCount > 0 ? formatCount(c.likeCount) : '' }}</text>
           </a11y-button>
         </view>
         <view v-if="loading && list.length > 0" class="load-more">加载中...</view>
@@ -47,10 +47,20 @@ import { ref, computed, watch } from "vue";
 import A11yDialog from "@/components/a11y-dialog.vue";
 import A11yButton from "@/components/a11y-button.vue";
 import { getVideoComments, publishVideoComment, likeVideoComment, dislikeVideoComment } from "@/api/video";
+import { formatCount } from "@/utils/format";
 import type { Comment } from "@/api/circle";
 
 const props = defineProps<{ visible: boolean; videoId: string }>();
 const emit = defineEmits<{ (e: "close"): void }>();
+
+/**
+ * 后端部分日期字符串含异常分隔符（如 "2026年10月31??19:22"），
+ * 在前端兜底清洗：将连续问号替换为空格，去除多余空白
+ */
+function formatDate(value?: string): string {
+  if (!value) return "";
+  return value.replace(/\?+/g, " ").replace(/\s+/g, " ").trim();
+}
 
 const PAGE_SIZE = 10;
 const list = ref<Comment[]>([]);
@@ -62,11 +72,15 @@ const text = ref("");
 
 const hasMore = computed(() => page.value < pages.value);
 
+/** 请求代际令牌：reload 递增，在途旧请求返回时丢弃，避免关开后重开列表错乱 */
+let loadToken = 0;
+
 watch(() => props.visible, (v) => { if (v && props.videoId) reload(); });
 
 function close() { emit("close"); }
 
 async function reload() {
+  loadToken++;
   page.value = 1;
   list.value = [];
   await load();
@@ -74,16 +88,20 @@ async function reload() {
 
 async function load() {
   if (loading.value) return;
+  const token = loadToken;
+  const targetPage = page.value;
   loading.value = true;
   try {
-    const res = await getVideoComments(props.videoId, { page: page.value, pagesize: PAGE_SIZE });
-    list.value = page.value === 1 ? (res.items || []) : list.value.concat(res.items || []);
+    const res = await getVideoComments(props.videoId, { page: targetPage, pagesize: PAGE_SIZE });
+    if (token !== loadToken) return;
+    list.value = targetPage === 1 ? (res.items || []) : list.value.concat(res.items || []);
     pages.value = res.pages || 1;
     total.value = res.counts || 0;
   } catch {
-    // request 层统一 toast
+    // request 层统一 toast；失败页码回退，hasMore 恢复可重试
+    if (token === loadToken && targetPage > 1) page.value = targetPage - 1;
   } finally {
-    loading.value = false;
+    if (token === loadToken) loading.value = false;
   }
 }
 
@@ -93,17 +111,20 @@ async function loadMore() {
   await load();
 }
 
-/** 点赞 / 取消点赞 */
+/** 发送中标记（防连点重复发评论） */
+const sending = ref(false);
+
+/** 点赞 / 取消点赞：计数以接口返回的最新值为准 */
 async function toggleLike(c: Comment) {
   try {
     if (c.hasLiked === 1) {
-      await dislikeVideoComment(c.id);
+      const count = await dislikeVideoComment(c.id);
       c.hasLiked = 0;
-      c.likeCount = Math.max(0, c.likeCount - 1);
+      if (typeof count === "number") c.likeCount = count;
     } else {
-      await likeVideoComment(c.id);
+      const count = await likeVideoComment(c.id);
       c.hasLiked = 1;
-      c.likeCount += 1;
+      if (typeof count === "number") c.likeCount = count;
     }
   } catch {
     // request 层统一 toast
@@ -113,7 +134,8 @@ async function toggleLike(c: Comment) {
 /** 发送评论，成功后刷新列表 */
 async function send() {
   const content = text.value.trim();
-  if (!content || !props.videoId) return;
+  if (!content || !props.videoId || sending.value) return;
+  sending.value = true;
   try {
     await publishVideoComment(props.videoId, content);
     text.value = "";
@@ -121,11 +143,13 @@ async function send() {
     await reload();
   } catch {
     // request 层统一 toast
+  } finally {
+    sending.value = false;
   }
 }
 </script>
 
-
+<style lang="scss" scoped>
 .drawer-mask { position: fixed; left: 0; top: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 999; display: flex; align-items: flex-end; }
 .drawer-panel { width: 100%; height: 70vh; background: var(--bg-card); border-radius: 32rpx 32rpx 0 0; display: flex; flex-direction: column; animation: slideUp 0.25s ease; }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
@@ -154,3 +178,4 @@ async function send() {
   .send-btn { margin-left: 20rpx; font-size: 28rpx; color: var(--text-hint); min-height: 48rpx; &.active { color: var(--color-primary-text); } }
 }
 .ph { color: var(--text-hint); }
+</style>

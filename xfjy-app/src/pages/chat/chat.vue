@@ -111,6 +111,7 @@ import {
   sendTextMessage,
   sendStructuredMessage,
   getChatHistory,
+  type ReceivedMessage,
 } from "@/utils/easemob";
 
 /** 默认头像路径 */
@@ -180,7 +181,7 @@ let audioContext: UniApp.InnerAudioContext | null = null;
 let voiceStartAt = 0;
 
 // 录音完成：上传 → 以 JSON 管道发送（type:"voice", url, duration）
-recorderManager.onStop((res) => {
+function onRecorderStop(res: any): void {
   const duration = Date.now() - voiceStartAt;
   if (duration < MIN_VOICE_DURATION_MS) {
     uni.showToast({ title: "说话时间太短", icon: "none" });
@@ -188,7 +189,8 @@ recorderManager.onStop((res) => {
   }
   if (!res.tempFilePath) return;
   pushMessage("voice", res.tempFilePath, { duration: Math.round(duration / 1000) });
-});
+}
+recorderManager.onStop(onRecorderStop);
 
 /** 语音按钮按下：开始录音 */
 function onVoiceStart(): void {
@@ -422,7 +424,7 @@ async function chooseCardContact(): Promise<void> {
 function openCard(msg: Message): void {
   const cardUserId = msg.extra?.userId;
   if (!cardUserId) return;
-  uni.navigateTo({ url: `/pages/match/detail?userId=${cardUserId}` });
+  uni.navigateTo({ url: `/pages/match/detail?id=${cardUserId}` });
 }
 
 /**
@@ -461,6 +463,28 @@ function showTodoToast(feature: string): void {
 
 /** 接收对方新消息回调（onUnmounted 注销） */
 let unregisterMessage: (() => void) | null = null;
+/** 历史消息是否已填充（填充前的实时消息进 pending 缓冲，填充后实时追加） */
+const historyLoaded = ref(false);
+
+/** 环信实时消息 → 本地消息结构 */
+function toReceivedItem(msg: ReceivedMessage): Message {
+  return {
+    id: `recv-${msg.time}-${++recvMsgSeq}`,
+    type: msg.type,
+    content: msg.content,
+    extra: msg.extra,
+    isMine: false,
+    avatar: peerAvatar.value,
+    timestamp: msg.time,
+    status: "read",
+  };
+}
+
+/** 追加一条实时到达消息并滚到底 */
+function appendReceived(msg: ReceivedMessage): void {
+  messageList.value.push(toReceivedItem(msg));
+  scrollToBottom();
+}
 
 onLoad(async (options: any) => {
   userId.value = options?.userId || "";
@@ -485,16 +509,27 @@ onLoad(async (options: any) => {
       .catch(() => {});
   }
 
-  // 环信 SDK 登录 → 拉历史 → 注册消息接收
+  // 环信 SDK 登录 → 注册消息接收 → 拉历史
   try {
     const credential = await getHuanXinUser();
     if (credential.username && credential.token) {
       const ok = await loginEasemob(credential.username, credential.token);
       if (ok) {
-        // 拉取历史消息填充列表
+        // 先注册消息到达回调再拉历史：历史是最后一次性赋值的，
+        // 在途实时消息先进 pending 缓冲，避免注册晚于拉取导致消息丢失
+        const pending: ReceivedMessage[] = [];
+        unregisterMessage = onMessageReceived((msg) => {
+          if (msg.from !== userId.value) return;
+          if (historyLoaded.value) {
+            appendReceived(msg);
+          } else {
+            pending.push(msg);
+          }
+        });
+
         const history = await getChatHistory(userId.value);
         const myId = credential.username;
-        messageList.value = history.map((msg, i) => ({
+        const historyItems: Message[] = history.map((msg, i) => ({
           id: `hist-${i}-${msg.time}`,
           type: msg.type,
           content: msg.content,
@@ -504,23 +539,17 @@ onLoad(async (options: any) => {
           timestamp: msg.time,
           status: "read" as MsgStatus,
         }));
-        scrollToBottom();
-
-        // 注册消息到达回调：仅处理当前会话对方的消息
-        unregisterMessage = onMessageReceived((msg) => {
-          if (msg.from !== userId.value) return;
-          messageList.value.push({
-            id: `recv-${msg.time}-${++recvMsgSeq}`,
-            type: msg.type,
-            content: msg.content,
-            extra: msg.extra,
-            isMine: false,
-            avatar: peerAvatar.value,
-            timestamp: msg.time,
-            status: "read",
-          });
-          scrollToBottom();
+        // 合并缓冲：按时间排序并以 timestamp 去重（历史可能已含在途消息）
+        const buffered = pending.map(toReceivedItem);
+        const merged = [...historyItems, ...buffered].sort((a, b) => a.timestamp - b.timestamp);
+        const seen = new Set<number>();
+        messageList.value = merged.filter((item) => {
+          if (seen.has(item.timestamp)) return false;
+          seen.add(item.timestamp);
+          return true;
         });
+        historyLoaded.value = true;
+        scrollToBottom();
       }
     }
   } catch {
@@ -529,6 +558,9 @@ onLoad(async (options: any) => {
 });
 
 onUnmounted(() => {
+  // 注销录音回调：否则离页后 stop/onStop 链可能在新实例注册后重复触发
+  // （offStop 运行时存在，但 @dcloudio/types 的 RecorderManager 声明缺该方法）
+  (recorderManager as any).offStop?.(onRecorderStop);
   if (unregisterMessage) {
     unregisterMessage();
     unregisterMessage = null;
@@ -538,7 +570,7 @@ onUnmounted(() => {
 });
 </script>
 
-
+<style lang="scss" scoped>
 .chat-room { height: 100vh; display: flex; flex-direction: column; background: var(--bg-sub); }
 
 /* ===== 消息列表 ===== */
@@ -628,3 +660,4 @@ onUnmounted(() => {
 .more-item { width: 25%; display: flex; flex-direction: column; align-items: center; gap: 14rpx; }
 .more-icon { width: 104rpx; height: 104rpx; border-radius: 24rpx; display: flex; align-items: center; justify-content: center; font-size: 44rpx; box-shadow: 0 6rpx 16rpx rgba(0, 0, 0, 0.08); }
 .more-label { font-size: 24rpx; color: var(--text-secondary); }
+</style>

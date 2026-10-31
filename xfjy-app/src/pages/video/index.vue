@@ -33,7 +33,6 @@
               class="video-player"
               :src="video.videoUrl"
               :autoplay="idx === swiperIndex"
-              :paused="!isPlaying"
               loop
               :muted="isMuted"
               :controls="false"
@@ -57,9 +56,9 @@
           <!-- 透明点击层：单击暂停/播放，双击点赞（纯手势层，另有显式按钮） -->
           <view class="tap-layer" aria-hidden="true" @click="onVideoTap(video, $event)" />
 
-          <!-- 中央播放/暂停指示（暂停时显示大播放键） -->
+          <!-- 中央播放/暂停指示（暂停时显示大播放键：CSS 三角，避免安卓把 ▶ 渲染成 emoji） -->
           <view v-if="currentId === video.id && !isPlaying" class="center-state" aria-hidden="true">
-            <text class="play-icon">▶</text>
+            <view class="play-icon" />
           </view>
 
           <!-- 双击飞出的爱心（纯装饰动画） -->
@@ -89,32 +88,22 @@
                 :label="video.hasLiked === 1 ? `取消点赞，当前 ${video.likeCount} 赞` : `点赞，当前 ${video.likeCount} 赞`"
                 @tap="handleLike(video)"
               >
-                <view class="icon-circle" :class="{ liked: video.hasLiked === 1 }">
-                  <uni-icons class="icon-text" :type="video.hasLiked === 1 ? 'heart-filled' : 'heart'" :color="video.hasLiked === 1 ? '#ff5e9c' : '#fff'" size="26"></uni-icons>
+                <view class="side-ico" :class="{ 'like-pop': video.hasLiked === 1 }">
+                  <uni-icons :type="video.hasLiked === 1 ? 'heart-filled' : 'heart'" :color="video.hasLiked === 1 ? '#ff5e9c' : '#fff'" size="30"></uni-icons>
                 </view>
-                <text class="side-count">{{ video.likeCount }}</text>
+                <text class="side-count">{{ formatCount(video.likeCount) }}</text>
               </a11y-button>
 
               <a11y-button class="side-btn btn-feedback" :label="`查看评论，共 ${video.commentCount} 条`" @tap="showComments(video)">
-                <view class="icon-circle">
-                  <uni-icons class="icon-text" type="chatbubble" color="#fff" size="26"></uni-icons>
+                <view class="side-ico">
+                  <uni-icons type="chatbubble" color="#fff" size="30"></uni-icons>
                 </view>
-                <text class="side-count">{{ video.commentCount }}</text>
+                <text class="side-count">{{ formatCount(video.commentCount) }}</text>
               </a11y-button>
 
               <a11y-button class="side-btn btn-feedback" :label="`分享 ${video.nickname} 的视频`" @tap="openShare(video)">
-                <view class="icon-circle">
-                  <text class="icon-text" aria-hidden="true">↗</text>
-                </view>
-              </a11y-button>
-
-              <a11y-button
-                class="side-btn btn-feedback"
-                :label="isMuted ? '取消静音' : '静音'"
-                @tap="toggleMute"
-              >
-                <view class="icon-circle">
-                  <uni-icons class="icon-text" :type="isMuted ? 'sound' : 'sound-filled'" color="#fff" size="26"></uni-icons>
+                <view class="side-ico">
+                  <uni-icons type="redo" color="#fff" size="30"></uni-icons>
                 </view>
               </a11y-button>
             </view>
@@ -224,6 +213,7 @@ import A11yButton from "@/components/a11y-button.vue";
 import EmptyState from "@/components/empty-state.vue";
 import Skeleton from "@/components/skeleton.vue";
 import A11yDialog from "@/components/a11y-dialog.vue";
+import { formatCount } from "@/utils/format";
 
 /** 分页大小 */
 const PAGE_SIZE = 10;
@@ -288,16 +278,34 @@ let lastPlayedIndex = -1;
 /** 单击/双击判定 */
 let lastTapTime = 0;
 let singleTapTimer: ReturnType<typeof setTimeout> | null = null;
+/** 双击冷却截止时间：冷却期内忽略浏览器/触摸产生的残留点击事件 */
+let doubleTapCooldownUntil = 0;
 
 /** uni-app 的上下文仍用于 onShow/onHide 等显式恢复场景，暂停/切换交由 autoplay + paused 托管 */
 const instance = getCurrentInstance();
 
+function getCtx(index: number) {
+  const video = displayList.value[index];
+  if (!video) return null;
+  return uni.createVideoContext("vid-" + video.id, instance?.proxy as any);
+}
+
+/** 命令式播放：uni-h5 不支持 paused 属性绑定，必须通过 ctx 显式控制 */
 function playAt(index: number) {
   const video = displayList.value[index];
   if (!video) return;
   lastPlayedIndex = index;
-  const ctx = uni.createVideoContext("vid-" + video.id, instance?.proxy as any);
-  ctx?.play();
+  getCtx(index)?.play();
+}
+
+/** 命令式暂停 */
+function pauseAt(index: number) {
+  getCtx(index)?.pause();
+}
+
+/** H5 首次用户手势后解除静音（浏览器自动播放策略要求首次必须 muted 起播） */
+function unlockAudio() {
+  if (isH5 && isMuted.value) isMuted.value = false;
 }
 
 // 位置变化时退出残留的点击判定与待触发的单击计时（滑切自带"播放新视频"语义）
@@ -310,11 +318,15 @@ watch(swiperIndex, () => {
 });
 
 /** 滑动切换：video 节点常驻，无需重建，只同步播放态与预加载 */
+/** 滑动切换：显式暂停旧视频、播放新视频，避免多视频同时发声或状态错乱 */
 function onSwiperChange(e: any) {
   const index = e.detail.current;
+  const old = swiperIndex.value;
+  if (old !== index) pauseAt(old);
   swiperIndex.value = index;
   isPlaying.value = true;
   progress.value = 0;
+  unlockAudio();
   playAt(index);
   if (index >= displayList.value.length - 2) {
     loadMoreVideos();
@@ -359,11 +371,6 @@ const floatHearts = ref<{ id: number; x: number; y: number }[]>([]);
 const showShare = ref(false);
 const shareVideo = ref<Video | null>(null);
 
-/** 切换静音 */
-function toggleMute() {
-  isMuted.value = !isMuted.value;
-}
-
 /** 搜索（暂未上线） */
 function onSearch(): void {
   uni.showToast({ title: "搜索功能即将上线", icon: "none" });
@@ -385,26 +392,44 @@ async function switchChannel(ch: ChannelKey) {
   }
 }
 
+/** 单击/双击判定间隔与单击延迟（对齐抖音：单击延迟执行，给双击留出判定窗口） */
+const TAP_GAP = 280;
+
 /**
- * 透明层点击：单击立即暂停/播放，250ms 内第二次点击撤销单击并视为双击（点赞）
+ * 透明层点击：第一次点击延迟 280ms 再切换播放/暂停；
+ * 280ms 内第二次点击视为双击点赞，并撤销待执行的单击
  */
 function onVideoTap(video: Video, e: any) {
   const now = Date.now();
-  if (now - lastTapTime < 250) {
+  // 双击冷却期内的残留事件直接忽略，避免其误触发暂停
+  if (now < doubleTapCooldownUntil) return;
+  if (now - lastTapTime < TAP_GAP) {
     if (singleTapTimer) {
       clearTimeout(singleTapTimer);
       singleTapTimer = null;
-      // 撤销第一次单击造成的暂停，恢复播放
-      isPlaying.value = true;
     }
     lastTapTime = 0;
+    doubleTapCooldownUntil = now + TAP_GAP;
     doubleLike(video, e);
   } else {
     lastTapTime = now;
-    isPlaying.value = !isPlaying.value;
     singleTapTimer = setTimeout(() => {
       singleTapTimer = null;
-    }, 250);
+      togglePlay();
+    }, TAP_GAP);
+  }
+}
+
+/** 单击到点：命令式切换播放/暂停 */
+function togglePlay() {
+  const idx = swiperIndex.value;
+  if (isPlaying.value) {
+    isPlaying.value = false;
+    pauseAt(idx);
+  } else {
+    isPlaying.value = true;
+    unlockAudio();
+    playAt(idx);
   }
 }
 
@@ -651,7 +676,7 @@ onShareAppMessage(() => ({
 }));
 </script>
 
-
+<style lang="scss" scoped>
 .video-page {
   height: calc(100vh - var(--window-bottom, 0px));
   background: #000;
@@ -756,10 +781,16 @@ onShareAppMessage(() => ({
   z-index: 6;
   pointer-events: none;
 
+  /* CSS 三角：border-left 实色 + 上下透明 = 向右播放键；跨端兼容（小程序不支持 clip-path） */
   .play-icon {
-    font-size: 140rpx;
-    color: rgba(255, 255, 255, 0.85);
-    text-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.4);
+    width: 0;
+    height: 0;
+    border-left: 48rpx solid rgba(255, 255, 255, 0.85);
+    border-top: 34rpx solid transparent;
+    border-bottom: 34rpx solid transparent;
+    /* 三角几何中心偏左，右移修正视觉居中 */
+    margin-left: 14rpx;
+    filter: drop-shadow(0 4rpx 16rpx rgba(0, 0, 0, 0.4));
   }
 }
 
@@ -812,20 +843,24 @@ onShareAppMessage(() => ({
     align-items: center;
     gap: 8rpx;
 
-    .icon-circle {
-      width: 88rpx;
-      height: 88rpx;
-      border-radius: 50%;
+    .side-ico {
+      width: 80rpx;
+      height: 80rpx;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: transform 0.2s ease;
     }
 
-    .icon-text {
-      font-size: 52rpx;
-      color: #fff;
-      line-height: 1;
+    /* 点赞弹动（抖音式）：点赞瞬间放大再回弹 */
+    .like-pop {
+      animation: likePop 0.35s ease;
+    }
+
+    @keyframes likePop {
+      0% { transform: scale(1); }
+      35% { transform: scale(1.35); }
+      70% { transform: scale(0.9); }
+      100% { transform: scale(1); }
     }
 
     .side-count {
@@ -1096,13 +1131,15 @@ onShareAppMessage(() => ({
       }
     }
 
-    /* #999 → #767676；触摸目标加高 */
+    /* 触摸目标加高至 88rpx（≈44px，满足 WCAG 2.5.5 目标尺寸） */
     .share-cancel {
-      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 30rpx;
       color: var(--text-hint);
       padding: 24rpx 0;
-      min-height: 48rpx;
+      min-height: 88rpx;
       border-top: 1rpx solid var(--border-faint);
       margin-top: 8rpx;
     }
@@ -1113,4 +1150,4 @@ onShareAppMessage(() => ({
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
 }
-
+</style>

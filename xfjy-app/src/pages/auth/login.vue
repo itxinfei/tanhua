@@ -84,7 +84,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onUnmounted } from "vue";
 import { useUserStore } from "@/store/user";
 import A11yButton from "@/components/a11y-button.vue";
 
@@ -135,16 +135,25 @@ async function handleSendCode() {
   }
 }
 
+/** 倒计时定时器句柄：页面卸载时清理，避免离页后 setInterval 继续跑 */
+let countdownTimer: ReturnType<typeof setInterval> | null = null;
+
 /** 启动验证码倒计时 */
 function startCountdown() {
+  if (countdownTimer) clearInterval(countdownTimer);
   countdown.value = COUNTDOWN_SECONDS;
-  const timer = setInterval(() => {
+  countdownTimer = setInterval(() => {
     countdown.value--;
-    if (countdown.value <= 0) {
-      clearInterval(timer);
+    if (countdown.value <= 0 && countdownTimer) {
+      clearInterval(countdownTimer);
+      countdownTimer = null;
     }
   }, COUNTDOWN_INTERVAL_MS);
 }
+
+onUnmounted(() => {
+  if (countdownTimer) clearInterval(countdownTimer);
+});
 
 // 跳转用户协议 / 隐私政策落地页
 function openAgreement(type: 'user' | 'privacy') {
@@ -168,7 +177,7 @@ async function handleLogin() {
 }
 </script>
 
-
+<style lang="scss" scoped>
 .login-page {
   min-height: 100vh;
   background: linear-gradient(180deg, var(--color-primary-deep) 0%, var(--color-primary) 30%, #f5f5f5 60%);
@@ -272,7 +281,7 @@ async function handleLogin() {
 
     &:focus {
       border-color: var(--color-primary);
-      box-shadow: 0 0 0 4rpx rgba(255, 94, 142, 0.12);
+      box-shadow: 0 0 0 4rpx rgba(255, 94, 156, 0.12);
       background: var(--bg-card);
     }
   }
@@ -358,10 +367,11 @@ async function handleLogin() {
   font-weight: bold;
   border-radius: 48rpx;
   border: none;
-  box-shadow: 0 12rpx 32rpx rgba(255, 94, 142, 0.35);
+  box-shadow: 0 12rpx 32rpx rgba(255, 94, 156, 0.35);
 
   &.disabled {
     opacity: 0.5;
     box-shadow: none;
   }
 }
+</style>

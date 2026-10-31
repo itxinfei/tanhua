@@ -1,5 +1,5 @@
 import { get, post } from "@/utils/request";
-import { getToken, BASE_URL } from "@/utils/request";
+import { getToken, BASE_URL, handleUnauthorized } from "@/utils/request";
 import type { PageResult, PageParam, Comment } from "@/api/circle";
 
 /**
@@ -60,9 +60,28 @@ export function publishVideo(param: PublishVideoParam): Promise<void> {
       ],
       header,
       success: (res: any) => {
+        if (res.statusCode === 401) {
+          handleUnauthorized();
+          reject(new Error("登录已过期，请重新登录"));
+          return;
+        }
         if (res.statusCode >= 400) {
           uni.showToast({ title: `发布失败(${res.statusCode})`, icon: "none" });
           reject(new Error(`HTTP ${res.statusCode}`));
+          return;
+        }
+        // 与 request 层对齐：HTTP 200 仍需校验业务 code，否则失败会被当成功
+        let body: { code?: number; message?: string };
+        try {
+          body = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
+        } catch {
+          uni.showToast({ title: "服务异常，请稍后再试", icon: "none" });
+          reject(new Error("响应格式错误"));
+          return;
+        }
+        if (body.code !== undefined && body.code !== 200) {
+          uni.showToast({ title: body.message || "发布失败", icon: "none" });
+          reject(new Error(body.message));
           return;
         }
         resolve();

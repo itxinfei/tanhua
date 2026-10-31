@@ -34,7 +34,7 @@ withDefaults(
 );
 </script>
 
-
+<style lang="scss" scoped>
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -88,4 +88,4 @@ withDefaults(
     color: rgba(255, 255, 255, 0.5);
   }
 }
-
+</style>

@@ -24,6 +24,7 @@ import A11yButton from "@/components/a11y-button.vue";
 const phoneLabelId = "change-phone-label";
 const codeLabelId = "change-code-label";
 import { sendSmsCode, changePhone } from "@/api/auth";
+import { safeGoBack } from "@/utils/nav";
 
 const phone = ref('');
 const code = ref('');
@@ -68,7 +69,7 @@ async function submit() {
   try {
     await changePhone(phone.value, code.value);
     uni.showToast({ title: '换绑成功', icon: 'success' });
-    setTimeout(() => uni.navigateBack(), 800);
+    setTimeout(() => safeGoBack("/pages/mine/index"), 800);
   } catch {
     // 403/409 由 request 层统一 toast
   } finally {
@@ -77,7 +78,7 @@ async function submit() {
 }
 </script>
 
-
+<style lang="scss" scoped>
 .change-phone-page { min-height: 100vh; background: var(--bg-sub); padding: 24rpx; }
 /* 提示文案 #999（≈2.85:1）→ #767676 */
 .tips { font-size: 24rpx; color: var(--text-hint); line-height: 1.6; margin-bottom: 24rpx; }
@@ -97,3 +98,4 @@ async function submit() {
 .submit-btn { margin-top: 60rpx; background: var(--color-primary); color: #fff; font-size: 30rpx; border-radius: 48rpx; height: 88rpx; line-height: 88rpx;
   &[disabled] { opacity: 0.6; }
 }
+</style>

@@ -72,7 +72,18 @@ const matchHandlers: MatchHandler[] = [];
  * 此处按实际使用的方法收敛声明，初始化时统一断言，不影响运行时行为
  */
 interface EasemobClient {
-  addEventHandler(id: string, handlers: { onMessage?: (message: Message) => void }): void;
+  addEventHandler(
+    id: string,
+    handlers: {
+      onMessage?: (message: Message) => void;
+      /** 连接建立（首连与 SDK 自动重连成功都会触发） */
+      onConnected?: () => void;
+      /** 连接断开（SDK 会自动重连，重连成功后再次 onConnected） */
+      onDisconnected?: () => void;
+      /** 登录 token 过期（需重新向后端换 token 登录） */
+      onTokenExpired?: () => void;
+    }
+  ): void;
   login(params: { userId: string; token: string }): Promise<unknown>;
   logout(): Promise<unknown>;
   refreshSessionList(params: { includeEmpty: boolean }): Promise<ConversationItem[]>;
@@ -221,6 +232,11 @@ function getClient(): EasemobClient {
       const received = toReceivedMessage(message);
       if (!received) return;
       messageHandlers.forEach((handler) => handler(received));
+    },
+    /** token 过期：置脏登录态，下次进入页面走 App.onShow 的 getHuanXinUser 重新换 token 登录
+        （短暂断线无需处理：SDK 内置自动重连，重连成功后会话继续，isLoggedIn 保持不回置） */
+    onTokenExpired() {
+      isLoggedIn = false;
     },
   });
   return client;

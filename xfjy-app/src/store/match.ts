@@ -83,7 +83,9 @@ export const useMatchStore = defineStore("match", () => {
     loading.value = true;
     try {
       const list = await getCards();
-      cards.value.push(...list);
+      // 按 id 去重后追加：分页间隙服务端可能重复下发同一用户
+      const knownIds = new Set(cards.value.map((card) => card.id));
+      cards.value.push(...list.filter((card) => !knownIds.has(card.id)));
       return list;
     } finally {
       loading.value = false;
@@ -101,13 +103,16 @@ export const useMatchStore = defineStore("match", () => {
     userId: number | string,
     action: "like" | "dislike" | "superlike"
   ): Promise<boolean> {
-    swipeCount.value++;
-    persistDailyCount(SWIPE_COUNT_STORAGE_KEY, swipeCount.value);
+    // 先上报、成功后才计数：请求失败时不计次，避免失败重试白白消耗今日额度
+    let matched = false;
     if (action === "dislike") {
       await unloveUser(userId);
-      return false;
+    } else {
+      matched = await loveUser(userId);
     }
-    return await loveUser(userId);
+    swipeCount.value++;
+    persistDailyCount(SWIPE_COUNT_STORAGE_KEY, swipeCount.value);
+    return matched;
   }
 
   /**

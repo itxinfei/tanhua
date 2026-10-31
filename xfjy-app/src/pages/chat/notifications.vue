@@ -131,9 +131,10 @@ function mapAnnouncementItem(msg: MessageAnnouncement): NoticeItem {
   };
 }
 
-/** 加载当前类型的通知列表 */
-async function loadList(): Promise<void> {
-  if (loading.value) return;
+/** 加载当前类型的通知列表
+ * @returns 是否加载成功（失败时不清未读，避免"没看到却清零"） */
+async function loadList(): Promise<boolean> {
+  if (loading.value) return false;
   loading.value = true;
   try {
     const params = { page: 1, pagesize: PAGE_SIZE };
@@ -170,8 +171,10 @@ async function loadList(): Promise<void> {
       // visitors / fans 后端暂无接口，显示空状态
       list.value = [];
     }
+    return true;
   } catch {
     // 请求失败由 request 层统一 toast
+    return false;
   } finally {
     loading.value = false;
   }
@@ -183,9 +186,9 @@ onLoad((options: any) => {
 });
 
 onShow(async () => {
-  await loadList();
-  // 真正进入通知页并完成加载后才清零未读，避免入口误触即丢未读计数
-  chatStore.markNoticeRead(type.value as NoticeType);
+  const ok = await loadList();
+  // 真正进入通知页并完成加载后才清零未读，避免入口误触或加载失败即丢计数
+  if (ok) chatStore.markNoticeRead(type.value as NoticeType);
 });
 
 /** 下拉刷新：重新拉取当前类型通知列表 */
@@ -198,7 +201,7 @@ onPullDownRefresh(async () => {
 });
 </script>
 
-
+<style lang="scss" scoped>
 .notifications-page { min-height: 100vh; background: var(--bg-sub); padding: 20rpx 24rpx; }
 
 .notice-item { display: flex; align-items: center; padding: 24rpx; background: var(--bg-card); border-radius: 24rpx; margin-bottom: 16rpx;
@@ -222,3 +225,4 @@ onPullDownRefresh(async () => {
   .locked-desc { font-size: 24rpx; color: var(--text-hint); margin-top: 12rpx; text-align: center; }
   .locked-btn { margin-top: 40rpx; width: 320rpx; height: 80rpx; line-height: 80rpx; background: linear-gradient(90deg, #ffd700, #ffb347); color: #1a1a2e; font-size: 28rpx; font-weight: bold; border-radius: 40rpx; border: none; }
 }
+</style>

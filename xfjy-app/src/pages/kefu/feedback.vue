@@ -109,7 +109,7 @@ function statusClass(status: number): string {
 }
 </script>
 
-
+<style lang="scss" scoped>
 .feedback-page {
   height: 100vh;
   background: var(--bg-sub);
@@ -278,3 +278,4 @@ function statusClass(status: number): string {
     }
   }
 }
+</style>

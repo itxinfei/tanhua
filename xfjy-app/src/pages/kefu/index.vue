@@ -17,7 +17,7 @@
     </view>
 
     <scroll-view class="faq-scroll" scroll-y>
-      <empty-state icon="chatbubble" :title="keyword ? '未找到相关问题' : '暂无常见问题'" :desc="keyword ? '换个关键词，或直接咨询在线客服' : '可直接提交意见反馈联系我们'" />
+      <empty-state v-if="groupedList.length === 0 && !loading" icon="chatbubble" :title="keyword ? '未找到相关问题' : '暂无常见问题'" :desc="keyword ? '换个关键词，或直接咨询在线客服' : '可直接提交意见反馈联系我们'" />
 
       <view v-for="group in groupedList" :key="group.category" class="faq-group">
         <view class="group-title">
@@ -125,7 +125,7 @@ function goFeedback(): void {
 }
 </script>
 
-
+<style lang="scss" scoped>
 .kefu-page {
   height: 100vh;
   background: var(--bg-sub);
@@ -282,3 +282,4 @@ function goFeedback(): void {
     }
   }
 }
+</style>

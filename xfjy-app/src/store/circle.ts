@@ -14,6 +14,9 @@ import {
 /** 默认分页大小 */
 const DEFAULT_PAGE_SIZE = 10;
 
+/** 发布成功后写 storage 的刷新标记键（圈子页 onShow 消费后清除） */
+export const CIRCLE_NEED_REFRESH_KEY = "xfjy_circle_need_refresh";
+
 /**
  * 圈子动态状态管理
  * 管理好友动态/推荐动态双 Tab 列表的分页加载与互动状态
@@ -194,6 +197,19 @@ export const useCircleStore = defineStore("circle", () => {
     return allMovements.find((item) => item.id === movementId);
   }
 
+  /** 清除状态（登出时调用，避免换账号残留上一账号的动态列表） */
+  function clear(): void {
+    activeTab.value = "friend";
+    friendMovements.value = [];
+    friendPage.value = 1;
+    friendHasMore.value = true;
+    friendLoading.value = false;
+    recommendMovements.value = [];
+    recommendPage.value = 1;
+    recommendHasMore.value = true;
+    recommendLoading.value = false;
+  }
+
   return {
     activeTab,
     friendMovements,
@@ -208,5 +224,6 @@ export const useCircleStore = defineStore("circle", () => {
     switchTab,
     toggleLike,
     toggleLove,
+    clear,
   };
 });

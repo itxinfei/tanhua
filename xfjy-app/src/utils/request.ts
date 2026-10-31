@@ -41,6 +41,32 @@ export const removeToken = (): void => {
   uni.removeStorageSync("xfjy_token");
 };
 
+/** 401 并发去重：多个在途请求同时过期时只清一次状态、只跳一次登录 */
+let redirectingToLogin = false;
+
+/**
+ * 登录过期统一处理：清本地 token + 重置 userStore 登录态 + reLaunch 登录页
+ * userStore 用动态 import，避免 request.ts ← store 的循环依赖
+ */
+export function handleUnauthorized(): void {
+  removeToken();
+  if (redirectingToLogin) return;
+  redirectingToLogin = true;
+  import("@/store/user")
+    .then((m) => {
+      m.useUserStore().token = "";
+    })
+    .catch(() => {})
+    .finally(() => {
+      uni.reLaunch({
+        url: "/pages/auth/login",
+        complete: () => {
+          redirectingToLogin = false;
+        },
+      });
+    });
+}
+
 /**
  * 核心请求函数
  */
@@ -80,8 +106,7 @@ function request<T = any>(options: RequestOptions): Promise<T> {
 
         // HTTP 状态码处理
         if (res.statusCode === 401) {
-          removeToken();
-          uni.reLaunch({ url: "/pages/auth/login" });
+          handleUnauthorized();
           reject(new Error("登录已过期，请重新登录"));
           return;
         }
@@ -95,8 +120,8 @@ function request<T = any>(options: RequestOptions): Promise<T> {
 
         // 400 内容审核拒发
         if (res.statusCode === 400) {
-          uni.showToast({ title: "内容包含违规信息，请修改后发布", icon: "none" });
-          reject(new Error("内容审核未通过"));
+          uni.showToast({ title: "操作失败，请检查输入内容", icon: "none" });
+          reject(new Error("请求参数校验失败"));
           return;
         }
 
@@ -174,10 +199,9 @@ export function upload<T = any>(
       formData,
       header,
       success: (res: any) => {
-        // 401 登录过期：清 token 跳登录页（与 request 函数对齐）
+        // 401 登录过期：统一走 handleUnauthorized（与 request 函数对齐）
         if (res.statusCode === 401) {
-          removeToken();
-          uni.reLaunch({ url: "/pages/auth/login" });
+          handleUnauthorized();
           reject(new Error("登录已过期，请重新登录"));
           return;
         }
@@ -189,8 +213,8 @@ export function upload<T = any>(
         }
         // 400 内容审核拒发
         if (res.statusCode === 400) {
-          uni.showToast({ title: "内容包含违规信息，请修改后发布", icon: "none" });
-          reject(new Error("内容审核未通过"));
+          uni.showToast({ title: "操作失败，请检查输入内容", icon: "none" });
+          reject(new Error("请求参数校验失败"));
           return;
         }
         if (res.statusCode >= 400) {
@@ -205,6 +229,12 @@ export function upload<T = any>(
           // 网关/代理返回 HTML 错误页等非 JSON 内容
           uni.showToast({ title: "服务异常，请稍后再试", icon: "none" });
           reject(new Error("响应格式错误"));
+          return;
+        }
+        // 业务状态码校验（与 request 函数对齐：HTTP 200 但 code≠200 视为失败）
+        if (body.code !== undefined && body.code !== 200) {
+          uni.showToast({ title: body.message || "上传失败", icon: "none" });
+          reject(new Error(body.message));
           return;
         }
         resolve(body.data !== undefined ? body.data : (body as unknown as T));

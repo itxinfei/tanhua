@@ -182,6 +182,16 @@
 				"iconPath": "static/tabbar/circle.png",
 				"selectedIconPath": "static/tabbar/circle-active.png"
 			},
+			// #ifdef MP-WEIXIN
+			// 微信小程序不支持 midButton，H5 的中央发布键在 mp 产物中被丢弃，
+			// 这里给 mp 端补第 5 个 tab 项，保证发布入口可达
+			{
+				"pagePath": "pages/circle/publish",
+				"text": "发布",
+				"iconPath": "static/tabbar/publish.png",
+				"selectedIconPath": "static/tabbar/publish.png"
+			},
+			// #endif
 			{
 			"pagePath": "pages/video/index",
 			"text": "视频",
@@ -195,12 +205,12 @@
 			"selectedIconPath": "static/tabbar/mine-active.png"
 		}
 	],
+	// #ifdef H5
+	// 对标抖音：中间发布键不使用图标、不显示文字，仅由 App.vue 全局样式绘制一个“+”
 	"midButton": {
 		"width": "50px",
-		"height": "50px",
-		"iconWidth": "26px",
-		"iconPath": "static/tabbar/publish.png",
-		"text": "发布"
+		"height": "50px"
 	}
+	// #endif
 }
 }

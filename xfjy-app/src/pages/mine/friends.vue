@@ -36,7 +36,7 @@
       @refresherrefresh="onRefresh"
       @scrolltolower="loadMore"
     >
-      <empty-state icon="person" title="暂无数据" desc="去探花频道发现更多有缘人" />
+      <empty-state v-if="userList.length === 0 && !loading" icon="person" title="暂无数据" desc="去探花频道发现更多有缘人" />
 
       <!-- 每行 = 一个可聚焦的列表项 + 独立操作按钮（避免可聚焦元素嵌套） -->
       <view v-for="user in userList" :key="user.id" class="user-row">
@@ -141,9 +141,12 @@ function switchTab(type: string): void {
   loadList();
 }
 
+/** 加载序号：切 Tab/搜索并发时，仅最新一次请求的响应允许写入列表（防滞后响应覆盖） */
+let loadSeq = 0;
+
 /** 加载列表（首页） */
 async function loadList(): Promise<void> {
-  if (loading.value) return;
+  const seq = ++loadSeq;
   loading.value = true;
   try {
     const result = await getFriendList(
@@ -151,11 +154,13 @@ async function loadList(): Promise<void> {
       { page: 1, pagesize: DEFAULT_PAGE_SIZE },
       keyword.value || undefined
     );
+    // 响应返回时已切换到更新的请求（切Tab/搜索），丢弃本次结果
+    if (seq !== loadSeq) return;
     userList.value = result.items || [];
     currentPage.value = 1;
     hasMore.value = (result.items?.length || 0) >= DEFAULT_PAGE_SIZE;
   } finally {
-    loading.value = false;
+    if (seq === loadSeq) loading.value = false;
   }
 }
 
@@ -172,6 +177,7 @@ async function onRefresh(): Promise<void> {
 /** 加载更多（上拉） */
 async function loadMore(): Promise<void> {
   if (loading.value || !hasMore.value) return;
+  const seq = loadSeq;
   loading.value = true;
   try {
     const nextPage = currentPage.value + 1;
@@ -180,11 +186,13 @@ async function loadMore(): Promise<void> {
       { page: nextPage, pagesize: DEFAULT_PAGE_SIZE },
       keyword.value || undefined
     );
+    // 翻页期间发生了切Tab/刷新（序号已变），丢弃本次结果
+    if (seq !== loadSeq) return;
     userList.value.push(...(result.items || []));
     currentPage.value = nextPage;
     hasMore.value = (result.items?.length || 0) >= DEFAULT_PAGE_SIZE;
   } finally {
-    loading.value = false;
+    if (seq === loadSeq) loading.value = false;
   }
 }
 
@@ -220,7 +228,7 @@ function goDetail(userId: string): void {
 }
 </script>
 
-
+<style lang="scss" scoped>
 .friends-page {
   height: 100vh;
   display: flex;
@@ -358,3 +366,4 @@ function goDetail(userId: string): void {
     color: var(--text-hint);
   }
 }
+</style>

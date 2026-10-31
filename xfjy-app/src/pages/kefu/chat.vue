@@ -20,6 +20,15 @@
         <view class="agent-avatar" v-if="!msg.isMine" aria-hidden="true"><uni-icons type="headphones" size="40" color="var(--color-primary)"></uni-icons></view>
         <view class="bubble-wrap" :class="{ mine: msg.isMine }">
           <view v-if="msg.isMine && msg.status === 'sending'" class="status-loading" aria-hidden="true" />
+          <!-- 失败：红点提示 + 点击重发 -->
+          <a11y-button
+            v-else-if="msg.isMine && msg.status === 'failed'"
+            class="status-failed"
+            :label="`发送失败，重新发送：${msg.content}`"
+            @tap="retrySend(msg)"
+          >
+            <text>!</text>
+          </a11y-button>
           <view class="bubble pop-in" :class="{ mine: msg.isMine }">
             <text>{{ msg.content }}</text>
           </view>
@@ -78,6 +87,7 @@ import {
   onMessageReceived,
   sendTextMessage,
   getChatHistory,
+  type ReceivedMessage,
 } from "@/utils/easemob";
 
 /** 默认头像 */
@@ -93,7 +103,7 @@ const QUICK_QUESTIONS: string[] = [
 ];
 
 /** 消息发送状态 */
-type MsgStatus = "sending" | "sent" | "read";
+type MsgStatus = "sending" | "sent" | "read" | "failed";
 /** 聊天消息结构（客服会话仅文本） */
 interface Message {
   id: string;
@@ -148,22 +158,21 @@ function scrollToBottom(): void {
 async function sendText(): Promise<void> {
   const text = inputText.value.trim();
   if (!text || sending.value) return;
-  await doSend(text);
   inputText.value = "";
+  await sendMessage(text);
 }
 
 /** 点击快捷问题直接发送 */
 async function sendQuick(text: string): Promise<void> {
   if (sending.value) return;
-  await doSend(text);
+  await sendMessage(text);
 }
 
 /** 本地消息自增序号（避免 Date.now() 同毫秒撞 id） */
 let msgSeq = 0;
 
-/** 实际发送逻辑：追加消息并通过环信 SDK 发送 */
-async function doSend(text: string): Promise<void> {
-  sending.value = true;
+/** 发送新消息：追加气泡 → SDK 发送 → 按结果置 sent/failed */
+async function sendMessage(text: string): Promise<void> {
   const msg: Message = {
     id: `local-${Date.now()}-${++msgSeq}`,
     content: text,
@@ -173,10 +182,23 @@ async function doSend(text: string): Promise<void> {
   };
   messageList.value.push(msg);
   scrollToBottom();
-  const ok = await sendTextMessage(agentId.value, text);
-  msg.status = ok ? "sent" : "sending";
+  await deliver(msg);
+}
+
+/** 失败重发：复用原气泡 */
+async function retrySend(msg: Message): Promise<void> {
+  if (sending.value) return;
+  await deliver(msg);
+}
+
+/** 实际投递：成功置 sent，失败置 failed（可点击重发） */
+async function deliver(msg: Message): Promise<void> {
+  sending.value = true;
+  msg.status = "sending";
+  const ok = await sendTextMessage(agentId.value, msg.content);
+  msg.status = ok ? "sent" : "failed";
   if (!ok) {
-    uni.showToast({ title: "发送失败，请稍后重试", icon: "none" });
+    uni.showToast({ title: "发送失败，点击气泡旁的 ! 重发", icon: "none" });
   }
   sending.value = false;
 }
@@ -204,30 +226,53 @@ onLoad(async () => {
     const ok = await loginEasemob(credential.username, credential.token);
     if (!ok) return;
 
-    // 3. 拉取与客服的历史消息
+    // 3. 先注册消息到达回调再拉历史：历史是最后一次性赋值的，
+    //    在途实时消息先进 pending 缓冲，避免注册晚于拉取导致消息丢失
+    const pending: ReceivedMessage[] = [];
+    let historyLoaded = false;
+    unregisterMessage = onMessageReceived((msg) => {
+      if (msg.from !== agentId.value) return;
+      if (historyLoaded) {
+        messageList.value.push({
+          id: `recv-${msg.time}`,
+          content: msg.content,
+          isMine: false,
+          timestamp: msg.time,
+          status: "read",
+        });
+        scrollToBottom();
+      } else {
+        pending.push(msg);
+      }
+    });
+
+    // 4. 拉取与客服的历史消息
     const history = await getChatHistory(agentId.value);
     const myId = credential.username;
-    messageList.value = history.map((msg, i) => ({
+    const historyItems: Message[] = history.map((msg, i) => ({
       id: `hist-${i}-${msg.time}`,
       content: msg.content,
       isMine: msg.from === myId,
       timestamp: msg.time,
       status: "read" as MsgStatus,
     }));
-    scrollToBottom();
-
-    // 4. 注册消息到达回调：仅处理客服消息
-    unregisterMessage = onMessageReceived((msg) => {
-      if (msg.from !== agentId.value) return;
-      messageList.value.push({
-        id: `recv-${msg.time}`,
-        content: msg.content,
-        isMine: false,
-        timestamp: msg.time,
-        status: "read",
-      });
-      scrollToBottom();
+    // 合并缓冲：按时间排序并以 timestamp 去重（历史可能已含在途消息）
+    const buffered: Message[] = pending.map((msg) => ({
+      id: `recv-${msg.time}`,
+      content: msg.content,
+      isMine: false,
+      timestamp: msg.time,
+      status: "read" as MsgStatus,
+    }));
+    const merged = [...historyItems, ...buffered].sort((a, b) => a.timestamp - b.timestamp);
+    const seen = new Set<number>();
+    messageList.value = merged.filter((item) => {
+      if (seen.has(item.timestamp)) return false;
+      seen.add(item.timestamp);
+      return true;
     });
+    historyLoaded = true;
+    scrollToBottom();
   } catch {
     // 环信登录失败静默降级
   }
@@ -241,7 +286,7 @@ onUnmounted(() => {
 });
 </script>
 
-
+<style lang="scss" scoped>
 .chat-room { height: 100vh; display: flex; flex-direction: column; background: var(--bg-sub); }
 
 .vip-banner { display: flex; align-items: center; justify-content: center; gap: 8rpx;
@@ -269,6 +314,9 @@ onUnmounted(() => {
     &.mine { flex-direction: row-reverse; }
   }
   .status-loading { width: 28rpx; height: 28rpx; border: 3rpx solid var(--border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+  .status-failed { width: 36rpx; height: 36rpx; border-radius: 50%; background: #ff3b30; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    text { font-size: 24rpx; color: #fff; font-weight: bold; line-height: 1; }
+  }
   .bubble { position: relative; padding: 20rpx 24rpx; border-radius: 20rpx; background: var(--bg-card); font-size: 28rpx; line-height: 1.5; color: var(--text-primary); box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
     &::before { content: ""; position: absolute; top: 28rpx; width: 0; height: 0; border-top: 10rpx solid transparent; border-bottom: 10rpx solid transparent; }
     &:not(.mine) { border-top-left-radius: 6rpx;
@@ -300,3 +348,4 @@ onUnmounted(() => {
   text { color: #fff; font-size: 28rpx; font-weight: 500; }
   &.disabled { background: #c7c7c7; }
 }
+</style>

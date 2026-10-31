@@ -13,18 +13,11 @@
 
     <!-- 卡片区域 -->
     <view class="card-area">
-      <!-- 骨架卡片（首屏加载中，模拟堆叠效果）：占位元素，对读屏隐藏 -->
-      <skeleton
-        v-if="cardList.length === 0 && loading"
-        variant="match"
-        :stack-count="VISIBLE_CARD_COUNT"
-        :stack-scale-step="CARD_SCALE_STEP"
-        :stack-offset-step="CARD_OFFSET_STEP_RPX"
-        :stack-base-z="CARD_BASE_Z_INDEX"
-      />
+      <!-- 骨架卡片（首屏加载中）：与真实卡片同几何（全屏铺底单卡） -->
+      <skeleton v-if="cardList.length === 0 && loading" variant="match" />
 
-      <!-- 空状态 -->
-      <empty-state title="暂无推荐" desc="稍后再来看看，缘分不期而至" />
+      <!-- 空状态：仅加载完成且无卡片时显示（否则会与骨架/卡片叠显） -->
+      <empty-state v-if="cardList.length === 0 && !loading" title="暂无推荐" desc="稍后再来看看，缘分不期而至" />
 
       <!-- 卡片堆叠（从后往前渲染） -->
       <view
@@ -137,10 +130,6 @@ const CARD_REMOVE_DELAY_MS = 300;
 const CARD_TRANSITION = "transform 0.3s ease-out";
 /** 卡片堆叠基础层级 */
 const CARD_BASE_Z_INDEX = 30;
-/** 后置卡片缩放步长（每层缩小 5%） */
-const CARD_SCALE_STEP = 0.05;
-/** 后置卡片垂直偏移步长（rpx） */
-const CARD_OFFSET_STEP_RPX = 20;
 /** 滑动旋转角度除数（dragX / 此值 = 旋转角度） */
 const ROTATE_DIVISOR = 20;
 /** 滑动提示透明度计算除数 */
@@ -191,7 +180,7 @@ const nopeOpacity = computed(() =>
   Math.min(Math.max(-dragX.value / OPACITY_DIVISOR, 0), 1)
 );
 
-/** 计算卡片堆叠样式：顶部卡片跟随手势，后置卡片逐层缩放偏移 */
+/** 计算卡片堆叠样式：顶部卡片跟随手势；后置卡片全屏垫底，滑走即直接露出（无缩放动画） */
 function getCardStyle(index: number) {
   if (index === 0) {
     // 顶部卡片跟随手势位移并微旋转
@@ -201,39 +190,62 @@ function getCardStyle(index: number) {
       transition: isDragging.value ? "none" : CARD_TRANSITION,
     };
   }
-  // 后置卡片逐层缩放渐隐
-  const scale = 1 - index * CARD_SCALE_STEP;
-  const translateY = index * CARD_OFFSET_STEP_RPX;
   return {
-    transform: `scale(${scale}) translateY(${translateY}rpx)`,
     zIndex: CARD_BASE_Z_INDEX - index,
-    transition: CARD_TRANSITION,
   };
 }
 
 // ===== 手势处理 =====
+/**
+ * touchmove 合帧节流：拖拽位移先攒进 pending，requestAnimationFrame 每帧只提交一次，
+ * 避免高频事件下 Vue 逐事件重排渲染造成的滑动卡顿；
+ * 部分小程序运行时无 requestAnimationFrame，降级为直接更新
+ */
+const supportsRaf = typeof requestAnimationFrame === "function";
+let dragRafId = 0;
+let pendingDragX = 0;
+let pendingDragY = 0;
+
 /** 触摸开始：记录起始坐标，仅响应顶部卡片 */
 function onTouchStart(e: TouchEvent, index: number) {
   if (index !== 0) return;
   isDragging.value = true;
   touchStartX.value = e.touches[0].clientX;
   touchStartY.value = e.touches[0].clientY;
+  pendingDragX = 0;
+  pendingDragY = 0;
 }
 
-/** 触摸移动：换算 px → rpx 后驱动卡片位移 */
+/** 触摸移动：换算 px → rpx 后攒入 pending，帧末统一驱动卡片位移 */
 function onTouchMove(e: TouchEvent, index: number) {
   if (index !== 0 || !isDragging.value) return;
-  const deltaX = e.touches[0].clientX - touchStartX.value;
-  const deltaY = e.touches[0].clientY - touchStartY.value;
   // rpx 换算比例已在 onMounted 缓存（750rpx / 屏幕宽度px），避免高频同步取系统信息
-  dragX.value = deltaX * rpxRatio.value;
-  dragY.value = deltaY * rpxRatio.value;
+  pendingDragX = (e.touches[0].clientX - touchStartX.value) * rpxRatio.value;
+  pendingDragY = (e.touches[0].clientY - touchStartY.value) * rpxRatio.value;
+  if (!supportsRaf) {
+    dragX.value = pendingDragX;
+    dragY.value = pendingDragY;
+    return;
+  }
+  if (dragRafId) return;
+  dragRafId = requestAnimationFrame(() => {
+    dragRafId = 0;
+    dragX.value = pendingDragX;
+    dragY.value = pendingDragY;
+  });
 }
 
 /** 触摸结束：超过阈值判定滑出，否则回弹复位 */
 function onTouchEnd(_e: TouchEvent, index: number) {
   if (index !== 0) return;
   isDragging.value = false;
+  // 提交最后一帧的 pending 位移，保证阈值判定用的是松手时刻的真实位置
+  if (dragRafId) {
+    cancelAnimationFrame(dragRafId);
+    dragRafId = 0;
+  }
+  dragX.value = pendingDragX;
+  dragY.value = pendingDragY;
   if (dragX.value > SWIPE_THRESHOLD_RPX) {
     swipeOut("like");
   } else if (dragX.value < -SWIPE_THRESHOLD_RPX) {
@@ -333,7 +345,9 @@ async function loadMoreCards() {
   try {
     const newCards = await getCards();
     if (newCards && newCards.length > 0) {
-      cardList.value.push(...newCards);
+      // 按 id 去重后追加：分页间隙服务端可能重复下发同一用户
+      const knownIds = new Set(cardList.value.map((card) => card.id));
+      cardList.value.push(...newCards.filter((card) => !knownIds.has(card.id)));
     }
   } catch {
     // 请求失败由 request 层统一 toast
@@ -364,6 +378,10 @@ onUnmounted(() => {
     clearTimeout(cardRemoveTimer);
     cardRemoveTimer = null;
   }
+  if (dragRafId) {
+    cancelAnimationFrame(dragRafId);
+    dragRafId = 0;
+  }
 });
 
 onShow(() => {
@@ -383,22 +401,27 @@ onShareAppMessage(() => ({
 }));
 </script>
 
-
+<style lang="scss" scoped>
 .match-page {
+  position: relative;
   height: calc(100vh - var(--window-bottom, 0px));
   background: var(--bg-page);
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
 }
 
+/* 顶栏悬浮在卡片图片上方：透明渐变底保证照片上文字可读 */
 .top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0 32rpx;
   height: 88rpx;
-  background: var(--bg-card);
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.38), transparent);
 
   .city {
     display: flex;
@@ -408,41 +431,39 @@ onShareAppMessage(() => ({
     .city-name {
       font-size: 32rpx;
       font-weight: bold;
+      color: #fff;
     }
 
-    /* 下拉箭头原 #999（≈2.85:1）→ #767676 */
     .arrow {
       font-size: 24rpx;
-      color: var(--text-hint);
+      color: rgba(255, 255, 255, 0.85);
     }
   }
 
   .filter-btn {
     font-size: 28rpx;
-    color: var(--color-primary);
-    background: var(--bg-icon-soft);
+    color: #fff;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1rpx solid rgba(255, 255, 255, 0.35);
     padding: 8rpx 24rpx;
     border-radius: 24rpx;
   }
 }
 
+/* 卡片区全屏铺底：图片最大化，操作栏/顶栏悬浮其上 */
 .card-area {
-  flex: 1;
-  position: relative;
-  padding: 24rpx;
+  position: absolute;
+  inset: 0;
   overflow: hidden;
 }
 
 .card-wrapper {
   position: absolute;
-  left: 24rpx;
-  right: 24rpx;
-  top: 24rpx;
-  bottom: 24rpx;
-  border-radius: 32rpx;
+  inset: 0;
   overflow: hidden;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08), 0 16rpx 48rpx rgba(0, 0, 0, 0.12);
   background: var(--bg-card);
+  /* 拖拽期间浏览器需逐帧合成 transform，提升为独立图层避免整卡重绘 */
+  will-change: transform;
 
   .card-image {
     position: absolute;
@@ -464,8 +485,9 @@ onShareAppMessage(() => ({
     position: absolute;
     left: 0;
     right: 0;
-    bottom: 0;
-    padding: 32rpx;
+    /* 抬高到悬浮操作栏之上（操作栏高约 148rpx + 安全区） */
+    bottom: calc(160rpx + env(safe-area-inset-bottom, 0px));
+    padding: 0 32rpx;
 
     .name-row {
       display: flex;
@@ -531,10 +553,9 @@ onShareAppMessage(() => ({
       .tag {
         font-size: 22rpx;
         color: #fff;
-        background: rgba(255, 255, 255, 0.18);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1rpx solid rgba(255, 255, 255, 0.25);
+        /* 卡片拖拽期间 backdrop-filter 会逐帧重算模糊导致卡顿，改用半透底近似毛玻璃观感 */
+        background: rgba(255, 255, 255, 0.24);
+        border: 1rpx solid rgba(255, 255, 255, 0.35);
         padding: 4rpx 16rpx;
         border-radius: 20rpx;
       }
@@ -543,7 +564,8 @@ onShareAppMessage(() => ({
 
   .swipe-hint {
     position: absolute;
-    top: 80rpx;
+    /* 卡片全屏后下移，避开悬浮顶栏区域 */
+    top: 180rpx;
     font-size: 44rpx;
     font-weight: 900;
     letter-spacing: 4rpx;
@@ -567,13 +589,19 @@ onShareAppMessage(() => ({
   }
 }
 
+/* 悬浮在卡片图片之上：透明底 + 底部渐变压暗，按钮自身白底圆徽保证对比度 */
 .action-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 32rpx;
   padding: 24rpx 0;
-  background: var(--bg-card);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.3), transparent);
 
   .action-btn {
     display: flex;
@@ -609,3 +637,4 @@ onShareAppMessage(() => ({
     }
   }
 }
+</style>

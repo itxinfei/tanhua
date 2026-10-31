@@ -25,13 +25,6 @@ export function login(phone: string, code: string): Promise<LoginResult> {
 }
 
 /**
- * Token 续签
- */
-export function refreshToken(): Promise<{ token: string }> {
-  return post<{ token: string }>("/auth/refresh");
-}
-
-/**
  * 换绑手机号（需验证新手机号的短信验证码）
  * 对接后端: PUT /user/phone（xfjy-sso 服务）
  * 失败状态码：403 验证码错误 / 409 手机号已被占用

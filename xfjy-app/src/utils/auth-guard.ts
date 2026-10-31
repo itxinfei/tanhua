@@ -36,8 +36,19 @@ function wrapNav<K extends "navigateTo" | "redirectTo" | "reLaunch" | "switchTab
     writable: true,
     configurable: true,
     value(options: NavOptions & Parameters<typeof original>[0]) {
-      if (!checkLogin(options.url)) return;
+      if (!checkLogin(options.url)) {
+        // 被拦截时不能静默丢弃回调：调用方（尤其 await 导航的）必须感知失败
+        const opts = options as {
+          fail?: (err: unknown) => void;
+          complete?: (err: unknown) => void;
+        };
+        const err = { errMsg: `${name}:fail 未登录，已拦截跳转` };
+        opts.fail?.(err);
+        opts.complete?.(err);
+        return Promise.reject(err) as never;
+      }
       original(options as never);
+      return undefined as never;
     },
   });
 }

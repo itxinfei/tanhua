@@ -79,7 +79,7 @@ function handleKeydown(e: any, opt: RadioOption): void {
 }
 </script>
 
-
+<style lang="scss" scoped>
 .a11y-radio-group {
   display: contents;
 }
@@ -91,4 +91,4 @@ function handleKeydown(e: any, opt: RadioOption): void {
     outline-offset: 2px;
   }
 }
-
+</style>

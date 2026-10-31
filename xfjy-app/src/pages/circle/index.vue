@@ -142,7 +142,7 @@ import Skeleton from "@/components/skeleton.vue";
 import { onShow, onShareAppMessage } from "@dcloudio/uni-app";
 import MatchPopup from "@/components/match-popup.vue";
 import A11yButton from "@/components/a11y-button.vue";
-import { useCircleStore } from "@/store/circle";
+import { useCircleStore, CIRCLE_NEED_REFRESH_KEY } from "@/store/circle";
 import type { Movement } from "@/api/circle";
 import { getContacts, type Contact } from "@/api/chat";
 import { useChatStore, type NoticeType } from "@/store/chat";
@@ -338,7 +338,14 @@ function chatItemLabel(contact: ChatListItem): string {
 /* ---------------- 生命周期 ---------------- */
 onShow(() => {
   if (topTab.value === "circle") {
-    if (feedList.value.length === 0) loadFeed();
+    // 发布成功返回时强制刷新；否则仅在列表为空时加载
+    const needRefresh = uni.getStorageSync(CIRCLE_NEED_REFRESH_KEY) === "1";
+    if (needRefresh) {
+      uni.removeStorageSync(CIRCLE_NEED_REFRESH_KEY);
+      loadFeed();
+    } else if (feedList.value.length === 0) {
+      loadFeed();
+    }
   } else {
     loadMessages();
     chatStore.loadNoticeCounts();
@@ -351,7 +358,7 @@ onShareAppMessage(() => ({
 }));
 </script>
 
-
+<style lang="scss" scoped>
 .social-page {
   height: calc(100vh - var(--window-bottom, 0px));
   display: flex;
@@ -693,4 +700,4 @@ onShareAppMessage(() => ({
     }
   }
 }
-
+</style>

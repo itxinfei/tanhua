@@ -257,8 +257,8 @@ async function sendDeleteCode() {
     uni.showToast({ title: '验证码已发送', icon: 'none' });
     inputDeleteCode();
   } catch (e) {
+    // 失败提示由 request 层统一 toast，此处仅关 loading，避免双 toast 叠显
     uni.hideLoading();
-    uni.showToast({ title: '验证码发送失败', icon: 'none' });
   }
 }
 
@@ -285,15 +285,15 @@ function inputDeleteCode() {
         uni.showToast({ title: '账号已注销', icon: 'success' });
         userStore.signOutAll();
       } catch (e) {
+        // 失败提示由 request 层统一 toast（验证码错误也是 400，文案由请求层给出）
         uni.hideLoading();
-        uni.showToast({ title: '验证码错误，注销失败', icon: 'none' });
       }
     },
   });
 }
 </script>
 
-
+<style lang="scss" scoped>
 .settings-page { min-height: 100vh; background: var(--bg-sub); padding: 20rpx 24rpx 80rpx; }
 
 .group { background: var(--bg-card); margin: 0 0 24rpx; padding: 8rpx 32rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
@@ -321,3 +321,4 @@ function inputDeleteCode() {
 .delete-account { text-align: center; padding: 32rpx; min-height: 48rpx;
   text { font-size: 26rpx; color: #c62828; }
 }
+</style>

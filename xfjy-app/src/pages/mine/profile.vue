@@ -84,6 +84,7 @@ import { useUserStore } from "@/store/user";
 import A11yRadioGroup from "@/components/a11y-radio-group.vue";
 import A11yButton from "@/components/a11y-button.vue";
 import { getUserProfile, updateUserProfile, uploadImage } from "@/api/mine";
+import { safeGoBack } from "@/utils/nav";
 
 /** 照片墙最大数量 */
 const MAX_ALBUM_COUNT = 6;
@@ -187,7 +188,7 @@ async function handleSave(): Promise<void> {
     });
     userStore.updateUserInfo(form.value);
     uni.showToast({ title: "保存成功", icon: "success" });
-    setTimeout(() => uni.navigateBack(), 800);
+    setTimeout(() => safeGoBack("/pages/mine/index"), 800);
   } catch {
     // request 层统一 toast
   } finally {
@@ -221,7 +222,7 @@ onShow(async () => {
 });
 </script>
 
-
+<style lang="scss" scoped>
 .profile-page { min-height: 100vh; background: var(--bg-sub); padding-bottom: 180rpx; }
 
 /* ===== 头像行 ===== */
@@ -265,9 +266,9 @@ onShow(async () => {
   .arrow { font-size: 32rpx; color: var(--text-hint); margin-left: 8rpx; }
 }
 
-/* 性别色块选择器 */
+/* 性别色块选择器（选项节点在 a11y-radio-group 组件内部，需 :deep 穿透） */
 .gender-picker { flex: 1; display: flex; gap: 20rpx; justify-content: flex-end; }
-.gender-opt { display: flex; align-items: center; gap: 8rpx; padding: 12rpx 28rpx; border-radius: 32rpx; font-size: 26rpx; border: 2rpx solid var(--border-light); transition: all 0.2s;
+.gender-picker :deep(.gender-opt) { display: flex; align-items: center; gap: 8rpx; padding: 12rpx 28rpx; border-radius: 32rpx; font-size: 26rpx; border: 2rpx solid var(--border-light); transition: all 0.2s;
   .gender-label { color: var(--text-secondary); }
   &.male.active { background: linear-gradient(135deg, #4a90d9, #6bb0f5); border-color: #4a90d9; box-shadow: 0 4rpx 14rpx rgba(74, 144, 217, 0.3);
     .gender-label { color: #fff; }
@@ -279,3 +280,4 @@ onShow(async () => {
 
 /* ===== 保存按钮 ===== */
 .save-btn { position: fixed; left: 32rpx; right: 32rpx; bottom: calc(40rpx + env(safe-area-inset-bottom, 0px)); height: 88rpx; line-height: 88rpx; color: #fff; font-size: 32rpx; font-weight: bold; border-radius: 44rpx; border: none; }
+</style>

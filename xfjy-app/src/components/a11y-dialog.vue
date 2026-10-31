@@ -96,7 +96,7 @@ function handleKeydown(e: any): void {
 }
 </script>
 
-
+<style lang="scss" scoped>
 .a11y-dialog {
   &:focus-visible,
   &:focus {
@@ -108,4 +108,4 @@ function handleKeydown(e: any): void {
 .a11y-dialog__panel {
   width: 100%;
 }
-
+</style>

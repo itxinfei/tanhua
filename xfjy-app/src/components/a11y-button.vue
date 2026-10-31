@@ -71,7 +71,7 @@ function handleKeydown(e: any): void {
 }
 </script>
 
-
+<style lang="scss" scoped>
 .a11y-btn {
   /* WCAG 2.4.7 Focus Visible：键盘聚焦必须可见 */
   &:focus-visible {
@@ -89,4 +89,4 @@ function handleKeydown(e: any): void {
     cursor: not-allowed;
   }
 }
-
+</style>

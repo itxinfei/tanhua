@@ -37,7 +37,7 @@ function goChat(): void {
 }
 </script>
 
-
+<style lang="scss" scoped>
 .match-popup {
   position: fixed;
   inset: 0;
@@ -115,4 +115,4 @@ function goChat(): void {
     }
   }
 }
-
+</style>

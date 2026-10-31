@@ -47,6 +47,32 @@ export const useUserStore = defineStore("user", () => {
     uni.reLaunch({ url: "/pages/auth/login" });
   }
 
+  /**
+   * 全量登出（退出登录/注销账号统一入口）：
+   * 清空各业务 store + 断开环信连接 + 清 token 并回登录页。
+   * 缺一步都会造成换账号后残留旧账号的会话/数据
+   */
+  async function signOutAll(): Promise<void> {
+    const [{ useMatchStore }, { useChatStore }, { useCircleStore }, { useSystemStore }, easemob] =
+      await Promise.all([
+        import("@/store/match"),
+        import("@/store/chat"),
+        import("@/store/circle"),
+        import("@/store/system"),
+        import("@/utils/easemob"),
+      ]);
+    useMatchStore().clear();
+    useChatStore().clear();
+    useCircleStore().clear();
+    useSystemStore().clear();
+    try {
+      await easemob.logoutEasemob();
+    } catch {
+      // 环信登出失败不阻断本地清理
+    }
+    logout();
+  }
+
   /** 更新本地用户信息（编辑资料后同步） */
   function updateUserInfo(partial: Partial<UserInfo>): void {
     if (userInfo.value) {
@@ -80,6 +106,7 @@ export const useUserStore = defineStore("user", () => {
     sendCode,
     doLogin,
     logout,
+    signOutAll,
     updateUserInfo,
     fetchUserInfo,
   };

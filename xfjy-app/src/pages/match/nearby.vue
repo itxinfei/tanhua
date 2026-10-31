@@ -3,16 +3,61 @@
     <!-- 筛选栏 -->
     <!-- 筛选栏（单选语义 + 可键盘操作） -->
     <view class="filter-bar" role="radiogroup" aria-label="筛选条件">
-      <a11y-button class="filter-item btn-feedback" v-for="d in distances" :key="d" role="radio" :checked="distance === d" :label="d === 0 ? '距离不限' : `距离 ${d} 公里以内`" @tap="distance = d">
+      <a11y-button class="filter-item btn-feedback" :class="{ active: distance === d }" v-for="d in distances" :key="d" role="radio" :checked="distance === d" :label="d === 0 ? '距离不限' : `距离 ${d} 公里以内`" @tap="distance = d">
         <text>{{ d === 0 ? '全部' : d + 'km' }}</text>
       </a11y-button>
-      <a11y-button class="filter-item gender btn-feedback" role="radio" :checked="gender === '女'" :label="`性别筛选：${gender}`" @tap="gender = gender === '女' ? '全部' : '女'">
+      <a11y-button class="filter-item gender btn-feedback" :class="{ active: gender !== '全部' }" role="radio" :checked="gender === '女'" :label="`性别筛选：${gender}`" @tap="gender = gender === '女' ? '全部' : '女'">
         <text>{{ gender }}</text>
       </a11y-button>
     </view>
 
     <!-- 用户列表 -->
-    <empty-state icon="location" title="附近暂无用户" desc="扩大搜索范围或稍后再来看看" />
+    <view class="user-list">
+      <!-- 每行 = 卡片主体（点击进详情）+ 独立喜欢按钮，避免可聚焦元素嵌套 -->
+      <view v-for="user in userList" :key="user.userId" class="user-row">
+        <a11y-button
+          class="user-item"
+          :label="`查看 ${user.nickname || '未设置昵称'} 的个人主页`"
+          @tap="goDetail(user.userId)"
+        >
+          <view class="avatar-wrap">
+            <image
+              class="avatar"
+              :src="user.avatar || '/static/logo/logo-icon-transparent.png'"
+              mode="aspectFill"
+              lazy-load
+              aria-hidden="true"
+            />
+          </view>
+          <view class="info">
+            <view class="name-row">
+              <text class="nickname">{{ user.nickname || '未设置昵称' }}</text>
+              <text v-if="user.age" class="age-badge">{{ user.age }}岁</text>
+            </view>
+            <view v-if="user.city" class="distance-tag">
+              <text>{{ user.city }}</text>
+            </view>
+          </view>
+        </a11y-button>
+        <a11y-button
+          class="like-btn btn-feedback"
+          :label="`喜欢 ${user.nickname || '该用户'}`"
+          @tap="handleQuickLike(user.userId)"
+        >
+          <text aria-hidden="true">♥</text>
+        </a11y-button>
+      </view>
+
+      <view v-if="userList.length === 0 && loading" class="loading-tip">
+        <text>加载中...</text>
+      </view>
+      <empty-state
+        v-if="userList.length === 0 && !loading"
+        icon="location"
+        title="附近暂无用户"
+        desc="扩大搜索范围或稍后再来看看"
+      />
+    </view>
   </view>
 </template>
 
@@ -85,7 +130,7 @@ onPullDownRefresh(async () => {
 });
 </script>
 
-
+<style lang="scss" scoped>
 .nearby-page { min-height: 100vh; background: var(--bg-sub); }
 
 /* ===== 筛选栏 ===== */
@@ -127,3 +172,4 @@ onPullDownRefresh(async () => {
   /* #ccc → #767676 */
   text { font-size: 24rpx; color: var(--text-hint); }
 }
+</style>

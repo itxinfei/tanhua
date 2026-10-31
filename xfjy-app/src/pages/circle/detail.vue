@@ -109,7 +109,7 @@ onLoad((options: any) => {
 });
 </script>
 
-
+<style lang="scss" scoped>
 .post-detail { min-height: 100vh; background: var(--bg-sub); padding: 20rpx 24rpx 120rpx; }
 .post-card { background: var(--bg-card); padding: 28rpx; margin-bottom: 16rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   .post-header { display: flex; align-items: center;
@@ -147,3 +147,4 @@ onLoad((options: any) => {
 .comment-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 16rpx 24rpx; background: var(--bg-card); box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.05);
   .comment-input { height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; }
 }
+</style>
