@@ -76,18 +76,18 @@
             <span v-else class="no-media">无视频</span>
           </template>
         </el-table-column>
-        <el-table-column label="位置" width="120" show-overflow-tooltip>
+        <el-table-column v-if="!isMobile" label="位置" width="120" show-overflow-tooltip>
           <template #default="{ row }">
             {{ row.locationName || '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="互动" width="110" align="center">
+        <el-table-column v-if="!isMobile" label="互动" width="110" align="center">
           <template #default="{ row }">
             <span class="stat-text">赞 {{ row.likeCount }}</span>
             <span class="stat-text">评 {{ row.commentCount }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="发布时间" width="170">
+        <el-table-column v-if="!isMobile" label="发布时间" width="170">
           <template #default="{ row }">
             {{ formatDateTime(row.created) }}
           </template>
@@ -166,10 +166,14 @@
 import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { PageHeader, SearchBar, TableCard } from '@/components'
+import { useResponsive } from '@/composables/useResponsive'
 import { getVideoPageApi, deleteVideoApi } from '@/api/video'
 import type { VideoItem } from '@/api/video'
 import request from '@/api/request'
 import { formatDateTime } from '@/utils/format'
+
+// 响应式列可见性：移动端隐藏次要列（位置/互动/发布时间）
+const { isMobile } = useResponsive()
 
 const loading = ref(false)
 const tableData = ref<VideoItem[]>([])

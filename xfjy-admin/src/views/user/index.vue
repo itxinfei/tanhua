@@ -45,7 +45,7 @@
       </template>
       <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="50" align="center" :selectable="() => true" />
-        <el-table-column type="index" label="#" width="50" align="center" />
+        <el-table-column v-if="!isMobile" type="index" label="#" width="50" align="center" />
         <el-table-column label="头像" width="70" align="center">
           <template #default="{ row }">
             <el-avatar :size="36" :src="row.avatar">
@@ -60,9 +60,9 @@
             <el-tag :type="row.gender === '女' ? 'danger' : 'primary'" size="small">{{ row.gender }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="age" label="年龄" width="70" align="center" />
-        <el-table-column prop="city" label="城市" width="90" />
-        <el-table-column label="VIP" width="70" align="center">
+        <el-table-column v-if="!isMobile" prop="age" label="年龄" width="70" align="center" />
+        <el-table-column v-if="!isMobile" prop="city" label="城市" width="90" />
+        <el-table-column v-if="!isMobile" label="VIP" width="70" align="center">
           <template #default="{ row }">
             <el-tag v-if="row.vipLevel > 0" type="warning" size="small">V{{ row.vipLevel }}</el-tag>
             <span v-else class="text-muted">-</span>
@@ -73,8 +73,8 @@
             <StatusTag :status="row.status" :mapping="userStatusMapping" />
           </template>
         </el-table-column>
-        <el-table-column prop="createdAt" label="注册时间" width="170" />
-        <el-table-column prop="lastActiveAt" label="最后活跃" width="170" />
+        <el-table-column v-if="!isMobile" prop="createdAt" label="注册时间" width="170" />
+        <el-table-column v-if="!isMobile" prop="lastActiveAt" label="最后活跃" width="170" />
         <el-table-column label="操作" width="220" fixed="right" align="center">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="goDetail(row.id)">详情</el-button>
@@ -150,12 +150,15 @@ import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
 import { PageHeader, SearchBar, TableCard, StatusTag } from '@/components'
+import { useResponsive } from '@/composables/useResponsive'
 import { getUserPageApi, freezeUserApi, unfreezeUserApi, resetUserPasswordApi, exportUsersApi } from '@/api/user'
 import type { UserItem, UserQuery } from '@/api/user'
 import request from '@/api/request'
 import UserDetailDrawer from './detail.vue'
 
 const route = useRoute()
+// 响应式列可见性：移动端隐藏次要列（序号/年龄/城市/VIP/注册时间/最后活跃）
+const { isMobile } = useResponsive()
 const loading = ref(false)
 const tableData = ref<UserItem[]>([])
 const total = ref(0)

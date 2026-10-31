@@ -69,7 +69,7 @@
 
     <TableCard>
       <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" empty-text="暂无敏感词数据">
-        <el-table-column prop="id" label="ID" width="70" align="center" />
+        <el-table-column v-if="!isMobile" prop="id" label="ID" width="70" align="center" />
         <el-table-column prop="word" label="敏感词" min-width="160" show-overflow-tooltip />
         <el-table-column label="分类" width="90" align="center">
           <template #default="{ row }">
@@ -86,7 +86,7 @@
             <StatusTag :status="String(row.status)" :mapping="sensitiveStatusMapping" />
           </template>
         </el-table-column>
-        <el-table-column prop="updated" label="更新时间" width="170" />
+        <el-table-column v-if="!isMobile" prop="updated" label="更新时间" width="170" />
         <el-table-column label="操作" width="200" fixed="right" align="center">
           <template #default="{ row }">
             <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
@@ -181,6 +181,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Plus, RefreshRight, Upload, Download, Promotion } from '@element-plus/icons-vue'
 import { PageHeader, SearchBar, TableCard, StatusTag } from '@/components'
+import { useResponsive } from '@/composables/useResponsive'
 import {
   getSensitiveWordPageApi,
   createSensitiveWordApi,
@@ -206,6 +207,9 @@ const query = reactive<SensitiveWordQuery>({
   level: undefined,
   status: undefined,
 })
+
+// 响应式列可见性：移动端隐藏次要列（ID/更新时间）
+const { isMobile } = useResponsive()
 
 async function loadData() {
   loading.value = true

@@ -14,9 +14,9 @@
 
     <TableCard>
       <el-table v-loading="loading" :data="tableData" border stripe>
-      <el-table-column label="ID" prop="id" width="70" align="center" />
+      <el-table-column v-if="!isMobile" label="ID" prop="id" width="70" align="center" />
       <el-table-column label="用户名" prop="username" width="140" />
-      <el-table-column label="昵称" prop="nickname" width="140" />
+      <el-table-column v-if="!isMobile" label="昵称" prop="nickname" width="140" />
       <el-table-column label="角色" width="120" align="center">
         <template #default="{ row }">
           <el-tag :type="roleTagType(row.role)" size="small">
@@ -29,7 +29,7 @@
           <StatusTag :status="row.status" :mapping="adminStatusMapping" />
         </template>
       </el-table-column>
-      <el-table-column label="创建时间" prop="created" width="170" />
+      <el-table-column v-if="!isMobile" label="创建时间" prop="created" width="170" />
       <el-table-column label="操作" width="240" fixed="right" align="center">
         <template #default="{ row }">
           <template v-if="isSuperAdmin">
@@ -121,6 +121,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { PageHeader, SearchBar, TableCard, StatusTag } from '@/components'
+import { useResponsive } from '@/composables/useResponsive'
 import {
   getAdminPageApi,
   createAdminApi,
@@ -139,6 +140,9 @@ const submitting = ref(false)
 const tableData = ref<AdminAccount[]>([])
 const total = ref(0)
 const query = reactive({ keyword: '', page: 1, pageSize: 10 })
+
+// 响应式列可见性：移动端隐藏次要列（ID/昵称/创建时间）
+const { isMobile } = useResponsive()
 
 const createVisible = ref(false)
 const editVisible = ref(false)

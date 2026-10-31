@@ -20,7 +20,7 @@
 
         <TableCard>
           <el-table :data="pkgData" v-loading="pkgLoading" stripe border style="width: 100%">
-            <el-table-column prop="id" label="ID" width="60" align="center" />
+            <el-table-column v-if="!isMobile" prop="id" label="ID" width="60" align="center" />
             <el-table-column prop="name" label="套餐名称" width="120" />
             <el-table-column label="等级" width="80" align="center">
               <template #default="{ row }">{{ levelLabel(row.level) }}</template>
@@ -28,7 +28,7 @@
             <el-table-column label="售价" width="90" align="right">
               <template #default="{ row }">¥{{ formatAmount(row.price) }}</template>
             </el-table-column>
-            <el-table-column label="原价" width="90" align="right">
+            <el-table-column v-if="!isMobile" label="原价" width="90" align="right">
               <template #default="{ row }">{{ row.originalPrice ? '¥' + formatAmount(row.originalPrice) : '-' }}</template>
             </el-table-column>
             <el-table-column prop="durationDays" label="有效天数" width="90" align="center" />
@@ -37,7 +37,7 @@
                 <StatusTag :status="String(row.status)" :mapping="pkgStatusMapping" />
               </template>
             </el-table-column>
-            <el-table-column prop="sort" label="排序" width="70" align="center" />
+            <el-table-column v-if="!isMobile" prop="sort" label="排序" width="70" align="center" />
             <el-table-column label="操作" width="160" fixed="right" align="center">
               <template #default="{ row }">
                 <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="primary" size="small" @click="handlePkgEdit(row)">编辑</el-button>
@@ -76,8 +76,8 @@
 
         <TableCard>
           <el-table :data="benefitData" v-loading="benefitLoading" stripe border style="width: 100%">
-            <el-table-column prop="id" label="ID" width="60" align="center" />
-            <el-table-column prop="serviceCode" label="权益码" width="160" show-overflow-tooltip />
+            <el-table-column v-if="!isMobile" prop="id" label="ID" width="60" align="center" />
+            <el-table-column v-if="!isMobile" prop="serviceCode" label="权益码" width="160" show-overflow-tooltip />
             <el-table-column prop="name" label="权益名称" width="140" />
             <el-table-column label="所需等级" width="100" align="center">
               <template #default="{ row }">{{ levelLabel(row.vipLevelRequired) }}</template>
@@ -192,6 +192,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { SearchBar, TableCard, StatusTag } from '@/components'
+import { useResponsive } from '@/composables/useResponsive'
 import {
   getVipPackagePageApi,
   createVipPackageApi,
@@ -202,6 +203,8 @@ import {
   toggleBenefitApi,
 } from '@/api/vip'
 import type { VipPackageItem, VipPackageForm, BenefitItem, BenefitForm, VipQuery } from '@/api/vip'
+
+const { isMobile } = useResponsive()
 
 const activeTab = ref('package')
 

@@ -22,7 +22,7 @@
 
     <TableCard>
       <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" empty-text="暂无FAQ数据">
-        <el-table-column prop="id" label="ID" width="70" align="center" />
+        <el-table-column v-if="!isMobile" prop="id" label="ID" width="70" align="center" />
         <el-table-column prop="category" label="分类" width="110" align="center">
           <template #default="{ row }">
             <el-tag size="small" type="primary">{{ row.category || '未分类' }}</el-tag>
@@ -30,7 +30,7 @@
         </el-table-column>
         <el-table-column prop="question" label="问题" min-width="200" show-overflow-tooltip />
         <el-table-column prop="answer" label="回答" min-width="260" show-overflow-tooltip />
-        <el-table-column prop="sort" label="排序" width="80" align="center" />
+        <el-table-column v-if="!isMobile" prop="sort" label="排序" width="80" align="center" />
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
             <el-switch
@@ -92,6 +92,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { PageHeader, SearchBar, TableCard } from '@/components'
+import { useResponsive } from '@/composables/useResponsive'
 import { useAuthStore } from '@/stores/auth'
 import {
   getFaqPageApi,
@@ -119,6 +120,9 @@ const query = reactive<FaqQuery>({
   category: undefined,
   status: undefined,
 })
+
+// 响应式列可见性：移动端隐藏次要列（ID/排序）
+const { isMobile } = useResponsive()
 
 async function loadData() {
   loading.value = true

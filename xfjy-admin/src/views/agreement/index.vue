@@ -27,7 +27,7 @@
 
     <TableCard>
       <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" empty-text="暂无协议数据">
-        <el-table-column prop="id" label="ID" width="70" align="center" />
+        <el-table-column v-if="!isMobile" prop="id" label="ID" width="70" align="center" />
         <el-table-column prop="title" label="标题" min-width="160" show-overflow-tooltip />
         <el-table-column label="类型" width="100" align="center">
           <template #default="{ row }">
@@ -39,12 +39,12 @@
             <StatusTag :status="row.status" :mapping="agreementStatusMapping" />
           </template>
         </el-table-column>
-        <el-table-column prop="version" label="版本" width="70" align="center" />
-        <el-table-column prop="publisher" label="发布人" width="100" />
-        <el-table-column prop="publishedAt" label="发布时间" width="170">
+        <el-table-column v-if="!isMobile" prop="version" label="版本" width="70" align="center" />
+        <el-table-column v-if="!isMobile" prop="publisher" label="发布人" width="100" />
+        <el-table-column v-if="!isMobile" prop="publishedAt" label="发布时间" width="170">
           <template #default="{ row }">{{ row.publishedAt || '-' }}</template>
         </el-table-column>
-        <el-table-column prop="created" label="创建时间" width="170" />
+        <el-table-column v-if="!isMobile" prop="created" label="创建时间" width="170" />
         <el-table-column label="操作" width="240" fixed="right" align="center">
           <template #default="{ row }">
             <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
@@ -103,6 +103,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { PageHeader, SearchBar, TableCard, StatusTag } from '@/components'
+import { useResponsive } from '@/composables/useResponsive'
 import {
   getAgreementPageApi,
   createAgreementApi,
@@ -124,6 +125,9 @@ const query = reactive<AgreementQuery>({
   type: '',
   status: '',
 })
+
+// 响应式列可见性：移动端隐藏次要列（ID/版本/发布人/发布时间/创建时间）
+const { isMobile } = useResponsive()
 
 function getMockAgreements(page: number, pageSize: number): { total: number; list: AgreementItem[] } {
   const data: AgreementItem[] = [

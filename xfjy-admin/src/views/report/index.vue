@@ -40,7 +40,7 @@
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="44" align="center" :selectable="isSelectable" reserve-selection />
-        <el-table-column prop="id" label="ID" width="70" align="center" />
+        <el-table-column v-if="!isMobile" prop="id" label="ID" width="70" align="center" />
         <el-table-column label="举报人" width="120">
           <template #default="{ row }">
             <div class="user-cell">
@@ -64,13 +64,13 @@
             <StatusTag :status="row.status" :mapping="reportStatusMapping" />
           </template>
         </el-table-column>
-        <el-table-column label="处理人" width="100" align="center">
+        <el-table-column v-if="!isMobile" label="处理人" width="100" align="center">
           <template #default="{ row }">
             <span v-if="row.handler">{{ row.handler }}</span>
             <span v-else class="text-muted">—</span>
           </template>
         </el-table-column>
-        <el-table-column prop="createdAt" label="举报时间" width="170" />
+        <el-table-column v-if="!isMobile" prop="createdAt" label="举报时间" width="170" />
         <el-table-column label="操作" width="170" fixed="right" align="center">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="showDetail(row)">详情</el-button>
@@ -224,6 +224,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { UserFilled } from '@element-plus/icons-vue'
 import { PageHeader, SearchBar, TableCard, StatusTag } from '@/components'
+import { useResponsive } from '@/composables/useResponsive'
 import {
   getReportPageApi,
   getReportDetailApi,
@@ -233,6 +234,9 @@ import {
 import type { ReportItem, ReportQuery } from '@/api/report'
 
 const router = useRouter()
+
+// 响应式列可见性：移动端隐藏次要列（ID/处理人/举报时间）
+const { isMobile } = useResponsive()
 
 const loading = ref(false)
 const tableData = ref<ReportItem[]>([])

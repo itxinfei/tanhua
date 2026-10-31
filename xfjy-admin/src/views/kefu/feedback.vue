@@ -14,10 +14,10 @@
 
     <TableCard>
       <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" empty-text="暂无反馈数据">
-        <el-table-column prop="id" label="ID" width="70" align="center" />
-        <el-table-column prop="userId" label="用户ID" width="90" align="center" />
+        <el-table-column v-if="!isMobile" prop="id" label="ID" width="70" align="center" />
+        <el-table-column v-if="!isMobile" prop="userId" label="用户ID" width="90" align="center" />
         <el-table-column prop="content" label="反馈内容" min-width="220" show-overflow-tooltip />
-        <el-table-column label="联系方式" width="150" show-overflow-tooltip>
+        <el-table-column v-if="!isMobile" label="联系方式" width="150" show-overflow-tooltip>
           <template #default="{ row }">
             <span>{{ row.contact || '-' }}</span>
           </template>
@@ -27,7 +27,7 @@
             <StatusTag :status="String(row.status)" :mapping="feedbackStatusMapping" />
           </template>
         </el-table-column>
-        <el-table-column label="反馈时间" width="170">
+        <el-table-column v-if="!isMobile" label="反馈时间" width="170">
           <template #default="{ row }">
             <span>{{ formatDateTime(row.created) }}</span>
           </template>
@@ -101,6 +101,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { PageHeader, SearchBar, TableCard, StatusTag } from '@/components'
+import { useResponsive } from '@/composables/useResponsive'
 import { getFeedbackPageApi, replyFeedbackApi, closeFeedbackApi } from '@/api/kefu'
 import type { FeedbackItem, FeedbackQuery } from '@/api/kefu'
 import { formatDateTime } from '@/utils/format'
@@ -114,6 +115,9 @@ const query = reactive<FeedbackQuery>({
   pageSize: 10,
   status: undefined,
 })
+
+// 响应式列可见性：移动端隐藏次要列（ID/用户ID/联系方式/反馈时间）
+const { isMobile } = useResponsive()
 
 async function loadData() {
   loading.value = true

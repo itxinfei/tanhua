@@ -82,7 +82,7 @@
             <span v-else class="no-media">无图片</span>
           </template>
         </el-table-column>
-        <el-table-column label="位置" width="120" show-overflow-tooltip>
+        <el-table-column v-if="!isMobile" label="位置" width="120" show-overflow-tooltip>
           <template #default="{ row }">
             {{ row.locationName || '-' }}
           </template>
@@ -92,21 +92,21 @@
             <StatusTag :status="String(row.seeType)" :mapping="seeTypeMapping" />
           </template>
         </el-table-column>
-        <el-table-column label="互动" width="140" align="center">
+        <el-table-column v-if="!isMobile" label="互动" width="140" align="center">
           <template #default="{ row }">
             <span class="stat-text">赞 {{ row.likeCount }}</span>
             <span class="stat-text">评 {{ row.commentCount }}</span>
             <span class="stat-text">喜 {{ row.loveCount }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="举报" width="90" align="center">
+        <el-table-column v-if="!isMobile" label="举报" width="90" align="center">
           <template #default="{ row }">
             <el-badge :value="row.reportCount" :hidden="row.reportCount === 0" type="danger">
               <span class="stat-text">举报</span>
             </el-badge>
           </template>
         </el-table-column>
-        <el-table-column label="发布时间" width="170">
+        <el-table-column v-if="!isMobile" label="发布时间" width="170">
           <template #default="{ row }">
             {{ formatDateTime(row.created) }}
           </template>
@@ -179,12 +179,15 @@ import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { PageHeader, SearchBar, TableCard, StatusTag } from '@/components'
+import { useResponsive } from '@/composables/useResponsive'
 import { getMovementPageApi, deleteMovementApi } from '@/api/movement'
 import type { MovementItem } from '@/api/movement'
 import request from '@/api/request'
 import { formatDateTime } from '@/utils/format'
 
 const route = useRoute()
+// 响应式列可见性：移动端隐藏次要列（位置/互动/举报/发布时间）
+const { isMobile } = useResponsive()
 const loading = ref(false)
 const tableData = ref<MovementItem[]>([])
 const total = ref(0)

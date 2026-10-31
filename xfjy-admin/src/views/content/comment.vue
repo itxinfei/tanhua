@@ -57,12 +57,12 @@
             <div class="text-content">{{ row.content || '(空)' }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="所属动态ID" width="220" show-overflow-tooltip>
+        <el-table-column v-if="!isMobile" label="所属动态ID" width="220" show-overflow-tooltip>
           <template #default="{ row }">
             <span class="publish-id">{{ row.publishId || '-' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="发布时间" width="170">
+        <el-table-column v-if="!isMobile" label="发布时间" width="170">
           <template #default="{ row }">
             {{ formatDateTime(row.created) }}
           </template>
@@ -118,12 +118,15 @@ import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { PageHeader, SearchBar, TableCard } from '@/components'
+import { useResponsive } from '@/composables/useResponsive'
 import { getCommentPageApi, deleteCommentApi } from '@/api/comment'
 import type { CommentItem } from '@/api/comment'
 import request from '@/api/request'
 import { formatDateTime } from '@/utils/format'
 
 const route = useRoute()
+// 响应式列可见性：移动端隐藏次要列（所属动态ID/发布时间）
+const { isMobile } = useResponsive()
 const loading = ref(false)
 const tableData = ref<CommentItem[]>([])
 const total = ref(0)

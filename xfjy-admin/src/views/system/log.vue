@@ -39,7 +39,7 @@
 
     <TableCard>
       <el-table v-loading="loading" :data="tableData" border stripe empty-text="暂无操作日志">
-      <el-table-column label="ID" prop="id" width="70" align="center" />
+      <el-table-column v-if="!isMobile" label="ID" prop="id" width="70" align="center" />
       <el-table-column label="操作人" width="130">
         <template #default="{ row }">
           <div class="admin-cell">
@@ -60,7 +60,7 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="目标ID" prop="targetId" width="100" align="center" show-overflow-tooltip>
+      <el-table-column v-if="!isMobile" label="目标ID" prop="targetId" width="100" align="center" show-overflow-tooltip>
         <template #default="{ row }">
           {{ row.targetId || '-' }}
         </template>
@@ -70,12 +70,12 @@
           {{ row.detail || '-' }}
         </template>
       </el-table-column>
-      <el-table-column label="IP" prop="ip" width="130" show-overflow-tooltip>
+      <el-table-column v-if="!isMobile" label="IP" prop="ip" width="130" show-overflow-tooltip>
         <template #default="{ row }">
           {{ row.ip || '-' }}
         </template>
       </el-table-column>
-      <el-table-column label="操作时间" prop="created" width="170" />
+      <el-table-column v-if="!isMobile" label="操作时间" prop="created" width="170" />
       <el-table-column label="操作" width="80" fixed="right" align="center">
         <template #default="{ row }">
           <el-button link type="primary" size="small" @click="showDetail(row)">详情</el-button>
@@ -122,6 +122,7 @@ import { onMounted, ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
 import { PageHeader, SearchBar, TableCard } from '@/components'
+import { useResponsive } from '@/composables/useResponsive'
 import { getLogPageApi, getLogDetailApi, exportLogsApi } from '@/api/log'
 import type { OperationLogItem } from '@/api/log'
 
@@ -130,6 +131,9 @@ const tableData = ref<OperationLogItem[]>([])
 const total = ref(0)
 const query = reactive({ module: '', adminUsername: '', page: 1, pageSize: 10 })
 const dateRange = ref<[string, string] | null>(null)
+
+// 响应式列可见性：移动端隐藏次要列（ID/目标ID/IP/操作时间）
+const { isMobile } = useResponsive()
 
 const moduleOptions = [
   { label: '用户管理', value: 'USER' },
