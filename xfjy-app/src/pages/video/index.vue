@@ -51,36 +51,9 @@
             aria-hidden="true"
           ><uni-icons type="heart-filled" size="20" color="#ff5e9c"></uni-icons></view>
 
-          <!-- 右侧操作栏（抖音式：点赞/评论/关注/唱片/分享） -->
+          <!-- 右侧操作栏（完全模仿抖音：头像+关注 / 点赞 / 评论 / 分享 / 静音 / 旋转唱片） -->
           <view class="side-bar">
-            <a11y-button
-              class="side-btn btn-feedback"
-              :label="video.hasLiked === 1 ? `取消点赞，当前 ${video.likeCount} 赞` : `点赞，当前 ${video.likeCount} 赞`"
-              @tap="handleLike(video)"
-            >
-              <view class="icon-circle" :class="{ liked: video.hasLiked === 1 }">
-                <uni-icons class="icon-text" :type="video.hasLiked === 1 ? 'heart-filled' : 'heart'" :color="video.hasLiked === 1 ? '#ff5e9c' : '#767676'" size="18"></uni-icons>
-              </view>
-              <text class="side-count">{{ video.likeCount }}</text>
-            </a11y-button>
-
-            <a11y-button class="side-btn btn-feedback" :label="`查看评论，共 ${video.commentCount} 条`" @tap="showComments(video)">
-              <view class="icon-circle">
-                <uni-icons class="icon-text" type="chatbubble" color="#767676" size="18"></uni-icons>
-              </view>
-              <text class="side-count">{{ video.commentCount }}</text>
-            </a11y-button>
-
-            <a11y-button
-              class="side-btn btn-feedback"
-              :label="isMuted ? '取消静音' : '静音'"
-              @tap="toggleMute"
-            >
-              <view class="icon-circle">
-                <uni-icons class="icon-text" :type="isMuted ? 'sound' : 'sound-filled'" color="#fff" size="18"></uni-icons>
-              </view>
-            </a11y-button>
-
+            <!-- 作者头像 + 关注（抖音置于栏顶） -->
             <a11y-button
               class="side-btn btn-feedback follow-btn"
               :label="video.hasFocus ? `取消关注 ${video.nickname}` : `关注 ${video.nickname}`"
@@ -90,7 +63,41 @@
               <view v-if="!video.hasFocus" class="follow-plus" aria-hidden="true">+</view>
             </a11y-button>
 
-            <!-- 旋转音乐唱片（纯装饰） -->
+            <a11y-button
+              class="side-btn btn-feedback"
+              :label="video.hasLiked === 1 ? `取消点赞，当前 ${video.likeCount} 赞` : `点赞，当前 ${video.likeCount} 赞`"
+              @tap="handleLike(video)"
+            >
+              <view class="icon-circle" :class="{ liked: video.hasLiked === 1 }">
+                <uni-icons class="icon-text" :type="video.hasLiked === 1 ? 'heart-filled' : 'heart'" :color="video.hasLiked === 1 ? '#fe2c55' : '#fff'" size="26"></uni-icons>
+              </view>
+              <text class="side-count">{{ video.likeCount }}</text>
+            </a11y-button>
+
+            <a11y-button class="side-btn btn-feedback" :label="`查看评论，共 ${video.commentCount} 条`" @tap="showComments(video)">
+              <view class="icon-circle">
+                <uni-icons class="icon-text" type="chatbubble" color="#fff" size="26"></uni-icons>
+              </view>
+              <text class="side-count">{{ video.commentCount }}</text>
+            </a11y-button>
+
+            <a11y-button class="side-btn btn-feedback" :label="`分享 ${video.nickname} 的视频`" @tap="openShare(video)">
+              <view class="icon-circle">
+                <text class="icon-text" aria-hidden="true">↗</text>
+              </view>
+            </a11y-button>
+
+            <a11y-button
+              class="side-btn btn-feedback"
+              :label="isMuted ? '取消静音' : '静音'"
+              @tap="toggleMute"
+            >
+              <view class="icon-circle">
+                <uni-icons class="icon-text" :type="isMuted ? 'sound' : 'sound-filled'" color="#fff" size="26"></uni-icons>
+              </view>
+            </a11y-button>
+
+            <!-- 旋转音乐唱片（抖音式，置于栏底） -->
             <view
               class="side-btn music-disc"
               :class="{ 'disc-paused': !isPlaying && currentId === video.id }"
@@ -99,12 +106,6 @@
               <image lazy-load class="disc-img" :src="video.cover" mode="aspectFill" />
               <text class="disc-note">♪</text>
             </view>
-
-            <a11y-button class="side-btn btn-feedback" :label="`分享 ${video.nickname} 的视频`" @tap="openShare(video)">
-              <view class="icon-circle">
-                <text class="icon-text" aria-hidden="true">↗</text>
-              </view>
-            </a11y-button>
           </view>
 
           <!-- 底部信息 + 滚动音乐条 -->
@@ -698,6 +699,7 @@ onShareAppMessage(() => ({
   z-index: 10;
 
   .side-btn {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -707,17 +709,10 @@ onShareAppMessage(() => ({
       width: 88rpx;
       height: 88rpx;
       border-radius: 50%;
-      background: rgba(255,255,255,0.15);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: transform 0.2s ease, background 0.2s ease;
-
-      &.liked {
-        background: rgba(255, 94, 142, 0.9);
-      }
+      transition: transform 0.2s ease;
     }
 
     .icon-text {
@@ -748,11 +743,11 @@ onShareAppMessage(() => ({
       height: 32rpx;
       line-height: 28rpx;
       text-align: center;
-      background: #ff5e9c;
+      background: #fe2c55;
       color: #fff;
       border-radius: 50%;
       font-size: 24rpx;
-      box-shadow: 0 4rpx 12rpx rgba(255, 94, 142, 0.5);
+      box-shadow: 0 4rpx 12rpx rgba(254, 44, 85, 0.5);
     }
   }
 
