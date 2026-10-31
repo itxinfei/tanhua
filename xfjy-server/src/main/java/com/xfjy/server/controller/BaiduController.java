@@ -31,9 +31,7 @@ public class BaiduController {
     @PostMapping("location")
     public ResponseEntity<Void> updateLocation(@RequestBody Map<String, Object> param) {
         try {
-            Double longitude = Double.valueOf(param.get("longitude").toString());
-            Double latitude = Double.valueOf(param.get("latitude").toString());
-                        Object lonObj = param.get("longitude");
+            Object lonObj = param.get("longitude");
             Object latObj = param.get("latitude");
             Object addrObj = param.get("addrStr");
             if (lonObj == null || latObj == null || addrObj == null) {

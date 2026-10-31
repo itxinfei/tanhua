@@ -164,11 +164,6 @@ public class PayService {
             return false;
         }
 
-
-
-
-
-
         // 2. 开通 VIP（按套餐天数延展到期时间）
         VipPackage vipPackage = this.vipPackageMapper.selectById(order.getPackageId());
         if (vipPackage == null) {
@@ -388,18 +383,6 @@ public class PayService {
                 Collections.singletonList(key),
                 String.valueOf(nextMidnightEpoch), String.valueOf(service.getDailyLimit()));
         return result != null && result >= 0L;
-        if (usedToday >= service.getDailyLimit()) {
-
-
-
-
-
-
-
-
-
-
-
     }
 
     private ValueAddedService queryBenefitByCode(String serviceCode) {
