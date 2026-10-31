@@ -217,6 +217,9 @@ function handleReset() {
   query.keyword = ''
   query.gender = ''
   query.status = ''
+  query.startDate = ''
+  query.endDate = ''
+  dateRange.value = null
   query.page = 1
   loadData()
 }

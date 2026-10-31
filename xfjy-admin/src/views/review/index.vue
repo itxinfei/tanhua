@@ -17,8 +17,8 @@
       </el-form-item>
     </SearchBar>
 
-    <!-- 快捷键提示条 -->
-    <div class="shortcut-bar">
+    <!-- 快捷键提示条（移动端隐藏） -->
+    <div v-if="!isMobile" class="shortcut-bar">
       <el-icon class="shortcut-icon"><InfoFilled /></el-icon>
       <span><kbd>A</kbd> 通过当前项</span>
       <span><kbd>R</kbd> 驳回当前项</span>
@@ -75,14 +75,14 @@
             />
             <div class="queue-item-body">
               <div class="queue-item-top">
-                <el-tag :type="typeColor(row.type)" size="small">{{ typeLabel(row.type) }}</el-tag>
+                <StatusTag :status="row.type" :mapping="typeMapping" />
                 <span class="queue-user">{{ row.userNickname }}</span>
                 <span class="queue-id">#{{ row.id }}</span>
                 <span class="queue-time">{{ formatShortTime(row.submittedAt) }}</span>
               </div>
               <div class="queue-content">{{ row.content || mediaSummary(row) }}</div>
               <div v-if="row.status !== 'PENDING'" class="queue-result">
-                <el-tag :type="statusColor(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
+                <StatusTag :status="row.status" :mapping="statusMapping" />
                 <span v-if="row.reviewer" class="text-muted">审核人：{{ row.reviewer }}</span>
                 <span v-if="row.reviewedAt" class="text-muted">{{ row.reviewedAt }}</span>
               </div>
@@ -123,7 +123,7 @@
               <div class="detail-name">{{ currentItem.userNickname }}</div>
               <div class="text-muted">用户 ID：{{ currentItem.userId }} · 内容 #{{ currentItem.id }}</div>
             </div>
-            <el-tag :type="typeColor(currentItem.type)">{{ typeLabel(currentItem.type) }}</el-tag>
+            <StatusTag :status="currentItem.type" :mapping="typeMapping" />
             <span class="detail-time">{{ currentItem.submittedAt }}</span>
           </div>
 
@@ -159,7 +159,7 @@
             <!-- 已处理：灰色只读区 -->
             <section v-if="currentItem.status !== 'PENDING'" class="detail-section review-result">
               <h4>审核结果</h4>
-              <el-tag :type="statusColor(currentItem.status)" size="small">{{ statusLabel(currentItem.status) }}</el-tag>
+              <StatusTag :status="currentItem.status" :mapping="statusMapping" />
               <p v-if="currentItem.reviewer" class="text-muted">审核人：{{ currentItem.reviewer }}</p>
               <p v-if="currentItem.reviewedAt" class="text-muted">审核时间：{{ currentItem.reviewedAt }}</p>
               <p v-if="currentItem.rejectReason" class="text-muted">驳回原因：{{ currentItem.rejectReason }}</p>
@@ -213,7 +213,8 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { SearchBar } from '@/components'
+import { SearchBar, StatusTag } from '@/components'
+import { useResponsive } from '@/composables/useResponsive'
 import {
   getReviewPageApi,
   approveReviewApi,
@@ -223,6 +224,9 @@ import {
 } from '@/api/review'
 import type { ReviewItem, ReviewQuery } from '@/api/review'
 import { formatShortTime } from '@/utils/format'
+
+// 响应式：移动端纵向堆叠 + 禁用键盘快捷键
+const { isMobile } = useResponsive()
 
 const loading = ref(false)
 const loadFailed = ref(false)
@@ -432,24 +436,34 @@ function toggleSelectAllPending(value: CheckboxValue) {
 }
 
 // ---- 展示辅助 ----
+// 内容类型映射（StatusTag 用；队列/详情头部统一走 StatusTag，仅底部大标签仍用 el-tag）
+const typeMapping = {
+  POST: { label: '动态', type: 'primary' as const },
+  PHOTO: { label: '图片', type: 'success' as const },
+  VIDEO: { label: '视频', type: 'warning' as const },
+}
+
+// 审核状态映射
+const statusMapping = {
+  PENDING: { label: '待审核', type: 'warning' as const },
+  APPROVED: { label: '已通过', type: 'success' as const },
+  REJECTED: { label: '已驳回', type: 'danger' as const },
+}
+
 function typeLabel(type: string) {
-  const map: Record<string, string> = { POST: '动态', PHOTO: '图片', VIDEO: '视频' }
-  return map[type] ?? type
+  return typeMapping[type as keyof typeof typeMapping]?.label ?? type
 }
 
 function typeColor(type: ReviewItem['type']): 'primary' | 'success' | 'warning' {
-  const map = { POST: 'primary', PHOTO: 'success', VIDEO: 'warning' } as const
-  return map[type]
+  return typeMapping[type]?.type ?? 'primary'
 }
 
 function statusLabel(status: string) {
-  const map: Record<string, string> = { PENDING: '待审核', APPROVED: '已通过', REJECTED: '已驳回' }
-  return map[status] ?? status
+  return statusMapping[status as keyof typeof statusMapping]?.label ?? status
 }
 
 function statusColor(status: ReviewItem['status']): 'warning' | 'success' | 'danger' {
-  const map = { PENDING: 'warning', APPROVED: 'success', REJECTED: 'danger' } as const
-  return map[status]
+  return statusMapping[status]?.type ?? 'warning'
 }
 
 function mediaSummary(row: ReviewItem) {
@@ -464,6 +478,8 @@ function isEditableTarget(target: EventTarget | null): boolean {
 }
 
 function onKeydown(event: KeyboardEvent) {
+  // 移动端不使用键盘快捷键
+  if (isMobile.value) return
   // 驳回弹窗打开时不抢键，避免原因输入被拦截
   if (rejectDialogVisible.value || isEditableTarget(event.target)) return
 
@@ -529,7 +545,7 @@ kbd {
   display: inline-block;
   padding: 1px 6px;
   margin: 0 2px;
-  background: #fff;
+  background: var(--xfjy-bg-card);
   border: 1px solid var(--xfjy-border);
   border-bottom-width: 2px;
   border-radius: 4px;
@@ -548,11 +564,11 @@ kbd {
 
 /* 左侧队列 */
 .queue-pane {
-  width: 400px;
+  width: minmax(320px, 38%);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--xfjy-bg-card);
   border-radius: 8px;
   border: 1px solid var(--xfjy-border-light);
   overflow: hidden;
@@ -674,7 +690,7 @@ kbd {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--xfjy-bg-card);
   border-radius: 8px;
   border: 1px solid var(--xfjy-border-light);
   overflow: hidden;
@@ -785,5 +801,21 @@ kbd {
 .text-muted {
   color: var(--xfjy-text-secondary);
   font-size: 12px;
+}
+
+/* 移动端：纵向堆叠，队列在上、详情在下 */
+@media (max-width: 767px) {
+  .workbench {
+    flex-direction: column;
+  }
+  .queue-pane {
+    width: 100%;
+    height: 40vh;
+    flex-shrink: 0;
+  }
+  .detail-pane {
+    flex: 1;
+    min-height: 0;
+  }
 }
 </style>

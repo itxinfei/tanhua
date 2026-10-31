@@ -58,3 +58,12 @@ export function formatShortTime(val: string | number | null | undefined): string
     Number(match[3]) === now.getDate()
   return isToday ? match[4] : `${match[2]}-${match[3]} ${match[4]}`
 }
+
+/**
+ * 金额分转元：分（整数）→ 元（保留两位小数）
+ * 如 3000 → "30.00"，用于 VIP 套餐售价、支付订单金额展示
+ */
+export function formatAmount(amount: number): string {
+  if (amount == null || Number.isNaN(amount)) return '0.00'
+  return (amount / 100).toFixed(2)
+}

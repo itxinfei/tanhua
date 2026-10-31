@@ -276,6 +276,7 @@ function handleReset() {
   searchKeyword.value = ''
   searchUserId.value = ''
   searchSeeType.value = undefined
+  dateRange.value = null
   page.value = 1
   loadData()
 }

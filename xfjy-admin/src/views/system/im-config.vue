@@ -59,8 +59,8 @@
             <el-tag size="small">{{ row.configValue }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="说明" prop="description" min-width="280" />
-        <el-table-column label="更新时间" prop="updated" width="180" />
+        <el-table-column label="说明" prop="description" min-width="200" show-overflow-tooltip />
+        <el-table-column v-if="!isMobile" label="更新时间" prop="updated" width="180" />
       </el-table>
     </TableCard>
   </div>
@@ -70,6 +70,7 @@
 import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { PageHeader, TableCard } from '@/components'
+import { useResponsive } from '@/composables/useResponsive'
 import {
   getImProviderApi,
   getSysConfigListApi,
@@ -77,6 +78,9 @@ import {
   type ImProvider,
   type SysConfigItem
 } from '@/api/sysConfig'
+
+// 响应式列可见性：移动端隐藏次要列（更新时间）
+const { isMobile } = useResponsive()
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -175,7 +179,7 @@ onMounted(() => {
 
 .option-desc {
   font-size: 12px;
-  color: var(--xfjy-text-secondary, #909399);
+  color: var(--xfjy-text-secondary);
 }
 
 .current-status {
@@ -191,6 +195,6 @@ onMounted(() => {
 
 .dirty-hint {
   font-size: 12px;
-  color: var(--el-color-warning);
+  color: var(--xfjy-chart-4);
 }
 </style>

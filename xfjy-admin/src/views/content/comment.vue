@@ -204,6 +204,7 @@ function handleSearch() {
 function handleReset() {
   searchKeyword.value = ''
   searchUserId.value = ''
+  dateRange.value = null
   page.value = 1
   loadData()
 }

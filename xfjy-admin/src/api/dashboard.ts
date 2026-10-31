@@ -36,6 +36,17 @@ export interface AgeDistribution {
   counts: number[]
 }
 
+export interface PayTrend {
+  dates: string[]
+  orderList: number[]
+}
+
+export interface PayTypeDistribution {
+  alipay: number
+  wechat: number
+  sandbox: number
+}
+
 /** 获取看板概览数据 */
 export function getStatOverviewApi() {
   return request.get<any, StatOverview>('/admin/dashboard/overview')
@@ -54,4 +65,14 @@ export function getGenderRatioApi() {
 /** 获取年龄分布 */
 export function getAgeDistributionApi() {
   return request.get<any, AgeDistribution>('/admin/dashboard/age-distribution')
+}
+
+/** 获取支付订单趋势 */
+export function getPayTrendApi(days: number = 7) {
+  return request.get<any, PayTrend>('/admin/dashboard/pay-trend', { params: { days } })
+}
+
+/** 获取支付方式分布 */
+export function getPayTypeApi() {
+  return request.get<any, PayTypeDistribution>('/admin/dashboard/pay-type')
 }

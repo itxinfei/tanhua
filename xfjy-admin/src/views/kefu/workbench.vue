@@ -1,7 +1,12 @@
 <template>
   <div class="workbench">
+    <!-- 移动端 tab 切换栏（桌面端隐藏） -->
+    <div v-if="isMobile" class="mobile-tabs">
+      <el-button :type="activePane === 'session' ? 'primary' : 'default'" size="small" @click="activePane = 'session'">会话</el-button>
+      <el-button :type="activePane === 'chat' ? 'primary' : 'default'" size="small" @click="activePane = 'chat'">聊天</el-button>
+    </div>
     <!-- 左侧会话列表 -->
-    <div class="session-panel">
+    <div v-show="!isMobile || activePane === 'session'" class="session-panel">
       <div class="panel-header">
         <span>在线会话</span>
         <el-badge :value="totalUnread" :hidden="totalUnread === 0" class="unread-total" />
@@ -37,7 +42,7 @@
       </div>
     </div>
     <!-- 右侧聊天窗 -->
-    <div class="chat-panel">
+    <div v-show="!isMobile || activePane === 'chat'" class="chat-panel">
       <div v-if="!activeId" class="chat-empty">选择左侧会话开始回复</div>
       <template v-else>
         <div class="chat-header">{{ displayName(activeId) }}</div>
@@ -94,6 +99,7 @@ import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Microphone } from '@element-plus/icons-vue'
 import { getAgentCredentialApi, getKefuUsersInfoApi, type KefuUserInfo } from '@/api/kefu'
+import { useResponsive } from '@/composables/useResponsive'
 import {
   loginEasemob,
   logoutEasemob,
@@ -106,6 +112,10 @@ import {
   type ReceivedMessage,
   type ReadReceiptPayload,
 } from '@/utils/easemob'
+
+// 响应式：移动端单栏 tab 切换（会话列表 / 聊天）
+const { isMobile } = useResponsive()
+const activePane = ref<'session' | 'chat'>('session')
 
 /** 客服环信账号（消息归属判断：from === agentId 为客服发送），登录后由后端凭证下发，不再硬编码 */
 const agentId = ref('')
@@ -200,18 +210,27 @@ async function refreshSessions(): Promise<void> {
 /** 打开会话：加载历史消息 */
 async function openSession(conversationId: string): Promise<void> {
   activeId.value = conversationId
-  const history = await getChatHistory(conversationId)
-  messages.value = history.map((msg, i) => ({
-    id: `hist-${i}-${msg.time}`,
-    msgId: msg.msgId,
-    content: msg.content,
-    type: msg.type,
-    body: msg.body,
-    isMine: msg.from === agentId.value,
-    read: false,
-    timestamp: msg.time,
-  }))
-  scrollToBottom()
+  // 移动端打开会话后自动切换到聊天 tab
+  if (isMobile.value) {
+    activePane.value = 'chat'
+  }
+  try {
+    const history = await getChatHistory(conversationId)
+    messages.value = history.map((msg, i) => ({
+      id: `hist-${i}-${msg.time}`,
+      msgId: msg.msgId,
+      content: msg.content,
+      type: msg.type,
+      body: msg.body,
+      isMine: msg.from === agentId.value,
+      read: false,
+      timestamp: msg.time,
+    }))
+    scrollToBottom()
+  } catch {
+    messages.value = []
+    ElMessage.error('加载聊天记录失败')
+  }
 }
 
 /** 发送回复 */
@@ -219,25 +238,30 @@ async function send(): Promise<void> {
   const text = inputText.value.trim()
   if (!text || sending.value) return
   sending.value = true
-  const message = await sendTextMessage(activeId.value, text)
-  if (message) {
-    messages.value.push({
-      id: `send-${Date.now()}`,
-      msgId: message.msgServerId || '',
-      content: text,
-      type: 'text',
-      body: message.body,
-      isMine: true,
-      read: false,
-      timestamp: Date.now(),
-    })
-    inputText.value = ''
-    scrollToBottom()
-    refreshSessions()
-  } else {
-    ElMessage.error('发送失败，请稍后重试')
+  try {
+    const message = await sendTextMessage(activeId.value, text)
+    if (message) {
+      messages.value.push({
+        id: `send-${Date.now()}`,
+        msgId: message.msgServerId || '',
+        content: text,
+        type: 'text',
+        body: message.body,
+        isMine: true,
+        read: false,
+        timestamp: Date.now(),
+      })
+      inputText.value = ''
+      scrollToBottom()
+      refreshSessions()
+    } else {
+      ElMessage.error('发送失败，请稍后重试')
+    }
+  } catch {
+    ElMessage.error('发送失败，请检查网络')
+  } finally {
+    sending.value = false
   }
-  sending.value = false
 }
 
 /** 图片消息候选地址（远端消息 localUrl 为空，依次回退缩略图/大图/原图） */
@@ -339,7 +363,7 @@ onUnmounted(() => {
 .workbench {
   display: flex;
   height: calc(100vh - 100px);
-  background: #fff;
+  background: var(--xfjy-bg-card);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -472,5 +496,38 @@ onUnmounted(() => {
   display: flex;
   gap: 12px;
   .el-input { flex: 1; }
+}
+
+/* 移动端 tab 切换栏 */
+.mobile-tabs {
+  display: none;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--xfjy-border-light);
+  background: var(--xfjy-bg-card);
+}
+
+/* 移动端：纵向堆叠，单栏 tab 切换 */
+@media (max-width: 767px) {
+  .workbench {
+    flex-direction: column;
+  }
+  .mobile-tabs {
+    display: flex;
+  }
+  .session-panel,
+  .chat-panel {
+    width: 100%;
+    max-width: 100%;
+    border-right: none;
+  }
+  .session-panel {
+    height: 40vh;
+    flex-shrink: 0;
+  }
+  .chat-panel {
+    flex: 1;
+    min-height: 0;
+  }
 }
 </style>

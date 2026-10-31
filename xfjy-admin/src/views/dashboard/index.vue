@@ -1,11 +1,9 @@
 <template>
   <div class="page-container dashboard">
-    <PageHeader title="数据看板" subtitle="平台运营概览">
-      <template #actions>
-        <span v-if="updatedAt" class="dash-updated">更新于 {{ updatedAt }}</span>
-        <el-button :icon="Refresh" :loading="loading" @click="loadAll">刷新</el-button>
-      </template>
-    </PageHeader>
+    <div class="dash-toolbar">
+      <span v-if="updatedAt" class="dash-updated">更新于 {{ updatedAt }}</span>
+      <el-button :icon="Refresh" :loading="loading" @click="loadAll">刷新</el-button>
+    </div>
 
     <el-alert v-if="hasError" class="dash-alert" type="warning" :closable="false" show-icon>
       <template #title>
@@ -37,13 +35,13 @@
       </el-col>
     </el-row>
 
-    <!-- 趋势 + 快捷入口 -->
+    <!-- 平台实时数据 + 数据洞察（对半对称：12 : 12） -->
     <el-row :gutter="16" class="dash-row">
-      <el-col :xs="24" :lg="16">
+      <el-col :xs="24" :lg="12">
         <div class="dash-card">
           <div class="dash-card__head">
             <div class="dash-card__heading">
-              <span class="dash-card__title">新增用户趋势</span>
+              <span class="dash-card__title">平台实时数据</span>
               <span v-if="trendSummary" class="dash-card__sub">
                 近 {{ trendDays }} 天累计 {{ formatCount(trendSummary.total) }} 人 · 日均
                 {{ formatCount(trendSummary.avg) }} 人
@@ -54,49 +52,145 @@
               <el-radio-button :value="30">近 30 天</el-radio-button>
             </el-radio-group>
           </div>
-          <BaseChart v-if="trendData.dates.length" :option="trendOption" height="268px" />
+
+          <!-- 今日发送行为：三个指标横向并排，各占一列，不各占一行 -->
+          <div class="rt-metrics">
+            <div class="rt-metric">
+              <div class="rt-metric__icon" style="color: var(--xfjy-primary); background: var(--xfjy-primary-50)">
+                <el-icon><ChatDotRound /></el-icon>
+              </div>
+              <div class="rt-metric__body">
+                <div class="rt-metric__value">{{ formatCount(todayMessages) }}</div>
+                <div class="rt-metric__label">消息发送<span class="rt-metric__pending">待接入</span></div>
+              </div>
+            </div>
+            <div class="rt-metric">
+              <div class="rt-metric__icon" style="color: var(--xfjy-primary-deep); background: var(--xfjy-deep-50)">
+                <el-icon><Share /></el-icon>
+              </div>
+              <div class="rt-metric__body">
+                <div class="rt-metric__value">{{ formatCount(todayMomentPosters) }}</div>
+                <div class="rt-metric__label">发圈子人数<span class="rt-metric__pending">待接入</span></div>
+              </div>
+            </div>
+            <div class="rt-metric">
+              <div class="rt-metric__icon" style="color: var(--xfjy-warning); background: #fff7ed">
+                <el-icon><VideoCamera /></el-icon>
+              </div>
+              <div class="rt-metric__body">
+                <div class="rt-metric__value">{{ formatCount(todayVideos) }}</div>
+                <div class="rt-metric__label">视频发送量<span class="rt-metric__pending">待接入</span></div>
+              </div>
+            </div>
+          </div>
+
+          <BaseChart v-if="trendData.dates.length" :option="trendOption" height="232px" />
           <el-empty v-else-if="!loading" description="暂无趋势数据" :image-size="72" />
         </div>
       </el-col>
 
-      <el-col :xs="24" :lg="8">
+      <el-col :xs="24" :lg="12">
         <div class="dash-card">
           <div class="dash-card__head">
-            <span class="dash-card__title">快捷入口</span>
+            <span class="dash-card__title">数据洞察</span>
+            <span class="dash-card__meta">用户最关心的实时数据</span>
           </div>
-          <div class="shortcut-grid">
-            <div v-for="s in shortcuts" :key="s.label" class="shortcut" @click="router.push(s.to)">
-              <el-icon :size="18"><component :is="s.icon" /></el-icon>
-              <span>{{ s.label }}</span>
+
+          <!-- APP 使用人数：两个指标横向并排 -->
+          <div class="insight-block">
+            <div class="insight-block__head">
+              <span class="insight-block__title">APP 使用人数</span>
+              <span class="insight-pending">待接入</span>
+            </div>
+            <div class="rt-metrics">
+              <div class="rt-metric">
+                <div class="rt-metric__icon" style="color: var(--xfjy-primary); background: var(--xfjy-primary-50)">
+                  <el-icon><Connection /></el-icon>
+                </div>
+                <div class="rt-metric__body">
+                  <div class="rt-metric__value">{{ formatCount(onlineUsers) }}</div>
+                  <div class="rt-metric__label">当前在线</div>
+                </div>
+              </div>
+              <div class="rt-metric">
+                <div class="rt-metric__icon" style="color: var(--xfjy-warning); background: #fff7ed">
+                  <el-icon><TrendCharts /></el-icon>
+                </div>
+                <div class="rt-metric__body">
+                  <div class="rt-metric__value">{{ formatCount(peakToday) }}</div>
+                  <div class="rt-metric__label">今日峰值</div>
+                </div>
+              </div>
             </div>
           </div>
-          <p class="dash-note">
-            DAU、匹配成功率、付费转化率暂无统计源，未纳入本页展示，避免用 0 值误导运营判断。
-          </p>
+
+          <!-- 用户结构洞察：男女比例 + 主力年龄，横向比例条一行带过，不再各占整图 -->
+          <div class="insight-block">
+            <div class="insight-block__head">
+              <span class="insight-block__title">用户结构洞察</span>
+              <span class="insight-block__meta">共 {{ formatCount(genderTotal) }} 人</span>
+            </div>
+            <div class="insight-profile">
+              <!-- 男女比例条：一段男 + 一段女，宽度按占比，条后跟百分比+人数 -->
+              <div class="insight-profile__row insight-profile__row--bar">
+                <span class="insight-profile__label">性别</span>
+                <div class="insight-profile__bar">
+                  <div
+                    class="insight-profile__bar-male"
+                    :style="{ width: malePct + '%' }"
+                  />
+                  <div
+                    class="insight-profile__bar-female"
+                    :style="{ width: femalePct + '%' }"
+                  />
+                </div>
+                <span class="insight-profile__num">{{ malePct }}%男 · {{ femalePct }}%女</span>
+              </div>
+              <!-- 主力年龄：一句话结论，右侧人数 -->
+              <div class="insight-profile__row">
+                <span class="insight-profile__dot" style="background: var(--xfjy-primary-deep)" />
+                <span class="insight-profile__label">主力年龄</span>
+                <span class="insight-profile__pct">{{ topAgeRange }}</span>
+                <span class="insight-profile__num">{{ formatCount(topAgeCount) }} 人</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 热点 & 热门视频（占位，后端聚合后替换） -->
+          <div class="insight-block">
+            <div class="insight-block__head">
+              <span class="insight-block__title">热点 & 热门视频</span>
+              <span class="insight-pending">待接入</span>
+            </div>
+            <div class="insight-empty">热门动态 / 话题 / 视频排行，后端聚合后展示</div>
+          </div>
         </div>
       </el-col>
     </el-row>
 
-    <!-- 用户结构 -->
+    <!-- 支付订单趋势 + 支付方式分布（对半对称：12 : 12） -->
     <el-row :gutter="16" class="dash-row">
       <el-col :xs="24" :lg="12">
         <div class="dash-card">
           <div class="dash-card__head">
-            <span class="dash-card__title">性别构成</span>
-            <span v-if="genderTotal" class="dash-card__meta">共 {{ formatCount(genderTotal) }} 人</span>
+            <span class="dash-card__title">支付订单趋势</span>
+            <span v-if="payTrendSummary" class="dash-card__meta">
+              近 {{ trendDays }} 天累计 {{ formatCount(payTrendSummary.total) }} 单
+            </span>
           </div>
-          <BaseChart v-if="genderTotal" :option="genderOption" height="220px" />
-          <el-empty v-else-if="!loading" description="暂无性别数据" :image-size="72" />
+          <BaseChart v-if="payTrendData.dates.length" :option="payTrendOption" height="176px" />
+          <el-empty v-else-if="!loading" description="暂无支付数据" :image-size="72" />
         </div>
       </el-col>
 
       <el-col :xs="24" :lg="12">
         <div class="dash-card">
           <div class="dash-card__head">
-            <span class="dash-card__title">年龄分布</span>
+            <span class="dash-card__title">支付方式分布</span>
+            <span v-if="payTypeTotal > 0" class="dash-card__meta">已支付 {{ formatCount(payTypeTotal) }} 单</span>
           </div>
-          <BaseChart v-if="ageData.counts.length" :option="ageOption" height="220px" />
-          <el-empty v-else-if="!loading" description="暂无年龄数据" :image-size="72" />
+          <BaseChart v-if="payTypeTotal > 0" :option="payTypeOption" height="176px" />
+          <el-empty v-else-if="!loading" description="暂无支付数据" :image-size="72" />
         </div>
       </el-col>
     </el-row>
@@ -106,14 +200,16 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Refresh } from '@element-plus/icons-vue'
+import { Refresh, ChatDotRound, Share, VideoCamera, Connection, TrendCharts } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
-import { PageHeader, BaseChart } from '@/components'
+import { BaseChart } from '@/components'
 import {
   getStatOverviewApi,
   getTrendDataApi,
   getGenderRatioApi,
   getAgeDistributionApi,
+  getPayTrendApi,
+  getPayTypeApi,
 } from '@/api/dashboard'
 import { getBrandColors, hexToRgba } from '@/utils/brand'
 
@@ -142,6 +238,20 @@ const trendData = reactive<{ dates: string[]; newUserList: number[] }>({ dates: 
 const genderData = reactive({ male: 0, female: 0 })
 const ageData = reactive<{ ranges: string[]; counts: number[] }>({ ranges: [], counts: [] })
 
+// 支付订单趋势 + 支付方式分布（App 商业化实时数据）
+const payTrendData = reactive<{ dates: string[]; orderList: number[] }>({ dates: [], orderList: [] })
+const payTypeData = reactive({ alipay: 0, wechat: 0, sandbox: 0 })
+
+// 洞察面板数据源：APP 使用人数（待后端接入实时在线接口，暂为 null 占位）
+const onlineUsers = ref<number | null>(null)
+const peakToday = ref<number | null>(null)
+
+// 平台实时发送行为数据（待后端接入聚合接口，暂为 null 占位）
+// 今日消息发送数 / 发圈子人数 / 视频发送量
+const todayMessages = ref<number | null>(null)
+const todayMomentPosters = ref<number | null>(null)
+const todayVideos = ref<number | null>(null)
+
 // ==================== 派生数据 ====================
 /** 今日新增与昨日的差值：由趋势接口的最后两天真实数据相减，不依赖后端 newUsersChange（当前恒为 null） */
 const newUsersDelta = computed<number | null>(() => {
@@ -157,7 +267,47 @@ const trendSummary = computed(() => {
   return { total, avg: Math.round(total / list.length) }
 })
 
+/** 今日新增用户：取趋势接口最后一天（最新）的真实数据，作为四宫格真实指标 */
+const todayNewUsers = computed(() => {
+  const list = trendData.newUserList
+  return list.length ? list[list.length - 1] : 0
+})
+
 const genderTotal = computed(() => genderData.male + genderData.female)
+
+/** 男女占比（整数百分比）：用于洞察面板横向比例条宽度 */
+const malePct = computed(() => {
+  const total = genderTotal.value || 0
+  return total ? Math.round((genderData.male / total) * 100) : 0
+})
+
+const femalePct = computed(() => {
+  const total = genderTotal.value || 0
+  return total ? Math.round((genderData.female / total) * 100) : 0
+})
+
+/** 年龄分布主力区间：取 count 最大的年龄段，用于洞察面板一句话结论 */
+const topAgeRange = computed(() => {
+  if (!ageData.ranges.length || !ageData.counts.length) return '—'
+  const maxIdx = ageData.counts.indexOf(Math.max(...ageData.counts))
+  return ageData.ranges[maxIdx] || '—'
+})
+
+/** 主力年龄段的人数 */
+const topAgeCount = computed(() => {
+  if (!ageData.counts.length) return 0
+  return Math.max(...ageData.counts)
+})
+
+/** 支付订单趋势累计单数 */
+const payTrendSummary = computed(() => {
+  if (!payTrendData.orderList.length) return null
+  const total = payTrendData.orderList.reduce((sum, n) => sum + n, 0)
+  return { total }
+})
+
+/** 支付方式分布总单数 */
+const payTypeTotal = computed(() => payTypeData.alipay + payTypeData.wechat + payTypeData.sandbox)
 
 interface KpiCard {
   label: string
@@ -213,13 +363,6 @@ const kpiCards = computed<KpiCard[]>(() => [
   },
 ])
 
-const shortcuts = [
-  { label: '用户管理', icon: 'UserFilled', to: '/user/list' },
-  { label: '内容审核', icon: 'DocumentChecked', to: '/audit/review' },
-  { label: '举报处理', icon: 'Warning', to: '/audit/report' },
-  { label: '订单管理', icon: 'Wallet', to: '/operation/pay' },
-]
-
 // ==================== 图表配置 ====================
 const tooltipBase = {
   backgroundColor: 'rgba(31, 35, 41, 0.92)',
@@ -267,87 +410,74 @@ const trendOption = computed<echarts.EChartsOption>(() => ({
   ],
 }))
 
-const genderOption = computed<echarts.EChartsOption>(() => {
-  const total = genderTotal.value || 1
-  return {
-    tooltip: {
-      ...tooltipBase,
-      trigger: 'axis',
-      axisPointer: { type: 'shadow' },
-      formatter: (params: any) => {
-        const p = Array.isArray(params) ? params[0] : params
-        return `${p.name}<br/>${formatCount(p.value)} 人 · ${((p.value / total) * 100).toFixed(1)}%`
-      },
-    },
-    grid: { left: 8, right: 132, top: 40, bottom: 40, containLabel: true },
-    xAxis: { type: 'value', show: false },
-    yAxis: {
-      type: 'category',
-      data: ['男性', '女性'],
-      axisLine: { show: false },
-      axisTick: { show: false },
-      axisLabel: { fontSize: 12, color: BRAND.chartInk2 },
-    },
-    series: [
-      {
-        type: 'bar',
-        barWidth: 16,
-        showBackground: true,
-        backgroundStyle: { color: BRAND.chartGrid, borderRadius: 4 },
-        data: [
-          { value: genderData.male, itemStyle: { color: BRAND.chartSecondary, borderRadius: [0, 4, 4, 0] } },
-          { value: genderData.female, itemStyle: { color: BRAND.chartPrimary, borderRadius: [0, 4, 4, 0] } },
-        ],
-        label: {
-          show: true,
-          position: 'right',
-          distance: 10,
-          fontSize: 12,
-          color: BRAND.chartInk2,
-          formatter: (p: any) => `${formatCount(p.value)} 人 · ${((p.value / total) * 100).toFixed(1)}%`,
-        },
-      },
-    ],
-  }
-})
-
-const ageOption = computed<echarts.EChartsOption>(() => ({
-  tooltip: { ...tooltipBase, trigger: 'axis', axisPointer: { type: 'shadow' } },
-  grid: { left: 8, right: 72, top: 8, bottom: 8, containLabel: true },
-  xAxis: { type: 'value', show: false },
-  yAxis: {
+const payTrendOption = computed<echarts.EChartsOption>(() => ({
+  tooltip: { ...tooltipBase, trigger: 'axis', axisPointer: { type: 'line', lineStyle: { color: BRAND.primaryLight7 } } },
+  grid: { left: 8, right: 16, top: 16, bottom: 8, containLabel: true },
+  xAxis: {
     type: 'category',
-    // 年龄从高到低，让 18-22 显示在顶部
-    data: [...ageData.ranges].reverse(),
+    boundaryGap: false,
+    data: payTrendData.dates,
+    axisLine: { lineStyle: { color: BRAND.chartGrid } },
+    axisTick: { show: false },
+    axisLabel: { fontSize: 12, color: BRAND.chartInk3, hideOverlap: true },
+  },
+  yAxis: {
+    type: 'value',
     axisLine: { show: false },
     axisTick: { show: false },
-    axisLabel: { fontSize: 12, color: BRAND.chartInk2 },
+    splitLine: { lineStyle: { color: BRAND.chartGrid } },
+    axisLabel: { fontSize: 12, color: BRAND.chartInk3 },
   },
   series: [
     {
-      type: 'bar',
-      barWidth: 12,
-      showBackground: true,
-      backgroundStyle: { color: BRAND.chartGrid, borderRadius: 4 },
-      data: [...ageData.counts].reverse(),
-      itemStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-          { offset: 0, color: hexToRgba(BRAND.primary, 0.5) },
-          { offset: 1, color: BRAND.primary },
+      name: '已支付订单',
+      type: 'line',
+      smooth: true,
+      showSymbol: false,
+      symbol: 'circle',
+      symbolSize: 6,
+      data: payTrendData.orderList,
+      lineStyle: { width: 2, color: BRAND.primaryDeep },
+      itemStyle: { color: BRAND.primaryDeep },
+      areaStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: hexToRgba(BRAND.primaryDeep, 0.22) },
+          { offset: 1, color: hexToRgba(BRAND.primaryDeep, 0.01) },
         ]),
-        borderRadius: [0, 4, 4, 0],
-      },
-      label: {
-        show: true,
-        position: 'right',
-        distance: 10,
-        fontSize: 12,
-        color: BRAND.chartInk2,
-        formatter: (p: any) => formatCount(p.value),
       },
     },
   ],
 }))
+
+const payTypeOption = computed<echarts.EChartsOption>(() => {
+  const data = [
+    { value: payTypeData.alipay, name: '支付宝', itemStyle: { color: '#3b82f6' } },
+    { value: payTypeData.wechat, name: '微信', itemStyle: { color: '#00b894' } },
+    { value: payTypeData.sandbox, name: '沙箱', itemStyle: { color: '#c9cdd4' } },
+  ]
+  return {
+    tooltip: { ...tooltipBase, trigger: 'item', formatter: '{b}: {c} 单 ({d}%)' },
+    legend: {
+      orient: 'horizontal',
+      bottom: 0,
+      icon: 'circle',
+      itemWidth: 8,
+      itemHeight: 8,
+      textStyle: { fontSize: 12, color: BRAND.chartInk2 },
+    },
+    series: [
+      {
+        type: 'pie',
+        radius: ['48%', '72%'],
+        center: ['50%', '42%'],
+        avoidLabelOverlap: false,
+        label: { show: false },
+        labelLine: { show: false },
+        data,
+      },
+    ],
+  }
+})
 
 // ==================== 工具函数 ====================
 function formatCount(n: number | null | undefined): string {
@@ -382,9 +512,22 @@ async function loadAge() {
   ageData.counts = res.counts ?? []
 }
 
+async function loadPayTrend() {
+  const res = await getPayTrendApi(trendDays.value)
+  payTrendData.dates = res.dates ?? []
+  payTrendData.orderList = res.orderList ?? []
+}
+
+async function loadPayType() {
+  const res = await getPayTypeApi()
+  payTypeData.alipay = res.alipay ?? 0
+  payTypeData.wechat = res.wechat ?? 0
+  payTypeData.sandbox = res.sandbox ?? 0
+}
+
 async function loadAll() {
   loading.value = true
-  const results = await Promise.allSettled([loadOverview(), loadTrend(), loadGender(), loadAge()])
+  const results = await Promise.allSettled([loadOverview(), loadTrend(), loadGender(), loadAge(), loadPayTrend(), loadPayType()])
   hasError.value = results.some((r) => r.status === 'rejected')
   loading.value = false
   updatedAt.value = new Date().toLocaleTimeString('zh-CN', {
@@ -396,6 +539,7 @@ async function loadAll() {
 async function refreshTrend() {
   try {
     await loadTrend()
+    await loadPayTrend()
   } catch {
     hasError.value = true
   }
@@ -410,8 +554,15 @@ onMounted(loadAll)
   box-sizing: border-box;
 }
 
+.dash-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--xfjy-space-2);
+  margin-bottom: var(--xfjy-space-4);
+}
+
 .dash-updated {
-  margin-right: var(--xfjy-space-2);
   font-size: var(--xfjy-font-size-xs);
   color: var(--xfjy-text-secondary);
   font-variant-numeric: tabular-nums;
@@ -546,45 +697,188 @@ onMounted(loadAll)
   font-variant-numeric: tabular-nums;
 }
 
-/* ==================== 快捷入口 ==================== */
-.shortcut-grid {
-  flex: 1;
+/* ==================== 平台实时数据·今日指标横排 ==================== */
+.rt-metrics {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-auto-rows: 1fr;
-  gap: var(--xfjy-space-3);
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--xfjy-space-2);
+  margin-bottom: var(--xfjy-space-3);
 }
 
-.shortcut {
+.rt-metric {
   display: flex;
   align-items: center;
   gap: var(--xfjy-space-2);
-  padding: var(--xfjy-space-3) var(--xfjy-space-4);
-  border: 1px solid var(--xfjy-border);
+  padding: var(--xfjy-space-2) var(--xfjy-space-3);
+  background: var(--xfjy-bg-hover);
   border-radius: var(--xfjy-radius-md);
-  font-size: var(--xfjy-font-size-sm);
-  color: var(--xfjy-text-regular);
-  cursor: pointer;
-  transition: border-color 0.2s, color 0.2s, background 0.2s;
 }
 
-.shortcut .el-icon {
-  color: var(--xfjy-primary);
+.rt-metric__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--xfjy-radius-sm);
+}
+
+.rt-metric__body {
+  min-width: 0;
+}
+
+.rt-metric__value {
+  font-size: var(--xfjy-font-size-lg);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.3px;
+  font-variant-numeric: tabular-nums;
+  color: var(--xfjy-text-primary);
+}
+
+.rt-metric__label {
+  margin-top: 2px;
+  font-size: var(--xfjy-font-size-xs);
+  color: var(--xfjy-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 待接入标记：灰色小标签，明确区分真实数据与占位 */
+.rt-metric__pending {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 8px;
+  color: var(--xfjy-text-disabled);
+  background: var(--xfjy-bg-card);
+  vertical-align: middle;
+}
+
+/* ==================== 数据洞察面板 ==================== */
+.insight-block {
+  padding: var(--xfjy-space-3) 0;
+  border-bottom: 1px solid var(--xfjy-border-light);
+}
+
+.insight-block:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.insight-block:first-of-type {
+  padding-top: 0;
+}
+
+.insight-block__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--xfjy-space-2);
+  margin-bottom: var(--xfjy-space-3);
+}
+
+.insight-block__title {
+  font-size: var(--xfjy-font-size-sm);
+  font-weight: 600;
+  color: var(--xfjy-text-regular);
+}
+
+.insight-block__meta {
+  font-size: var(--xfjy-font-size-xs);
+  color: var(--xfjy-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 待接入标记：灰色小标签，明确区分真实数据与占位 */
+.insight-pending {
+  flex-shrink: 0;
+  font-size: var(--xfjy-font-size-xs);
+  line-height: 1;
+  padding: 3px 8px;
+  border-radius: 10px;
+  color: var(--xfjy-text-secondary);
+  background: var(--xfjy-bg-hover);
+}
+
+/* 占位空态 */
+.insight-empty {
+  font-size: var(--xfjy-font-size-xs);
+  line-height: 1.6;
+  color: var(--xfjy-text-disabled);
+  padding: var(--xfjy-space-2) 0;
+}
+
+/* ==================== 用户结构洞察·横向比例条 ==================== */
+.insight-profile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--xfjy-space-2);
+}
+
+.insight-profile__row {
+  display: flex;
+  align-items: center;
+  gap: var(--xfjy-space-2);
+  font-size: var(--xfjy-font-size-sm);
+}
+
+/* 性别比例条行：标签 | 比例条 | 人数百分比，横向铺满 */
+.insight-profile__row--bar {
+  gap: var(--xfjy-space-3);
+}
+
+.insight-profile__bar {
+  flex: 1;
+  display: flex;
+  height: 10px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--xfjy-bg-hover);
+}
+
+.insight-profile__bar-male {
+  background: var(--xfjy-chart-2);
+  transition: width 0.3s;
+}
+
+.insight-profile__bar-female {
+  background: var(--xfjy-primary);
+  transition: width 0.3s;
+}
+
+.insight-profile__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 
-.shortcut:hover {
-  border-color: var(--xfjy-primary);
-  background: var(--xfjy-primary-50);
-  color: var(--xfjy-primary);
+.insight-profile__label {
+  color: var(--xfjy-text-regular);
+  min-width: 48px;
+  flex-shrink: 0;
 }
 
-.dash-note {
-  margin-top: var(--xfjy-space-3);
-  padding-top: var(--xfjy-space-3);
-  border-top: 1px solid var(--xfjy-border-light);
-  font-size: var(--xfjy-font-size-xs);
-  line-height: 1.6;
+.insight-profile__pct {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--xfjy-text-primary);
+  margin-left: auto;
+}
+
+.insight-profile__num {
+  font-variant-numeric: tabular-nums;
   color: var(--xfjy-text-secondary);
+  min-width: 96px;
+  text-align: right;
+}
+
+.insight-profile__row--age .insight-profile__pct {
+  color: var(--xfjy-primary-deep);
 }
 </style>

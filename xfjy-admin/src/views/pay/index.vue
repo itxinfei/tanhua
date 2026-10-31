@@ -50,7 +50,7 @@
 
     <TableCard>
       <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" empty-text="暂无订单数据">
-        <el-table-column prop="id" label="ID" width="70" align="center" />
+        <el-table-column v-if="!isMobile" prop="id" label="ID" width="70" align="center" />
         <el-table-column label="订单号" width="280">
           <template #default="{ row }">
             <div class="order-no-cell">
@@ -59,7 +59,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="userId" label="用户ID" width="90" align="center" />
+        <el-table-column v-if="!isMobile" prop="userId" label="用户ID" width="90" align="center" />
         <el-table-column prop="packageName" label="套餐" width="110" />
         <el-table-column label="金额" width="100" align="right">
           <template #default="{ row }">¥{{ formatAmount(row.amount) }}</template>
@@ -69,13 +69,13 @@
             <StatusTag :status="row.status" :mapping="payStatusMapping" />
           </template>
         </el-table-column>
-        <el-table-column label="支付方式" width="100" align="center">
+        <el-table-column v-if="!isMobile" label="支付方式" width="100" align="center">
           <template #default="{ row }">{{ payTypeLabel(row.payType) }}</template>
         </el-table-column>
         <el-table-column prop="paidTime" label="支付时间" width="170">
           <template #default="{ row }">{{ row.paidTime || '-' }}</template>
         </el-table-column>
-        <el-table-column prop="created" label="创建时间" width="170" />
+        <el-table-column v-if="!isMobile" prop="created" label="创建时间" width="170" />
         <el-table-column label="操作" width="80" fixed="right" align="center">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="showDetail(row)">详情</el-button>
@@ -122,8 +122,13 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Download, CopyDocument } from '@element-plus/icons-vue'
 import { SearchBar, TableCard, StatusTag, StatCard } from '@/components'
+import { useResponsive } from '@/composables/useResponsive'
+import { formatAmount } from '@/utils/format'
 import { getPayOrderPageApi, getPayOrderSummaryApi, exportPayOrdersApi } from '@/api/pay'
 import type { PayOrderItem, PayOrderQuery, PayOrderSummary } from '@/api/pay'
+
+// 响应式列可见性：移动端隐藏次要列（ID/用户ID/支付方式/创建时间）
+const { isMobile } = useResponsive()
 
 const loading = ref(false)
 const tableData = ref<PayOrderItem[]>([])
@@ -152,8 +157,9 @@ async function loadData() {
   loading.value = true
   try {
     // userId 非数字时忽略该筛选条件，避免传 NaN 给后端
+    // 注意：空字符串 '' 时 Number('') === 0 不是 NaN，需额外判断
     const params = { ...query }
-    if (params.userId != null && Number.isNaN(Number(params.userId))) {
+    if (params.userId != null && (params.userId === '' || Number.isNaN(Number(params.userId)))) {
       params.userId = undefined
     }
     const res = await getPayOrderPageApi(params)
@@ -244,11 +250,6 @@ async function copyOrderNo(orderNo: string) {
   } catch {
     ElMessage.error('复制失败，请手动复制')
   }
-}
-
-/** 金额分转元 */
-function formatAmount(amount: number) {
-  return (amount / 100).toFixed(2)
 }
 
 // 订单状态映射

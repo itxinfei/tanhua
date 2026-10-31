@@ -2,7 +2,7 @@
   <el-drawer
     :model-value="modelValue"
     title="用户详情"
-    size="720px"
+    :size="isMobile ? '100%' : '720px'"
     direction="rtl"
     :destroy-on-close="true"
     @update:model-value="handleModelValueChange"
@@ -290,6 +290,7 @@
 import { ref, reactive, computed, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { UserFilled } from '@element-plus/icons-vue'
+import { useResponsive } from '@/composables/useResponsive'
 import {
   getUserDetailApi,
   freezeUserApi,
@@ -313,13 +314,11 @@ const emit = defineEmits<{
   'update:modelValue': [value: boolean]
 }>()
 
-const visible = computed({
-  get: () => props.modelValue,
-  set: (val: boolean) => emit('update:modelValue', val),
-})
+// 响应式：移动端抽屉全宽
+const { isMobile } = useResponsive()
 
 function handleModelValueChange(val: boolean) {
-  visible.value = val
+  emit('update:modelValue', val)
 }
 
 // ── 基本信息 ──
@@ -547,8 +546,8 @@ async function handleResetPwd() {
 const loadedTabs = ref<Set<string>>(new Set())
 
 watch(
-  () => props.modelValue,
-  async (val) => {
+  [() => props.modelValue, () => props.userId],
+  async ([val]) => {
     if (!val) return
     // 抽屉打开：重置状态，加载基本信息
     activeTab.value = 'basic'
@@ -675,6 +674,7 @@ watch(activeTab, async (tab) => {
   border: 1px solid var(--xfjy-border);
   border-radius: 8px;
   overflow: hidden;
+  background: var(--xfjy-bg-card);
 }
 
 .chat-session-panel {
@@ -825,6 +825,16 @@ watch(activeTab, async (tab) => {
 .message-item.mine .bubble {
   background: var(--xfjy-primary);
   color: #fff;
+}
+
+/* 移动端：聊天容器占满可视高度，避免固定 480px 超出抽屉 */
+@media (max-width: 767px) {
+  .chat-container {
+    height: min(480px, 60vh);
+  }
+  .chat-session-panel {
+    width: 140px;
+  }
 }
 
 /* 发送的图片和视频 */

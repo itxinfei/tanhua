@@ -88,7 +88,7 @@
             <el-table-column prop="description" label="描述" min-width="180" show-overflow-tooltip />
             <el-table-column label="状态" width="80" align="center">
               <template #default="{ row }">
-                <StatusTag :status="String(row.status)" :mapping="pkgStatusMapping" />
+                <StatusTag :status="String(row.status)" :mapping="benefitStatusMapping" />
               </template>
             </el-table-column>
             <el-table-column label="操作" width="160" fixed="right" align="center">
@@ -147,7 +147,7 @@
       </el-form>
       <template #footer>
         <el-button @click="pkgFormVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmPkgSave">保存</el-button>
+        <el-button type="primary" :loading="pkgSaving" @click="confirmPkgSave">保存</el-button>
       </template>
     </el-dialog>
 
@@ -180,7 +180,7 @@
       </el-form>
       <template #footer>
         <el-button @click="benefitFormVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmBenefitSave">保存</el-button>
+        <el-button type="primary" :loading="benefitSaving" @click="confirmBenefitSave">保存</el-button>
       </template>
     </el-dialog>
   </div>
@@ -193,6 +193,7 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { SearchBar, TableCard, StatusTag } from '@/components'
 import { useResponsive } from '@/composables/useResponsive'
+import { formatAmount } from '@/utils/format'
 import {
   getVipPackagePageApi,
   createVipPackageApi,
@@ -208,20 +209,21 @@ const { isMobile } = useResponsive()
 
 const activeTab = ref('package')
 
-/** 金额分转元 */
-function formatAmount(amount: number) {
-  return (amount / 100).toFixed(2)
-}
-
 function levelLabel(level: number) {
   const map: Record<number, string> = { 1: '月卡', 2: '季卡', 3: '年卡' }
   return map[level] || `L${level}`
 }
 
-// 状态映射（套餐/权益通用：1=上架/启用，0=下架/停用）
+// 套餐状态映射（上架/下架）
 const pkgStatusMapping = {
   '1': { label: '上架', type: 'success' as const },
   '0': { label: '下架', type: 'info' as const },
+}
+
+// 权益状态映射（启用/停用）——与套餐状态区分文案
+const benefitStatusMapping = {
+  '1': { label: '启用', type: 'success' as const },
+  '0': { label: '停用', type: 'info' as const },
 }
 
 // ============ 套餐 ============
@@ -259,6 +261,8 @@ function handlePkgSizeChange() {
 const pkgFormVisible = ref(false)
 const pkgFormRef = ref<FormInstance>()
 const pkgEditingId = ref<number | null>(null)
+/** 保存提交中（防止重复点击） */
+const pkgSaving = ref(false)
 const pkgForm = reactive<VipPackageForm>({
   name: '',
   level: 1,
@@ -301,9 +305,10 @@ function handlePkgEdit(row: VipPackageItem) {
 }
 
 async function confirmPkgSave() {
-  if (!pkgFormRef.value) return
+  if (!pkgFormRef.value || pkgSaving.value) return
   await pkgFormRef.value.validate(async (valid) => {
     if (!valid) return
+    pkgSaving.value = true
     try {
       if (pkgEditingId.value) {
         // originalPrice 为 undefined 时转 null，确保清空原价能传到后端（axios 会丢弃 undefined 字段）
@@ -317,6 +322,8 @@ async function confirmPkgSave() {
       loadPackages()
     } catch {
       // 错误已由拦截器处理
+    } finally {
+      pkgSaving.value = false
     }
   })
 }
@@ -372,6 +379,8 @@ function handleBenefitSizeChange() {
 const benefitFormVisible = ref(false)
 const benefitFormRef = ref<FormInstance>()
 const benefitEditingId = ref<number | null>(null)
+/** 保存提交中（防止重复点击） */
+const benefitSaving = ref(false)
 const benefitForm = reactive<BenefitForm & { serviceCode: string; name: string }>({
   serviceCode: '',
   name: '',
@@ -397,9 +406,10 @@ function handleBenefitEdit(row: BenefitItem) {
 }
 
 async function confirmBenefitSave() {
-  if (!benefitFormRef.value || !benefitEditingId.value) return
+  if (!benefitFormRef.value || !benefitEditingId.value || benefitSaving.value) return
   await benefitFormRef.value.validate(async (valid) => {
     if (!valid) return
+    benefitSaving.value = true
     try {
       await updateBenefitApi(benefitEditingId.value!, {
         vipLevelRequired: benefitForm.vipLevelRequired,
@@ -412,6 +422,8 @@ async function confirmBenefitSave() {
       loadBenefits()
     } catch {
       // 错误已由拦截器处理
+    } finally {
+      benefitSaving.value = false
     }
   })
 }
