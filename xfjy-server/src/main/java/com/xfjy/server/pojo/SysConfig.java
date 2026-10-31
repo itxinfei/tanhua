@@ -1,5 +1,7 @@
 package com.xfjy.server.pojo;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -12,6 +14,10 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @TableName("tb_sys_config")
 public class SysConfig extends BasePojo {
+
+    /** 主键 */
+    @TableId(type = IdType.AUTO)
+    private Long id;
 
     /** 配置键，如 im.provider */
     private String configKey;

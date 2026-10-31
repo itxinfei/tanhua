@@ -21,4 +21,4 @@ rtc:
   tcp_port: 7881
   # WebRTC 媒体 UDP 端口范围（防火墙需放行，每个参与者约占 2 个端口）
   port_range_start: 50000
-  port_range_end: 60000
+  port_range_end: 50100

@@ -274,7 +274,8 @@ services:
     volumes:
       - wukongim-data:/root/wukongim
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:5001/health || exit 1"]
+      # WuKongIM v1.2.x 无 /health 端点，用 Monitor web(5300/web, 301) 判断存活
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:5300/web || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 10
@@ -298,7 +299,7 @@ services:
     ports:
       - "7880:7880"
       - "7881:7881"
-      - "50000-60000:50000-60000/udp"
+      - "50000-50100:50000-50100/udp"
     volumes:
       - ./livekit/config.yaml:/etc/livekit/config.yaml:ro
     networks:
