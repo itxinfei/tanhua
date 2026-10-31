@@ -46,6 +46,15 @@ public class QuanziApiImpl implements QuanZiApi {
     @Autowired
     private RocketMQTemplate rocketMQTemplate;
 
+    /** 安全删除：失败仅记录日志不抛异常（用于补偿回滚，避免回滚失败掩盖原始异常） */
+    private void safeRemove(String desc, Runnable action) {
+        try {
+            action.run();
+        } catch (Exception e) {
+            LOGGER.error("补偿回滚删除失败: {}", desc, e);
+        }
+    }
+
     /**
      * 发送圈子评分消息（原 server 端 QuanziMQService 逻辑迁入，阶段三）
      * 消息格式与消费方 xfjy-recommend 的 QuanZiMsgConsumer 保持兼容：type/publishId/date/userId/pid
@@ -102,7 +111,7 @@ public class QuanziApiImpl implements QuanZiApi {
             this.mongoTemplate.save(album, "quanzi_album_" + publish.getUserId());
         } catch (Exception e) {
             LOGGER.error("相册写入失败，补偿回滚动态: publishId={}", publish.getId(), e);
-            this.mongoTemplate.remove(publish);
+            safeRemove("动态-" + publish.getId(), () -> this.mongoTemplate.remove(publish));
             return null;
         }
 
@@ -129,18 +138,19 @@ public class QuanziApiImpl implements QuanZiApi {
             }
         } catch (Exception e) {
             LOGGER.error("时间线写入失败，补偿回滚相册+动态: publishId={}", publish.getId(), e);
-            //回滚已写入的时间线
+            //回滚已写入的时间线（每步独立防护，避免回滚失败掩盖原始异常）
             for (int i = 0; i < savedTimeLineIds.size(); i++) {
-                this.mongoTemplate.remove(
-                        Query.query(Criteria.where("id").is(savedTimeLineIds.get(i))),
-                        TimeLine.class, savedTimeLineCollections.get(i));
+                final int idx = i;
+                safeRemove("时间线-" + savedTimeLineCollections.get(idx), () -> this.mongoTemplate.remove(
+                        Query.query(Criteria.where("id").is(savedTimeLineIds.get(idx))),
+                        TimeLine.class, savedTimeLineCollections.get(idx)));
             }
             //回滚相册
-            this.mongoTemplate.remove(
+            safeRemove("相册-" + publish.getUserId(), () -> this.mongoTemplate.remove(
                     Query.query(Criteria.where("id").is(album.getId())),
-                    Album.class, "quanzi_album_" + publish.getUserId());
+                    Album.class, "quanzi_album_" + publish.getUserId()));
             //回滚动态
-            this.mongoTemplate.remove(publish);
+            safeRemove("动态-" + publish.getId(), () -> this.mongoTemplate.remove(publish));
             return null;
         }
 
@@ -520,16 +530,24 @@ public class QuanziApiImpl implements QuanZiApi {
         // 1. 删除动态主表
         this.mongoTemplate.remove(publish);
 
-        // 2. 删除发布者相册中的记录
-        Query albumQuery = Query.query(Criteria.where("publishId").is(oid));
-        this.mongoTemplate.remove(albumQuery, "quanzi_album_" + publish.getUserId());
+        // 2. 删除发布者相册中的记录（失败不阻断，记录告警）
+        try {
+            Query albumQuery = Query.query(Criteria.where("publishId").is(oid));
+            this.mongoTemplate.remove(albumQuery, "quanzi_album_" + publish.getUserId());
+        } catch (Exception e) {
+            LOGGER.error("删除相册记录失败 publishId={}", publishId, e);
+        }
 
-        // 3. 删除好友时间线中的该动态记录
-        Query usersQuery = Query.query(Criteria.where("userId").is(publish.getUserId()));
-        List<Users> users = this.mongoTemplate.find(usersQuery, Users.class);
-        for (Users user : users) {
-            Query timeLineQuery = Query.query(Criteria.where("publishId").is(oid));
-            this.mongoTemplate.remove(timeLineQuery, "quanzi_time_line_" + user.getFriendId());
+        // 3. 删除好友时间线中的该动态记录（失败不阻断，记录告警）
+        try {
+            Query usersQuery = Query.query(Criteria.where("userId").is(publish.getUserId()));
+            List<Users> users = this.mongoTemplate.find(usersQuery, Users.class);
+            for (Users user : users) {
+                Query timeLineQuery = Query.query(Criteria.where("publishId").is(oid));
+                this.mongoTemplate.remove(timeLineQuery, "quanzi_time_line_" + user.getFriendId());
+            }
+        } catch (Exception e) {
+            LOGGER.error("删除时间线记录失败 publishId={}", publishId, e);
         }
 
         LOGGER.info("动态已下架 publishId={} userId={}", publishId, publish.getUserId());
