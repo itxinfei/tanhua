@@ -152,16 +152,21 @@ public class PayController {
     }
 
     /**
-     * 根据订单号查询订单详情
+     * 根据订单号查询订单详情（仅本人订单可见，防越权枚举）
      */
     @GetMapping("order/{orderNo}")
     public ResponseEntity<PayOrder> queryOrder(@PathVariable("orderNo") String orderNo) {
         try {
-            PayOrder order = this.payApi.queryOrder(orderNo);
-            if (order != null) {
-                return ResponseEntity.ok(order);
+            User user = UserThreadLocal.get();
+            if (user == null || user.getId() == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            PayOrder order = this.payApi.queryOrder(orderNo);
+            if (order == null || !user.getId().equals(order.getUserId())) {
+                // 订单不存在或不归属当前用户，统一返回404避免枚举探测
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+            return ResponseEntity.ok(order);
         } catch (Exception e) {
             LOGGER.error("查询订单异常", e);
         }

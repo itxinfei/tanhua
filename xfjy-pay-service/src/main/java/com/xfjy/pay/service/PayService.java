@@ -1,6 +1,7 @@
 package com.xfjy.pay.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.xfjy.pay.mapper.PayOrderMapper;
 import com.xfjy.pay.mapper.UserVipMapper;
 import com.xfjy.pay.mapper.ValueAddedServiceMapper;
@@ -15,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,6 +59,18 @@ public class PayService {
 
     /** 权益每日已用次数 Redis key 前缀：XFJY_BENEFIT_USED_{userId}_{code}_{yyyyMMdd} */
     private static final String BENEFIT_USED_PREFIX = "XFJY_BENEFIT_USED_";
+
+    /** 权益每日限次 Lua 脚本：INCR→首日设TTL→超限DECR回滚返回-1，原子防并发超扣 */
+    private static final DefaultRedisScript<Long> BENEFIT_USAGE_SCRIPT;
+    static {
+        BENEFIT_USAGE_SCRIPT = new DefaultRedisScript<>();
+        BENEFIT_USAGE_SCRIPT.setScriptText(
+                "local used = redis.call('INCR', KEYS[1]) " +
+                "if used == 1 then redis.call('EXPIREAT', KEYS[1], ARGV[1]) end " +
+                "if used > tonumber(ARGV[2]) then redis.call('DECR', KEYS[1]) return -1 end " +
+                "return used");
+        BENEFIT_USAGE_SCRIPT.setResultType(Long.class);
+    }
 
     /**
      * 查询上架的 VIP 套餐列表（按 sort 升序）
@@ -137,13 +151,23 @@ public class PayService {
             return false;
         }
 
-        // 1. 订单标记已支付
-        PayOrder paid = new PayOrder();
-        paid.setId(order.getId());
-        paid.setStatus("PAID");
-        paid.setPaidTime(now);
-        paid.setUpdated(now);
-        this.payOrderMapper.updateById(paid);
+        // 1. 订单标记已支付（条件更新防并发：仅 PENDING→PAID 成功，重复回调/双击安全）
+        LambdaUpdateWrapper<PayOrder> paidWrapper = new LambdaUpdateWrapper<>();
+        paidWrapper.eq(PayOrder::getId, order.getId())
+                .eq(PayOrder::getStatus, "PENDING")
+                .set(PayOrder::getStatus, "PAID")
+                .set(PayOrder::getPaidTime, now)
+                .set(PayOrder::getUpdated, now);
+        int paidRows = this.payOrderMapper.update(null, paidWrapper);
+        if (paidRows <= 0) {
+            LOGGER.warn("订单状态变更失败（可能已被并发处理）, orderNo = {}", orderNo);
+            return false;
+        }
+
+
+
+
+
 
         // 2. 开通 VIP（按套餐天数延展到期时间）
         VipPackage vipPackage = this.vipPackageMapper.selectById(order.getPackageId());
@@ -357,19 +381,25 @@ public class PayService {
             return true; // 不限次权益
         }
         String key = benefitUsedKey(userId, serviceCode);
-        int usedToday = getUsedToday(userId, serviceCode);
+        // Lua 原子化：INCR + 超限回滚 + 首次设置 TTL，消除读后写竞态
+        long nextMidnightEpoch = LocalDate.now(ZoneId.of("Asia/Shanghai")).plusDays(1)
+                .atStartOfDay(ZoneId.of("Asia/Shanghai")).toInstant().getEpochSecond();
+        Long result = this.redisTemplate.execute(BENEFIT_USAGE_SCRIPT,
+                Collections.singletonList(key),
+                String.valueOf(nextMidnightEpoch), String.valueOf(service.getDailyLimit()));
+        return result != null && result >= 0L;
         if (usedToday >= service.getDailyLimit()) {
-            return false; // 今日已用尽
-        }
-        Long used = this.redisTemplate.opsForValue().increment(key);
-        if (used != null && used == 1L) {
-            // 首次使用，TTL 设到次日零点（避免手动清理）
-            java.util.Date nextMidnight = java.util.Date.from(
-                    LocalDate.now(ZoneId.of("Asia/Shanghai")).plusDays(1)
-                            .atStartOfDay(ZoneId.of("Asia/Shanghai")).toInstant());
-            this.redisTemplate.expireAt(key, nextMidnight);
-        }
-        return true;
+
+
+
+
+
+
+
+
+
+
+
     }
 
     private ValueAddedService queryBenefitByCode(String serviceCode) {

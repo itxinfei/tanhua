@@ -21,16 +21,21 @@ public class BaiduService {
     private ESUserLocationApi esUserLocationApi;
 
     public Boolean updateLocation(Double longitude, Double latitude, String address) {
+        User user = UserThreadLocal.get();
+        // ES 优先写入：搜附近强依赖 ES，写入失败才整体失败
         try {
-            User user = UserThreadLocal.get();
-            // 双写：MongoDB（通用位置存储）+ ES（附近的人 Geo 查询）
-            this.userLocationApi.updateUserLocation(user.getId(), longitude, latitude, address);
             this.esUserLocationApi.updateUserLocation(user.getId(), longitude, latitude, address);
-            return true;
         } catch (Exception e) {
-            LOGGER.error("更新位置失败", e);
+            LOGGER.error("ES位置写入失败，搜附近将不可见: userId={}", user.getId(), e);
+            return false;
         }
-        return false;
+        // MongoDB 通用位置存储：失败不阻断主流程，仅记录告警（双写降级为单写）
+        try {
+            this.userLocationApi.updateUserLocation(user.getId(), longitude, latitude, address);
+        } catch (Exception e) {
+            LOGGER.warn("MongoDB位置写入失败（不影响搜附近）: userId={}", user.getId(), e);
+        }
+        return true;
     }
 
 }

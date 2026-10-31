@@ -33,12 +33,24 @@ public class BaiduController {
         try {
             Double longitude = Double.valueOf(param.get("longitude").toString());
             Double latitude = Double.valueOf(param.get("latitude").toString());
-            String address = param.get("addrStr").toString();
+                        Object lonObj = param.get("longitude");
+            Object latObj = param.get("latitude");
+            Object addrObj = param.get("addrStr");
+            if (lonObj == null || latObj == null || addrObj == null) {
+                // 必填字段缺失（前端契约：longitude/latitude/addrStr）
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            }
+            Double longitude = Double.valueOf(lonObj.toString());
+            Double latitude = Double.valueOf(latObj.toString());
+            String address = addrObj.toString();
 
             Boolean bool = this.baiduService.updateLocation(longitude, latitude, address);
             if (bool) {
                 return ResponseEntity.ok(null);
             }
+        } catch (NumberFormatException e) {
+            LOGGER.warn("经纬度格式非法: {}", param, e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         } catch (Exception e) {
             LOGGER.error("接口处理异常", e);
         }
