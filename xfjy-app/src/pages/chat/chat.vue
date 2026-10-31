@@ -131,7 +131,7 @@ const QUICK_ACTIONS: QuickAction[] = [
   { uniIcon: "image", label: "图片", bg: "#ff5e9c", handler: chooseImage },
   { uniIcon: "camera", label: "拍照", bg: "#4a90d9", handler: () => showTodoToast("拍照") },
   { uniIcon: "location", label: "位置", bg: "#4cd964", handler: chooseLocation },
-  { uniIcon: "person", label: "名片", bg: "#a78bfa", handler: chooseCardContact },
+  { uniIcon: "person", label: "名片", bg: "#8a5cf6", handler: chooseCardContact },
 ];
 
 /** 消息发送状态 */

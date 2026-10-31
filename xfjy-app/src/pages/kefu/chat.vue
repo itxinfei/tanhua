@@ -287,7 +287,7 @@ onUnmounted(() => {
 .quick-bar { background: #fafafa; border-bottom: 1rpx solid #f0f0f0; }
 .quick-list { display: flex; gap: 16rpx; padding: 16rpx 20rpx; }
 /* 快捷问题 chip：#ff5e9c on #fff ≈2.6:1 → #c2185b */
-.quick-chip { flex-shrink: 0; background: #fff; border: 1rpx solid #ffb3c9; border-radius: 32rpx; padding: 14rpx 28rpx; min-height: 48rpx;
+.quick-chip { flex-shrink: 0; background: #fff; border: 1rpx solid #ffc8de; border-radius: 32rpx; padding: 14rpx 28rpx; min-height: 48rpx;
   text { font-size: 24rpx; color: #c2185b; white-space: nowrap; }
 }
 

@@ -233,6 +233,12 @@ function goFeedback(): void {
     border-top: 1rpx solid #f0f0f0;
 
     text {
+      font-size: 26rpx;
+      color: #666;
+      line-height: 1.7;
+    }
+  }
+}
 
 .loading-tip {
   display: flex;
@@ -255,7 +261,7 @@ function goFeedback(): void {
   .entry-btn {
     flex: 1;
     background: #ffeff5;
-    border: 1rpx solid #ffb3c9;
+    border: 1rpx solid #ffc8de;
     border-radius: 44rpx;
     text-align: center;
     padding: 22rpx 0;

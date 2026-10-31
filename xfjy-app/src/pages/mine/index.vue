@@ -124,7 +124,7 @@ const socialMenuItems: MenuItemConfig[] = [
   {
     uniIcon: "eye",
     label: "谁看过我",
-    color: "#a78bfa",
+    color: "#8a5cf6",
     action: () => goFriends(FRIEND_TYPE.VISITOR),
   },
   {

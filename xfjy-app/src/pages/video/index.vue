@@ -24,23 +24,34 @@
       :current="swiperIndex"
       @change="onSwiperChange"
     >
-      <swiper-item v-for="video in displayList" :key="video.id">
+      <swiper-item v-for="(video, idx) in displayList" :key="video.id">
         <view class="video-item">
-          <!-- 视频播放器 / 封面占位 -->
-          <video
-            v-if="currentId === video.id"
-            :id="'vid-' + video.id"
-            class="video-player"
-            :src="video.videoUrl"
-            autoplay
-            loop
-            :muted="isMuted"
-            :controls="false"
-            object-fit="cover"
-            @timeupdate="onTimeUpdate"
-            @play="isPlaying = true"
-            @pause="isPlaying = false"
-          />
+          <!-- 当前及相邻 item 常驻 video 节点（±1 窗口），滑入即有缓存节点，避免每次滑动销毁重建原生播放器；远处的 item 退回封面图控制内存 -->
+          <template v-if="Math.abs(idx - swiperIndex) <= 1">
+            <video
+              :id="'vid-' + video.id"
+              class="video-player"
+              :src="video.videoUrl"
+              :autoplay="idx === swiperIndex"
+              :paused="!isPlaying"
+              loop
+              :muted="isMuted"
+              :controls="false"
+              object-fit="cover"
+              @timeupdate="idx === swiperIndex ? onTimeUpdate($event) : null"
+              @play="onVideoPlay(idx)"
+              @pause="onVideoPause(idx)"
+              @error="onVideoError"
+            />
+            <!-- 余像：窗口内非当前 item 用封面盖住未起播的黑块 -->
+            <image
+              v-if="idx !== swiperIndex"
+              class="cover-residue"
+              :src="video.cover"
+              mode="aspectFill"
+              aria-hidden="true"
+            />
+          </template>
           <image v-else class="cover" :src="video.cover" mode="aspectFill" lazy-load :aria-label="`${video.nickname} 的视频封面`" />
 
           <!-- 透明点击层：单击暂停/播放，双击点赞（纯手势层，另有显式按钮） -->
@@ -60,51 +71,53 @@
             aria-hidden="true"
           ><uni-icons type="heart-filled" size="20" color="#ff5e9c"></uni-icons></view>
 
-          <!-- 右侧操作栏（完全模仿抖音：头像+关注 / 点赞 / 评论 / 分享 / 静音 / 旋转唱片） -->
+          <!-- 右侧操作栏（完全模仿抖音：头像+关注 / 点赞 / 评论 / 分享 / 静音 / 旋转唱片），底缘与左侧文字区对齐 -->
           <view class="side-bar">
-            <!-- 作者头像 + 关注（抖音置于栏顶） -->
-            <a11y-button
-              class="side-btn btn-feedback follow-btn"
-              :label="video.hasFocus ? `取消关注 ${video.nickname}` : `关注 ${video.nickname}`"
-              @tap="handleFocus(video)"
-            >
-              <image class="side-avatar" :src="video.avatar" mode="aspectFill" lazy-load aria-hidden="true" />
-              <view v-if="!video.hasFocus" class="follow-plus" aria-hidden="true">+</view>
-            </a11y-button>
+            <view class="side-stack">
+              <!-- 作者头像 + 关注（抖音置于栏顶） -->
+              <a11y-button
+                class="side-btn btn-feedback follow-btn"
+                :label="video.hasFocus ? `取消关注 ${video.nickname}` : `关注 ${video.nickname}`"
+                @tap="handleFocus(video)"
+              >
+                <image class="side-avatar" :src="video.avatar" mode="aspectFill" lazy-load aria-hidden="true" />
+                <view v-if="!video.hasFocus" class="follow-plus" aria-hidden="true">+</view>
+              </a11y-button>
 
-            <a11y-button
-              class="side-btn btn-feedback"
-              :label="video.hasLiked === 1 ? `取消点赞，当前 ${video.likeCount} 赞` : `点赞，当前 ${video.likeCount} 赞`"
-              @tap="handleLike(video)"
-            >
-              <view class="icon-circle" :class="{ liked: video.hasLiked === 1 }">
-                <uni-icons class="icon-text" :type="video.hasLiked === 1 ? 'heart-filled' : 'heart'" :color="video.hasLiked === 1 ? '#fe2c55' : '#fff'" size="26"></uni-icons>
-              </view>
-              <text class="side-count">{{ video.likeCount }}</text>
-            </a11y-button>
+              <a11y-button
+                class="side-btn btn-feedback"
+                :label="video.hasLiked === 1 ? `取消点赞，当前 ${video.likeCount} 赞` : `点赞，当前 ${video.likeCount} 赞`"
+                @tap="handleLike(video)"
+              >
+                <view class="icon-circle" :class="{ liked: video.hasLiked === 1 }">
+                  <uni-icons class="icon-text" :type="video.hasLiked === 1 ? 'heart-filled' : 'heart'" :color="video.hasLiked === 1 ? '#ff5e9c' : '#fff'" size="26"></uni-icons>
+                </view>
+                <text class="side-count">{{ video.likeCount }}</text>
+              </a11y-button>
 
-            <a11y-button class="side-btn btn-feedback" :label="`查看评论，共 ${video.commentCount} 条`" @tap="showComments(video)">
-              <view class="icon-circle">
-                <uni-icons class="icon-text" type="chatbubble" color="#fff" size="26"></uni-icons>
-              </view>
-              <text class="side-count">{{ video.commentCount }}</text>
-            </a11y-button>
+              <a11y-button class="side-btn btn-feedback" :label="`查看评论，共 ${video.commentCount} 条`" @tap="showComments(video)">
+                <view class="icon-circle">
+                  <uni-icons class="icon-text" type="chatbubble" color="#fff" size="26"></uni-icons>
+                </view>
+                <text class="side-count">{{ video.commentCount }}</text>
+              </a11y-button>
 
-            <a11y-button class="side-btn btn-feedback" :label="`分享 ${video.nickname} 的视频`" @tap="openShare(video)">
-              <view class="icon-circle">
-                <text class="icon-text" aria-hidden="true">↗</text>
-              </view>
-            </a11y-button>
+              <a11y-button class="side-btn btn-feedback" :label="`分享 ${video.nickname} 的视频`" @tap="openShare(video)">
+                <view class="icon-circle">
+                  <text class="icon-text" aria-hidden="true">↗</text>
+                </view>
+              </a11y-button>
 
-            <a11y-button
-              class="side-btn btn-feedback"
-              :label="isMuted ? '取消静音' : '静音'"
-              @tap="toggleMute"
-            >
-              <view class="icon-circle">
-                <uni-icons class="icon-text" :type="isMuted ? 'sound' : 'sound-filled'" color="#fff" size="26"></uni-icons>
-              </view>
-            </a11y-button>
+              <a11y-button
+                class="side-btn btn-feedback"
+                :label="isMuted ? '取消静音' : '静音'"
+                @tap="toggleMute"
+              >
+                <view class="icon-circle">
+                  <uni-icons class="icon-text" :type="isMuted ? 'sound' : 'sound-filled'" color="#fff" size="26"></uni-icons>
+                </view>
+              </a11y-button>
+            </view>
 
             <!-- 旋转音乐唱片（抖音式，置于栏底） -->
             <view
@@ -141,8 +154,8 @@
     <view class="top-scrim" aria-hidden="true"></view>
     <view class="bottom-scrim" aria-hidden="true"></view>
 
-    <!-- 上滑提示（纯装饰，弱化动效偏好下自动静止） -->
-    <view class="swipe-hint" aria-hidden="true">
+    <!-- 上滑提示（纯装饰，仅首条有效视频上短暂显示；弱化动效偏好下自动静止） -->
+    <view v-if="showSwipeHint" class="swipe-hint" aria-hidden="true">
       <text class="swipe-arrow">︿</text>
       <text class="swipe-text">上滑看更多</text>
     </view>
@@ -194,7 +207,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, getCurrentInstance } from "vue";
+import { ref, computed, watch, getCurrentInstance } from "vue";
 import { onShow, onHide, onShareAppMessage } from "@dcloudio/uni-app";
 import MatchPopup from "@/components/match-popup.vue";
 import {
@@ -221,7 +234,6 @@ const recommendPage = ref(1);
 const followVideos = ref<Video[]>([]);
 const followPage = ref(1);
 
-const currentId = ref("");
 const swiperIndex = ref(0);
 type ChannelKey = "hot" | "friend" | "follow" | "location" | "recommend";
 const CHANNELS = [
@@ -234,38 +246,6 @@ const CHANNELS = [
 const activeChannel = ref<ChannelKey>("recommend");
 /** 暂未接入后端的频道：展示占位空状态 */
 const PLACEHOLDER_CHANNELS: ChannelKey[] = ["hot", "friend", "location"];
-const isPlaying = ref(true);
-/** 是否静音：默认关闭（抖音式有声），可手动切换 */
-const isMuted = ref(false);
-const progress = ref(0);
-const loading = ref(false);
-
-/** 评论抽屉状态 */
-const commentVisible = ref(false);
-const activeCommentVideoId = ref("");
-
-/** uni-app 的 :paused 属性不可靠，改用视频上下文控制播放 */
-const instance = getCurrentInstance();
-
-function applyPlayState() {
-  if (!currentId.value) return;
-  const ctx = uni.createVideoContext("vid-" + currentId.value, instance?.proxy as any);
-  if (!ctx) return;
-  if (isPlaying.value) {
-    ctx.play();
-  } else {
-    ctx.pause();
-  }
-}
-
-watch(isPlaying, applyPlayState);
-
-/** 双击飞心 */
-const floatHearts = ref<{ id: number; x: number; y: number }[]>([]);
-
-/** 分享面板 */
-const showShare = ref(false);
-const shareVideo = ref<Video | null>(null);
 
 /** 当前 Tab 展示的列表：关注 = 关注流接口返回，推荐 = 推荐流接口返回 */
 const displayList = computed<Video[]>(() => {
@@ -278,6 +258,83 @@ const displayList = computed<Video[]>(() => {
       return [];
   }
 });
+
+/** 评论抽屉状态 */
+const commentVisible = ref(false);
+const activeCommentVideoId = ref("");
+
+/** 分页加载守卫：防止快速滑动触发重复请求；到底后不再重发 */
+const loadingMore = ref(false);
+const recommendHasMore = ref(true);
+const followHasMore = ref(true);
+
+/** 请求代际令牌：切频道/重载后，旧请求的响应直接丢弃 */
+let loadToken = 0;
+
+/** 当前播放视频：始终由 swiperIndex 单一推导，不再平行维护 currentId */
+const currentVideo = computed<Video | undefined>(() => displayList.value[swiperIndex.value]);
+const currentId = computed(() => currentVideo.value?.id ?? "");
+
+const isPlaying = ref(true);
+/** 是否静音：H5 自动播放策略要求无声才能 autoplay，小程序可有声 */
+const isH5 = uni.getSystemInfoSync().uniPlatform === "web";
+const isMuted = ref(isH5);
+const progress = ref(0);
+const loading = ref(false);
+
+/** video 的 play/pause 事件会滞后于 index 切换到达，用此标记丢弃来自旧视频的滞后事件 */
+let lastPlayedIndex = -1;
+
+/** 单击/双击判定 */
+let lastTapTime = 0;
+let singleTapTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** uni-app 的上下文仍用于 onShow/onHide 等显式恢复场景，暂停/切换交由 autoplay + paused 托管 */
+const instance = getCurrentInstance();
+
+function playAt(index: number) {
+  const video = displayList.value[index];
+  if (!video) return;
+  lastPlayedIndex = index;
+  const ctx = uni.createVideoContext("vid-" + video.id, instance?.proxy as any);
+  ctx?.play();
+}
+
+// 位置变化时退出残留的点击判定与待触发的单击计时（滑切自带"播放新视频"语义）
+watch(swiperIndex, () => {
+  lastTapTime = 0;
+  if (singleTapTimer) {
+    clearTimeout(singleTapTimer);
+    singleTapTimer = null;
+  }
+});
+
+/** 滑动切换：video 节点常驻，无需重建，只同步播放态与预加载 */
+function onSwiperChange(e: any) {
+  const index = e.detail.current;
+  swiperIndex.value = index;
+  isPlaying.value = true;
+  progress.value = 0;
+  playAt(index);
+  if (index >= displayList.value.length - 2) {
+    loadMoreVideos();
+  }
+}
+
+function onVideoPlay(idx: number) {
+  if (idx !== swiperIndex.value) return;
+  isPlaying.value = true;
+}
+
+function onVideoPause(idx: number) {
+  // 切走的旧 video 卸载/切换时会补发滞后 pause 事件，丢弃，否则会误重置新视频状态
+  if (idx !== swiperIndex.value || idx !== lastPlayedIndex) return;
+  isPlaying.value = false;
+}
+
+function onVideoError() {
+  uni.showToast({ title: "视频加载失败，可上滑再看或稍后重试", icon: "none" });
+}
 
 /** 空状态文案随频道变化 */
 const emptyStateTitle = computed(() => {
@@ -295,38 +352,12 @@ const emptyStateDesc = computed(() =>
     : "精彩内容即将上线"
 );
 
-/** 单击/双击判定 */
-let lastTapTime = 0;
-let singleTapTimer: ReturnType<typeof setTimeout> | null = null;
+/** 双击飞心 */
+const floatHearts = ref<{ id: number; x: number; y: number }[]>([]);
 
-/** 分页加载守卫：防止快速滑动触发重复请求；到底后不再重发 */
-const loadingMore = ref(false);
-const recommendHasMore = ref(true);
-const followHasMore = ref(true);
-
-/**
- * swiper 切换：更新当前视频并重置播放态，接近底部预加载
- */
-function onSwiperChange(e: any) {
-  const index = e.detail.current;
-  swiperIndex.value = index;
-  const video = displayList.value[index];
-  if (video) {
-    // 切走前先暂停上一个视频，避免其音频残留（swiper 复用节点时尤为关键）
-    if (currentId.value && currentId.value !== video.id) {
-      const prevCtx = uni.createVideoContext("vid-" + currentId.value, instance?.proxy as any);
-      if (prevCtx) prevCtx.pause();
-    }
-    currentId.value = video.id;
-    isPlaying.value = true;
-    progress.value = 0;
-    // 新视频节点此刻才渲染（autoplay 兜底），渲染完成后上下文才可取到
-    nextTick(applyPlayState);
-    if (index >= displayList.value.length - 2) {
-      loadMoreVideos();
-    }
-  }
-}
+/** 分享面板 */
+const showShare = ref(false);
+const shareVideo = ref<Video | null>(null);
 
 /** 切换静音 */
 function toggleMute() {
@@ -339,13 +370,12 @@ function onSearch(): void {
 }
 
 /**
- * 切换顶部 Tab，重置到首条
+ * 切换顶部 Tab，重置到首条（currentId 由 swiperIndex 推导，无需手工维护）
  */
 async function switchChannel(ch: ChannelKey) {
   if (activeChannel.value === ch) return;
   activeChannel.value = ch;
   swiperIndex.value = 0;
-  currentId.value = "";
   isPlaying.value = true;
   progress.value = 0;
   if (ch === "follow" && followVideos.value.length === 0) {
@@ -353,12 +383,10 @@ async function switchChannel(ch: ChannelKey) {
   } else if (ch === "recommend" && recommendVideos.value.length === 0) {
     await loadVideos();
   }
-  const first = displayList.value[0];
-  currentId.value = first ? first.id : "";
 }
 
 /**
- * 透明层点击：250ms 内第二次点击视为双击（点赞），否则单击（暂停/播放）
+ * 透明层点击：单击立即暂停/播放，250ms 内第二次点击撤销单击并视为双击（点赞）
  */
 function onVideoTap(video: Video, e: any) {
   const now = Date.now();
@@ -366,16 +394,16 @@ function onVideoTap(video: Video, e: any) {
     if (singleTapTimer) {
       clearTimeout(singleTapTimer);
       singleTapTimer = null;
+      // 撤销第一次单击造成的暂停，恢复播放
+      isPlaying.value = true;
     }
     lastTapTime = 0;
     doubleLike(video, e);
   } else {
     lastTapTime = now;
+    isPlaying.value = !isPlaying.value;
     singleTapTimer = setTimeout(() => {
       singleTapTimer = null;
-      if (currentId.value === video.id) {
-        isPlaying.value = !isPlaying.value;
-      }
     }, 250);
   }
 }
@@ -452,17 +480,14 @@ async function handleFocus(video: Video) {
     if (wasFocused) {
       video.hasFocus = 0;
       await unfocusVideoUser(video.userId);
-      // 关注流中取关：从关注列表移除该视频并修正当前播放位置
+      // 关注流中取关：移除该作者的全部视频（同作者可能有多条），并修正播放位置
       if (activeChannel.value === "follow") {
-        followVideos.value = followVideos.value.filter((v) => v.id !== video.id);
-        if (followVideos.value.length === 0) {
-          currentId.value = "";
-          swiperIndex.value = 0;
-        } else {
-          const safeIdx = Math.min(swiperIndex.value, followVideos.value.length - 1);
-          swiperIndex.value = safeIdx;
-          currentId.value = followVideos.value[safeIdx].id;
-        }
+        followVideos.value = followVideos.value.filter((v) => v.userId !== video.userId);
+        const safeIdx = Math.min(swiperIndex.value, Math.max(0, followVideos.value.length - 1));
+        // 先归 -1 再赋值，保证即使索引数值不变 watch 也能感知"切换到了新的第 safeIdx 条"
+        swiperIndex.value = -1;
+        swiperIndex.value = safeIdx;
+        if (followVideos.value.length > 0) playAt(safeIdx);
       }
     } else {
       video.hasFocus = 1;
@@ -491,41 +516,48 @@ function doShare(channel: "wechat" | "moments" | "copy") {
       success: () => uni.showToast({ title: "链接已复制", icon: "none" }),
     });
   } else {
-    uni.showToast({
-      title: channel === "wechat" ? "已分享到微信" : "已分享到朋友圈",
-      icon: "none",
-    });
+    // 未接入真实微信分享，不再谎报"已分享"
+    uni.showToast({ title: "该分享方式即将上线", icon: "none" });
   }
 }
 
 
 /**
- * 加载视频列表首页
+ * 加载视频列表首页（重载即重置滑动位置，并作废在途请求）
  */
 async function loadVideos() {
+  const token = ++loadToken;
+  swiperIndex.value = 0;
   loading.value = true;
   try {
     if (activeChannel.value === "follow") {
       followPage.value = 1;
       followHasMore.value = true;
       const res = await getFollowVideoList({ page: 1, pagesize: PAGE_SIZE });
+      if (token !== loadToken || activeChannel.value !== "follow") return;
       followVideos.value = res.items || [];
     } else {
       recommendPage.value = 1;
       recommendHasMore.value = true;
       const res = await getVideoList({ page: 1, pagesize: PAGE_SIZE });
+      if (token !== loadToken || activeChannel.value !== "recommend") return;
       recommendVideos.value = res.items || [];
     }
-    const first = displayList.value[0];
-    if (first) {
-      currentId.value = first.id;
+    if (displayList.value.length > 0) {
       isPlaying.value = true;
+      playAt(0);
     }
   } catch {
     // 请求失败由 request 层统一 toast
   } finally {
-    loading.value = false;
+    if (token === loadToken) loading.value = false;
   }
+}
+
+/** 按 id 去重后追加，防止后端翻页数据变动导致 swiper 重复 key */
+function appendUnique(target: Video[], items: Video[]): Video[] {
+  const seen = new Set(target.map((v) => v.id));
+  return target.concat(items.filter((v) => !seen.has(v.id)));
 }
 
 /**
@@ -534,13 +566,16 @@ async function loadVideos() {
 async function loadMoreVideos() {
   if (loadingMore.value) return;
   if (activeChannel.value === "follow" ? !followHasMore.value : !recommendHasMore.value) return;
+  const token = loadToken;
+  const channel = activeChannel.value;
   loadingMore.value = true;
   try {
-    if (activeChannel.value === "follow") {
+    if (channel === "follow") {
       const nextPage = followPage.value + 1;
       const res = await getFollowVideoList({ page: nextPage, pagesize: PAGE_SIZE });
+      if (token !== loadToken || activeChannel.value !== "follow") return;
       if (res.items && res.items.length > 0) {
-        followVideos.value.push(...res.items);
+        followVideos.value = appendUnique(followVideos.value, res.items);
         followPage.value = nextPage;
       } else {
         followHasMore.value = false;
@@ -548,8 +583,9 @@ async function loadMoreVideos() {
     } else {
       const nextPage = recommendPage.value + 1;
       const res = await getVideoList({ page: nextPage, pagesize: PAGE_SIZE });
+      if (token !== loadToken || activeChannel.value !== "recommend") return;
       if (res.items && res.items.length > 0) {
-        recommendVideos.value.push(...res.items);
+        recommendVideos.value = appendUnique(recommendVideos.value, res.items);
         recommendPage.value = nextPage;
       } else {
         recommendHasMore.value = false;
@@ -561,6 +597,22 @@ async function loadMoreVideos() {
     loadingMore.value = false;
   }
 }
+
+/** 上滑提示：仅首屏有效视频显示，4 秒后自动退场，避免与底部文字区长期重叠 */
+const showSwipeHint = ref(false);
+watch(
+  () => [currentVideo.value?.id, swiperIndex.value] as const,
+  ([id, idx]) => {
+    if (id && idx === 0) {
+      showSwipeHint.value = true;
+      setTimeout(() => {
+        showSwipeHint.value = false;
+      }, 4000);
+    } else {
+      showSwipeHint.value = false;
+    }
+  },
+);
 
 /** 记录离开页面前的播放状态，返回时恢复 */
 let wasPlayingBeforeHide = false;
@@ -574,16 +626,21 @@ onShow(() => {
   } else if (wasPlayingBeforeHide) {
     wasPlayingBeforeHide = false;
     isPlaying.value = true;
-    nextTick(applyPlayState);
+    playAt(swiperIndex.value);
   }
 });
 
 onHide(() => {
-  // 离开页面（切后台/跳转其他 tab）时暂停，避免声音继续播放
+  // 离开页面（切后台/跳转其他 tab）时暂停，避免声音继续播放；
+  // paused 属性托管的是"用户单击暂停"，tab 切走时 isPlaying 变 false 也会置 paused，双保险
   wasPlayingBeforeHide = isPlaying.value;
   if (isPlaying.value) {
     isPlaying.value = false;
-    applyPlayState();
+    const video = currentVideo.value;
+    if (video) {
+      const ctx = uni.createVideoContext("vid-" + video.id, instance?.proxy as any);
+      ctx?.pause();
+    }
   }
 });
 
@@ -671,6 +728,15 @@ onShareAppMessage(() => ({
     width: 100%;
     height: 100%;
   }
+
+  /* 窗口内非当前 item 的封面余像（盖住未起播的黑块，pointer-events 交给上层 tap-layer） */
+  .cover-residue {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
 }
 
 /* 透明点击层 */
@@ -701,7 +767,7 @@ onShareAppMessage(() => ({
 .float-heart {
   position: absolute;
   font-size: 96rpx;
-  color: #ff2d55;
+  color: #ff5e9c;
   z-index: 20;
   pointer-events: none;
   transform: translate(-50%, -50%);
@@ -725,14 +791,19 @@ onShareAppMessage(() => ({
 .side-bar {
   position: absolute;
   right: 24rpx;
-  top: 0;
-  bottom: 0;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 36rpx);
+  z-index: 10;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  align-items: center;
   gap: 40rpx;
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24rpx);
-  z-index: 10;
+
+  .side-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40rpx;
+  }
 
   .side-btn {
     position: relative;
@@ -779,11 +850,11 @@ onShareAppMessage(() => ({
       height: 32rpx;
       line-height: 28rpx;
       text-align: center;
-      background: #fe2c55;
+      background: #ff5e9c;
       color: #fff;
       border-radius: 50%;
       font-size: 24rpx;
-      box-shadow: 0 4rpx 12rpx rgba(254, 44, 85, 0.5);
+      box-shadow: 0 4rpx 12rpx rgba(255, 94, 156, 0.5);
     }
   }
 
@@ -830,7 +901,7 @@ onShareAppMessage(() => ({
   position: absolute;
   left: 24rpx;
   right: 150rpx;
-  bottom: 120rpx;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 40rpx);
   z-index: 10;
 
   .author {
@@ -928,12 +999,12 @@ onShareAppMessage(() => ({
   pointer-events: none;
 }
 
-/* 上滑提示（抖音式微动效） */
+/* 上滑提示（抖音式微动效；bottom 抬高避开左侧文字区与右侧唱片） */
 .swipe-hint {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 24rpx);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 280rpx);
   z-index: 11;
   display: flex;
   flex-direction: column;

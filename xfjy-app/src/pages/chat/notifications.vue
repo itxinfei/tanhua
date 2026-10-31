@@ -8,11 +8,9 @@
       <button class="locked-btn btn-feedback" @click="goVip">开通 VIP</button>
     </view>
 
-    <!-- 空状态 -->
-    <empty-state icon="notification" title="暂无通知" desc="有人喜欢你时会在这里提醒你" />
-
-    <!-- 通知列表 -->
+    <!-- 空状态 + 通知列表（非锁定态时二选一） -->
     <template v-else>
+      <empty-state v-if="list.length === 0" icon="notification" title="暂无通知" desc="有人喜欢你时会在这里提醒你" />
       <a11y-button v-for="item in list" :key="item.id" class="notice-item shadow-card btn-feedback" :label="noticeLabel(item)" @tap="goDetail(item)">
         <view class="avatar-wrap">
           <image class="avatar" :src="item.avatar || '/static/logo/logo-icon-transparent.png'" mode="aspectFill" lazy-load :aria-label="`${item.nickname} 的头像`" />
@@ -63,7 +61,7 @@ const TYPE_META: Record<string, { uniIcon: string; color: string }> = {
   comment: { uniIcon: "chatbubble", color: "#4a90d9" },
   love: { uniIcon: "star-filled", color: "#ff5e9c" },
   announcement: { uniIcon: "notification", color: "#4cd964" },
-  visitors: { uniIcon: "eye", color: "#a78bfa" },
+  visitors: { uniIcon: "eye", color: "#8a5cf6" },
   fans: { uniIcon: "person", color: "#ff8fb1" },
 };
 
@@ -214,7 +212,8 @@ onPullDownRefresh(async () => {
     .desc { font-size: 24rpx; color: #767676; margin-top: 6rpx; display: block; }
   }
   /* #ccc → #767676 */
-  .time {
+  .time { font-size: 22rpx; color: #767676; flex-shrink: 0; margin-left: 16rpx; }
+}
 
 /* VIP 权益锁定状态 */
 .locked-state { display: flex; flex-direction: column; align-items: center; padding: 160rpx 48rpx 80rpx;

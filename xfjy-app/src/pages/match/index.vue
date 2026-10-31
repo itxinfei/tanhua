@@ -603,9 +603,9 @@ onShareAppMessage(() => ({
     &.boost {
       width: 88rpx;
       height: 88rpx;
-      background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+      background: linear-gradient(135deg, #8a5cf6, #b13bff);
       color: #fff;
-      box-shadow: 0 6rpx 20rpx rgba(139, 92, 246, 0.4);
+      box-shadow: 0 6rpx 20rpx rgba(138, 92, 246, 0.4);
     }
   }
 }
