@@ -3,13 +3,13 @@
     <view class="tips">更换后需使用新手机号登录，请确保新号码可正常接收短信</view>
     <view class="form-card">
       <view class="form-item">
-        <text class="form-label">新手机号</text>
-        <input v-model="phone" type="number" maxlength="11" placeholder="请输入新手机号" placeholder-class="ph" />
+        <text :id="phoneLabelId" class="form-label">新手机号</text>
+        <input v-model="phone" type="number" maxlength="11" placeholder="请输入新手机号" placeholder-class="ph" aria-label="新手机号" :aria-labelledby="phoneLabelId" />
       </view>
       <view class="form-item">
-        <text class="form-label">验证码</text>
-        <input v-model="code" type="number" maxlength="6" placeholder="6位验证码" placeholder-class="ph" />
-        <text class="send-btn" :class="{ disabled: countdown > 0 }" @click="sendCode">{{ countdown > 0 ? `${countdown}s` : '获取验证码' }}</text>
+        <text :id="codeLabelId" class="form-label">验证码</text>
+        <input v-model="code" type="number" maxlength="6" placeholder="6位验证码" placeholder-class="ph" aria-label="验证码" :aria-labelledby="codeLabelId" />
+        <a11y-button class="send-btn" :class="{ disabled: countdown > 0 }" :disabled="countdown > 0" :label="countdown > 0 ? `重新获取验证码，请等待 ${countdown} 秒` : '获取验证码'" @tap="sendCode">{{ countdown > 0 ? `${countdown}s` : '获取验证码' }}</a11y-button>
       </view>
     </view>
     <button class="submit-btn" :disabled="submitting" @click="submit">确认更换</button>
@@ -18,6 +18,11 @@
 
 <script setup lang="ts">
 import { ref, onUnmounted } from "vue";
+import A11yButton from "@/components/a11y-button.vue";
+
+/** 表单字段的唯一 id：用于 aria-labelledby 建立 input 与可见标签的程序化关联（WCAG 1.3.1 / 3.3.2） */
+const phoneLabelId = "change-phone-label";
+const codeLabelId = "change-code-label";
 import { sendSmsCode, changePhone } from "@/api/auth";
 
 const phone = ref('');
@@ -74,7 +79,8 @@ async function submit() {
 
 <style lang="scss" scoped>
 .change-phone-page { min-height: 100vh; background: #f5f5f5; padding: 24rpx; }
-.tips { font-size: 24rpx; color: #999; line-height: 1.6; margin-bottom: 24rpx; }
+/* 提示文案 #999（≈2.85:1）→ #767676 */
+.tips { font-size: 24rpx; color: #767676; line-height: 1.6; margin-bottom: 24rpx; }
 .form-card { background: #fff; border-radius: 24rpx; padding: 8rpx 32rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   .form-item { display: flex; align-items: center; padding: 26rpx 0; border-bottom: 1rpx solid #f5f5f5;
     &:last-child { border-bottom: none; }
@@ -82,10 +88,12 @@ async function submit() {
     input { flex: 1; font-size: 28rpx; color: #333; }
   }
 }
-.send-btn { font-size: 26rpx; color: #ff5e9c; flex-shrink: 0; margin-left: 16rpx;
-  &.disabled { color: #ccc; }
+/* 发送验证码按钮：#ff5e9c on #fff ≈2.6:1 → #c2185b；禁用态 #ccc → #767676，并保证触摸目标 ≥24px */
+.send-btn { font-size: 26rpx; color: #c2185b; flex-shrink: 0; margin-left: 16rpx; padding: 12rpx 8rpx; min-height: 48rpx;
+  &.disabled { color: #767676; }
 }
-.ph { color: #ccc; }
+/* 占位符 #ccc → #767676 */
+.ph { color: #767676; }
 .submit-btn { margin-top: 60rpx; background: #ff5e9c; color: #fff; font-size: 30rpx; border-radius: 48rpx; height: 88rpx; line-height: 88rpx;
   &[disabled] { opacity: 0.6; }
 }

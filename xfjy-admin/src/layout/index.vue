@@ -39,24 +39,25 @@ const appStore = useAppStore()
 }
 
 .layout-aside {
-  background-color: #001529;
+  background-color: var(--xfjy-sidebar-bg);
+  border-right: 1px solid var(--xfjy-sidebar-border);
   transition: width 0.28s;
   overflow: hidden;
 }
 
 .layout-header {
-  background: #fff;
-  border-bottom: 1px solid #e6e6e6;
+  background: var(--xfjy-header-bg);
+  border-bottom: 1px solid var(--xfjy-border);
   display: flex;
   align-items: center;
-  padding: 0 20px;
-  height: 56px;
-  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  padding: 0 var(--xfjy-space-5);
+  height: var(--xfjy-header-height);
+  box-shadow: var(--xfjy-header-shadow);
   z-index: 10;
 }
 
 .layout-main {
-  background-color: #f0f2f5;
+  background-color: var(--xfjy-bg-page);
   padding: 0;
   overflow-y: auto;
 }

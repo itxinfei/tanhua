@@ -169,7 +169,7 @@ async function submitPassword() {
       await changePasswordApi(passwordForm.oldPassword, passwordForm.newPassword)
       ElMessage.success('密码修改成功，请重新登录')
       passwordVisible.value = false
-      authStore.logout()
+      await authStore.logout()
       router.push('/login')
     } catch {
       // 拦截器已提示错误
@@ -187,7 +187,7 @@ async function handleCommand(command: string) {
         cancelButtonText: '取消',
         type: 'warning',
       })
-      authStore.logout()
+      await authStore.logout()
       ElMessage.success('已退出登录')
       router.push('/login')
     } catch {
@@ -212,53 +212,55 @@ async function handleCommand(command: string) {
 .header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--xfjy-space-3);
 }
 
 .collapse-btn {
   cursor: pointer;
-  color: #494a4d;
-  padding: 6px;
-  border-radius: 4px;
+  color: var(--xfjy-text-regular);
+  padding: var(--xfjy-space-1);
+  border-radius: var(--xfjy-radius-sm);
   transition: background 0.2s, color 0.2s;
 }
 
 .collapse-btn:hover {
-  color: #409eff;
-  background: rgba(64, 158, 255, 0.1);
+  color: var(--el-color-primary);
+  background: var(--xfjy-primary-50);
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--xfjy-space-4);
 }
 
 .header-icon {
   cursor: pointer;
-  color: #606266;
+  color: var(--xfjy-text-regular);
+  transition: color 0.2s;
 }
 
 .header-icon:hover {
-  color: #409eff;
+  color: var(--el-color-primary);
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--xfjy-space-2);
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: var(--xfjy-space-1) var(--xfjy-space-2);
+  border-radius: var(--xfjy-radius-sm);
+  transition: background 0.2s;
 }
 
 .user-info:hover {
-  background: #f5f7fa;
+  background: var(--xfjy-bg-hover);
 }
 
 .username {
-  font-size: 14px;
-  color: #303133;
+  font-size: var(--xfjy-font-size-base);
+  color: var(--xfjy-text-primary);
 }
 
 /* DEV 环境标识 */

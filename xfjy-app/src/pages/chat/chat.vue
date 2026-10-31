@@ -9,36 +9,43 @@
         </view>
         <!-- 单条消息 -->
         <view :id="'msg-' + msg.id" class="msg-item" :class="{ mine: msg.isMine }">
-          <image v-if="!msg.isMine" class="avatar" :src="msg.avatar || DEFAULT_AVATAR" mode="aspectFill" />
+          <image lazy-load v-if="!msg.isMine" class="avatar" :src="msg.avatar || DEFAULT_AVATAR" mode="aspectFill" :aria-label="`${nickname} 的头像`" />
           <view class="bubble-wrap" :class="{ mine: msg.isMine }">
-            <view v-if="msg.isMine && msg.status === 'sending'" class="status-loading" />
+            <!-- 发送中转圈：纯状态动画，对读屏隐藏 -->
+            <view v-if="msg.isMine && msg.status === 'sending'" class="status-loading" aria-hidden="true" />
+            <!-- 发送失败：点击重发 -->
+            <a11y-button v-else-if="msg.isMine && msg.status === 'failed'" class="status-failed" label="发送失败，点击重发" @tap="resendMessage(msg)">
+              <text class="failed-icon" aria-hidden="true">!</text>
+            </a11y-button>
             <view class="bubble pop-in" :class="{ mine: msg.isMine }">
               <text v-if="msg.type === 'text'">{{ msg.content }}</text>
-              <image v-else-if="msg.type === 'image'" class="msg-image" :src="msg.content" mode="widthFix" @click="previewImg(msg.content)" />
+              <a11y-button v-else-if="msg.type === 'image'" class="msg-image-wrap" label="查看图片" @tap="previewImg(msg.content)">
+                <image lazy-load class="msg-image" :src="msg.content" mode="widthFix" aria-hidden="true" />
+              </a11y-button>
               <!-- 语音：点击播放，播放中显示波动态 -->
-              <view v-else-if="msg.type === 'voice'" class="msg-voice" @click="toggleVoicePlay(msg)">
-                <text class="voice-icon">{{ playingVoiceId === msg.id ? "❚❚" : "▶" }}</text>
-                <view class="voice-wave" :class="{ playing: playingVoiceId === msg.id }">
+              <a11y-button v-else-if="msg.type === 'voice'" class="msg-voice" :label="playingVoiceId === msg.id ? '暂停语音' : `播放语音，${msg.extra?.duration || 0} 秒`" @tap="toggleVoicePlay(msg)">
+                <text class="voice-icon" aria-hidden="true">{{ playingVoiceId === msg.id ? "❚❚" : "▶" }}</text>
+                <view class="voice-wave" :class="{ playing: playingVoiceId === msg.id }" aria-hidden="true">
                   <text v-for="n in 4" :key="n" class="wave-bar" />
                 </view>
                 <text class="voice-duration">{{ msg.extra?.duration || 0 }}"</text>
-              </view>
+              </a11y-button>
               <!-- 位置：点击打开地图查看 -->
-              <view v-else-if="msg.type === 'location'" class="msg-location" @click="openLocation(msg)">
-                <text class="location-icon">📍</text>
+              <a11y-button v-else-if="msg.type === 'location'" class="msg-location" :label="`查看位置：${msg.content}`" @tap="openLocation(msg)">
+                <uni-icons class="location-icon" type="location" size="16"></uni-icons>
                 <text class="location-address">{{ msg.content }}</text>
-              </view>
+              </a11y-button>
               <!-- 名片：点击跳转对方主页 -->
-              <view v-else-if="msg.type === 'card'" class="msg-card" @click="openCard(msg)">
-                <image class="card-avatar" :src="msg.extra?.avatar || DEFAULT_AVATAR" mode="aspectFill" />
+              <a11y-button v-else-if="msg.type === 'card'" class="msg-card" :label="`查看 ${msg.content} 的个人名片`" @tap="openCard(msg)">
+                <image lazy-load class="card-avatar" :src="msg.extra?.avatar || DEFAULT_AVATAR" mode="aspectFill" aria-hidden="true" />
                 <view class="card-info">
                   <text class="card-name">{{ msg.content }}</text>
                   <text class="card-hint">个人名片</text>
                 </view>
-              </view>
+              </a11y-button>
             </view>
           </view>
-          <image v-if="msg.isMine" class="avatar" :src="msg.avatar || DEFAULT_AVATAR" mode="aspectFill" />
+          <image lazy-load v-if="msg.isMine" class="avatar" :src="msg.avatar || DEFAULT_AVATAR" mode="aspectFill" aria-label="我的头像" />
         </view>
       </template>
     </scroll-view>
@@ -47,33 +54,33 @@
     <view class="input-area safe-area-bottom">
       <view class="input-bar">
         <!-- 语音/键盘切换 -->
-        <view class="icon-btn btn-feedback" @click="toggleVoiceMode">
-          <text>{{ isVoiceMode ? "⌨" : "🎤" }}</text>
-        </view>
+        <a11y-button class="icon-btn btn-feedback" :label="isVoiceMode ? '切换到键盘输入' : '切换到语音输入'" @tap="toggleVoiceMode">
+          <text aria-hidden="true">{{ isVoiceMode ? "⌨" : "🎤" }}</text>
+        </a11y-button>
         <!-- 语音模式：按住说话 -->
-        <view v-if="isVoiceMode" class="voice-btn btn-feedback" @touchstart="onVoiceStart" @touchend="onVoiceEnd">
+        <view v-if="isVoiceMode" class="voice-btn btn-feedback" role="button" :aria-label="isVoicePressing ? '松开 发送' : '按住 说话'" tabindex="0" @touchstart="onVoiceStart" @touchend="onVoiceEnd" @keydown.enter="onVoiceStart" @keydown.space.prevent="onVoiceStart" @keyup="onVoiceEnd">
           <text>{{ isVoicePressing ? "松开 发送" : "按住 说话" }}</text>
         </view>
         <!-- 文字模式：输入框 + 表情 -->
         <template v-else>
-          <input v-model="inputText" class="text-input" :class="{ focus: isInputFocus }" placeholder="说点什么..." confirm-type="send" @confirm="sendText" @focus="isInputFocus = true" @blur="isInputFocus = false" />
-          <view class="icon-btn btn-feedback" @click="togglePanel('emoji')">
-            <text :class="{ 'icon-active': activePanel === 'emoji' }">😊</text>
-          </view>
+          <input v-model="inputText" class="text-input" :class="{ focus: isInputFocus }" placeholder="说点什么..." placeholder-class="ph" aria-label="聊天输入框" confirm-type="send" @confirm="sendText" @focus="isInputFocus = true" @blur="isInputFocus = false" />
+          <a11y-button class="icon-btn btn-feedback" role="tab" :checked="activePanel === 'emoji'" label="表情面板" @tap="togglePanel('emoji')">
+            <text :class="{ 'icon-active': activePanel === 'emoji' }" aria-hidden="true">😊</text>
+          </a11y-button>
         </template>
         <!-- 更多面板 -->
-        <view class="icon-btn btn-feedback" @click="togglePanel('more')">
-          <text :class="{ 'icon-active': activePanel === 'more' }">➕</text>
-        </view>
+        <a11y-button class="icon-btn btn-feedback" role="tab" :checked="activePanel === 'more'" label="更多功能面板" @tap="togglePanel('more')">
+          <uni-icons :class="{ 'icon-active': activePanel === 'more' }" type="plus" size="24" color="#767676"></uni-icons>
+        </a11y-button>
       </view>
 
       <!-- 表情面板 -->
       <view v-if="activePanel === 'emoji'" class="panel emoji-panel">
         <scroll-view scroll-y class="emoji-scroll">
           <view class="emoji-grid">
-            <view v-for="emoji in EMOJI_LIST" :key="emoji" class="emoji-item btn-feedback" @click="insertEmoji(emoji)">
-              <text>{{ emoji }}</text>
-            </view>
+            <a11y-button v-for="emoji in EMOJI_LIST" :key="emoji" class="emoji-item btn-feedback" :label="`插入表情 ${emoji}`" @tap="insertEmoji(emoji)">
+              <text aria-hidden="true">{{ emoji }}</text>
+            </a11y-button>
           </view>
         </scroll-view>
       </view>
@@ -81,10 +88,10 @@
       <!-- 更多面板 -->
       <view v-if="activePanel === 'more'" class="panel more-panel">
         <view class="more-grid">
-          <view v-for="action in QUICK_ACTIONS" :key="action.label" class="more-item btn-feedback" @click="action.handler">
-            <view class="more-icon" :style="{ background: action.bg }"><text>{{ action.icon }}</text></view>
+          <a11y-button v-for="action in QUICK_ACTIONS" :key="action.label" class="more-item btn-feedback" :label="action.label" @tap="action.handler">
+            <view class="more-icon" :style="{ background: action.bg }"><uni-icons :type="action.uniIcon" size="24" color="#fff"></uni-icons></view>
             <text class="more-label">{{ action.label }}</text>
-          </view>
+          </a11y-button>
         </view>
       </view>
     </view>
@@ -94,6 +101,7 @@
 <script setup lang="ts">
 import { ref, nextTick, onUnmounted } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
+import A11yButton from "@/components/a11y-button.vue";
 import { useUserStore } from "@/store/user";
 import { getHuanXinUser, uploadChatImage, uploadChatAudio, getContacts } from "@/api/chat";
 import { getUserProfile } from "@/api/mine";
@@ -118,16 +126,16 @@ const EMOJI_LIST: string[] = [
 ];
 
 /** 更多面板快捷操作配置（表驱动） */
-interface QuickAction { icon: string; label: string; bg: string; handler: () => void; }
+interface QuickAction { uniIcon: string; label: string; bg: string; handler: () => void; }
 const QUICK_ACTIONS: QuickAction[] = [
-  { icon: "🖼️", label: "图片", bg: "#ff5e9c", handler: chooseImage },
-  { icon: "📸", label: "拍照", bg: "#4a90d9", handler: () => showTodoToast("拍照") },
-  { icon: "📍", label: "位置", bg: "#4cd964", handler: chooseLocation },
-  { icon: "👤", label: "名片", bg: "#a78bfa", handler: chooseCardContact },
+  { uniIcon: "image", label: "图片", bg: "#ff5e9c", handler: chooseImage },
+  { uniIcon: "camera", label: "拍照", bg: "#4a90d9", handler: () => showTodoToast("拍照") },
+  { uniIcon: "location", label: "位置", bg: "#4cd964", handler: chooseLocation },
+  { uniIcon: "person", label: "名片", bg: "#a78bfa", handler: chooseCardContact },
 ];
 
 /** 消息发送状态 */
-type MsgStatus = "sending" | "sent" | "read";
+type MsgStatus = "sending" | "sent" | "read" | "failed";
 /** 聊天消息结构 */
 interface Message {
   id: string;
@@ -251,12 +259,15 @@ function chooseImage(): void {
     },
   });
 }
+/** 本地消息自增序号（避免 Date.now() 同毫秒撞 id） */
+let localMsgSeq = 0;
+/** 接收消息自增序号（同毫秒多条消息 key 防撞） */
+let recvMsgSeq = 0;
+
 /**
- * 追加消息并通过环信 SDK 发送（失败时标记状态保持 sending）
+ * 追加消息并通过环信 SDK 发送
  * 图片/语音：先本地预览，OSS 上传成功后发 URL，成功后把气泡替换为远程地址
- * @param type 消息类型
- * @param content 消息内容（图片/语音为本地临时路径）
- * @param extra 结构化附加字段
+ * 任何失败（上传 reject、发送失败）都标记为 failed，可点击气泡重发
  */
 async function pushMessage(
   type: Message["type"],
@@ -264,7 +275,7 @@ async function pushMessage(
   extra?: Record<string, any>
 ): Promise<void> {
   const msg: Message = {
-    id: Date.now().toString(),
+    id: `local-${Date.now()}-${++localMsgSeq}`,
     type,
     content,
     extra,
@@ -275,44 +286,59 @@ async function pushMessage(
   };
   messageList.value.push(msg);
   scrollToBottom();
-  if (type === "image" || type === "voice") {
-    // 媒体消息：OSS 上传 → 环信发 URL（JSON 文本承载）
-    const url = type === "voice" ? await uploadChatAudio(content) : await uploadChatImage(content);
-    if (!url) {
-      msg.status = "sending";
-      uni.showToast({ title: "上传失败，请稍后重试", icon: "none" });
-      return;
+  await deliverMessage(msg);
+}
+
+/**
+ * 投递单条消息（上传媒体 → 环信发送），统一处理失败标记
+ * @param msg 待发送消息（发送中/失败均可重入）
+ */
+async function deliverMessage(msg: Message): Promise<void> {
+  msg.status = "sending";
+  try {
+    let ok = false;
+    if (msg.type === "image" || msg.type === "voice") {
+      // 媒体消息：本地路径先上传 OSS（已是 http 链接则跳过，重发场景）
+      if (!/^https?:\/\//.test(msg.content)) {
+        const url =
+          msg.type === "voice" ? await uploadChatAudio(msg.content) : await uploadChatImage(msg.content);
+        if (!url) {
+          msg.status = "failed";
+          uni.showToast({ title: "上传失败，点击气泡重试", icon: "none" });
+          return;
+        }
+        msg.content = url;
+      }
+      const payload =
+        msg.type === "voice"
+          ? { type: "voice", url: msg.content, duration: msg.extra?.duration || 0 }
+          : { type: "image", url: msg.content };
+      ok = await sendStructuredMessage(userId.value, payload);
+    } else if (msg.type === "location" || msg.type === "card") {
+      // 位置/名片：结构化 JSON 承载（与接收端解析契约一致）
+      const payload =
+        msg.type === "location"
+          ? { type: "location", latitude: msg.extra?.latitude, longitude: msg.extra?.longitude, address: msg.content }
+          : { type: "card", userId: msg.extra?.userId, nickname: msg.content, avatar: msg.extra?.avatar || "" };
+      ok = await sendStructuredMessage(userId.value, payload);
+    } else {
+      ok = await sendTextMessage(userId.value, msg.content);
     }
-    msg.content = url;
-    const payload =
-      type === "voice"
-        ? { type: "voice", url, duration: extra?.duration || 0 }
-        : { type: "image", url };
-    const ok = await sendStructuredMessage(userId.value, payload);
-    msg.status = ok ? "sent" : "sending";
+    msg.status = ok ? "sent" : "failed";
     if (!ok) {
-      uni.showToast({ title: "发送失败，请稍后重试", icon: "none" });
+      uni.showToast({ title: "发送失败，点击气泡重试", icon: "none" });
     }
-    return;
+  } catch {
+    // 上传/网络异常（upload reject 等）不能让气泡永远停在 sending
+    msg.status = "failed";
+    uni.showToast({ title: "发送失败，点击气泡重试", icon: "none" });
   }
-  if (type === "location" || type === "card") {
-    // 位置/名片：结构化 JSON 承载（与接收端解析契约一致）
-    const payload =
-      type === "location"
-        ? { type: "location", latitude: extra?.latitude, longitude: extra?.longitude, address: content }
-        : { type: "card", userId: extra?.userId, nickname: content, avatar: extra?.avatar || "" };
-    const ok = await sendStructuredMessage(userId.value, payload);
-    msg.status = ok ? "sent" : "sending";
-    if (!ok) {
-      uni.showToast({ title: "发送失败，请稍后重试", icon: "none" });
-    }
-    return;
-  }
-  const ok = await sendTextMessage(userId.value, content);
-  msg.status = ok ? "sent" : "sending";
-  if (!ok) {
-    uni.showToast({ title: "发送失败，请稍后重试", icon: "none" });
-  }
+}
+
+/** 点击失败气泡：重发 */
+function resendMessage(msg: Message): void {
+  if (msg.status !== "failed") return;
+  deliverMessage(msg);
 }
 
 /** 插入表情到输入框 */
@@ -484,7 +510,7 @@ onLoad(async (options: any) => {
         unregisterMessage = onMessageReceived((msg) => {
           if (msg.from !== userId.value) return;
           messageList.value.push({
-            id: `recv-${msg.time}`,
+            id: `recv-${msg.time}-${++recvMsgSeq}`,
             type: msg.type,
             content: msg.content,
             extra: msg.extra,
@@ -518,8 +544,9 @@ onUnmounted(() => {
 /* ===== 消息列表 ===== */
 .msg-list { flex: 1; padding: 24rpx 24rpx 12rpx; }
 
+/* #bbb on 浅灰底 ≈1.9:1 → #767676 */
 .time-divider { display: flex; justify-content: center; margin: 16rpx 0 24rpx;
-  .time-text { font-size: 22rpx; color: #bbb; background: rgba(0, 0, 0, 0.05); padding: 6rpx 24rpx; border-radius: 24rpx; }
+  .time-text { font-size: 22rpx; color: #767676; background: rgba(0, 0, 0, 0.05); padding: 6rpx 24rpx; border-radius: 24rpx; }
 }
 
 .msg-item { display: flex; align-items: flex-start; margin-bottom: 28rpx; gap: 16rpx;
@@ -529,6 +556,9 @@ onUnmounted(() => {
     &.mine { flex-direction: row-reverse; }
   }
   .status-loading { width: 28rpx; height: 28rpx; border: 3rpx solid #e0e0e0; border-top-color: #ff5e9c; border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+  .status-failed { width: 32rpx; height: 32rpx; border-radius: 50%; background: #ff4d4f; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    .failed-icon { font-size: 22rpx; color: #fff; font-weight: bold; line-height: 1; }
+  }
   .bubble { position: relative; padding: 20rpx 24rpx; border-radius: 20rpx; background: #fff; font-size: 28rpx; line-height: 1.5; color: #333; box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
     /* 气泡尾巴 */
     &::before { content: ""; position: absolute; top: 28rpx; width: 0; height: 0; border-top: 10rpx solid transparent; border-bottom: 10rpx solid transparent; }

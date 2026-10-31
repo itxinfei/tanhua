@@ -48,7 +48,30 @@
             class="msg-item"
             :class="{ mine: msg.isMine }"
           >
-            <div class="bubble">{{ msg.content }}</div>
+            <!-- 图片消息：缩略图气泡（body 含 localUrl/thumbnailUrl 等候选地址） -->
+            <el-image
+              v-if="msg.type === 'image'"
+              class="media-bubble"
+              :src="imageUrlOf(msg)"
+              :preview-src-list="[imageUrlOf(msg)]"
+              fit="cover"
+              preview-teleported
+            />
+            <!-- 语音消息：占位气泡，点击播放 -->
+            <div
+              v-else-if="msg.type === 'voice'"
+              class="bubble voice-bubble"
+              @click="playVoice(msg)"
+            >
+              <el-icon><Microphone /></el-icon>
+              <span>语音 {{ voiceDuration(msg) }}″</span>
+            </div>
+            <!-- 文本及其他消息 -->
+            <div v-else class="bubble">{{ msg.content }}</div>
+            <!-- 已读回执：仅客服发送的消息显示（已读/未读） -->
+            <span v-if="msg.isMine" class="msg-status" :class="{ 'msg-status-read': msg.read }">
+              {{ msg.read ? '已读' : '未读' }}
+            </span>
           </div>
         </div>
         <div class="input-bar">
@@ -69,16 +92,19 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Microphone } from '@element-plus/icons-vue'
 import { getAgentCredentialApi, getKefuUsersInfoApi, type KefuUserInfo } from '@/api/kefu'
 import {
   loginEasemob,
   logoutEasemob,
   getConversations,
   onMessageReceived,
+  onMessageReadReceipts,
   sendTextMessage,
   getChatHistory,
   type ChatSession,
   type ReceivedMessage,
+  type ReadReceiptPayload,
 } from '@/utils/easemob'
 
 /** 客服环信账号（消息归属判断：from === agentId 为客服发送），登录后由后端凭证下发，不再硬编码 */
@@ -86,8 +112,14 @@ const agentId = ref('')
 
 interface ChatMessage {
   id: string
+  /** 环信服务端消息 ID（已读回执匹配用） */
+  msgId: string
   content: string
+  type: ReceivedMessage['type']
+  body: ReceivedMessage['body']
   isMine: boolean
+  /** 是否已读（仅客服发送的消息有意义） */
+  read: boolean
   timestamp: number
 }
 
@@ -171,8 +203,12 @@ async function openSession(conversationId: string): Promise<void> {
   const history = await getChatHistory(conversationId)
   messages.value = history.map((msg, i) => ({
     id: `hist-${i}-${msg.time}`,
+    msgId: msg.msgId,
     content: msg.content,
+    type: msg.type,
+    body: msg.body,
     isMine: msg.from === agentId.value,
+    read: false,
     timestamp: msg.time,
   }))
   scrollToBottom()
@@ -183,12 +219,16 @@ async function send(): Promise<void> {
   const text = inputText.value.trim()
   if (!text || sending.value) return
   sending.value = true
-  const ok = await sendTextMessage(activeId.value, text)
-  if (ok) {
+  const message = await sendTextMessage(activeId.value, text)
+  if (message) {
     messages.value.push({
       id: `send-${Date.now()}`,
+      msgId: message.msgServerId || '',
       content: text,
+      type: 'text',
+      body: message.body,
       isMine: true,
+      read: false,
       timestamp: Date.now(),
     })
     inputText.value = ''
@@ -200,8 +240,36 @@ async function send(): Promise<void> {
   sending.value = false
 }
 
+/** 图片消息候选地址（远端消息 localUrl 为空，依次回退缩略图/大图/原图） */
+function imageUrlOf(msg: ChatMessage): string {
+  const body = msg.body as Record<string, any>
+  return body?.localUrl || body?.thumbnailUrl || body?.bigImageUrl || body?.originalImageUrl || ''
+}
+
+/** 语音时长（秒） */
+function voiceDuration(msg: ChatMessage): number {
+  return (msg.body as Record<string, any>)?.duration ?? 0
+}
+
+/** 播放语音（点击气泡播放；播放失败提示） */
+function playVoice(msg: ChatMessage): void {
+  const url = (msg.body as Record<string, any>)?.url
+  if (!url) {
+    ElMessage.warning('语音地址不可用')
+    return
+  }
+  try {
+    const audio = new Audio(url)
+    audio.play().catch(() => ElMessage.warning('语音播放失败'))
+  } catch {
+    ElMessage.warning('语音播放失败')
+  }
+}
+
 /** 消息到达回调（onUnmounted 注销） */
 let unregisterMessage: (() => void) | null = null
+/** 已读回执回调（onUnmounted 注销） */
+let unregisterReadReceipts: (() => void) | null = null
 
 onMounted(async () => {
   loading.value = true
@@ -224,13 +292,28 @@ onMounted(async () => {
       if (msg.from === activeId.value) {
         messages.value.push({
           id: `recv-${msg.time}`,
+          msgId: msg.msgId,
           content: msg.content,
+          type: msg.type,
+          body: msg.body,
           isMine: false,
+          read: false,
           timestamp: msg.time,
         })
         scrollToBottom()
       }
       refreshSessions()
+    })
+
+    // 已读回执：对方已读客服发送的消息时，更新本地消息的 read 状态
+    unregisterReadReceipts = onMessageReadReceipts((payload: ReadReceiptPayload) => {
+      if (payload.conversationId !== activeId.value) return
+      const readIds = new Set(payload.messageIds)
+      for (const msg of messages.value) {
+        if (msg.isMine && msg.msgId && readIds.has(msg.msgId)) {
+          msg.read = true
+        }
+      }
     })
   } catch {
     ElMessage.error('工作台初始化失败')
@@ -243,6 +326,10 @@ onUnmounted(() => {
   if (unregisterMessage) {
     unregisterMessage()
     unregisterMessage = null
+  }
+  if (unregisterReadReceipts) {
+    unregisterReadReceipts()
+    unregisterReadReceipts = null
   }
   logoutEasemob()
 })
@@ -260,7 +347,7 @@ onUnmounted(() => {
 /* 左侧会话列表 */
 .session-panel {
   width: 280px;
-  border-right: 1px solid #ebeef5;
+  border-right: 1px solid var(--xfjy-border-light);
   display: flex;
   flex-direction: column;
 }
@@ -268,7 +355,7 @@ onUnmounted(() => {
   padding: 14px 16px;
   font-size: 15px;
   font-weight: 600;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--xfjy-border-light);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -277,9 +364,9 @@ onUnmounted(() => {
 .session-item {
   padding: 12px 16px;
   cursor: pointer;
-  border-bottom: 1px solid #f5f5f5;
-  &:hover { background: #f9f9fb; }
-  &.active { background: #ecf5ff; }
+  border-bottom: 1px solid var(--xfjy-border-light);
+  &:hover { background: var(--xfjy-bg-hover); }
+  &.active { background: var(--xfjy-primary-50); }
 }
 .session-top {
   display: flex;
@@ -290,45 +377,45 @@ onUnmounted(() => {
   .user-avatar {
     width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; object-fit: cover;
     &.placeholder {
-      background: #409eff; color: #fff; font-size: 13px;
+      background: var(--el-color-primary); color: #fff; font-size: 13px;
       display: flex; align-items: center; justify-content: center;
     }
   }
   .user-id {
-    font-size: 14px; font-weight: 500; color: #303133;
+    font-size: 14px; font-weight: 500; color: var(--xfjy-text-primary);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .last-time { font-size: 12px; color: #c0c4cc; flex-shrink: 0; }
+  .last-time { font-size: 12px; color: var(--xfjy-text-disabled); flex-shrink: 0; }
 }
 .session-bottom {
   display: flex;
   justify-content: space-between;
   align-items: center;
   .last-msg {
-    font-size: 13px; color: #909399;
+    font-size: 13px; color: var(--xfjy-text-secondary);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     max-width: 180px;
   }
   .unread-badge {
-    background: #f56c6c; color: #fff;
+    background: var(--el-color-danger); color: #fff;
     font-size: 11px; min-width: 18px; height: 18px; line-height: 18px;
     border-radius: 9px; text-align: center; padding: 0 5px;
   }
 }
 .empty-tip {
-  padding: 40px 0; text-align: center; color: #c0c4cc; font-size: 13px;
+  padding: 40px 0; text-align: center; color: var(--xfjy-text-disabled); font-size: 13px;
 }
 
 /* 右侧聊天窗 */
 .chat-panel { flex: 1; display: flex; flex-direction: column; }
 .chat-empty {
   flex: 1; display: flex; align-items: center; justify-content: center;
-  color: #c0c4cc; font-size: 14px;
+  color: var(--xfjy-text-disabled); font-size: 14px;
 }
 .chat-header {
   padding: 14px 20px;
   font-size: 15px; font-weight: 600;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--xfjy-border-light);
 }
 .msg-list {
   flex: 1; overflow-y: auto; padding: 16px 20px;
@@ -343,17 +430,45 @@ onUnmounted(() => {
     border-radius: 12px;
     font-size: 14px;
     line-height: 1.5;
-    background: #f4f4f5;
-    color: #303133;
+    background: var(--xfjy-bg-hover);
+    color: var(--xfjy-text-primary);
   }
   &.mine .bubble {
-    background: #409eff;
+    background: var(--el-color-primary);
     color: #fff;
   }
 }
+
+/* 图片消息气泡：缩略图 */
+.media-bubble {
+  width: 180px;
+  max-width: 60%;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* 语音消息气泡：可点击播放 */
+.voice-bubble {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* 已读回执标识 */
+.msg-status {
+  font-size: 11px;
+  color: var(--xfjy-text-disabled);
+  margin-top: 4px;
+}
+
+.msg-status-read {
+  color: var(--el-color-success);
+}
 .input-bar {
   padding: 12px 20px;
-  border-top: 1px solid #ebeef5;
+  border-top: 1px solid var(--xfjy-border-light);
   display: flex;
   gap: 12px;
   .el-input { flex: 1; }

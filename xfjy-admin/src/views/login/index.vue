@@ -461,13 +461,13 @@ async function handleLogin() {
 .login-header h2 {
   font-size: 26px;
   font-weight: 700;
-  color: #303133;
+  color: var(--xfjy-text-primary);
 }
 
 .login-header p {
   margin-top: 6px;
   font-size: 14px;
-  color: #909399;
+  color: var(--xfjy-text-secondary);
 }
 
 .login-btn {
@@ -481,7 +481,7 @@ async function handleLogin() {
   text-align: center;
   margin-top: 28px;
   font-size: 12px;
-  color: #c0c4cc;
+  color: var(--xfjy-text-disabled);
 }
 
 /* ==================== 响应式 ==================== */

@@ -3,21 +3,22 @@
     <!-- FAQ 搜索框 -->
     <view class="search-bar">
       <view class="search-input-wrap">
-        <text class="search-icon">🔍</text>
+        <uni-icons class="search-icon" type="search" size="18" color="#767676"></uni-icons>
         <input
           v-model="keyword"
           class="search-input"
           placeholder="搜索常见问题关键词"
+          aria-label="搜索常见问题关键词"
           :maxlength="30"
           confirm-type="search"
         />
-        <text v-if="keyword" class="search-clear" @click="keyword = ''">✕</text>
+        <a11y-button v-if="keyword" class="search-clear" label="清空搜索关键词" @tap="keyword = ''"><uni-icons type="close" size="18" color="#767676"></uni-icons></a11y-button>
       </view>
     </view>
 
     <scroll-view class="faq-scroll" scroll-y>
       <view v-if="groupedList.length === 0 && !loading" class="empty-state">
-        <view class="empty-icon"><text>💬</text></view>
+        <view class="empty-icon"><uni-icons type="chatbubble" size="48" color="#cccccc"></uni-icons></view>
         <text class="empty-title">{{ keyword ? '未找到相关问题' : '暂无常见问题' }}</text>
         <text class="empty-desc">{{ keyword ? '换个关键词，或直接咨询在线客服' : '可直接提交意见反馈联系我们' }}</text>
       </view>
@@ -26,20 +27,21 @@
         <view class="group-title">
           <text class="group-tag">{{ group.category }}</text>
         </view>
-        <view
+        <a11y-button
           v-for="item in group.items"
           :key="item.id"
           class="faq-item shadow-card"
-          @click="toggleItem(item.id)"
+          :label="`${item.question}，${expandedId === item.id ? '已展开答案，点击收起' : '点击展开答案'}`"
+          @tap="toggleItem(item.id)"
         >
           <view class="faq-question">
             <text class="q-text">{{ item.question }}</text>
-            <text class="q-arrow" :class="{ expanded: expandedId === item.id }">›</text>
+            <text class="q-arrow" :class="{ expanded: expandedId === item.id }" aria-hidden="true">›</text>
           </view>
           <view v-if="expandedId === item.id" class="faq-answer">
             <text>{{ item.answer }}</text>
           </view>
-        </view>
+        </a11y-button>
       </view>
 
       <view v-if="loading" class="loading-tip">
@@ -49,18 +51,19 @@
 
     <!-- 底部入口：在线咨询 + 意见反馈 -->
     <view class="bottom-bar safe-area-bottom">
-      <view class="entry-btn btn-feedback consult" @click="goChat">
-        <text>🎧 在线咨询</text>
-      </view>
-      <view class="entry-btn btn-feedback" @click="goFeedback">
+      <a11y-button class="entry-btn btn-feedback consult" label="在线咨询" @tap="goChat">
+        <text><uni-icons type="headphones" size="14" color="#ffffff"></uni-icons> 在线咨询</text>
+      </a11y-button>
+      <a11y-button class="entry-btn btn-feedback" label="意见反馈" @tap="goFeedback">
         <text>意见反馈</text>
-      </view>
+      </a11y-button>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import A11yButton from "@/components/a11y-button.vue";
 import { getFaqListApi, type FaqItem } from "@/api/kefu";
 
 const faqList = ref<FaqItem[]>([]);
@@ -157,10 +160,14 @@ function goFeedback(): void {
       color: #333;
     }
 
+    /* 清除按钮 #ccc → #767676，触摸目标 ≥24px */
     .search-clear {
       font-size: 28rpx;
-      color: #ccc;
-      padding: 8rpx;
+      color: #767676;
+      padding: 8rpx 12rpx;
+      min-height: 48rpx;
+      display: flex;
+      align-items: center;
       flex-shrink: 0;
     }
   }
@@ -213,7 +220,7 @@ function goFeedback(): void {
 
     .q-arrow {
       font-size: 36rpx;
-      color: #ccc;
+      color: #767676;
       transition: transform 0.2s;
       margin-left: 16rpx;
 
@@ -255,7 +262,7 @@ function goFeedback(): void {
 
   .empty-desc {
     font-size: 26rpx;
-    color: #999;
+    color: #767676;
     margin-top: 12rpx;
   }
 }
@@ -267,7 +274,7 @@ function goFeedback(): void {
 
   text {
     font-size: 24rpx;
-    color: #ccc;
+    color: #767676;
   }
 }
 

@@ -2,15 +2,16 @@
   <view class="chat-page">
     <!-- 通知入口 -->
     <view class="notice-bar">
-      <view class="notice-item btn-feedback" v-for="item in noticeItems" :key="item.type" @click="goNotifications(item.type)">
+      <a11y-button class="notice-item btn-feedback" v-for="item in noticeItems" :key="item.type" :label="item.unread > 0 ? `${item.label}，${item.unread} 条未读` : item.label" @tap="goNotifications(item.type)">
         <view class="notice-icon-wrap">
           <view class="notice-icon-bg" :style="{ background: item.color }">
-            <text class="notice-icon">{{ item.icon }}</text>
+            <uni-icons class="notice-icon" :type="item.uniIcon" size="22" color="#fff"></uni-icons>
           </view>
-          <view v-if="item.unread > 0" class="badge pulse">{{ item.unread > 99 ? '99+' : item.unread }}</view>
+          <!-- 角标数字由父级 aria-label 承载，此处对读屏隐藏避免重复朗读 -->
+          <view v-if="item.unread > 0" class="badge pulse" aria-hidden="true">{{ item.unread > 99 ? '99+' : item.unread }}</view>
         </view>
         <text class="notice-label">{{ item.label }}</text>
-      </view>
+      </a11y-button>
     </view>
 
     <!-- 聊天列表 -->
@@ -22,15 +23,16 @@
         <text class="empty-title">还没有聊天</text>
         <text class="empty-desc">去匹配页滑动，遇见新朋友吧</text>
       </view>
-      <view
+      <a11y-button
         v-for="contact in chatList"
         :key="contact.userId"
         class="chat-item"
-        @click="goChatDetail(contact)"
+        :label="chatItemLabel(contact)"
+        @tap="goChatDetail(contact)"
       >
         <view class="avatar-wrap">
-          <image class="avatar" :src="contact.avatar" mode="aspectFill" lazy-load />
-          <view v-if="contact.online" class="online-dot" />
+          <image class="avatar" :src="contact.avatar" mode="aspectFill" lazy-load aria-hidden="true" />
+          <view v-if="contact.online" class="online-dot" aria-hidden="true" />
         </view>
         <view class="chat-info">
           <view class="top-row">
@@ -39,10 +41,10 @@
           </view>
           <view class="bottom-row">
             <text class="last-msg ellipsis">{{ contact.lastMessage || contact.city || '打个招呼吧' }}</text>
-            <view v-if="contact.unreadCount > 0" class="unread-badge">{{ contact.unreadCount > 99 ? '99+' : contact.unreadCount }}</view>
+            <view v-if="contact.unreadCount > 0" class="unread-badge" aria-hidden="true">{{ contact.unreadCount > 99 ? '99+' : contact.unreadCount }}</view>
           </view>
         </view>
-      </view>
+      </a11y-button>
     </view>
     <!-- 匹配成功弹窗（全局，由 match store 驱动） -->
     <MatchPopup />
@@ -53,6 +55,7 @@
 import { ref, computed } from "vue";
 import { onShow, onPullDownRefresh } from "@dcloudio/uni-app";
 import MatchPopup from "@/components/match-popup.vue";
+import A11yButton from "@/components/a11y-button.vue";
 import { getContacts, type Contact } from "@/api/chat";
 import { useChatStore, type NoticeType } from "@/store/chat";
 import { loginEasemob, getConversations } from "@/utils/easemob";
@@ -68,12 +71,12 @@ interface ChatListItem extends Contact {
 /** 通知入口图标、文案与背景色配置 */
 const NOTICE_META: Record<
   NoticeType,
-  { icon: string; label: string; color: string }
+  { uniIcon: string; label: string; color: string }
 > = {
-  like: { icon: "♥", label: "喜欢", color: "#ff5e9c" },
-  comment: { icon: "💬", label: "评论", color: "#4a90d9" },
-  love: { icon: "★", label: "心动", color: "#ff5e9c" },
-  announcement: { icon: "📢", label: "公告", color: "#4cd964" },
+  like: { uniIcon: "heart-filled", label: "喜欢", color: "#ff5e9c" },
+  comment: { uniIcon: "chatbubble", label: "评论", color: "#4a90d9" },
+  love: { uniIcon: "star-filled", label: "心动", color: "#ff5e9c" },
+  announcement: { uniIcon: "notification", label: "公告", color: "#4cd964" },
 };
 
 /** tabBar 消息页索引（见 pages.json tabBar.list） */
@@ -85,7 +88,7 @@ const BADGE_MAX_COUNT = 99;
 const noticeItems = computed(() =>
   (Object.keys(NOTICE_META) as NoticeType[]).map((type) => ({
     type,
-    icon: NOTICE_META[type].icon,
+    uniIcon: NOTICE_META[type].uniIcon,
     label: NOTICE_META[type].label,
     color: NOTICE_META[type].color,
     unread: chatStore.noticeUnreads[type],
@@ -160,12 +163,26 @@ async function loadContacts(): Promise<void> {
 }
 
 /**
- * 跳转通知页并标记已读
+ * 跳转通知页（已读标记由通知页在列表加载后执行，误触返回不清零）
  * @param type 通知类型
  */
 function goNotifications(type: string): void {
-  chatStore.markNoticeRead(type as NoticeType);
   uni.navigateTo({ url: `/pages/chat/notifications?type=${type}` });
+}
+
+/**
+ * 聊天列表项的无障碍标签：合并昵称/最后消息/未读数/在线态
+ *  (读屏一次性朗读，避免用户逐个焦点去拼信息)
+ */
+function chatItemLabel(contact: ChatListItem): string {
+  const parts = [contact.nickname];
+  if (contact.age) parts.push(`${contact.age}岁`);
+  parts.push(contact.lastMessage || contact.city || "暂无消息");
+  if (contact.unreadCount > 0) {
+    parts.push(`${contact.unreadCount > BADGE_MAX_COUNT ? "99+" : contact.unreadCount} 条未读`);
+  }
+  if (contact.online) parts.push("在线");
+  return parts.join("，");
 }
 
 /**
@@ -302,9 +319,10 @@ onPullDownRefresh(async () => {
           color: #333;
         }
 
+        /* #ccc on #fff ≈1.6:1 → #767676 */
         .time {
           font-size: 22rpx;
-          color: #ccc;
+          color: #767676;
         }
       }
 
@@ -314,9 +332,10 @@ onPullDownRefresh(async () => {
         align-items: center;
         margin-top: 8rpx;
 
+        /* #999 on #fff ≈2.85:1 → #767676（≈4.54:1） */
         .last-msg {
           font-size: 26rpx;
-          color: #999;
+          color: #767676;
           flex: 1;
         }
 

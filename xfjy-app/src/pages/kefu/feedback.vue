@@ -22,9 +22,10 @@
           placeholder="联系方式（选填，方便我们回复您）"
           :maxlength="100"
         />
-        <view class="submit-btn btn-feedback" :class="{ disabled: submitting }" @click="handleSubmit">
+        <!-- 主提交动作：由非语义 view 改为可聚焦按钮，支持键盘 Enter/Space -->
+        <a11y-button class="submit-btn btn-feedback" :class="{ disabled: submitting }" :disabled="submitting" @tap="handleSubmit">
           <text>{{ submitting ? '提交中...' : '提交反馈' }}</text>
-        </view>
+        </a11y-button>
       </view>
 
       <!-- 我的反馈 -->
@@ -52,6 +53,7 @@
 <script setup lang="ts">
 import { ref, reactive } from "vue";
 import { onShow } from "@dcloudio/uni-app";
+import A11yButton from "@/components/a11y-button.vue";
 import { submitFeedbackApi, getMyFeedbackApi, type FeedbackItem } from "@/api/kefu";
 
 const form = reactive({
@@ -149,8 +151,9 @@ function statusClass(status: number): string {
       margin-top: 8rpx;
 
       text {
+        /* 字数统计：原 #ccc 对比不足 */
         font-size: 22rpx;
-        color: #ccc;
+        color: #767676;
       }
     }
   }
@@ -201,7 +204,7 @@ function statusClass(status: number): string {
 
     text {
       font-size: 26rpx;
-      color: #ccc;
+      color: #767676;
     }
   }
 }
@@ -222,25 +225,26 @@ function statusClass(status: number): string {
       padding: 4rpx 16rpx;
       border-radius: 20rpx;
 
+      /* 状态徽章：原 #ff9500(≈2.2:1)、#4cd964(≈1.9:1) 远低于 4.5:1，提深至达标 */
       &.st-pending {
-        color: #ff9500;
+        color: #b35c00;
         background: #fff7e6;
       }
 
       &.st-replied {
-        color: #4cd964;
+        color: #1a7f37;
         background: #f0fff4;
       }
 
       &.st-closed {
-        color: #999;
+        color: #595959;
         background: #f5f5f5;
       }
     }
 
     .item-date {
       font-size: 22rpx;
-      color: #ccc;
+      color: #767676;
     }
   }
 
@@ -258,9 +262,10 @@ function statusClass(status: number): string {
     background: #ffeff5;
     border-radius: 12rpx;
 
+    /* 原 #ff5e9c 在 #ffeff5 底上仅约 2.5:1，提深至 ≥4.5:1 */
     .reply-label {
       font-size: 24rpx;
-      color: #ff5e9c;
+      color: #c2185b;
       font-weight: 500;
     }
 

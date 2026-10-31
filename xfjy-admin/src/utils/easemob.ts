@@ -6,6 +6,7 @@
 import {
   ChatClient,
   type Message,
+  type MessageType,
   type ConversationItem,
   type TextMessageBody,
 } from "easemob-websdk";
@@ -28,12 +29,18 @@ export interface ChatSession {
   unreadCount: number;
 }
 
-/** 收到的文本消息 */
+/** 收到的消息（文本/图片/语音等；非文本消息 content 为占位描述，body 保留原始消息体供渲染） */
 export interface ReceivedMessage {
   /** 发送方环信 ID */
   from: string;
-  /** 消息内容 */
+  /** 消息内容（文本消息为正文；非文本消息为 [图片]/[语音] 等占位描述） */
   content: string;
+  /** 消息类型（text/image/voice/video/file/location/custom/cmd/combine） */
+  type: MessageType;
+  /** 原始消息体（图片消息含 localUrl/thumbnailUrl 等候选地址，语音消息含 url/duration） */
+  body: Message["body"];
+  /** 环信服务端消息 ID（已读回执匹配用；历史消息与实时消息均携带） */
+  msgId: string;
   /** 时间戳（毫秒） */
   time: number;
 }
@@ -73,13 +80,27 @@ let client: ChatClient | null = null;
 let isLoggedIn = false;
 
 /**
- * 从消息体提取文本内容
+ * 从消息体提取展示文本：文本消息返回正文，非文本消息返回占位描述
+ * （占位描述保证图片/语音等消息不会被过滤掉，同时避免展示空气泡）
  */
-function extractText(message: Message): string {
+function extractText(message: { type?: MessageType | undefined; body: unknown }): string {
   if (message.type === "text") {
-    return (message.body as TextMessageBody).content;
+    return String((message.body as TextMessageBody).content ?? "");
   }
-  return "";
+  switch (message.type) {
+    case "image":
+      return "[图片]";
+    case "voice":
+      return "[语音]";
+    case "video":
+      return "[视频]";
+    case "file":
+      return "[文件]";
+    case "location":
+      return "[位置]";
+    default:
+      return "[消息]";
+  }
 }
 
 /**
@@ -97,9 +118,22 @@ function getClient(): ChatClient {
       const received: ReceivedMessage = {
         from: message.from,
         content: extractText(message),
+        type: message.type,
+        body: message.body,
+        msgId: message.msgServerId,
         time: message.timestamp,
       };
       messageHandlers.forEach((handler) => handler(received));
+    },
+    onMessageReadReceipts(event: any) {
+      // 单聊已读回执：仅处理 singleChat 类型，载荷含 conversationId/messageIds/timestamp
+      if (event?.conversationType === 'singleChat') {
+        readReceiptHandlers.forEach((handler) => handler({
+          conversationId: event.conversationId,
+          messageIds: [...event.messageIds],
+          timestamp: event.timestamp,
+        }));
+      }
     },
   });
   return client;
@@ -149,9 +183,7 @@ export async function getConversations(): Promise<ChatSession[]> {
       .filter((item) => item.conversationType === "singleChat")
       .map((item) => ({
         conversationId: item.conversationId,
-        lastMessage: item.lastMessage
-          ? String((item.lastMessage.body as Record<string, unknown>)?.content || "")
-          : "",
+        lastMessage: item.lastMessage ? extractText(item.lastMessage) : "",
         lastTime: item.lastMessageAt || item.lastMessage?.timestamp || 0,
         unreadCount: item.unreadCount || 0,
       }));
@@ -174,15 +206,46 @@ export function onMessageReceived(handler: MessageHandler): () => void {
   };
 }
 
+/** 已读回执回调载荷（单聊：{conversationId, messageIds, timestamp}） */
+export interface ReadReceiptPayload {
+  /** 会话 ID */
+  conversationId: string;
+  /** 已读的消息 ID 列表（服务端消息 ID，即 msgServerId） */
+  messageIds: string[];
+  /** 回执时间戳（毫秒） */
+  timestamp: number;
+}
+
+/** 已读回执回调类型 */
+type ReadReceiptHandler = (payload: ReadReceiptPayload) => void;
+
+/** 全局已读回执回调列表 */
+const readReceiptHandlers: ReadReceiptHandler[] = [];
+
+/**
+ * 注册消息已读回执回调（单聊：对方已读客服发送的消息时触发）
+ * @returns 取消注册函数
+ */
+export function onMessageReadReceipts(handler: ReadReceiptHandler): () => void {
+  readReceiptHandlers.push(handler);
+  return () => {
+    const index = readReceiptHandlers.indexOf(handler);
+    if (index >= 0) {
+      readReceiptHandlers.splice(index, 1);
+    }
+  };
+}
+
 /**
  * 发送文本消息（单聊）
+ * @returns 发送成功返回消息对象（含 msgServerId，用于已读回执匹配）；失败返回 null
  */
 export async function sendTextMessage(
   to: string,
   content: string
-): Promise<boolean> {
+): Promise<Message | null> {
   if (!isLoggedIn) {
-    return false;
+    return null;
   }
   try {
     const connection = getClient();
@@ -192,9 +255,9 @@ export async function sendTextMessage(
       content,
     });
     await connection.sendMessage(message);
-    return true;
+    return message;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -220,9 +283,11 @@ export async function getChatHistory(
       .map((msg) => ({
         from: msg.from,
         content: extractText(msg),
+        type: msg.type,
+        body: msg.body,
+        msgId: msg.msgServerId,
         time: msg.timestamp,
       }))
-      .filter((msg) => msg.content !== "")
       .sort((a, b) => a.time - b.time);
   } catch {
     return [];

@@ -16,6 +16,11 @@ export function getAdminInfoApi() {
   return request.get<any, AdminInfo>('/admin/info')
 }
 
+/** 退出登录（服务端注销 token） */
+export function logoutApi() {
+  return request.post('/admin/logout')
+}
+
 /** 修改密码 */
 export function changePasswordApi(oldPassword: string, newPassword: string) {
   return request.put('/admin/password', { oldPassword, newPassword })

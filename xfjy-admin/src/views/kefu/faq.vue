@@ -1,29 +1,26 @@
 <template>
   <div class="page-container">
-    <!-- 搜索栏 -->
-    <div class="search-bar">
-      <el-form :inline="true" :model="query" @submit.prevent>
-        <el-form-item label="分类">
-          <el-select v-model="query.category" placeholder="全部分类" clearable style="width: 140px">
-            <el-option v-for="cat in categories" :key="cat" :label="cat" :value="cat" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="query.status" placeholder="全部" clearable style="width: 110px">
-            <el-option label="启用" :value="1" />
-            <el-option label="停用" :value="0" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
-          <el-button :icon="Refresh" @click="handleReset">重置</el-button>
-          <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" :icon="Plus" @click="openCreate">新增FAQ</el-button>
-        </el-form-item>
-      </el-form>
-    </div>
+    <PageHeader title="FAQ 管理" :subtitle="`共 ${total} 条记录`">
+      <template #actions>
+        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" :icon="Plus" @click="openCreate">新增FAQ</el-button>
+      </template>
+    </PageHeader>
 
-    <!-- 表格 -->
-    <div class="table-container">
+    <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
+      <el-form-item label="分类">
+        <el-select v-model="query.category" placeholder="全部分类" clearable style="width: 140px">
+          <el-option v-for="cat in categories" :key="cat" :label="cat" :value="cat" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="状态">
+        <el-select v-model="query.status" placeholder="全部" clearable style="width: 110px">
+          <el-option label="启用" :value="1" />
+          <el-option label="停用" :value="0" />
+        </el-select>
+      </el-form-item>
+    </SearchBar>
+
+    <TableCard>
       <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" empty-text="暂无FAQ数据">
         <el-table-column prop="id" label="ID" width="70" align="center" />
         <el-table-column prop="category" label="分类" width="110" align="center">
@@ -38,6 +35,7 @@
           <template #default="{ row }">
             <el-switch
               :model-value="row.status === 1"
+              :disabled="!canManage"
               @change="(val: boolean) => handleToggle(row, val)"
             />
           </template>
@@ -49,8 +47,7 @@
           </template>
         </el-table-column>
       </el-table>
-
-      <div class="pagination-wrapper">
+      <template #pagination>
         <el-pagination
           v-model:current-page="query.page"
           v-model:page-size="query.pageSize"
@@ -60,8 +57,8 @@
           @size-change="handleSizeChange"
           @current-change="loadData"
         />
-      </div>
-    </div>
+      </template>
+    </TableCard>
 
     <!-- 新增/编辑弹窗 -->
     <el-dialog v-model="formVisible" :title="formData.id ? '编辑FAQ' : '新增FAQ'" width="560px">
@@ -91,9 +88,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { Search, Refresh, Plus } from '@element-plus/icons-vue'
+import { Plus } from '@element-plus/icons-vue'
+import { PageHeader, SearchBar, TableCard } from '@/components'
+import { useAuthStore } from '@/stores/auth'
 import {
   getFaqPageApi,
   createFaqApi,
@@ -105,6 +104,10 @@ import type { FaqItem, FaqQuery, FaqForm } from '@/api/kefu'
 
 /** 分类选项（与 init-kefu.sql 种子数据保持一致） */
 const categories = ['账号安全', '会员权益', '匹配交友', '聊天互动', '举报投诉']
+
+// FAQ 维护仅限管理员，运营专员只读
+const authStore = useAuthStore()
+const canManage = computed(() => authStore.hasRole(['SUPER_ADMIN', 'ADMIN']))
 
 const loading = ref(false)
 const tableData = ref<FaqItem[]>([])
@@ -241,8 +244,8 @@ onMounted(() => {
 
 <style scoped>
 .sort-tip {
-  margin-left: 10px;
-  font-size: 12px;
-  color: #999;
+  margin-left: var(--xfjy-space-2);
+  font-size: var(--xfjy-font-size-xs);
+  color: var(--xfjy-text-secondary);
 }
 </style>

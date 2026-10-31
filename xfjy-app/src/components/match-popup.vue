@@ -1,11 +1,17 @@
 <template>
-  <view v-if="matchStore.matchPopup" class="match-popup" @click="matchStore.closeMatchPopup()">
+  <!-- 匹配成功弹窗：补齐 dialog 语义、Esc 关闭与焦点管理 -->
+  <a11y-dialog
+    class="match-popup"
+    :visible="!!matchStore.matchPopup"
+    title="匹配成功"
+    @close="matchStore.closeMatchPopup()"
+  >
     <view class="match-content pop-in">
       <text class="match-title gradient-text">It's a Match!</text>
       <view class="match-avatars">
-        <image class="match-avatar" :src="matchStore.matchPopup.avatar" mode="aspectFill" />
-        <text class="match-heart heart-beat">♥</text>
-        <image class="match-avatar" src="/static/logo/logo-icon-transparent.png" mode="aspectFill" />
+        <image lazy-load class="match-avatar" :src="matchStore.matchPopup.avatar" mode="aspectFill" :aria-label="`${matchStore.matchPopup.nickname} 的头像`" />
+        <uni-icons class="match-heart heart-beat" type="heart-filled" size="28" color="#ff5e9c" aria-hidden="true"></uni-icons>
+        <image lazy-load class="match-avatar" src="/static/logo/logo-icon-transparent.png" mode="aspectFill" aria-label="我的头像" />
       </view>
       <text class="match-name">你和 {{ matchStore.matchPopup.nickname }} 互相喜欢了</text>
       <view class="match-actions">
@@ -13,11 +19,12 @@
         <button class="keep-swipe" @click.stop="matchStore.closeMatchPopup()">继续逛逛</button>
       </view>
     </view>
-  </view>
+  </a11y-dialog>
 </template>
 
 <script setup lang="ts">
 import { useMatchStore } from "@/store/match";
+import A11yDialog from "@/components/a11y-dialog.vue";
 
 const matchStore = useMatchStore();
 

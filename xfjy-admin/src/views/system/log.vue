@@ -1,48 +1,44 @@
 <template>
   <div class="page-container">
-    <!-- 筛选栏 -->
-    <div class="search-bar">
-      <el-select
-        v-model="searchModule"
-        placeholder="模块"
-        clearable
-        style="width: 140px"
-      >
-        <el-option
-          v-for="m in moduleOptions"
-          :key="m.value"
-          :label="m.label"
-          :value="m.value"
-        />
-      </el-select>
-      <el-input
-        v-model="searchAdmin"
-        placeholder="操作账号"
-        clearable
-        style="width: 160px"
-        @keyup.enter="handleSearch"
-      />
-      <el-date-picker
-        v-model="dateRange"
-        type="daterange"
-        range-separator="至"
-        start-placeholder="开始日期"
-        end-placeholder="结束日期"
-        value-format="YYYY-MM-DD"
-        style="width: 260px"
-      />
-      <el-button-group>
-        <el-button size="small" @click="setDateRange(7)">近7天</el-button>
-        <el-button size="small" @click="setDateRange(30)">近30天</el-button>
-        <el-button size="small" @click="setDateRange(90)">近90天</el-button>
-      </el-button-group>
-      <el-button type="primary" @click="handleSearch">查询</el-button>
-      <el-button @click="handleReset">重置</el-button>
-      <el-button type="success" :icon="Download" @click="handleExport">导出</el-button>
-    </div>
+    <PageHeader title="操作日志" :subtitle="`共 ${total} 条记录`" />
 
-    <!-- 表格 -->
-    <el-table v-loading="loading" :data="tableData" border stripe empty-text="暂无操作日志">
+    <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
+      <el-form-item label="模块">
+        <el-select v-model="query.module" placeholder="模块" clearable style="width: 140px">
+          <el-option
+            v-for="m in moduleOptions"
+            :key="m.value"
+            :label="m.label"
+            :value="m.value"
+          />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="操作账号">
+        <el-input v-model="query.adminUsername" placeholder="操作账号" clearable style="width: 160px" @keyup.enter="handleSearch" />
+      </el-form-item>
+      <el-form-item label="时间范围">
+        <el-date-picker
+          v-model="dateRange"
+          type="daterange"
+          range-separator="至"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期"
+          value-format="YYYY-MM-DD"
+          style="width: 260px"
+        />
+      </el-form-item>
+      <template #extra-actions>
+        <el-button-group>
+          <el-button size="small" @click="setDateRange(7)">近7天</el-button>
+          <el-button size="small" @click="setDateRange(30)">近30天</el-button>
+          <el-button size="small" @click="setDateRange(90)">近90天</el-button>
+        </el-button-group>
+        <el-button type="success" :icon="Download" @click="handleExport">导出</el-button>
+      </template>
+    </SearchBar>
+
+    <TableCard>
+      <el-table v-loading="loading" :data="tableData" border stripe empty-text="暂无操作日志">
       <el-table-column label="ID" prop="id" width="70" align="center" />
       <el-table-column label="操作人" width="130">
         <template #default="{ row }">
@@ -85,20 +81,19 @@
           <el-button link type="primary" size="small" @click="showDetail(row)">详情</el-button>
         </template>
       </el-table-column>
-    </el-table>
-
-    <!-- 分页 -->
-    <div class="pagination-bar">
-      <el-pagination
-        v-model:current-page="page"
-        v-model:page-size="pageSize"
-        :total="total"
-        :page-sizes="[10, 20, 50]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleSizeChange"
-        @current-change="loadData"
-      />
-    </div>
+      </el-table>
+      <template #pagination>
+        <el-pagination
+          v-model:current-page="query.page"
+          v-model:page-size="query.pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="loadData"
+        />
+      </template>
+    </TableCard>
 
     <!-- 详情弹窗 -->
     <el-dialog v-model="detailVisible" title="操作日志详情" width="600px">
@@ -123,33 +118,34 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
+import { PageHeader, SearchBar, TableCard } from '@/components'
 import { getLogPageApi, getLogDetailApi, exportLogsApi } from '@/api/log'
 import type { OperationLogItem } from '@/api/log'
 
 const loading = ref(false)
 const tableData = ref<OperationLogItem[]>([])
 const total = ref(0)
-const page = ref(1)
-const pageSize = ref(10)
-const searchModule = ref('')
-const searchAdmin = ref('')
+const query = reactive({ module: '', adminUsername: '', page: 1, pageSize: 10 })
 const dateRange = ref<[string, string] | null>(null)
 
 const moduleOptions = [
   { label: '用户管理', value: 'USER' },
   { label: '审核管理', value: 'REVIEW' },
   { label: '举报管理', value: 'REPORT' },
+  { label: '评论管理', value: 'COMMENT' },
   { label: '公告管理', value: 'NOTICE' },
-  { label: '支付管理', value: 'PAY' },
-  { label: '敏感词管理', value: 'SENSITIVE' },
+  { label: '协议管理', value: 'AGREEMENT' },
+  { label: '支付管理', value: 'PAY_ORDER' },
+  { label: '敏感词管理', value: 'SENSITIVE_WORD' },
   { label: '会员管理', value: 'VIP' },
   { label: '客服管理', value: 'KEFU' },
   { label: '动态管理', value: 'MOVEMENT' },
   { label: '视频管理', value: 'VIDEO' },
   { label: '账号管理', value: 'ACCOUNT' },
+  { label: '系统管理', value: 'ADMIN' },
   { label: '个人中心', value: 'PROFILE' },
   { label: '数据看板', value: 'DASHBOARD' }
 ]
@@ -157,9 +153,9 @@ const moduleOptions = [
 async function loadData() {
   loading.value = true
   try {
-    const params: any = { page: page.value, pageSize: pageSize.value }
-    if (searchModule.value) params.module = searchModule.value
-    if (searchAdmin.value.trim()) params.adminUsername = searchAdmin.value.trim()
+    const params: any = { page: query.page, pageSize: query.pageSize }
+    if (query.module) params.module = query.module
+    if (query.adminUsername.trim()) params.adminUsername = query.adminUsername.trim()
     if (dateRange.value && dateRange.value.length === 2) {
       params.startDate = dateRange.value[0]
       params.endDate = dateRange.value[1]
@@ -175,21 +171,21 @@ async function loadData() {
 }
 
 function handleSearch() {
-  page.value = 1
+  query.page = 1
   loadData()
 }
 
 function handleReset() {
-  searchModule.value = ''
-  searchAdmin.value = ''
+  query.module = ''
+  query.adminUsername = ''
   dateRange.value = null
-  page.value = 1
+  query.page = 1
   loadData()
 }
 
 /** 切换每页条数时回到第 1 页 */
 function handleSizeChange() {
-  page.value = 1
+  query.page = 1
   loadData()
 }
 
@@ -214,8 +210,8 @@ function setDateRange(days: number) {
 async function handleExport() {
   try {
     const params: { module?: string; adminUsername?: string; startDate?: string; endDate?: string } = {}
-    if (searchModule.value) params.module = searchModule.value
-    if (searchAdmin.value.trim()) params.adminUsername = searchAdmin.value.trim()
+    if (query.module) params.module = query.module
+    if (query.adminUsername.trim()) params.adminUsername = query.adminUsername.trim()
     if (dateRange.value && dateRange.value.length === 2) {
       params.startDate = dateRange.value[0]
       params.endDate = dateRange.value[1]
@@ -249,7 +245,10 @@ async function showDetail(row: OperationLogItem) {
 }
 
 function moduleLabel(module: string): string {
-  const found = moduleOptions.find((m) => m.value === module)
+  // 兼容历史日志里的旧枚举值
+  const legacy: Record<string, string> = { PAY: 'PAY_ORDER', SENSITIVE: 'SENSITIVE_WORD' }
+  const value = legacy[module] || module
+  const found = moduleOptions.find((m) => m.value === value)
   return found ? found.label : module || '-'
 }
 
@@ -286,27 +285,14 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.search-bar {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
 .admin-name {
-  font-size: 13px;
-  color: #303133;
-  line-height: 1.4;
+  font-size: var(--xfjy-font-size-sm);
+  color: var(--xfjy-text-primary);
+  line-height: var(--xfjy-line-height);
 }
 
 .admin-id {
-  font-size: 12px;
-  color: #909399;
-}
-
-.pagination-bar {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
+  font-size: var(--xfjy-font-size-xs);
+  color: var(--xfjy-text-secondary);
 }
 </style>

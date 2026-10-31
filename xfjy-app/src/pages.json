@@ -1,4 +1,10 @@
 {
+	"easycom": {
+		"autoscan": true,
+		"custom": {
+			"^uni-(.*)": "@dcloudio/uni-ui/lib/uni-$1/uni-$1.vue"
+		}
+	},
 	"pages": [
 		{
 			"path": "pages/match/index",
@@ -77,6 +83,12 @@
 			"path": "pages/circle/detail",
 			"style": {
 				"navigationBarTitleText": "动态详情"
+			}
+		},
+		{
+			"path": "pages/circle/tag",
+			"style": {
+				"navigationBarTitleText": "话题"
 			}
 		},
 		{

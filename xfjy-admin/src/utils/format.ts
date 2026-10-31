@@ -7,6 +7,10 @@ function pad(n: number): string {
   return String(n).padStart(2, '0')
 }
 
+function formatDate(d: Date): string {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 /**
  * 完整日期时间：支持时间戳 / ISO 字符串 / 已格式化字符串
  * 输出 "YYYY-MM-DD HH:mm"，无法解析时原样返回
@@ -15,7 +19,25 @@ export function formatDateTime(val: string | number | null | undefined): string 
   if (val == null || val === '') return '-'
   if (typeof val === 'number') {
     const d = new Date(val)
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+    return Number.isNaN(d.getTime()) ? String(val) : formatDate(d)
+  }
+
+  const str = val.trim()
+  // 纯数字字符串：10 位秒级 / 13 位毫秒级时间戳
+  if (/^\d{10}$/.test(str)) {
+    return formatDate(new Date(Number(str) * 1000))
+  }
+  if (/^\d{13}$/.test(str)) {
+    return formatDate(new Date(Number(str)))
+  }
+  // 已是 "YYYY-MM-DD HH:mm[:ss]"，裁剪到分钟
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(str)) {
+    return str.slice(0, 16)
+  }
+  // ISO 8601（含 T / 时区 / 毫秒）
+  if (/^\d{4}-\d{2}-\d{2}T/.test(str)) {
+    const d = new Date(str)
+    if (!Number.isNaN(d.getTime())) return formatDate(d)
   }
   return val
 }

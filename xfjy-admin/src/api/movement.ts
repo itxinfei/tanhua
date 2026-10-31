@@ -14,6 +14,7 @@ export interface MovementItem {
   likeCount: number
   commentCount: number
   loveCount: number
+  reportCount: number
 }
 
 export interface MovementPageResult {
@@ -27,6 +28,7 @@ export function getMovementPageApi(params: {
   pageSize: number
   keyword?: string
   userId?: number
+  seeType?: number
 }) {
   return request.get<any, MovementPageResult>('/admin/movements', { params })
 }

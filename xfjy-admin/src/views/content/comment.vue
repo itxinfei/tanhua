@@ -1,101 +1,91 @@
 <template>
   <div class="page-container">
-    <!-- 搜索栏 -->
-    <div class="search-bar">
-      <el-input
-        v-model="searchKeyword"
-        placeholder="搜索评论内容"
-        clearable
-        style="width: 240px"
-        @keyup.enter="handleSearch"
-      />
-      <el-input
-        v-model="searchUserId"
-        placeholder="用户ID"
-        clearable
-        style="width: 140px"
-        @keyup.enter="handleSearch"
-      />
-      <el-date-picker
-        v-model="dateRange"
-        type="daterange"
-        range-separator="至"
-        start-placeholder="开始日期"
-        end-placeholder="结束日期"
-        value-format="YYYY-MM-DD"
-        style="width: 260px"
-        @change="handleDateChange"
-      />
-      <el-button type="primary" @click="handleSearch">查询</el-button>
-      <el-button @click="handleReset">重置</el-button>
-    </div>
+    <PageHeader title="评论管理" :subtitle="`共 ${total} 条记录`" />
 
-    <!-- 批量操作栏 -->
-    <div class="batch-bar" v-if="selectedRows.length > 0">
-      <span class="batch-count">已选 {{ selectedRows.length }} 项</span>
-      <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="danger" size="small" @click="handleBatchDelete">批量删除</el-button>
-      <el-button size="small" @click="selectedRows = []">取消选择</el-button>
-    </div>
+    <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
+      <el-form-item label="关键词">
+        <el-input v-model="searchKeyword" placeholder="搜索评论内容" clearable style="width: 200px" @keyup.enter="handleSearch" />
+      </el-form-item>
+      <el-form-item label="用户ID">
+        <el-input v-model="searchUserId" placeholder="用户ID" clearable style="width: 120px" @keyup.enter="handleSearch" />
+      </el-form-item>
+      <el-form-item label="发布时间">
+        <el-date-picker
+          v-model="dateRange"
+          type="daterange"
+          range-separator="至"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期"
+          value-format="YYYY-MM-DD"
+          style="width: 260px"
+          @change="handleDateChange"
+        />
+      </el-form-item>
+    </SearchBar>
 
-    <!-- 表格 -->
-    <el-table
-      v-loading="loading"
-      :data="tableData"
-      border
-      stripe
-      :row-class-name="rowClassName"
-      empty-text="暂无评论数据"
-      @selection-change="handleSelectionChange"
-    >
-      <el-table-column type="selection" width="50" align="center" />
-      <el-table-column label="评论人" width="160">
-        <template #default="{ row }">
-          <div class="user-cell">
-            <el-avatar :size="32" :src="row.userAvatar">
-              <el-icon><UserFilled /></el-icon>
-            </el-avatar>
-            <div class="user-text">
-              <div class="user-name">{{ row.userNickname }}</div>
-              <div class="user-id">ID: {{ row.userId }}</div>
+    <TableCard>
+      <template #batch v-if="selectedRows.length > 0">
+        <span class="batch-count">已选 {{ selectedRows.length }} 项</span>
+        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="danger" size="small" @click="handleBatchDelete">批量删除</el-button>
+        <el-button size="small" @click="selectedRows = []">取消选择</el-button>
+      </template>
+      <el-table
+        v-loading="loading"
+        :data="tableData"
+        border
+        stripe
+        :row-class-name="rowClassName"
+        empty-text="暂无评论数据"
+        @selection-change="handleSelectionChange"
+      >
+        <el-table-column type="selection" width="50" align="center" />
+        <el-table-column label="评论人" width="160">
+          <template #default="{ row }">
+            <div class="user-cell">
+              <el-avatar :size="32" :src="row.userAvatar">
+                <el-icon><UserFilled /></el-icon>
+              </el-avatar>
+              <div class="user-text">
+                <div class="user-name">{{ row.userNickname }}</div>
+                <div class="user-id">ID: {{ row.userId }}</div>
+              </div>
             </div>
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column label="评论内容" min-width="300">
-        <template #default="{ row }">
-          <div class="text-content">{{ row.content || '(空)' }}</div>
-        </template>
-      </el-table-column>
-      <el-table-column label="所属动态ID" width="220" show-overflow-tooltip>
-        <template #default="{ row }">
-          <span class="publish-id">{{ row.publishId || '-' }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="发布时间" width="170">
-        <template #default="{ row }">
-          {{ formatDateTime(row.created) }}
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="140" fixed="right" align="center">
-        <template #default="{ row }">
-          <el-button type="primary" link size="small" @click="handleDetail(row)">详情</el-button>
-          <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
-
-    <!-- 分页 -->
-    <div class="pagination-bar">
-      <el-pagination
-        v-model:current-page="page"
-        v-model:page-size="pageSize"
-        :total="total"
-        :page-sizes="[10, 20, 50]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleSizeChange"
-        @current-change="loadData"
-      />
-    </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="评论内容" min-width="300">
+          <template #default="{ row }">
+            <div class="text-content">{{ row.content || '(空)' }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column label="所属动态ID" width="220" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span class="publish-id">{{ row.publishId || '-' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="发布时间" width="170">
+          <template #default="{ row }">
+            {{ formatDateTime(row.created) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="140" fixed="right" align="center">
+          <template #default="{ row }">
+            <el-button type="primary" link size="small" @click="handleDetail(row)">详情</el-button>
+            <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <template #pagination>
+        <el-pagination
+          v-model:current-page="page"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="loadData"
+        />
+      </template>
+    </TableCard>
 
     <!-- 评论详情弹窗 -->
     <el-dialog v-model="detailVisible" title="评论详情" width="560px" destroy-on-close>
@@ -127,6 +117,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { PageHeader, SearchBar, TableCard } from '@/components'
 import { getCommentPageApi, deleteCommentApi } from '@/api/comment'
 import type { CommentItem } from '@/api/comment'
 import request from '@/api/request'
@@ -146,6 +137,13 @@ const detailVisible = ref(false)
 const detailRow = ref<CommentItem | null>(null)
 const selectedRows = ref<CommentItem[]>([])
 const dateRange = ref<[string, string] | null>(null)
+
+const query = {
+  keyword: '',
+  userId: '',
+  startDate: '',
+  endDate: '',
+}
 
 async function loadData() {
   loading.value = true
@@ -250,26 +248,9 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.search-bar {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.batch-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  margin-bottom: 12px;
-  background: #f5f7fa;
-  border-radius: 6px;
-}
-
 .batch-count {
   font-size: 13px;
-  color: #606266;
+  color: var(--xfjy-text-regular);
   margin-right: auto;
 }
 
@@ -281,18 +262,18 @@ onMounted(() => {
 
 .user-name {
   font-size: 13px;
-  color: #303133;
+  color: var(--xfjy-text-primary);
   line-height: 1.4;
 }
 
 .user-id {
   font-size: 12px;
-  color: #909399;
+  color: var(--xfjy-text-secondary);
 }
 
 .text-content {
   font-size: 13px;
-  color: #606266;
+  color: var(--xfjy-text-regular);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -301,19 +282,13 @@ onMounted(() => {
 
 .publish-id {
   font-size: 12px;
-  color: #909399;
+  color: var(--xfjy-text-secondary);
   font-family: monospace;
-}
-
-.pagination-bar {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
 }
 
 /* 举报跳转定位行高亮 */
 :deep(.el-table .highlight-row) {
-  background-color: #ecf5ff !important;
+  background-color: var(--xfjy-primary-50) !important;
 }
 
 /* 评论详情弹窗 */
@@ -327,23 +302,23 @@ onMounted(() => {
 .detail-author-name {
   font-size: 15px;
   font-weight: 600;
-  color: #303133;
+  color: var(--xfjy-text-primary);
 }
 
 .detail-author-id {
   font-size: 12px;
-  color: #909399;
+  color: var(--xfjy-text-secondary);
   margin-top: 2px;
 }
 
 .detail-content {
   font-size: 14px;
-  color: #303133;
+  color: var(--xfjy-text-primary);
   line-height: 1.7;
   margin-bottom: 16px;
   white-space: pre-wrap;
   padding: 12px 16px;
-  background: #f5f7fa;
+  background: var(--xfjy-bg-hover);
   border-radius: 6px;
 }
 

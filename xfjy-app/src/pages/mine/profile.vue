@@ -1,60 +1,75 @@
 <template>
   <view class="profile-page">
-    <!-- 头像 -->
-    <view class="avatar-row" @click="changeAvatar">
+    <!-- 头像：整行作为可访问按钮（原 view+click 无键盘入口） -->
+    <a11y-button class="avatar-row" label="更换头像" @tap="changeAvatar">
       <text class="label">头像</text>
       <view class="avatar-wrap">
-        <image class="avatar" :src="form.avatar || '/static/logo/logo-icon-transparent.png'" mode="aspectFill" />
+        <image lazy-load class="avatar" :src="form.avatar || '/static/logo/logo-icon-transparent.png'" mode="aspectFill" aria-hidden="true" />
         <view class="avatar-mask"><text>更换</text></view>
       </view>
-      <text class="arrow">›</text>
-    </view>
+      <!-- 箭头为装饰符号，避免读屏读出字符名 -->
+      <text class="arrow" aria-hidden="true">›</text>
+    </a11y-button>
 
     <!-- 照片墙 -->
     <view class="section">
       <text class="section-title">照片墙 ({{ form.photoAlbum.length }}/{{ MAX_ALBUM_COUNT }})</text>
       <view class="album-grid">
         <view v-for="(img, i) in form.photoAlbum" :key="i" class="album-item">
-          <image class="album-img" :src="img" mode="aspectFill" />
-          <view class="remove btn-feedback" @click="removePhoto(i)"><text>✕</text></view>
+          <image lazy-load class="album-img" :src="img" mode="aspectFill" :aria-label="`照片墙第 ${i + 1} 张`" />
+          <a11y-button class="remove btn-feedback" label="删除这张照片" @tap="removePhoto(i)">
+<uni-icons type="close" size="20" color="#ffffff"></uni-icons>
+          </a11y-button>
         </view>
-        <view v-if="form.photoAlbum.length < MAX_ALBUM_COUNT" class="add-photo btn-feedback" @click="addPhoto">
+        <a11y-button
+          v-if="form.photoAlbum.length < MAX_ALBUM_COUNT"
+          class="add-photo btn-feedback"
+          label="添加照片"
+          @tap="addPhoto"
+        >
           <text class="plus">+</text>
           <text class="add-label">{{ form.photoAlbum.length }}/{{ MAX_ALBUM_COUNT }}</text>
-        </view>
+        </a11y-button>
       </view>
     </view>
 
     <!-- 基本资料 -->
     <view class="section">
-      <view class="form-item" @click="editField('nickname', '昵称')">
-        <text class="label">昵称</text><text class="value" :class="{ unset: !form.nickname }">{{ form.nickname || '未设置' }}</text><text class="arrow">›</text>
-      </view>
-      <view class="form-item" @click="editField('signature', '个性签名')">
-        <text class="label">签名</text><text class="value ellipsis" :class="{ unset: !form.signature }">{{ form.signature || '未设置' }}</text><text class="arrow">›</text>
-      </view>
-      <!-- 性别：自定义色块选择器（替代原生 radio） -->
+      <a11y-button class="form-item" label="修改昵称" @tap="editField('nickname', '昵称')">
+        <text class="label">昵称</text><text class="value" :class="{ unset: !form.nickname }">{{ form.nickname || '未设置' }}</text><text class="arrow" aria-hidden="true">›</text>
+      </a11y-button>
+      <a11y-button class="form-item" label="修改个性签名" @tap="editField('signature', '个性签名')">
+        <text class="label">签名</text><text class="value ellipsis" :class="{ unset: !form.signature }">{{ form.signature || '未设置' }}</text><text class="arrow" aria-hidden="true">›</text>
+      </a11y-button>
+      <!-- 性别：语义单选组（role=radiogroup + aria-checked），保留原色块视觉 -->
       <view class="form-item">
         <text class="label">性别</text>
-        <view class="gender-picker">
-          <view v-for="opt in GENDER_OPTIONS" :key="opt.value" class="gender-opt btn-feedback" :class="{ active: form.gender === opt.value, [opt.cls]: true }" @click="form.gender = opt.value">
-            <text>{{ opt.icon }}</text>
-            <text class="gender-label">{{ opt.label }}</text>
-          </view>
-        </view>
+        <a11y-radio-group
+          class="gender-picker"
+          label="性别"
+          :options="GENDER_OPTIONS"
+          :model-value="form.gender"
+          option-class="gender-opt btn-feedback"
+          @update:model-value="form.gender = $event"
+        >
+          <template #option="{ option }">
+            <text>{{ option.icon }}</text>
+            <text class="gender-label">{{ option.label }}</text>
+          </template>
+        </a11y-radio-group>
       </view>
-      <view class="form-item" @click="editField('city', '城市')">
-        <text class="label">城市</text><text class="value" :class="{ unset: !form.city }">{{ form.city || '未设置' }}</text><text class="arrow">›</text>
-      </view>
-      <view class="form-item" @click="editField('height', '身高(cm)')">
-        <text class="label">身高</text><text class="value" :class="{ unset: !form.height }">{{ form.height || '未设置' }}</text><text class="arrow">›</text>
-      </view>
-      <view class="form-item" @click="editField('education', '学历')">
-        <text class="label">学历</text><text class="value" :class="{ unset: !form.education }">{{ form.education || '未设置' }}</text><text class="arrow">›</text>
-      </view>
-      <view class="form-item" @click="editField('industry', '行业')">
-        <text class="label">行业</text><text class="value" :class="{ unset: !form.industry }">{{ form.industry || '未设置' }}</text><text class="arrow">›</text>
-      </view>
+      <a11y-button class="form-item" label="修改城市" @tap="editField('city', '城市')">
+        <text class="label">城市</text><text class="value" :class="{ unset: !form.city }">{{ form.city || '未设置' }}</text><text class="arrow" aria-hidden="true">›</text>
+      </a11y-button>
+      <a11y-button class="form-item" label="修改身高" @tap="editField('height', '身高(cm)')">
+        <text class="label">身高</text><text class="value" :class="{ unset: !form.height }">{{ form.height || '未设置' }}</text><text class="arrow" aria-hidden="true">›</text>
+      </a11y-button>
+      <a11y-button class="form-item" label="修改学历" @tap="editField('education', '学历')">
+        <text class="label">学历</text><text class="value" :class="{ unset: !form.education }">{{ form.education || '未设置' }}</text><text class="arrow" aria-hidden="true">›</text>
+      </a11y-button>
+      <a11y-button class="form-item" label="修改行业" @tap="editField('industry', '行业')">
+        <text class="label">行业</text><text class="value" :class="{ unset: !form.industry }">{{ form.industry || '未设置' }}</text><text class="arrow" aria-hidden="true">›</text>
+      </a11y-button>
     </view>
 
     <!-- 保存 -->
@@ -66,20 +81,22 @@
 import { ref } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import { useUserStore } from "@/store/user";
+import A11yRadioGroup from "@/components/a11y-radio-group.vue";
+import A11yButton from "@/components/a11y-button.vue";
 import { getUserProfile, updateUserProfile, uploadImage } from "@/api/mine";
 
 /** 照片墙最大数量 */
 const MAX_ALBUM_COUNT = 6;
 
-/** 性别选项配置（表驱动，替代原生 radio） */
+/** 性别选项配置（表驱动，替代原生 radio；value 与后端 SexEnum 一致：man/woman） */
 const GENDER_OPTIONS = [
-  { value: "男", label: "男生", icon: "👨", cls: "male" },
-  { value: "女", label: "女生", icon: "👩", cls: "female" },
+  { value: "man", label: "男生", icon: "👨", cls: "male" },
+  { value: "woman", label: "女生", icon: "👩", cls: "female" },
 ] as const;
 
 const userStore = useUserStore();
 const form = ref({
-  avatar: "", nickname: "", signature: "", gender: "男",
+  avatar: "", nickname: "", signature: "", gender: "man",
   city: "", height: "", education: "", industry: "",
   photoAlbum: [] as string[],
 });
@@ -96,6 +113,8 @@ function changeAvatar(): void {
       if (result.status === "done" && result.name) {
         form.value.avatar = result.name;
         uni.showToast({ title: "头像已更新", icon: "success" });
+      } else {
+        uni.showToast({ title: "上传失败，请重试", icon: "none" });
       }
     } catch (e) {
       uni.hideLoading();
@@ -214,23 +233,24 @@ onShow(async () => {
       text { font-size: 18rpx; color: #fff; }
     }
   }
-  .arrow { font-size: 36rpx; color: #ccc; margin-left: 16rpx; }
+  .arrow { font-size: 36rpx; color: #767676; margin-left: 16rpx; }
 }
 
 /* ===== 分组 ===== */
 .section { background: #fff; margin-top: 16rpx; padding: 28rpx 32rpx;
-  .section-title { font-size: 26rpx; color: #999; display: block; margin-bottom: 20rpx; }
+  .section-title { font-size: 26rpx; color: #767676; display: block; margin-bottom: 20rpx; }
 }
 
 /* ===== 照片墙 ===== */
 .album-grid { display: flex; flex-wrap: wrap; gap: 16rpx;
   .album-item { position: relative; width: 180rpx; height: 180rpx; border-radius: 16rpx; overflow: visible;
     .album-img { width: 100%; height: 100%; border-radius: 16rpx; border: 2rpx solid #f0f0f0; }
-    .remove { position: absolute; top: -10rpx; right: -10rpx; width: 40rpx; height: 40rpx; background: rgba(0, 0, 0, 0.55); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22rpx; }
+    /* 触摸目标 ≥24px（WCAG 2.5.8）：40rpx≈20px 不达标，统一放大到 48rpx≈24px */
+    .remove { position: absolute; top: -12rpx; right: -12rpx; width: 48rpx; height: 48rpx; background: rgba(0, 0, 0, 0.55); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24rpx; }
   }
   .add-photo { width: 180rpx; height: 180rpx; background: #fafafa; border-radius: 16rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8rpx; border: 2rpx dashed #ddd;
-    .plus { font-size: 56rpx; color: #ccc; line-height: 1; }
-    .add-label { font-size: 22rpx; color: #ccc; }
+    .plus { font-size: 56rpx; color: #767676; line-height: 1; }
+    .add-label { font-size: 22rpx; color: #767676; }
   }
 }
 
@@ -238,10 +258,11 @@ onShow(async () => {
 .form-item { display: flex; align-items: center; padding: 24rpx 0; border-bottom: 1rpx solid #f5f5f5;
   &:last-child { border-bottom: none; }
   .label { width: 140rpx; font-size: 28rpx; color: #666; }
+  /* 未设置文案与箭头：原 #ccc(≈1.6:1) 远低于 4.5:1，提深至达标色 */
   .value { flex: 1; font-size: 28rpx; color: #333; text-align: right;
-    &.unset { color: #ccc; }
+    &.unset { color: #767676; }
   }
-  .arrow { font-size: 32rpx; color: #ccc; margin-left: 8rpx; }
+  .arrow { font-size: 32rpx; color: #767676; margin-left: 8rpx; }
 }
 
 /* 性别色块选择器 */

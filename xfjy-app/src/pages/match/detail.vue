@@ -3,24 +3,30 @@
     <!-- 照片轮播 -->
     <swiper class="photo-swiper" circular indicator-dots indicator-color="rgba(255,255,255,0.4)" indicator-active-color="#fff" @change="onSwiperChange">
       <swiper-item v-for="(photo, i) in photos" :key="i">
-        <image class="photo" :src="photo" mode="aspectFill" @click="previewPhoto(i)" />
+        <image lazy-load
+          class="photo"
+          :src="photo"
+          mode="aspectFill"
+          :aria-label="`用户照片 ${i + 1}，共 ${photos.length} 张`"
+          @click="previewPhoto(i)"
+        />
       </swiper-item>
     </swiper>
 
-    <!-- 返回按钮（毛玻璃） -->
-    <view class="back-btn glass" :style="{ top: statusBarHeight + 8 + 'px' }" @click="goBack">
+    <!-- 返回按钮（毛玻璃）：纯符号必须提供 aria-label，否则读屏只播符号名 -->
+    <a11y-button class="back-btn glass" :style="{ top: statusBarHeight + 8 + 'px' }" label="返回上一页" @tap="goBack">
       <text>‹</text>
-    </view>
+    </a11y-button>
 
     <!-- 照片计数 -->
     <view v-if="photos.length > 1" class="photo-count glass">
       <text>{{ currentPhotoIndex + 1 }} / {{ photos.length }}</text>
     </view>
 
-    <!-- 更多按钮（毛玻璃）：举报入口 -->
-    <view class="more-btn glass" :style="{ top: statusBarHeight + 8 + 'px' }" @click="handleMore">
+    <!-- 更多按钮（毛玻璃）：举报入口，纯符号需 aria-label -->
+    <a11y-button class="more-btn glass" :style="{ top: statusBarHeight + 8 + 'px' }" label="更多操作，举报该用户" @tap="handleMore">
       <text>⋯</text>
-    </view>
+    </a11y-button>
 
     <!-- 资料卡 -->
     <view class="info-card shadow-card">
@@ -30,9 +36,18 @@
       </view>
 
       <!-- 缘分值 -->
+      <!-- 缘分值：进度条需暴露数值语义，否则读屏只见一个空条 -->
       <view class="fate-row">
         <text class="fate-label">缘分值</text>
-        <view class="fate-bar">
+        <view
+          class="fate-bar"
+          role="progressbar"
+          aria-label="缘分值"
+          :aria-valuenow="fateScore"
+          :aria-valuemin="0"
+          :aria-valuemax="FATE_SCORE_MAX"
+          :aria-valuetext="`${fateScore} 分，满分 ${FATE_SCORE_MAX} 分`"
+        >
           <view class="fate-fill" :style="{ width: fatePercent }" />
         </view>
         <text class="fate-score">{{ fateScore }}</text>
@@ -65,31 +80,38 @@
     <!-- TA的动态 -->
     <view v-if="movements.length > 0" class="movements-card shadow-card">
       <text class="section-title">TA的动态</text>
-      <view v-for="m in movements" :key="m.id" class="movement-item" @click="goMovementDetail(m.id)">
-        <image v-if="m.imageContent && m.imageContent.length > 0" class="m-cover" :src="m.imageContent[0]" mode="aspectFill" lazy-load />
+      <!-- 动态项：改为可聚焦按钮；不设 aria-label 以保留内部正文朗读 -->
+      <a11y-button v-for="m in movements" :key="m.id" class="movement-item" @tap="goMovementDetail(m.id)">
+        <image lazy-load v-if="m.imageContent && m.imageContent.length > 0" class="m-cover" :src="m.imageContent[0]" mode="aspectFill" lazy-load aria-label="动态封面图片" />
         <view class="m-body">
           <text class="m-text ellipsis-2">{{ m.textContent }}</text>
           <view class="m-stats">
-            <text>♥ {{ m.likeCount }}</text>
-            <text>💬 {{ m.commentCount }}</text>
+            <text><uni-icons type="heart-filled" size="14" color="#c2185b"></uni-icons> {{ m.likeCount }}</text>
+            <text><uni-icons type="chatbubble" size="14" color="#767676"></uni-icons> {{ m.commentCount }}</text>
           </view>
         </view>
-      </view>
+      </a11y-button>
     </view>
 
-    <!-- 底部操作栏：4 按钮 -->
+    <!-- 底部操作栏：4 按钮，全部补齐语义与键盘操作 -->
     <view class="action-bar safe-area-bottom">
-      <view class="action small dislike btn-feedback" @click="handleDislike"><text>✕</text></view>
-      <view class="action small chat btn-feedback" @click="handleChat"><text>💬</text></view>
-      <view class="action super-like btn-feedback" @click="handleSuperLike"><text>★</text></view>
-      <view class="action like btn-feedback" @click="handleLike"><text>♥</text></view>
+      <a11y-button class="action small dislike btn-feedback" label="不喜欢" @tap="handleDislike"><uni-icons type="close" size="22" color="#ff5e9c"></uni-icons></a11y-button>
+      <a11y-button class="action small chat btn-feedback" label="打招呼" @tap="handleChat"><uni-icons type="chatbubble" size="22" color="#ff5e9c"></uni-icons></a11y-button>
+      <a11y-button class="action super-like btn-feedback" label="超级喜欢" @tap="handleSuperLike"><uni-icons type="star-filled" size="22" color="#4dabf7"></uni-icons></a11y-button>
+      <a11y-button class="action like btn-feedback" label="喜欢" @tap="handleLike"><uni-icons type="heart-filled" size="22" color="#ff5e9c"></uni-icons></a11y-button>
     </view>
+
+    <!-- 匹配成功弹窗（与匹配页行为一致） -->
+    <MatchPopup />
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
+import A11yButton from "@/components/a11y-button.vue";
+import MatchPopup from "@/components/match-popup.vue";
+import { useMatchStore } from "@/store/match";
 import { submitReport, REPORT_TARGET_TYPE, checkBenefit, recordBenefitUsage } from "@/api/mine";
 import { getPersonalInfo, getStrangerQuestion, loveUser, unloveUser, type TodayBest } from "@/api/match";
 import { getUserMovements, type Movement } from "@/api/circle";
@@ -102,6 +124,8 @@ const DEFAULT_STATUS_BAR_HEIGHT = 20;
 const REPORT_REASONS = ["骚扰", "欺诈", "色情信息", "冒充他人"];
 /** 动态加载页大小 */
 const MOVEMENT_PAGE_SIZE = 10;
+
+const matchStore = useMatchStore();
 
 const statusBarHeight = ref(DEFAULT_STATUS_BAR_HEIGHT);
 const userId = ref("");
@@ -184,21 +208,35 @@ async function loadMovements(): Promise<void> {
   }
 }
 
+/** 操作进行中标记（防连点：喜欢/超级喜欢/不喜欢在途时忽略后续点击） */
+const acting = ref(false);
+
 /** 喜欢 */
 async function handleLike(): Promise<void> {
-  if (!userId.value) return;
+  if (!userId.value || acting.value) return;
+  acting.value = true;
   try {
     const matched = await loveUser(userId.value);
+    if (matched) {
+      matchStore.showMatchPopup({
+        userId: userId.value,
+        nickname: user.value?.nickname || "",
+        avatar: user.value?.avatar || "",
+      });
+    }
     uni.showToast({ title: matched ? "互相喜欢，已匹配！" : "已喜欢", icon: "success" });
     setTimeout(goBack, 800);
   } catch {
     // 请求失败由 request 层统一 toast
+  } finally {
+    acting.value = false;
   }
 }
 
 /** 超级喜欢（VIP 权益：super_like，VIP1 每日 5 次） */
 async function handleSuperLike(): Promise<void> {
-  if (!userId.value) return;
+  if (!userId.value || acting.value) return;
+  acting.value = true;
   try {
     const benefit = await checkBenefit("super_like");
     if (!benefit.hasBenefit) {
@@ -217,10 +255,19 @@ async function handleSuperLike(): Promise<void> {
     }
     // 超级喜欢=加权喜欢，复用喜欢接口上报
     const matched = await loveUser(userId.value);
+    if (matched) {
+      matchStore.showMatchPopup({
+        userId: userId.value,
+        nickname: user.value?.nickname || "",
+        avatar: user.value?.avatar || "",
+      });
+    }
     uni.showToast({ title: matched ? "超级喜欢，已匹配！" : "已超级喜欢", icon: "success" });
     setTimeout(goBack, 800);
   } catch {
     // 请求失败由 request 层统一 toast
+  } finally {
+    acting.value = false;
   }
 }
 
@@ -236,9 +283,12 @@ async function handleDislike(): Promise<void> {
     setTimeout(goBack, 300);
     return;
   }
+  if (acting.value) return;
+  acting.value = true;
   try {
     await unloveUser(userId.value);
   } finally {
+    acting.value = false;
     setTimeout(goBack, 300);
   }
 }
@@ -318,7 +368,7 @@ onLoad(async (options: any) => {
 
 /* 缘分值进度条 */
 .fate-row { display: flex; align-items: center; gap: 16rpx; margin-top: 24rpx;
-  .fate-label { font-size: 24rpx; color: #999; flex-shrink: 0; }
+  .fate-label { font-size: 24rpx; color: #767676; flex-shrink: 0; }
   .fate-bar { flex: 1; height: 16rpx; background: #f0f0f0; border-radius: 8rpx; overflow: hidden; }
   .fate-fill { height: 100%; background: linear-gradient(90deg, #b13bff, #ff5e9c); border-radius: 8rpx; transition: width 0.6s ease-out; }
   .fate-score { font-size: 30rpx; font-weight: bold; color: #ff5e9c; flex-shrink: 0; min-width: 48rpx; text-align: right; }
@@ -326,7 +376,7 @@ onLoad(async (options: any) => {
 
 .meta-grid { display: flex; flex-wrap: wrap; gap: 20rpx; margin-top: 28rpx;
   .meta-item { flex: 1; min-width: calc(33.33% - 14rpx); background: #fafafa; border-radius: 16rpx; padding: 16rpx 20rpx;
-    .label { font-size: 22rpx; color: #bbb; display: block; }
+    .label { font-size: 22rpx; color: #767676; display: block; }
     .value { font-size: 28rpx; color: #333; margin-top: 6rpx; display: block; font-weight: 500; }
   }
 }
@@ -356,7 +406,7 @@ onLoad(async (options: any) => {
   .m-body { flex: 1; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
   .m-text { font-size: 26rpx; color: #333; line-height: 1.5; }
   .m-stats { display: flex; gap: 24rpx;
-    text { font-size: 22rpx; color: #999; }
+    text { font-size: 22rpx; color: #767676; }
   }
 }
 

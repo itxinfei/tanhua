@@ -1,24 +1,18 @@
 <template>
   <div class="page-container">
-    <!-- 搜索栏 -->
-    <div class="search-bar">
-      <el-form :inline="true" :model="query" @submit.prevent>
-        <el-form-item label="状态">
-          <el-select v-model="query.status" placeholder="全部" clearable style="width: 130px">
-            <el-option label="待处理" :value="0" />
-            <el-option label="已回复" :value="1" />
-            <el-option label="已关闭" :value="2" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
-          <el-button :icon="Refresh" @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </div>
+    <PageHeader title="客服反馈" :subtitle="`共 ${total} 条记录`" />
 
-    <!-- 表格 -->
-    <div class="table-container">
+    <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
+      <el-form-item label="状态">
+        <el-select v-model="query.status" placeholder="全部" clearable style="width: 130px">
+          <el-option label="待处理" :value="0" />
+          <el-option label="已回复" :value="1" />
+          <el-option label="已关闭" :value="2" />
+        </el-select>
+      </el-form-item>
+    </SearchBar>
+
+    <TableCard>
       <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" empty-text="暂无反馈数据">
         <el-table-column prop="id" label="ID" width="70" align="center" />
         <el-table-column prop="userId" label="用户ID" width="90" align="center" />
@@ -30,7 +24,7 @@
         </el-table-column>
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
-            <el-tag :type="statusColor(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
+            <StatusTag :status="String(row.status)" :mapping="feedbackStatusMapping" />
           </template>
         </el-table-column>
         <el-table-column label="反馈时间" width="170">
@@ -40,17 +34,30 @@
         </el-table-column>
         <el-table-column label="操作" width="150" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button v-if="row.status !== 2" link type="primary" size="small" @click="openReply(row)">
+            <el-button
+              v-if="row.status !== 2"
+              v-perm="['SUPER_ADMIN','ADMIN','OPERATOR']"
+              link
+              type="primary"
+              size="small"
+              @click="openReply(row)"
+            >
               {{ row.status === 1 ? '再次回复' : '回复' }}
             </el-button>
-            <el-button v-if="row.status !== 2" link type="warning" size="small" @click="handleClose(row)">
+            <el-button
+              v-if="row.status !== 2"
+              v-perm="['SUPER_ADMIN','ADMIN','OPERATOR']"
+              link
+              type="warning"
+              size="small"
+              @click="handleClose(row)"
+            >
               关闭
             </el-button>
           </template>
         </el-table-column>
       </el-table>
-
-      <div class="pagination-wrapper">
+      <template #pagination>
         <el-pagination
           v-model:current-page="query.page"
           v-model:page-size="query.pageSize"
@@ -60,8 +67,8 @@
           @size-change="handleSizeChange"
           @current-change="loadData"
         />
-      </div>
-    </div>
+      </template>
+    </TableCard>
 
     <!-- 回复弹窗 -->
     <el-dialog v-model="replyVisible" title="回复反馈" width="520px">
@@ -93,7 +100,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh } from '@element-plus/icons-vue'
+import { PageHeader, SearchBar, TableCard, StatusTag } from '@/components'
 import { getFeedbackPageApi, replyFeedbackApi, closeFeedbackApi } from '@/api/kefu'
 import type { FeedbackItem, FeedbackQuery } from '@/api/kefu'
 import { formatDateTime } from '@/utils/format'
@@ -138,12 +145,11 @@ function handleSizeChange() {
   loadData()
 }
 
-function statusLabel(status: number) {
-  return ['待处理', '已回复', '已关闭'][status] || '未知'
-}
-
-function statusColor(status: number) {
-  return (['warning', 'success', 'info'] as const)[status] || 'info'
+// 反馈状态映射（0=待处理 1=已回复 2=已关闭）
+const feedbackStatusMapping = {
+  '0': { label: '待处理', type: 'warning' as const },
+  '1': { label: '已回复', type: 'success' as const },
+  '2': { label: '已关闭', type: 'info' as const },
 }
 
 // 回复

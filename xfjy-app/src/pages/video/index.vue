@@ -1,24 +1,15 @@
 <template>
   <view class="video-page">
-    <!-- 顶部 关注 / 推荐 Tab（抖音标志性）+ 发布入口 -->
-    <view class="top-tabs">
-      <view
-        class="tab"
-        :class="{ active: activeTab === 'follow' }"
-        @click="switchTab('follow')"
-      >关注</view>
-      <view
-        class="tab"
-        :class="{ active: activeTab === 'recommend' }"
-        @click="switchTab('recommend')"
-      >推荐</view>
-      <view class="publish-btn btn-feedback" @click="chooseAndPublish">＋ 发布</view>
+    <!-- 顶部 关注 / 推荐 Tab（role=tablist 语义 + 可键盘操作） -->
+    <view class="top-tabs" role="tablist" aria-label="视频频道">
+      <a11y-button class="tab" role="tab" :checked="activeTab === 'follow'" label="关注" @tap="switchTab('follow')">关注</a11y-button>
+      <a11y-button class="tab" role="tab" :checked="activeTab === 'recommend'" label="推荐" @tap="switchTab('recommend')">推荐</a11y-button>
+      <a11y-button class="publish-btn btn-feedback" label="发布视频" @tap="chooseAndPublish">＋ 发布</a11y-button>
     </view>
 
     <swiper
       class="video-swiper"
       vertical
-      circular
       :current="swiperIndex"
       @change="onSwiperChange"
     >
@@ -27,76 +18,91 @@
           <!-- 视频播放器 / 封面占位 -->
           <video
             v-if="currentId === video.id"
+            :id="'vid-' + video.id"
             class="video-player"
             :src="video.videoUrl"
             autoplay
             loop
+            :muted="isMuted"
             :controls="false"
             object-fit="cover"
-            :paused="!isPlaying"
             @timeupdate="onTimeUpdate"
+            @play="isPlaying = true"
+            @pause="isPlaying = false"
           />
-          <image v-else class="cover" :src="video.cover" mode="aspectFill" lazy-load />
+          <image v-else class="cover" :src="video.cover" mode="aspectFill" lazy-load :aria-label="`${video.nickname} 的视频封面`" />
 
-          <!-- 透明点击层：单击暂停/播放，双击点赞 -->
-          <view class="tap-layer" @click="onVideoTap(video, $event)" />
+          <!-- 透明点击层：单击暂停/播放，双击点赞（纯手势层，另有显式按钮） -->
+          <view class="tap-layer" aria-hidden="true" @click="onVideoTap(video, $event)" />
 
           <!-- 中央播放/暂停指示（暂停时显示大播放键） -->
-          <view v-if="currentId === video.id && !isPlaying" class="center-state">
+          <view v-if="currentId === video.id && !isPlaying" class="center-state" aria-hidden="true">
             <text class="play-icon">▶</text>
           </view>
 
-          <!-- 双击飞出的爱心 -->
+          <!-- 双击飞出的爱心（纯装饰动画） -->
           <view
             v-for="h in floatHearts"
             :key="h.id"
             class="float-heart"
             :style="{ left: h.x + 'px', top: h.y + 'px' }"
-          >❤</view>
+            aria-hidden="true"
+          ><uni-icons type="heart-filled" size="20" color="#ff5e9c"></uni-icons></view>
 
           <!-- 右侧操作栏（抖音式：点赞/评论/关注/唱片/分享） -->
           <view class="side-bar">
-            <view
+            <a11y-button
               class="side-btn btn-feedback"
-              @click="handleLike(video)"
-              :aria-label="video.hasLiked === 1 ? '取消点赞' : '点赞'"
+              :label="video.hasLiked === 1 ? `取消点赞，当前 ${video.likeCount} 赞` : `点赞，当前 ${video.likeCount} 赞`"
+              @tap="handleLike(video)"
             >
               <view class="icon-circle" :class="{ liked: video.hasLiked === 1 }">
-                <text class="icon-text">{{ video.hasLiked === 1 ? '♥' : '♡' }}</text>
+                <uni-icons class="icon-text" :type="video.hasLiked === 1 ? 'heart-filled' : 'heart'" :color="video.hasLiked === 1 ? '#ff5e9c' : '#767676'" size="18"></uni-icons>
               </view>
               <text class="side-count">{{ video.likeCount }}</text>
-            </view>
+            </a11y-button>
 
-            <view class="side-btn btn-feedback" @click="showComments(video)" aria-label="查看评论">
+            <a11y-button class="side-btn btn-feedback" :label="`查看评论，共 ${video.commentCount} 条`" @tap="showComments(video)">
               <view class="icon-circle">
-                <text class="icon-text">💬</text>
+                <uni-icons class="icon-text" type="chatbubble" color="#767676" size="18"></uni-icons>
               </view>
               <text class="side-count">{{ video.commentCount }}</text>
-            </view>
+            </a11y-button>
 
-            <view
-              class="side-btn btn-feedback follow-btn"
-              @click="handleFocus(video)"
-              :aria-label="video.hasFocus ? '取消关注' : '关注作者'"
+            <a11y-button
+              class="side-btn btn-feedback"
+              :label="isMuted ? '取消静音' : '静音'"
+              @tap="toggleMute"
             >
-              <image class="side-avatar" :src="video.avatar" mode="aspectFill" lazy-load />
-              <view v-if="!video.hasFocus" class="follow-plus">+</view>
-            </view>
+              <view class="icon-circle">
+                <uni-icons class="icon-text" :type="isMuted ? 'sound' : 'sound-filled'" color="#fff" size="18"></uni-icons>
+              </view>
+            </a11y-button>
 
-            <!-- 旋转音乐唱片 -->
+            <a11y-button
+              class="side-btn btn-feedback follow-btn"
+              :label="video.hasFocus ? `取消关注 ${video.nickname}` : `关注 ${video.nickname}`"
+              @tap="handleFocus(video)"
+            >
+              <image class="side-avatar" :src="video.avatar" mode="aspectFill" lazy-load aria-hidden="true" />
+              <view v-if="!video.hasFocus" class="follow-plus" aria-hidden="true">+</view>
+            </a11y-button>
+
+            <!-- 旋转音乐唱片（纯装饰） -->
             <view
               class="side-btn music-disc"
               :class="{ 'disc-paused': !isPlaying && currentId === video.id }"
+              aria-hidden="true"
             >
-              <image class="disc-img" :src="video.cover" mode="aspectFill" />
+              <image lazy-load class="disc-img" :src="video.cover" mode="aspectFill" />
               <text class="disc-note">♪</text>
             </view>
 
-            <view class="side-btn btn-feedback" @click="openShare(video)" aria-label="分享视频">
+            <a11y-button class="side-btn btn-feedback" :label="`分享 ${video.nickname} 的视频`" @tap="openShare(video)">
               <view class="icon-circle">
-                <text class="icon-text">↗</text>
+                <text class="icon-text" aria-hidden="true">↗</text>
               </view>
-            </view>
+            </a11y-button>
           </view>
 
           <!-- 底部信息 + 滚动音乐条 -->
@@ -111,8 +117,8 @@
             </view>
           </view>
 
-          <!-- 进度条 -->
-          <view v-if="currentId === video.id" class="progress-bar">
+          <!-- 进度条（role=progressbar：读屏可获知播放进度，而非仅视觉呈现） -->
+          <view v-if="currentId === video.id" class="progress-bar" role="progressbar" aria-label="播放进度" :aria-valuenow="Math.round(progress)" aria-valuemin="0" aria-valuemax="100">
             <view class="progress-inner" :style="{ width: progress + '%' }" />
           </view>
         </view>
@@ -120,7 +126,8 @@
     </swiper>
 
     <!-- 骨架屏（首屏加载中） -->
-    <view v-if="displayList.length === 0 && loading" class="skeleton-video">
+    <!-- 骨架屏（首屏加载中）：占位元素，对读屏隐藏 -->
+    <view v-if="displayList.length === 0 && loading" class="skeleton-video" aria-hidden="true">
       <view class="skeleton skel-full" />
       <view class="skeleton skel-author" />
       <view class="skeleton skel-desc" />
@@ -129,7 +136,7 @@
     <!-- 空状态 -->
     <view v-if="displayList.length === 0 && !loading" class="empty-overlay">
       <view class="empty-state">
-        <view class="empty-icon"><text>{{ activeTab === 'follow' ? '👀' : '🎬' }}</text></view>
+        <view class="empty-icon"><uni-icons v-if="activeTab === 'follow'" type="eye" size="48" color="#cccccc"></uni-icons><text v-else>🎬</text></view>
         <text class="empty-title">{{ activeTab === 'follow' ? '还没有关注的作者' : '暂无视频' }}</text>
         <text class="empty-desc">{{ activeTab === 'follow' ? '去推荐页关注喜欢的人吧' : '精彩内容即将上线' }}</text>
       </view>
@@ -142,35 +149,35 @@
       @close="commentVisible = false"
     />
 
-    <!-- 底部分享面板 -->
-    <view v-if="showShare" class="share-mask" @click="showShare = false">
-      <view class="share-panel" @click.stop>
-        <view class="share-title">分享给好友</view>
+    <!-- 底部分享面板（对话框语义 + Esc 关闭 + 焦点管理） -->
+    <a11y-dialog class="share-mask" :visible="showShare" title="分享给好友" @close="showShare = false">
+      <view class="share-panel-inner">
+        <text class="share-title">分享给好友</text>
         <view class="share-grid">
-          <view class="share-item" @click="doShare('wechat')">
-            <view class="share-ico ico-wechat">微</view>
+          <a11y-button class="share-item" label="分享到微信" @tap="doShare('wechat')">
+            <view class="share-ico ico-wechat" aria-hidden="true">微</view>
             <text class="share-label">微信</text>
-          </view>
-          <view class="share-item" @click="doShare('moments')">
-            <view class="share-ico ico-moments">友</view>
+          </a11y-button>
+          <a11y-button class="share-item" label="分享到朋友圈" @tap="doShare('moments')">
+            <view class="share-ico ico-moments" aria-hidden="true">友</view>
             <text class="share-label">朋友圈</text>
-          </view>
-          <view class="share-item" @click="doShare('copy')">
-            <view class="share-ico ico-copy">链</view>
+          </a11y-button>
+          <a11y-button class="share-item" label="复制链接" @tap="doShare('copy')">
+            <view class="share-ico ico-copy" aria-hidden="true">链</view>
             <text class="share-label">复制链接</text>
-          </view>
+          </a11y-button>
         </view>
-        <view class="share-cancel" @click="showShare = false">取消</view>
+        <a11y-button class="share-cancel" label="取消分享" @tap="showShare = false">取消</a11y-button>
       </view>
-    </view>
+    </a11y-dialog>
     <!-- 匹配成功弹窗（全局，由 match store 驱动） -->
     <MatchPopup />
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
-import { onShow, onShareAppMessage } from "@dcloudio/uni-app";
+import { ref, computed, watch, nextTick, getCurrentInstance } from "vue";
+import { onShow, onHide, onShareAppMessage } from "@dcloudio/uni-app";
 import MatchPopup from "@/components/match-popup.vue";
 import {
   getVideoList,
@@ -183,6 +190,8 @@ import {
   type Video,
 } from "@/api/video";
 import VideoCommentDrawer from "@/components/video-comment-drawer.vue";
+import A11yButton from "@/components/a11y-button.vue";
+import A11yDialog from "@/components/a11y-dialog.vue";
 
 /** 分页大小 */
 const PAGE_SIZE = 10;
@@ -197,12 +206,30 @@ const currentId = ref("");
 const swiperIndex = ref(0);
 const activeTab = ref<"follow" | "recommend">("recommend");
 const isPlaying = ref(true);
+/** 是否静音：默认关闭（抖音式有声），可手动切换 */
+const isMuted = ref(false);
 const progress = ref(0);
 const loading = ref(false);
 
 /** 评论抽屉状态 */
 const commentVisible = ref(false);
 const activeCommentVideoId = ref("");
+
+/** uni-app 的 :paused 属性不可靠，改用视频上下文控制播放 */
+const instance = getCurrentInstance();
+
+function applyPlayState() {
+  if (!currentId.value) return;
+  const ctx = uni.createVideoContext("vid-" + currentId.value, instance?.proxy as any);
+  if (!ctx) return;
+  if (isPlaying.value) {
+    ctx.play();
+  } else {
+    ctx.pause();
+  }
+}
+
+watch(isPlaying, applyPlayState);
 
 /** 双击飞心 */
 const floatHearts = ref<{ id: number; x: number; y: number }[]>([]);
@@ -220,6 +247,11 @@ const displayList = computed(() =>
 let lastTapTime = 0;
 let singleTapTimer: ReturnType<typeof setTimeout> | null = null;
 
+/** 分页加载守卫：防止快速滑动触发重复请求；到底后不再重发 */
+const loadingMore = ref(false);
+const recommendHasMore = ref(true);
+const followHasMore = ref(true);
+
 /**
  * swiper 切换：更新当前视频并重置播放态，接近底部预加载
  */
@@ -228,20 +260,32 @@ function onSwiperChange(e: any) {
   swiperIndex.value = index;
   const video = displayList.value[index];
   if (video) {
+    // 切走前先暂停上一个视频，避免其音频残留（swiper 复用节点时尤为关键）
+    if (currentId.value && currentId.value !== video.id) {
+      const prevCtx = uni.createVideoContext("vid-" + currentId.value, instance?.proxy as any);
+      if (prevCtx) prevCtx.pause();
+    }
     currentId.value = video.id;
     isPlaying.value = true;
     progress.value = 0;
+    // 新视频节点此刻才渲染（autoplay 兜底），渲染完成后上下文才可取到
+    nextTick(applyPlayState);
     if (index >= displayList.value.length - 2) {
       loadMoreVideos();
     }
   }
 }
 
+/** 切换静音 */
+function toggleMute() {
+  isMuted.value = !isMuted.value;
+}
+
 /**
  * 切换顶部 Tab，重置到首条
  */
 async function switchTab(tab: "follow" | "recommend") {
-  if (activeTab.value === tab) return;
+  if (activeTab.value === tab || loading.value) return;
   activeTab.value = tab;
   swiperIndex.value = 0;
   const list = activeTab.value === "follow" ? followVideos.value : recommendVideos.value;
@@ -432,10 +476,12 @@ async function loadVideos() {
   try {
     if (activeTab.value === "follow") {
       followPage.value = 1;
+      followHasMore.value = true;
       const res = await getFollowVideoList({ page: 1, pagesize: PAGE_SIZE });
       followVideos.value = res.items || [];
     } else {
       recommendPage.value = 1;
+      recommendHasMore.value = true;
       const res = await getVideoList({ page: 1, pagesize: PAGE_SIZE });
       recommendVideos.value = res.items || [];
     }
@@ -455,6 +501,9 @@ async function loadVideos() {
  * 加载更多视频（上拉预加载）
  */
 async function loadMoreVideos() {
+  if (loadingMore.value) return;
+  if (activeTab.value === "follow" ? !followHasMore.value : !recommendHasMore.value) return;
+  loadingMore.value = true;
   try {
     if (activeTab.value === "follow") {
       const nextPage = followPage.value + 1;
@@ -462,6 +511,8 @@ async function loadMoreVideos() {
       if (res.items && res.items.length > 0) {
         followVideos.value.push(...res.items);
         followPage.value = nextPage;
+      } else {
+        followHasMore.value = false;
       }
     } else {
       const nextPage = recommendPage.value + 1;
@@ -469,15 +520,37 @@ async function loadMoreVideos() {
       if (res.items && res.items.length > 0) {
         recommendVideos.value.push(...res.items);
         recommendPage.value = nextPage;
+      } else {
+        recommendHasMore.value = false;
       }
     }
   } catch {
     // 请求失败由 request 层统一 toast
+  } finally {
+    loadingMore.value = false;
   }
 }
 
+/** 记录离开页面前的播放状态，返回时恢复 */
+let wasPlayingBeforeHide = false;
+
 onShow(() => {
-  if (displayList.value.length === 0) loadVideos();
+  if (displayList.value.length === 0) {
+    loadVideos();
+  } else if (wasPlayingBeforeHide) {
+    wasPlayingBeforeHide = false;
+    isPlaying.value = true;
+    nextTick(applyPlayState);
+  }
+});
+
+onHide(() => {
+  // 离开页面（切后台/跳转其他 tab）时暂停，避免声音继续播放
+  wasPlayingBeforeHide = isPlaying.value;
+  if (isPlaying.value) {
+    isPlaying.value = false;
+    applyPlayState();
+  }
 });
 
 /** 小程序端分享配置（H5 端静默忽略） */
@@ -517,7 +590,6 @@ onShareAppMessage(() => ({
     padding: 8rpx 24rpx;
     border-radius: 28rpx;
   }
-  pointer-events: auto;
 
   .tab {
     position: relative;
@@ -862,7 +934,7 @@ onShareAppMessage(() => ({
   display: flex;
   align-items: flex-end;
 
-  .share-panel {
+  .share-panel-inner {
     width: 100%;
     background: #fff;
     border-radius: 32rpx 32rpx 0 0;
@@ -887,6 +959,8 @@ onShareAppMessage(() => ({
         flex-direction: column;
         align-items: center;
         gap: 12rpx;
+        /* 触摸目标 ≥24px */
+        min-height: 48rpx;
 
         .share-ico {
           width: 96rpx;
@@ -910,11 +984,13 @@ onShareAppMessage(() => ({
       }
     }
 
+    /* #999 → #767676；触摸目标加高 */
     .share-cancel {
       text-align: center;
       font-size: 30rpx;
-      color: #999;
-      padding: 20rpx 0;
+      color: #767676;
+      padding: 24rpx 0;
+      min-height: 48rpx;
       border-top: 1rpx solid #f5f5f5;
       margin-top: 8rpx;
     }

@@ -609,19 +609,19 @@ watch(activeTab, async (tab) => {
 .profile-meta {
   display: flex;
   gap: 24px;
-  color: #606266;
+  color: var(--xfjy-text-regular);
   font-size: 13px;
   margin-bottom: 4px;
 }
 
 .profile-signature {
-  color: #909399;
+  color: var(--xfjy-text-secondary);
   font-size: 13px;
   margin-top: 8px;
 }
 
 .freeze-reason {
-  color: #f56c6c;
+  color: var(--el-color-danger);
   font-size: 13px;
   margin-top: 4px;
 }
@@ -634,19 +634,19 @@ watch(activeTab, async (tab) => {
 .stat-box {
   text-align: center;
   padding: 16px;
-  background: #f5f7fa;
+  background: var(--xfjy-bg-hover);
   border-radius: 8px;
 }
 
 .stat-num {
   font-size: 22px;
   font-weight: 600;
-  color: #303133;
+  color: var(--xfjy-text-primary);
 }
 
 .stat-text {
   font-size: 12px;
-  color: #909399;
+  color: var(--xfjy-text-secondary);
   margin-top: 4px;
 }
 
@@ -672,25 +672,25 @@ watch(activeTab, async (tab) => {
   display: flex;
   gap: 0;
   height: 480px;
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--xfjy-border);
   border-radius: 8px;
   overflow: hidden;
 }
 
 .chat-session-panel {
   width: 200px;
-  border-right: 1px solid #e4e7ed;
+  border-right: 1px solid var(--xfjy-border);
   display: flex;
   flex-direction: column;
-  background: #fafafa;
+  background: var(--xfjy-bg-header);
 }
 
 .session-header {
   padding: 10px 12px;
   font-size: 13px;
   font-weight: 600;
-  border-bottom: 1px solid #e4e7ed;
-  color: #303133;
+  border-bottom: 1px solid var(--xfjy-border);
+  color: var(--xfjy-text-primary);
 }
 
 .session-list {
@@ -704,16 +704,16 @@ watch(activeTab, async (tab) => {
   align-items: flex-start;
   padding: 10px 12px;
   cursor: pointer;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--xfjy-border-light);
   transition: background 0.2s;
 }
 
 .session-item:hover {
-  background: #ecf5ff;
+  background: var(--xfjy-primary-50);
 }
 
 .session-item.active {
-  background: #409eff;
+  background: var(--el-color-primary);
   color: #fff;
 }
 
@@ -749,14 +749,14 @@ watch(activeTab, async (tab) => {
 
 .session-id {
   font-size: 11px;
-  color: #c0c4cc;
+  color: var(--xfjy-text-disabled);
   font-weight: 400;
   flex-shrink: 0;
 }
 
 .session-msg {
   font-size: 12px;
-  color: #909399;
+  color: var(--xfjy-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -765,13 +765,13 @@ watch(activeTab, async (tab) => {
 
 .session-time {
   font-size: 11px;
-  color: #c0c4cc;
+  color: var(--xfjy-text-disabled);
 }
 
 .loading-tip {
   padding: 16px;
   text-align: center;
-  color: #909399;
+  color: var(--xfjy-text-secondary);
   font-size: 13px;
 }
 
@@ -785,8 +785,8 @@ watch(activeTab, async (tab) => {
   padding: 10px 12px;
   font-size: 13px;
   font-weight: 600;
-  border-bottom: 1px solid #e4e7ed;
-  color: #303133;
+  border-bottom: 1px solid var(--xfjy-border);
+  color: var(--xfjy-text-primary);
 }
 
 .message-list {
@@ -807,7 +807,7 @@ watch(activeTab, async (tab) => {
 
 .message-time {
   font-size: 11px;
-  color: #c0c4cc;
+  color: var(--xfjy-text-disabled);
   margin-bottom: 4px;
 }
 
@@ -818,12 +818,12 @@ watch(activeTab, async (tab) => {
   font-size: 13px;
   line-height: 1.5;
   word-break: break-all;
-  background: #f4f4f5;
-  color: #303133;
+  background: var(--xfjy-bg-hover);
+  color: var(--xfjy-text-primary);
 }
 
 .message-item.mine .bubble {
-  background: #409eff;
+  background: var(--el-color-primary);
   color: #fff;
 }
 
@@ -869,6 +869,6 @@ watch(activeTab, async (tab) => {
 }
 
 .text-muted {
-  color: #c0c4cc;
+  color: var(--xfjy-text-disabled);
 }
 </style>

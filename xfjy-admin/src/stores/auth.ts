@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { loginApi } from '@/api/auth'
+import { loginApi, logoutApi } from '@/api/auth'
 
 export interface AdminInfo {
   id: number
@@ -49,11 +49,18 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('xfjy_admin_info', JSON.stringify(res.admin))
   }
 
-  function logout() {
-    token.value = ''
-    adminInfo.value = null
-    localStorage.removeItem('xfjy_admin_token')
-    localStorage.removeItem('xfjy_admin_info')
+  async function logout() {
+    // 先通知服务端注销 token；失败也要清本地，避免卡在登录态
+    try {
+      await logoutApi()
+    } catch {
+      // 网络异常或 token 已失效，忽略
+    } finally {
+      token.value = ''
+      adminInfo.value = null
+      localStorage.removeItem('xfjy_admin_token')
+      localStorage.removeItem('xfjy_admin_info')
+    }
   }
 
   // 从 localStorage 恢复管理员信息（初始化已自动恢复一次，保留供手动刷新）

@@ -10,6 +10,8 @@ export interface NoticeItem {
   publisher: string
   publishedAt?: string
   createdAt: string
+  /** 后端实体字段（BasePojo），列表接口直接返回 */
+  created?: string | number
 }
 
 export interface NoticeQuery {

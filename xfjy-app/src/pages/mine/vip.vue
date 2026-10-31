@@ -2,11 +2,21 @@
   <view class="vip-page">
     <!-- 顶部权益区 -->
     <view class="header" :style="{ paddingTop: statusBarHeight + 20 + 'px' }">
-      <view class="crown float">👑</view>
+      <!-- 返回按钮（custom 导航无系统返回键，必须自绘） -->
+      <view
+        class="back-btn btn-feedback"
+        role="button"
+        aria-label="返回上一页"
+        :style="{ top: statusBarHeight + 10 + 'px' }"
+        @tap="goBack"
+      >
+        <text class="back-icon" aria-hidden="true">‹</text>
+      </view>
+      <uni-icons class="crown float" type="vip" size="40"></uni-icons>
       <text class="title gradient-gold">心飞 VIP</text>
       <text class="subtitle">解锁全部特权，遇见更好的缘分</text>
-      <view class="glow-circle c1" />
-      <view class="glow-circle c2" />
+      <view class="glow-circle c1" aria-hidden="true" />
+      <view class="glow-circle c2" aria-hidden="true" />
     </view>
 
     <!-- 会员状态 -->
@@ -33,15 +43,22 @@
       </view>
     </view>
 
-    <!-- 套餐选择 -->
-    <view class="plans">
-      <view v-for="plan in plans" :key="plan.id" class="plan-card btn-feedback" :class="{ selected: selectedId === plan.id }" @click="selectedId = plan.id">
-        <text v-if="plan.tag" class="plan-tag">{{ plan.tag }}</text>
-        <text class="plan-name">{{ plan.name }}</text>
-        <text class="plan-price">¥{{ plan.priceYuan }}</text>
-        <text class="plan-unit">{{ plan.unit }}</text>
-      </view>
-    </view>
+    <!-- 套餐选择：语义单选组（涉及支付，必须可用键盘操作） -->
+    <a11y-radio-group
+      class="plans"
+      label="会员套餐"
+      :options="planOptions"
+      :model-value="selectedId"
+      option-class="plan-card btn-feedback"
+      @update:model-value="selectedId = $event"
+    >
+      <template #option="{ option }">
+        <text v-if="option.tag" class="plan-tag">{{ option.tag }}</text>
+        <text class="plan-name">{{ option.name }}</text>
+        <text class="plan-price">¥{{ option.priceYuan }}</text>
+        <text class="plan-unit">{{ option.unit }}</text>
+      </template>
+    </a11y-radio-group>
 
     <!-- 支付按钮 -->
     <button class="pay-btn safe-area-bottom btn-feedback" :disabled="paying" @click="handlePay">
@@ -53,16 +70,18 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
+import A11yRadioGroup from "@/components/a11y-radio-group.vue";
 import {
   getVipPackages,
   createVipOrder,
-  confirmVipPay,
+  cancelVipOrder,
   getVipStatus,
   getVipBenefits,
   type VipPackage,
   type UserVip,
   type ValueAddedService,
 } from "@/api/mine";
+import { getPayChannel } from "@/utils/pay";
 
 /** 默认状态栏高度（px） */
 const DEFAULT_STATUS_BAR_HEIGHT = 20;
@@ -83,9 +102,9 @@ const benefits = ref<ValueAddedService[]>([]);
 /** 套餐展示模型：分转元 + 月均价 + 营销标签 */
 const plans = computed(() =>
   packages.value.map((p) => {
-    const priceYuan = Math.round(p.price / 100);
+    const priceYuan = Number((p.price / 100).toFixed(2));
     const months = Math.max(1, Math.round(p.durationDays / 30));
-    const perMonth = (priceYuan / months).toFixed(1);
+    const perMonth = (priceYuan / months).toFixed(2);
     let tag = "";
     if (p.durationDays >= 365) {
       tag = "最划算";
@@ -104,6 +123,21 @@ const plans = computed(() =>
 
 /** 当前选中套餐 */
 const currentPlan = computed(() => plans.value.find((p) => p.id === selectedId.value));
+
+/**
+ * 套餐选项：适配 A11yRadioGroup 的 { value, label } 结构。
+ * label 需包含名称与价格，否则读屏用户无法获知套餐内容即要付费。
+ */
+const planOptions = computed(() =>
+  plans.value.map((p) => ({
+    value: p.id,
+    label: `${p.name}，${p.priceYuan} 元，${p.unit}`,
+    name: p.name,
+    priceYuan: p.priceYuan,
+    unit: p.unit,
+    tag: p.tag,
+  }))
+);
 
 /** 会员状态展示（等级名从套餐 name 动态取，避免硬编码与后端套餐名脱节） */
 const vipInfo = computed(() => {
@@ -138,7 +172,7 @@ async function loadVipData(): Promise<void> {
   }
 }
 
-/** 发起支付：下单 → 二次确认 → 沙箱确认 → 刷新状态 */
+/** 发起支付：下单 → 二次确认 → 渠道支付（当前为模拟渠道）→ 刷新状态 */
 async function handlePay(): Promise<void> {
   if (paying.value || !selectedId.value) {
     return;
@@ -155,21 +189,33 @@ async function handlePay(): Promise<void> {
       uni.showToast({ title: "下单失败，请重试", icon: "none" });
       return;
     }
-    // 2. 二次确认（沙箱环境直接确认；生产环境此处拉起微信/支付宝 SDK）
+    // 2. 二次确认（生产环境接入真实渠道 SDK 后，此弹窗可保留为金额确认）
     const confirmed = await new Promise<boolean>((resolve) => {
       uni.showModal({
         title: "确认开通",
         content: `${plan.name} ¥${plan.priceYuan}（模拟支付）`,
         confirmText: "确认支付",
+        cancelText: "取消",
         success: (res) => resolve(res.confirm),
         fail: () => resolve(false),
       });
     });
     if (!confirmed) {
+      // 用户取消：关单避免堆积未支付订单；关单失败（网络等）静默，订单到期自动作废
+      cancelVipOrder(order.orderNo).catch(() => {});
+      uni.showToast({ title: "已取消支付", icon: "none" });
       return;
     }
-    // 3. 沙箱支付确认
-    await confirmVipPay(order.orderNo);
+    // 3. 渠道支付（utils/pay.ts 抽象：当前为模拟渠道，生产替换为微信/支付宝渠道实现）
+    const paid = await getPayChannel().requestPayment({
+      orderNo: order.orderNo,
+      amountFen: plan.priceYuan * 100,
+      subject: plan.name,
+    });
+    if (!paid) {
+      uni.showToast({ title: "支付未完成，请重试", icon: "none" });
+      return;
+    }
     uni.showToast({ title: "开通成功", icon: "success" });
     // 4. 刷新会员状态
     vipStatus.value = await getVipStatus();
@@ -178,6 +224,14 @@ async function handlePay(): Promise<void> {
   } finally {
     paying.value = false;
   }
+}
+
+/** 返回上一页（直接打开无上级页面时兜底回「我的」Tab） */
+function goBack(): void {
+  uni.navigateBack({
+    delta: 1,
+    fail: () => uni.switchTab({ url: "/pages/mine/index" }),
+  });
 }
 
 onLoad(() => {
@@ -192,13 +246,27 @@ onLoad(() => {
 
 /* ===== 顶部权益区 ===== */
 .header { text-align: center; padding-bottom: 48rpx; background: linear-gradient(180deg, #2c2c54 0%, #1a1a2e 100%); position: relative; overflow: hidden;
+  /* 自绘返回按钮：触摸目标 ≥44px */
+  .back-btn { position: absolute; left: 16rpx; width: 72rpx; height: 72rpx; display: flex; align-items: center; justify-content: center; z-index: 10;
+    .back-icon { font-size: 56rpx; color: rgba(255, 255, 255, 0.9); line-height: 1; }
+  }
   .crown { font-size: 80rpx; display: block; margin-bottom: 8rpx; filter: drop-shadow(0 4rpx 12rpx rgba(255, 215, 0, 0.5)); }
   .title { font-size: 56rpx; font-weight: 900; display: block; letter-spacing: 4rpx; }
-  .subtitle { font-size: 26rpx; color: rgba(255, 215, 0, 0.6); margin-top: 12rpx; display: block; }
+  .subtitle { font-size: 26rpx; color: rgba(255, 215, 0, 0.85); margin-top: 12rpx; display: block; }
 }
 
 /* 金色渐变文字 */
 .gradient-gold { background: linear-gradient(90deg, #ffd700, #fff5c0, #ffd700); -webkit-background-clip: text; color: transparent; }
+
+/* 强制颜色模式下 color:transparent 会让文字彻底消失，需回退为系统文本色 */
+@media (forced-colors: active) {
+  .gradient-gold {
+    color: CanvasText;
+    background: none;
+    -webkit-background-clip: border-box;
+    background-clip: border-box;
+  }
+}
 
 /* 装饰光斑 */
 .glow-circle { position: absolute; border-radius: 50%; filter: blur(60rpx); pointer-events: none;
@@ -211,7 +279,7 @@ onLoad(() => {
   .status-icon { font-size: 40rpx; }
   .status-text { display: flex; flex-direction: column; gap: 4rpx; }
   .status-level { font-size: 28rpx; color: #ffd700; font-weight: bold; }
-  .status-expire { font-size: 22rpx; color: rgba(255, 215, 0, 0.6); }
+  .status-expire { font-size: 22rpx; color: rgba(255, 215, 0, 0.85); }
 }
 
 /* ===== 权益对比 ===== */
@@ -219,7 +287,8 @@ onLoad(() => {
 .shadow-gold { box-shadow: 0 8rpx 32rpx rgba(255, 215, 0, 0.1); }
 
 .benefit-head { display: flex; align-items: center; padding: 20rpx 0 12rpx; border-bottom: 1rpx solid rgba(255, 215, 0, 0.2);
-  .head-name { flex: 1; font-size: 22rpx; color: rgba(255, 255, 255, 0.5); }
+  /* 深色底上原 0.4/0.5 透明度仅约 2–3:1，统一提亮至 ≥4.5:1 */
+  .head-name { flex: 1; font-size: 22rpx; color: rgba(255, 255, 255, 0.78); }
   .head-vip { width: 160rpx; text-align: center; font-size: 22rpx; color: #ffd700; font-weight: bold; }
 }
 
@@ -227,7 +296,7 @@ onLoad(() => {
   &:last-child { border-bottom: none; }
   .benefit-info { flex: 1; display: flex; flex-direction: column; gap: 4rpx; }
   .benefit-name { font-size: 26rpx; color: #fff; }
-  .benefit-desc { font-size: 20rpx; color: rgba(255, 255, 255, 0.4); }
+  .benefit-desc { font-size: 20rpx; color: rgba(255, 255, 255, 0.78); }
   .vip { width: 160rpx; text-align: center; font-size: 24rpx; color: #ffd700; font-weight: bold; }
 }
 
@@ -235,10 +304,11 @@ onLoad(() => {
 .plans { display: flex; gap: 16rpx; margin: 32rpx; }
 .plan-card { flex: 1; background: rgba(255, 255, 255, 0.08); border-radius: 20rpx; padding: 36rpx 16rpx 32rpx; text-align: center; position: relative; border: 2rpx solid transparent; transition: all 0.25s ease;
   &.selected { border-color: #ffd700; background: rgba(255, 215, 0, 0.12); box-shadow: 0 0 24rpx rgba(255, 215, 0, 0.25); transform: translateY(-8rpx); }
-  .plan-tag { position: absolute; top: -16rpx; left: 50%; transform: translateX(-50%); background: linear-gradient(90deg, #b13bff, #ff5e9c); color: #fff; font-size: 18rpx; padding: 4rpx 18rpx; border-radius: 16rpx; white-space: nowrap; }
+  /* 18rpx≈9px 低于最小可读字号，放大至 22rpx */
+  .plan-tag { position: absolute; top: -16rpx; left: 50%; transform: translateX(-50%); background: linear-gradient(90deg, #b13bff, #ff5e9c); color: #fff; font-size: 22rpx; padding: 4rpx 18rpx; border-radius: 16rpx; white-space: nowrap; }
   .plan-name { font-size: 28rpx; color: #fff; display: block; }
   .plan-price { font-size: 48rpx; font-weight: 900; color: #ffd700; display: block; margin: 12rpx 0 4rpx; }
-  .plan-unit { font-size: 20rpx; color: rgba(255, 255, 255, 0.4); display: block; }
+  .plan-unit { font-size: 20rpx; color: rgba(255, 255, 255, 0.78); display: block; }
 }
 
 /* ===== 支付按钮 ===== */

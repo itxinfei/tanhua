@@ -1,20 +1,22 @@
 <template>
   <view class="circle-page">
-    <!-- 顶部 Tab -->
-    <view class="tab-bar">
-      <view
+    <!-- 顶部 Tab（role=tablist 语义 + 可键盘操作） -->
+    <view class="tab-bar" role="tablist" aria-label="圈子频道">
+      <a11y-button
         v-for="tab in tabs"
         :key="tab.key"
         class="tab-item"
-        :class="{ active: activeTab === tab.key }"
-        @click="switchTab(tab.key)"
+        role="tab"
+        :checked="activeTab === tab.key"
+        :label="tab.label"
+        @tap="switchTab(tab.key)"
       >
         <text>{{ tab.label }}</text>
-      </view>
-      <!-- 发布按钮 -->
-      <view class="publish-btn btn-feedback" @click="goPublish">
-        <text>+</text>
-      </view>
+      </a11y-button>
+      <!-- 发布按钮（原为无标签的 + 符号） -->
+      <a11y-button class="publish-btn btn-feedback" label="发布动态" @tap="goPublish">
+        <text aria-hidden="true">+</text>
+      </a11y-button>
     </view>
 
     <!-- 动态列表 -->
@@ -27,7 +29,8 @@
       @scrolltolower="loadMore"
     >
       <!-- 骨架屏（首屏加载中） -->
-      <view v-if="feedList.length === 0 && loading" class="skeleton-feed">
+      <!-- 骨架屏（首屏加载中）：占位元素，对读屏隐藏 -->
+      <view v-if="feedList.length === 0 && loading" class="skeleton-feed" aria-hidden="true">
         <view v-for="i in SKELETON_CARD_COUNT" :key="i" class="skeleton-card">
           <view class="skeleton-header">
             <view class="skeleton skel-avatar" />
@@ -43,7 +46,7 @@
       <!-- 空状态 -->
       <view v-if="feedList.length === 0 && !loading" class="empty-state">
         <view class="empty-icon">
-          <text>📷</text>
+          <uni-icons type="camera" size="48" color="#cccccc"></uni-icons>
         </view>
         <text class="empty-title">暂无动态</text>
         <text class="empty-desc">快来发布第一条，分享你的生活</text>
@@ -51,7 +54,7 @@
       <view v-for="item in feedList" :key="item.id" class="post-card">
         <!-- 头部 -->
         <view class="post-header">
-          <image class="avatar" :src="item.avatar" mode="aspectFill" lazy-load />
+          <image class="avatar" :src="item.avatar" mode="aspectFill" lazy-load :aria-label="`${item.nickname} 的头像`" />
           <view class="user-info">
             <text class="nickname">{{ item.nickname }}</text>
             <text class="meta">{{ item.createDate }} · {{ item.location || '未知位置' }}</text>
@@ -59,6 +62,10 @@
         </view>
         <!-- 文字内容 -->
         <view v-if="item.textContent" class="post-content ellipsis-2">{{ item.textContent }}</view>
+        <!-- 话题标签（点击进入话题筛选） -->
+        <view v-if="item.tags && item.tags.length" class="tag-row">
+          <view v-for="(tag, i) in item.tags" :key="i" class="tag-chip" @tap="goTag(tag)"># {{ tag }}</view>
+        </view>
         <!-- 九宫格图片 -->
         <view v-if="item.imageContent && item.imageContent.length" class="image-grid" :class="`grid-${Math.min(item.imageContent.length, GRID_COLUMN_COUNT)}`">
           <image
@@ -68,22 +75,23 @@
             :src="img"
             mode="aspectFill"
             lazy-load
+            :aria-label="`动态图片 ${i + 1}，点击查看大图`"
             @click="previewImage(item.imageContent, i)"
           />
         </view>
         <!-- 互动栏 -->
         <view class="action-row">
-          <view class="action btn-feedback" @click="handleLike(item)">
-            <text class="action-icon" :class="{ liked: item.hasLiked, 'heart-beat': item.hasLiked }">{{ item.hasLiked ? '♥' : '♡' }}</text>
+          <a11y-button class="action btn-feedback" :label="item.hasLiked ? `取消点赞，当前 ${item.likeCount || 0} 赞` : `点赞，当前 ${item.likeCount || 0} 赞`" @tap="handleLike(item)">
+            <uni-icons class="action-icon" :class="{ liked: item.hasLiked, 'heart-beat': item.hasLiked }" :type="item.hasLiked ? 'heart-filled' : 'heart'" :color="item.hasLiked ? '#c2185b' : '#767676'" size="18"></uni-icons>
             <text class="count">{{ item.likeCount || '' }}</text>
-          </view>
-          <view class="action btn-feedback" @click="goDetail(item)">
-            <text class="action-icon">💬</text>
+          </a11y-button>
+          <a11y-button class="action btn-feedback" :label="`查看评论，共 ${item.commentCount || 0} 条`" @tap="goDetail(item)">
+            <uni-icons class="action-icon" type="chatbubble" color="#767676" size="18"></uni-icons>
             <text class="count">{{ item.commentCount || '' }}</text>
-          </view>
-          <view class="action btn-feedback" @click="handleLove(item)">
-            <text class="action-icon" :class="{ loved: item.hasLoved }">{{ item.hasLoved ? '★' : '☆' }}</text>
-          </view>
+          </a11y-button>
+          <a11y-button class="action btn-feedback" :label="item.hasLoved ? '取消心动' : '心动'" @tap="handleLove(item)">
+            <uni-icons class="action-icon" :class="{ loved: item.hasLoved }" :type="item.hasLoved ? 'star-filled' : 'star'" :color="item.hasLoved ? '#c2185b' : '#767676'" size="18"></uni-icons>
+          </a11y-button>
         </view>
       </view>
       <!-- 加载更多 -->
@@ -98,6 +106,7 @@
 import { ref, computed } from "vue";
 import { onShow, onShareAppMessage } from "@dcloudio/uni-app";
 import MatchPopup from "@/components/match-popup.vue";
+import A11yButton from "@/components/a11y-button.vue";
 import { useCircleStore } from "@/store/circle";
 import type { Movement } from "@/api/circle";
 
@@ -146,6 +155,11 @@ function goPublish() {
 
 function goDetail(item: Movement) {
   uni.navigateTo({ url: `/pages/circle/detail?id=${item.id}` });
+}
+
+/** 点击话题标签：跳转话题筛选页 */
+function goTag(tag: string) {
+  uni.navigateTo({ url: "/pages/circle/tag?tag=" + encodeURIComponent(tag) });
 }
 
 function previewImage(images: string[], index: number) {
@@ -246,7 +260,8 @@ onShareAppMessage(() => ({
   .tab-item {
     padding: 0 32rpx;
     font-size: 30rpx;
-    color: #999;
+    /* 未选中态 #999（≈2.85:1）→ #767676 */
+    color: #767676;
     position: relative;
 
     &.active {
@@ -314,9 +329,10 @@ onShareAppMessage(() => ({
         display: block;
       }
 
+      /* #ccc ≈1.6:1 → #767676 */
       .meta {
         font-size: 22rpx;
-        color: #ccc;
+        color: #767676;
         margin-top: 4rpx;
         display: block;
       }
@@ -328,6 +344,22 @@ onShareAppMessage(() => ({
     line-height: 1.6;
     margin: 16rpx 0;
     color: #333;
+  }
+
+  /* 话题标签（发布页勾选，落库 Movement.tags） */
+  .tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12rpx;
+    margin: 4rpx 0 16rpx;
+  }
+
+  .tag-chip {
+    font-size: 22rpx;
+    color: #c2185b;
+    background: #ffeff5;
+    padding: 6rpx 18rpx;
+    border-radius: 24rpx;
   }
 
   .image-grid {
@@ -353,24 +385,27 @@ onShareAppMessage(() => ({
       display: flex;
       align-items: center;
       gap: 8rpx;
+      /* 触摸目标 ≥24px */
+      min-height: 48rpx;
 
+      /* #999 → #767676 */
       .action-icon {
         font-size: 36rpx;
-        color: #999;
+        color: #767676;
         line-height: 1;
 
         &.liked {
-          color: #ff5e9c;
+          color: #c2185b;
         }
 
         &.loved {
-          color: #ff5e9c;
+          color: #c2185b;
         }
       }
 
       .count {
         font-size: 24rpx;
-        color: #999;
+        color: #767676;
       }
     }
   }
@@ -379,7 +414,7 @@ onShareAppMessage(() => ({
 .loading {
   text-align: center;
   padding: 24rpx;
-  color: #999;
+  color: #767676;
   font-size: 24rpx;
 }
 

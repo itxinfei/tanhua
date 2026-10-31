@@ -198,7 +198,15 @@ export function upload<T = any>(
           reject(new Error(`HTTP ${res.statusCode}`));
           return;
         }
-        const body = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
+        let body: any;
+        try {
+          body = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
+        } catch {
+          // 网关/代理返回 HTML 错误页等非 JSON 内容
+          uni.showToast({ title: "服务异常，请稍后再试", icon: "none" });
+          reject(new Error("响应格式错误"));
+          return;
+        }
         resolve(body.data !== undefined ? body.data : (body as unknown as T));
       },
       fail: (err: any) => {

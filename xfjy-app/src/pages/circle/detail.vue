@@ -3,15 +3,21 @@
     <!-- 动态内容 -->
     <view class="post-card">
       <view class="post-header">
-        <image class="avatar" :src="post.avatar" mode="aspectFill" />
+        <image lazy-load class="avatar" :src="post.avatar" mode="aspectFill" :aria-label="`${post.nickname} 的头像`" />
         <view class="user-info">
           <text class="nickname">{{ post.nickname }}</text>
           <text class="time">{{ post.createDate }}</text>
         </view>
       </view>
       <view class="post-content">{{ post.textContent }}</view>
+      <!-- 话题标签（点击进入话题筛选） -->
+      <view v-if="post?.tags && post.tags.length" class="tag-row">
+        <view v-for="(tag, i) in post.tags" :key="i" class="tag-chip" @tap="goTag(tag)"># {{ tag }}</view>
+      </view>
       <view v-if="post.imageContent?.length" class="image-grid">
-        <image v-for="(img, i) in post.imageContent" :key="i" class="grid-img" :src="img" mode="aspectFill" @click="previewImg(i)" />
+        <a11y-button v-for="(img, i) in post.imageContent" :key="i" class="grid-img" :label="`查看第 ${i + 1} 张配图`" @tap="previewImg(i)">
+          <image lazy-load class="grid-img-inner" :src="img" mode="aspectFill" aria-hidden="true" />
+        </a11y-button>
       </view>
     </view>
 
@@ -19,7 +25,7 @@
     <view class="comment-section">
       <text class="section-title">评论 ({{ comments.length }})</text>
       <view v-for="c in comments" :key="c.id" class="comment-item">
-        <image class="avatar" :src="c.avatar" mode="aspectFill" />
+        <image lazy-load class="avatar" :src="c.avatar" mode="aspectFill" :aria-label="`${c.nickname} 的头像`" />
         <view class="comment-info">
           <text class="nickname">{{ c.nickname }}</text>
           <text class="content">{{ c.content }}</text>
@@ -30,7 +36,7 @@
 
     <!-- 评论输入 -->
     <view class="comment-bar safe-area-bottom">
-      <input v-model="commentText" class="comment-input" placeholder="写评论..." confirm-type="send" @confirm="sendComment" />
+      <input v-model="commentText" class="comment-input" placeholder="写评论..." aria-label="写评论" confirm-type="send" @confirm="sendComment" />
     </view>
   </view>
 </template>
@@ -38,6 +44,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
+import A11yButton from "@/components/a11y-button.vue";
 import { getMovementById, getComments, publishComment } from "@/api/circle";
 import type { Movement, Comment } from "@/api/circle";
 
@@ -90,6 +97,11 @@ async function sendComment() {
   }
 }
 
+/** 点击话题标签：跳转话题筛选页 */
+function goTag(tag: string) {
+  uni.navigateTo({ url: "/pages/circle/tag?tag=" + encodeURIComponent(tag) });
+}
+
 onLoad((options: any) => {
   postId.value = options?.id || "";
   loadDetail();
@@ -104,12 +116,19 @@ onLoad((options: any) => {
     .avatar { width: 76rpx; height: 76rpx; border-radius: 50%; border: 3rpx solid #ffeff5; }
     .user-info { margin-left: 16rpx;
       .nickname { font-size: 28rpx; font-weight: bold; display: block; color: #333; }
-      .time { font-size: 22rpx; color: #ccc; margin-top: 4rpx; display: block; }
+      /* #ccc ≈1.6:1 → #767676 */
+      .time { font-size: 22rpx; color: #767676; margin-top: 4rpx; display: block; }
     }
   }
   .post-content { font-size: 28rpx; line-height: 1.7; margin: 20rpx 0; color: #333; }
+
+  /* 话题标签（发布页勾选，落库 Movement.tags） */
+  .tag-row { display: flex; flex-wrap: wrap; gap: 12rpx; margin: 0 0 20rpx; }
+  .tag-chip { font-size: 22rpx; color: #c2185b; background: #ffeff5; padding: 6rpx 18rpx; border-radius: 24rpx; }
   .image-grid { display: flex; flex-wrap: wrap; gap: 8rpx;
-    .grid-img { width: 210rpx; height: 210rpx; border-radius: 12rpx; }
+    /* 九宫格每格作为可聚焦按钮（原 image 直接 click 无键盘入口） */
+    .grid-img { width: 210rpx; height: 210rpx; border-radius: 12rpx; overflow: hidden; }
+    .grid-img-inner { width: 100%; height: 100%; display: block; }
   }
 }
 .comment-section { background: #fff; padding: 28rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
@@ -118,9 +137,10 @@ onLoad((options: any) => {
     &:last-child { border-bottom: none; }
     .avatar { width: 64rpx; height: 64rpx; border-radius: 50%; background: #f0f0f0; }
     .comment-info { margin-left: 16rpx; flex: 1;
-      .nickname { font-size: 24rpx; color: #ff5e9c; display: block; }
+      .nickname { font-size: 24rpx; color: #c2185b; display: block; }
       .content { font-size: 28rpx; color: #333; margin-top: 6rpx; display: block; }
-      .time { font-size: 20rpx; color: #ccc; margin-top: 6rpx; display: block; }
+      /* 20rpx 极小字号 + #ccc → 提字号并提深 */
+      .time { font-size: 22rpx; color: #767676; margin-top: 6rpx; display: block; }
     }
   }
 }

@@ -1,64 +1,54 @@
 <template>
   <div class="page-container">
     <!-- 汇总卡片 -->
-    <div class="summary-cards">
-      <div class="summary-card">
-        <div class="summary-label">总订单数</div>
-        <div class="summary-value">{{ summary.total }}</div>
-      </div>
-      <div class="summary-card success">
-        <div class="summary-label">已支付</div>
-        <div class="summary-value">{{ summary.paidCount }}</div>
-      </div>
-      <div class="summary-card warning">
-        <div class="summary-label">待支付</div>
-        <div class="summary-value">{{ summary.pendingCount }}</div>
-      </div>
-      <div class="summary-card primary">
-        <div class="summary-label">总收入</div>
-        <div class="summary-value">¥{{ formatAmount(summary.totalAmount) }}</div>
-      </div>
-    </div>
+    <el-row :gutter="16" style="margin-bottom: 16px">
+      <el-col :xs="12" :sm="6">
+        <StatCard label="总订单数" :value="summary.total" icon="Document" icon-bg="linear-gradient(135deg, var(--xfjy-primary-deep), var(--xfjy-primary))" />
+      </el-col>
+      <el-col :xs="12" :sm="6">
+        <StatCard label="已支付" :value="summary.paidCount" icon="CircleCheck" icon-bg="linear-gradient(135deg, #00b894, #00d6b8)" />
+      </el-col>
+      <el-col :xs="12" :sm="6">
+        <StatCard label="待支付" :value="summary.pendingCount" icon="Clock" icon-bg="linear-gradient(135deg, #f59e0b, #fbbf24)" />
+      </el-col>
+      <el-col :xs="12" :sm="6">
+        <StatCard label="总收入" :value="summary.totalAmount" suffix="分" icon="Wallet" icon-bg="linear-gradient(135deg, var(--xfjy-primary), var(--xfjy-primary-soft))" />
+      </el-col>
+    </el-row>
 
-    <!-- 搜索栏 -->
-    <div class="search-bar">
-      <el-form :inline="true" :model="query" @submit.prevent>
-        <el-form-item label="订单号">
-          <el-input v-model="query.orderNo" placeholder="订单号" clearable style="width: 200px" @keyup.enter="handleSearch" />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="query.status" placeholder="全部" clearable style="width: 120px">
-            <el-option label="待支付" value="PENDING" />
-            <el-option label="已支付" value="PAID" />
-            <el-option label="已过期" value="EXPIRED" />
-            <el-option label="已取消" value="CANCELLED" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="用户ID">
-          <el-input v-model.number="query.userId" placeholder="用户ID" clearable style="width: 120px" @keyup.enter="handleSearch" />
-        </el-form-item>
-        <el-form-item label="时间范围">
-          <el-date-picker
-            v-model="dateRange"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            value-format="YYYY-MM-DD"
-            style="width: 260px"
-            @change="handleDateChange"
-          />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
-          <el-button :icon="Refresh" @click="handleReset">重置</el-button>
-          <el-button type="success" :icon="Download" @click="handleExport">导出</el-button>
-        </el-form-item>
-      </el-form>
-    </div>
+    <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
+      <el-form-item label="订单号">
+        <el-input v-model="query.orderNo" placeholder="订单号" clearable style="width: 200px" @keyup.enter="handleSearch" />
+      </el-form-item>
+      <el-form-item label="状态">
+        <el-select v-model="query.status" placeholder="全部" clearable style="width: 120px">
+          <el-option label="待支付" value="PENDING" />
+          <el-option label="已支付" value="PAID" />
+          <el-option label="已过期" value="EXPIRED" />
+          <el-option label="已取消" value="CANCELLED" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="用户ID">
+        <el-input v-model.number="query.userId" placeholder="用户ID" clearable style="width: 120px" @keyup.enter="handleSearch" />
+      </el-form-item>
+      <el-form-item label="时间范围">
+        <el-date-picker
+          v-model="dateRange"
+          type="daterange"
+          range-separator="至"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期"
+          value-format="YYYY-MM-DD"
+          style="width: 260px"
+          @change="handleDateChange"
+        />
+      </el-form-item>
+      <template #extra-actions>
+        <el-button type="success" :icon="Download" @click="handleExport">导出</el-button>
+      </template>
+    </SearchBar>
 
-    <!-- 表格 -->
-    <div class="table-container">
+    <TableCard>
       <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" empty-text="暂无订单数据">
         <el-table-column prop="id" label="ID" width="70" align="center" />
         <el-table-column label="订单号" width="280">
@@ -76,7 +66,7 @@
         </el-table-column>
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
-            <el-tag :type="statusColor(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
+            <StatusTag :status="row.status" :mapping="payStatusMapping" />
           </template>
         </el-table-column>
         <el-table-column label="支付方式" width="100" align="center">
@@ -92,8 +82,7 @@
           </template>
         </el-table-column>
       </el-table>
-
-      <div class="pagination-wrapper">
+      <template #pagination>
         <el-pagination
           v-model:current-page="query.page"
           v-model:page-size="query.pageSize"
@@ -103,8 +92,8 @@
           @size-change="handleSizeChange"
           @current-change="loadData"
         />
-      </div>
-    </div>
+      </template>
+    </TableCard>
 
     <!-- 详情弹窗 -->
     <el-dialog v-model="detailVisible" title="订单详情" width="560px">
@@ -116,7 +105,7 @@
         <el-descriptions-item label="套餐名称">{{ currentOrder.packageName }}</el-descriptions-item>
         <el-descriptions-item label="金额">¥{{ formatAmount(currentOrder.amount) }}</el-descriptions-item>
         <el-descriptions-item label="状态">
-          <el-tag :type="statusColor(currentOrder.status)" size="small">{{ statusLabel(currentOrder.status) }}</el-tag>
+          <StatusTag :status="currentOrder.status" :mapping="payStatusMapping" />
         </el-descriptions-item>
         <el-descriptions-item label="支付方式">{{ payTypeLabel(currentOrder.payType) }}</el-descriptions-item>
         <el-descriptions-item label="支付时间">{{ currentOrder.paidTime || '-' }}</el-descriptions-item>
@@ -131,7 +120,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Search, Refresh, Download, CopyDocument } from '@element-plus/icons-vue'
+import { Download, CopyDocument } from '@element-plus/icons-vue'
+import { SearchBar, TableCard, StatusTag, StatCard } from '@/components'
 import { getPayOrderPageApi, getPayOrderSummaryApi, exportPayOrdersApi } from '@/api/pay'
 import type { PayOrderItem, PayOrderQuery, PayOrderSummary } from '@/api/pay'
 
@@ -262,14 +252,12 @@ function formatAmount(amount: number) {
   return (amount / 100).toFixed(2)
 }
 
-function statusLabel(status: string) {
-  const map: Record<string, string> = { PENDING: '待支付', PAID: '已支付', EXPIRED: '已过期', CANCELLED: '已取消' }
-  return map[status] || status
-}
-
-function statusColor(status: string) {
-  const map: Record<string, string> = { PENDING: 'warning', PAID: 'success', EXPIRED: 'info', CANCELLED: 'danger' }
-  return map[status] || 'info'
+// 订单状态映射
+const payStatusMapping = {
+  PENDING: { label: '待支付', type: 'warning' as const },
+  PAID: { label: '已支付', type: 'success' as const },
+  EXPIRED: { label: '已过期', type: 'info' as const },
+  CANCELLED: { label: '已取消', type: 'danger' as const },
 }
 
 function payTypeLabel(payType: string) {
@@ -301,44 +289,5 @@ onMounted(() => {
 .order-no-text {
   font-family: 'Courier New', monospace;
   font-size: 13px;
-}
-
-.summary-cards {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.summary-card {
-  flex: 1;
-  background: #fff;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border-left: 4px solid #409eff;
-}
-
-.summary-card.success {
-  border-left-color: #67c23a;
-}
-
-.summary-card.warning {
-  border-left-color: #e6a23c;
-}
-
-.summary-card.primary {
-  border-left-color: #409eff;
-}
-
-.summary-label {
-  font-size: 13px;
-  color: #909399;
-  margin-bottom: 8px;
-}
-
-.summary-value {
-  font-size: 28px;
-  font-weight: 600;
-  color: #303133;
 }
 </style>

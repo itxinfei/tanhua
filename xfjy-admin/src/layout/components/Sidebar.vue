@@ -16,16 +16,16 @@
       />
     </div>
 
-    <!-- 菜单（若依风格：el-sub-menu 分组，折叠后 hover 弹出） -->
+    <!-- 菜单（清新卡片式：白色背景，玫红激活态） -->
     <el-scrollbar>
       <el-menu
         :default-active="activeMenu"
         :collapse="collapsed"
         :collapse-transition="false"
         :unique-opened="true"
-        background-color="#001529"
-        text-color="rgba(255,255,255,0.65)"
-        active-text-color="#ffffff"
+        background-color="var(--xfjy-sidebar-bg)"
+        text-color="var(--xfjy-sidebar-text)"
+        active-text-color="var(--xfjy-sidebar-active-text)"
         router
         class="sidebar-menu"
       >
@@ -35,7 +35,7 @@
             <!-- 单可见子项：顶级菜单项（若依单路由平铺） -->
             <el-menu-item
               v-if="visibleChildrenOf(route).length === 1"
-              :index="route.path + '/' + (visibleChildrenOf(route)[0].path || '')"
+              :index="joinPath(route.path, visibleChildrenOf(route)[0].path || '')"
             >
               <el-icon><component :is="visibleChildrenOf(route)[0].meta?.icon || route.meta?.icon" /></el-icon>
               <template #title>{{ visibleChildrenOf(route)[0].meta?.title }}</template>
@@ -50,7 +50,7 @@
               <el-menu-item
                 v-for="child in visibleChildrenOf(route)"
                 :key="child.path"
-                :index="route.path + '/' + child.path"
+                :index="joinPath(route.path, child.path)"
               >
                 <el-icon><component :is="child.meta?.icon" /></el-icon>
                 <template #title>{{ child.meta?.title }}</template>
@@ -88,6 +88,12 @@ const visibleChildrenOf = (r: (typeof routes)[number]) =>
     (c) => !c.meta?.hidden && authStore.hasRole(c.meta?.roles as string[] | undefined)
   )
 
+// 拼接父/子路径，避免根路由 '/' 拼出 '//dashboard' 导致菜单不高亮
+const joinPath = (parent: string, child: string) => {
+  const base = parent.endsWith('/') ? parent.slice(0, -1) : parent
+  return `${base}/${child}`
+}
+
 // 当前激活菜单
 const activeMenu = computed(() => {
   return (route.meta?.activeMenu as string) || route.path
@@ -107,7 +113,8 @@ const activeMenu = computed(() => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  background: #002140;
+  background: var(--xfjy-sidebar-bg);
+  border-bottom: 1px solid var(--xfjy-sidebar-border);
   flex-shrink: 0;
   overflow: hidden;
 }
@@ -128,55 +135,69 @@ const activeMenu = computed(() => {
   flex: 1;
 }
 
-/* ==================== 若依深色主题 ==================== */
+/* ==================== 清新卡片式主题 ==================== */
 .sidebar-menu {
-  border-right: none;
+  border-right: 1px solid var(--xfjy-sidebar-border);
 }
 
-/* 顶级菜单项 hover：若依蓝色微透 */
+/* 顶级菜单项 hover */
 :deep(.el-menu-item:hover) {
-  background-color: rgba(64, 158, 255, 0.15) !important;
-  color: #ffffff !important;
+  background-color: var(--xfjy-sidebar-hover) !important;
+  color: var(--xfjy-text-primary) !important;
 }
 
-/* 顶级菜单项激活：若依主色背景 */
+/* 顶级菜单项激活 - 玫红左边框 + 淡玫红底 */
 :deep(.el-menu-item.is-active) {
-  background-color: #409eff !important;
-  color: #ffffff !important;
+  background-color: var(--xfjy-sidebar-active-bg) !important;
+  color: var(--xfjy-sidebar-active-text) !important;
+  position: relative;
+}
+:deep(.el-menu-item.is-active)::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--xfjy-sidebar-active-border);
+  border-radius: 0 2px 2px 0;
 }
 
 /* sub-menu 标题 hover */
 :deep(.el-sub-menu__title:hover) {
-  background-color: rgba(64, 158, 255, 0.15) !important;
-  color: #ffffff !important;
+  background-color: var(--xfjy-sidebar-hover) !important;
+  color: var(--xfjy-text-primary) !important;
 }
 
-/* 展开的 sub-menu 子项区域：若依更深底色 */
+/* 子菜单区域底色 */
 :deep(.el-sub-menu .el-menu) {
-  background-color: #000c17 !important;
+  background-color: var(--xfjy-sidebar-sub-bg) !important;
 }
 
 /* 子菜单项 hover */
 :deep(.el-sub-menu .el-menu-item:hover) {
-  background-color: rgba(64, 158, 255, 0.15) !important;
+  background-color: var(--xfjy-sidebar-hover) !important;
 }
 
 /* 子菜单项激活 */
 :deep(.el-sub-menu .el-menu-item.is-active) {
-  background-color: #409eff !important;
+  background-color: var(--xfjy-sidebar-active-bg) !important;
+  color: var(--xfjy-sidebar-active-text) !important;
 }
 
-/* 折叠态 popup 弹层样式（hover 弹出的子菜单面板） */
+/* 折叠 popup 弹层 */
 :deep(.el-menu--popup) {
-  background-color: #001529 !important;
+  background-color: var(--xfjy-sidebar-bg) !important;
+  border: 1px solid var(--xfjy-sidebar-border);
+  border-radius: var(--xfjy-radius-md);
+  box-shadow: var(--xfjy-shadow-dropdown);
 }
-
 :deep(.el-menu--popup .el-menu-item:hover) {
-  background-color: rgba(64, 158, 255, 0.15) !important;
+  background-color: var(--xfjy-sidebar-hover) !important;
 }
-
 :deep(.el-menu--popup .el-menu-item.is-active) {
-  background-color: #409eff !important;
+  background-color: var(--xfjy-sidebar-active-bg) !important;
+  color: var(--xfjy-sidebar-active-text) !important;
 }
 
 /* 折叠态下 sub-menu 标题居中 */

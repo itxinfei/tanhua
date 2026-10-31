@@ -45,7 +45,7 @@ onShow(() => {
 
 <style lang="scss">
 /* uview-plus 样式 */
-@import "uview-plus/index.scss";
+@use "uview-plus/index.scss" as *;
 
 /* ===== CSS 变量（品牌色：玫红 + 紫系，与后台管理 xfjy-admin 对齐；深色模式 WIP：变量层已就绪，页面硬编码色待逐步迁移到变量引用） ===== */
 page {
@@ -59,7 +59,9 @@ page {
   --bg-icon-soft: #ffeff5;
   --text-primary: #333333;
   --text-secondary: #666666;
-  --text-hint: #999999;
+  /* 无障碍：辅助文字色由 #999（≈2.85:1）提深至 #767676（≈4.54:1），满足 WCAG 1.4.3 */
+  --text-hint: #767676;
+  --text-hint-strong: #595959;
   --border-color: #f0f0f0;
 
   background-color: var(--bg-page);
@@ -81,7 +83,8 @@ page {
     --bg-icon-soft: #3a2a30;
     --text-primary: #e8e8e8;
     --text-secondary: #aaaaaa;
-    --text-hint: #777777;
+    --text-hint: #8c8c8c;
+    --text-hint-strong: #a6a6a6;
     --border-color: #3a3a3a;
   }
 }
@@ -152,6 +155,21 @@ page {
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+/* 无障碍：-webkit-text-fill-color: transparent 在强制颜色模式（高对比度）下会让文字彻底消失，
+   此处回退为系统色，保证 1.4.3 / 1.4.8 在强制颜色模式下仍可读 */
+@media (forced-colors: active) {
+  .gradient-text {
+    -webkit-text-fill-color: CanvasText;
+    color: CanvasText;
+    background: none;
+  }
+
+  .glass {
+    background: Canvas;
+    border-color: CanvasText;
+  }
 }
 
 /* 空状态容器 */
@@ -309,5 +327,38 @@ page {
     background: linear-gradient(90deg, #2c2c2c 25%, #3a3a3a 50%, #2c2c2c 75%);
     background-size: 800rpx 100%;
   }
+}
+
+/* ===== 无障碍：尊重系统「减弱动态效果」偏好（WCAG 2.3.3 / 2.2.2） =====
+   前庭功能障碍用户会因无限循环动画诱发眩晕，此处统一关闭所有装饰性动效 */
+@media (prefers-reduced-motion: reduce) {
+  .pulse,
+  .pop-in,
+  .heart-beat,
+  .float,
+  .skeleton,
+  .btn-feedback,
+  .btn-gradient {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* 页面级无限动画（如视频页跑马灯 music-text / 旋转唱片 / 加载 spinner）同样降级 */
+  .marquee,
+  .music-disc,
+  .status-loading {
+    animation: none !important;
+  }
+}
+
+/* ===== 无障碍：键盘焦点可见（WCAG 2.4.7） =====
+   A11yButton / 原生控件统一走此处的焦点环，保证键盘用户能定位当前位置 */
+.a11y-btn:focus-visible,
+switch:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+  outline: 2px solid #ff5e9c;
+  outline-offset: 2px;
 }
 </style>

@@ -1,35 +1,32 @@
 <template>
   <div class="page-container">
-    <!-- 搜索栏 -->
-    <div class="search-bar">
-      <el-form :inline="true" :model="query" @submit.prevent>
-        <el-form-item label="标题">
-          <el-input v-model="query.title" placeholder="公告标题" clearable style="width: 180px" @keyup.enter="handleSearch" />
-        </el-form-item>
-        <el-form-item label="类型">
-          <el-select v-model="query.type" placeholder="全部" clearable style="width: 120px">
-            <el-option label="系统公告" value="SYSTEM" />
-            <el-option label="活动公告" value="ACTIVITY" />
-            <el-option label="更新公告" value="UPDATE" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="query.status" placeholder="全部" clearable style="width: 120px">
-            <el-option label="草稿" value="DRAFT" />
-            <el-option label="已发布" value="PUBLISHED" />
-            <el-option label="已下线" value="OFFLINE" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
-          <el-button :icon="Refresh" @click="handleReset">重置</el-button>
-          <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" :icon="Plus" @click="handleAdd">新增公告</el-button>
-        </el-form-item>
-      </el-form>
-    </div>
+    <PageHeader title="公告管理" :subtitle="`共 ${total} 条记录`">
+      <template #actions>
+        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" :icon="Plus" @click="handleAdd">新增公告</el-button>
+      </template>
+    </PageHeader>
 
-    <!-- 表格 -->
-    <div class="table-container">
+    <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
+      <el-form-item label="标题">
+        <el-input v-model="query.title" placeholder="公告标题" clearable style="width: 180px" @keyup.enter="handleSearch" />
+      </el-form-item>
+      <el-form-item label="类型">
+        <el-select v-model="query.type" placeholder="全部" clearable style="width: 120px">
+          <el-option label="系统公告" value="SYSTEM" />
+          <el-option label="活动公告" value="ACTIVITY" />
+          <el-option label="更新公告" value="UPDATE" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="状态">
+        <el-select v-model="query.status" placeholder="全部" clearable style="width: 120px">
+          <el-option label="草稿" value="DRAFT" />
+          <el-option label="已发布" value="PUBLISHED" />
+          <el-option label="已下线" value="OFFLINE" />
+        </el-select>
+      </el-form-item>
+    </SearchBar>
+
+    <TableCard>
       <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" empty-text="暂无公告数据">
         <el-table-column prop="id" label="ID" width="70" align="center" />
         <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip />
@@ -40,14 +37,16 @@
         </el-table-column>
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
-            <el-tag :type="statusColor(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
+            <StatusTag :status="row.status" :mapping="noticeStatusMapping" />
           </template>
         </el-table-column>
         <el-table-column prop="publisher" label="发布人" width="100" />
         <el-table-column prop="publishedAt" label="发布时间" width="170">
-          <template #default="{ row }">{{ row.publishedAt || '-' }}</template>
+          <template #default="{ row }">{{ formatDateTime(row.publishedAt) }}</template>
         </el-table-column>
-        <el-table-column prop="createdAt" label="创建时间" width="170" />
+        <el-table-column label="创建时间" width="170">
+          <template #default="{ row }">{{ formatDateTime(row.createdAt || row.created) }}</template>
+        </el-table-column>
         <el-table-column label="操作" width="280" fixed="right" align="center">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="handlePreview(row)">预览</el-button>
@@ -59,8 +58,7 @@
           </template>
         </el-table-column>
       </el-table>
-
-      <div class="pagination-wrapper">
+      <template #pagination>
         <el-pagination
           v-model:current-page="query.page"
           v-model:page-size="query.pageSize"
@@ -70,8 +68,8 @@
           @size-change="handleSizeChange"
           @current-change="loadData"
         />
-      </div>
-    </div>
+      </template>
+    </TableCard>
 
     <!-- 新增/编辑弹窗 -->
     <el-dialog v-model="formVisible" :title="editingId ? '编辑公告' : '新增公告'" width="600px">
@@ -104,7 +102,7 @@
           <el-tag :type="typeColor(previewData.type)" size="small">{{ typeLabel(previewData.type) }}</el-tag>
           <el-tag :type="statusColor(previewData.status)" size="small">{{ statusLabel(previewData.status) }}</el-tag>
           <span class="preview-publisher">{{ previewData.publisher }}</span>
-          <span class="preview-time">{{ previewData.publishedAt || previewData.createdAt }}</span>
+          <span class="preview-time">{{ formatDateTime(previewData.publishedAt || previewData.createdAt || previewData.created) }}</span>
         </div>
         <el-divider />
         <div class="preview-body">{{ previewData.content }}</div>
@@ -117,7 +115,8 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { Search, Refresh, Plus } from '@element-plus/icons-vue'
+import { Plus } from '@element-plus/icons-vue'
+import { PageHeader, SearchBar, TableCard, StatusTag } from '@/components'
 import {
   getNoticePageApi,
   createNoticeApi,
@@ -127,6 +126,7 @@ import {
   deleteNoticeApi,
 } from '@/api/notice'
 import type { NoticeItem, NoticeQuery, NoticeForm } from '@/api/notice'
+import { formatDateTime } from '@/utils/format'
 
 const loading = ref(false)
 const tableData = ref<NoticeItem[]>([])
@@ -201,6 +201,13 @@ function typeLabel(type: string) {
 function typeColor(type: string) {
   const map: Record<string, string> = { SYSTEM: 'primary', ACTIVITY: 'warning', UPDATE: 'success' }
   return map[type] || 'info'
+}
+
+// 公告状态映射
+const noticeStatusMapping = {
+  DRAFT: { label: '草稿', type: 'info' as const },
+  PUBLISHED: { label: '已发布', type: 'success' as const },
+  OFFLINE: { label: '已下线', type: 'danger' as const },
 }
 
 function statusLabel(status: string) {
@@ -323,7 +330,7 @@ onMounted(() => {
   font-size: 20px;
   font-weight: 600;
   margin: 0 0 12px;
-  color: #303133;
+  color: var(--xfjy-text-primary);
 }
 
 .preview-meta {
@@ -331,11 +338,11 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #909399;
+  color: var(--xfjy-text-secondary);
 }
 
 .preview-publisher {
-  color: #606266;
+  color: var(--xfjy-text-regular);
 }
 
 .preview-time {
@@ -345,7 +352,7 @@ onMounted(() => {
 .preview-body {
   font-size: 14px;
   line-height: 1.8;
-  color: #303133;
+  color: var(--xfjy-text-primary);
   white-space: pre-wrap;
   word-break: break-all;
   min-height: 120px;

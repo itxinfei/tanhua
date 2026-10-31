@@ -1,32 +1,31 @@
 <template>
   <div class="page-container">
-    <div class="search-bar">
-      <el-form :inline="true" :model="query" @submit.prevent>
-        <el-form-item label="标题">
-          <el-input v-model="query.title" placeholder="协议标题" clearable style="width: 180px" @keyup.enter="handleSearch" />
-        </el-form-item>
-        <el-form-item label="类型">
-          <el-select v-model="query.type" placeholder="全部" clearable style="width: 120px">
-            <el-option label="用户协议" value="USER" />
-            <el-option label="隐私政策" value="PRIVACY" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="query.status" placeholder="全部" clearable style="width: 120px">
-            <el-option label="草稿" value="DRAFT" />
-            <el-option label="已发布" value="PUBLISHED" />
-            <el-option label="已下线" value="OFFLINE" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
-          <el-button :icon="Refresh" @click="handleReset">重置</el-button>
-          <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" :icon="Plus" @click="handleAdd">新增协议</el-button>
-        </el-form-item>
-      </el-form>
-    </div>
+    <PageHeader title="协议管理" :subtitle="`共 ${total} 条记录`">
+      <template #actions>
+        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" :icon="Plus" @click="handleAdd">新增协议</el-button>
+      </template>
+    </PageHeader>
 
-    <div class="table-container">
+    <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
+      <el-form-item label="标题">
+        <el-input v-model="query.title" placeholder="协议标题" clearable style="width: 180px" @keyup.enter="handleSearch" />
+      </el-form-item>
+      <el-form-item label="类型">
+        <el-select v-model="query.type" placeholder="全部" clearable style="width: 120px">
+          <el-option label="用户协议" value="USER" />
+          <el-option label="隐私政策" value="PRIVACY" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="状态">
+        <el-select v-model="query.status" placeholder="全部" clearable style="width: 120px">
+          <el-option label="草稿" value="DRAFT" />
+          <el-option label="已发布" value="PUBLISHED" />
+          <el-option label="已下线" value="OFFLINE" />
+        </el-select>
+      </el-form-item>
+    </SearchBar>
+
+    <TableCard>
       <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" empty-text="暂无协议数据">
         <el-table-column prop="id" label="ID" width="70" align="center" />
         <el-table-column prop="title" label="标题" min-width="160" show-overflow-tooltip />
@@ -37,7 +36,7 @@
         </el-table-column>
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
-            <el-tag :type="statusColor(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
+            <StatusTag :status="row.status" :mapping="agreementStatusMapping" />
           </template>
         </el-table-column>
         <el-table-column prop="version" label="版本" width="70" align="center" />
@@ -55,8 +54,7 @@
           </template>
         </el-table-column>
       </el-table>
-
-      <div class="pagination-wrapper">
+      <template #pagination>
         <el-pagination
           v-model:current-page="query.page"
           v-model:page-size="query.pageSize"
@@ -66,8 +64,8 @@
           @size-change="handleSizeChange"
           @current-change="loadData"
         />
-      </div>
-    </div>
+      </template>
+    </TableCard>
 
     <el-dialog v-model="formVisible" :title="editingId ? '编辑协议' : '新增协议'" width="720px">
       <el-form ref="formRef" :model="form" :rules="formRules" label-width="80px">
@@ -103,7 +101,8 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { Search, Refresh, Plus } from '@element-plus/icons-vue'
+import { Plus } from '@element-plus/icons-vue'
+import { PageHeader, SearchBar, TableCard, StatusTag } from '@/components'
 import {
   getAgreementPageApi,
   createAgreementApi,
@@ -183,14 +182,11 @@ function typeColor(type: string) {
   return map[type] || 'info'
 }
 
-function statusLabel(status: string) {
-  const map: Record<string, string> = { DRAFT: '草稿', PUBLISHED: '已发布', OFFLINE: '已下线' }
-  return map[status] || status
-}
-
-function statusColor(status: string) {
-  const map: Record<string, string> = { DRAFT: 'info', PUBLISHED: 'success', OFFLINE: 'danger' }
-  return map[status] || 'info'
+// 协议状态映射
+const agreementStatusMapping = {
+  DRAFT: { label: '草稿', type: 'info' as const },
+  PUBLISHED: { label: '已发布', type: 'success' as const },
+  OFFLINE: { label: '已下线', type: 'danger' as const },
 }
 
 const formVisible = ref(false)

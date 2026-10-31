@@ -319,6 +319,14 @@ export function confirmVipPay(orderNo: string): Promise<void> {
 }
 
 /**
+ * 取消支付订单（仅本人 PENDING 订单可取消）
+ * 对接后端: POST /users/vip/order/cancel
+ */
+export function cancelVipOrder(orderNo: string): Promise<void> {
+  return post<void>("/users/vip/order/cancel", { orderNo });
+}
+
+/**
  * 查询当前用户 VIP 状态
  * 对接后端: GET /users/vip/status
  */

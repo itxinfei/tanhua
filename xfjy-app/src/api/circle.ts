@@ -76,6 +76,8 @@ export interface PublishParam {
   longitude: string;
   latitude: string;
   imagePaths: string[];
+  /** 话题标签：发布时由发布页选中的话题，逗号分隔提交后端 */
+  tags?: string[];
 }
 
 /**
@@ -85,17 +87,17 @@ export interface PublishParam {
  * @param param 文字内容、位置、经纬度、本地图片路径列表
  */
 export function publishMovement(param: PublishParam): Promise<void> {
-  return upload<void>(
-    "/movements",
-    param.imagePaths,
-    "imageContent",
-    {
-      textContent: param.textContent,
-      location: param.location,
-      longitude: param.longitude,
-      latitude: param.latitude,
-    }
-  );
+  const formData: Record<string, any> = {
+    textContent: param.textContent,
+    location: param.location,
+    longitude: param.longitude,
+    latitude: param.latitude,
+  };
+  // 修改点：打通话题标签。后端 POST /movements 需新增 tags 字段接收（逗号分隔，落库 Movement.tags）
+  if (param.tags && param.tags.length > 0) {
+    formData.tags = param.tags.join(",");
+  }
+  return upload<void>("/movements", param.imagePaths, "imageContent", formData);
 }
 
 /**
@@ -194,6 +196,23 @@ export function getComments(
 ): Promise<PageResult<Comment>> {
   return get<PageResult<Comment>>("/comments", {
     movementId,
+    ...params,
+  });
+}
+
+/**
+ * 按话题标签搜索动态（tags 数组包含指定标签）
+ * 对接后端: GET /movements/search
+ *
+ * @param tag 话题标签
+ * @param params 分页参数
+ */
+export function searchMovementsByTag(
+  tag: string,
+  params: PageParam
+): Promise<PageResult<Movement>> {
+  return get<PageResult<Movement>>("/movements/search", {
+    tag,
     ...params,
   });
 }

@@ -3,26 +3,22 @@
     <el-tabs v-model="activeTab">
       <!-- 套餐管理 -->
       <el-tab-pane label="VIP 套餐" name="package">
-        <div class="search-bar">
-          <el-form :inline="true" :model="pkgQuery" @submit.prevent>
-            <el-form-item label="名称">
-              <el-input v-model="pkgQuery.name" placeholder="套餐名称" clearable style="width: 160px" @keyup.enter="loadPackages" />
-            </el-form-item>
-            <el-form-item label="状态">
-              <el-select v-model="pkgQuery.status" placeholder="全部" clearable style="width: 110px">
-                <el-option label="上架" :value="1" />
-                <el-option label="下架" :value="0" />
-              </el-select>
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" :icon="Search" @click="loadPackages">查询</el-button>
-              <el-button :icon="Refresh" @click="resetPkgQuery">重置</el-button>
-              <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" :icon="Plus" @click="handlePkgAdd">新增套餐</el-button>
-            </el-form-item>
-          </el-form>
-        </div>
+        <SearchBar :model="pkgQuery" @search="loadPackages" @reset="resetPkgQuery">
+          <el-form-item label="名称">
+            <el-input v-model="pkgQuery.name" placeholder="套餐名称" clearable style="width: 160px" @keyup.enter="loadPackages" />
+          </el-form-item>
+          <el-form-item label="状态">
+            <el-select v-model="pkgQuery.status" placeholder="全部" clearable style="width: 110px">
+              <el-option label="上架" :value="1" />
+              <el-option label="下架" :value="0" />
+            </el-select>
+          </el-form-item>
+          <template #extra-actions>
+            <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" :icon="Plus" @click="handlePkgAdd">新增套餐</el-button>
+          </template>
+        </SearchBar>
 
-        <div class="table-container">
+        <TableCard>
           <el-table :data="pkgData" v-loading="pkgLoading" stripe border style="width: 100%">
             <el-table-column prop="id" label="ID" width="60" align="center" />
             <el-table-column prop="name" label="套餐名称" width="120" />
@@ -38,7 +34,7 @@
             <el-table-column prop="durationDays" label="有效天数" width="90" align="center" />
             <el-table-column label="状态" width="80" align="center">
               <template #default="{ row }">
-                <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">{{ row.status === 1 ? '上架' : '下架' }}</el-tag>
+                <StatusTag :status="String(row.status)" :mapping="pkgStatusMapping" />
               </template>
             </el-table-column>
             <el-table-column prop="sort" label="排序" width="70" align="center" />
@@ -50,8 +46,7 @@
               </template>
             </el-table-column>
           </el-table>
-
-          <div class="pagination-wrapper">
+          <template #pagination>
             <el-pagination
               v-model:current-page="pkgQuery.page"
               v-model:page-size="pkgQuery.pageSize"
@@ -61,31 +56,25 @@
               @size-change="handlePkgSizeChange"
               @current-change="loadPackages"
             />
-          </div>
-        </div>
+          </template>
+        </TableCard>
       </el-tab-pane>
 
       <!-- 权益管理 -->
       <el-tab-pane label="增值权益" name="benefit">
-        <div class="search-bar">
-          <el-form :inline="true" :model="benefitQuery" @submit.prevent>
-            <el-form-item label="名称">
-              <el-input v-model="benefitQuery.name" placeholder="权益名称" clearable style="width: 160px" @keyup.enter="loadBenefits" />
-            </el-form-item>
-            <el-form-item label="状态">
-              <el-select v-model="benefitQuery.status" placeholder="全部" clearable style="width: 110px">
-                <el-option label="启用" :value="1" />
-                <el-option label="停用" :value="0" />
-              </el-select>
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" :icon="Search" @click="loadBenefits">查询</el-button>
-              <el-button :icon="Refresh" @click="resetBenefitQuery">重置</el-button>
-            </el-form-item>
-          </el-form>
-        </div>
+        <SearchBar :model="benefitQuery" @search="loadBenefits" @reset="resetBenefitQuery">
+          <el-form-item label="名称">
+            <el-input v-model="benefitQuery.name" placeholder="权益名称" clearable style="width: 160px" @keyup.enter="loadBenefits" />
+          </el-form-item>
+          <el-form-item label="状态">
+            <el-select v-model="benefitQuery.status" placeholder="全部" clearable style="width: 110px">
+              <el-option label="启用" :value="1" />
+              <el-option label="停用" :value="0" />
+            </el-select>
+          </el-form-item>
+        </SearchBar>
 
-        <div class="table-container">
+        <TableCard>
           <el-table :data="benefitData" v-loading="benefitLoading" stripe border style="width: 100%">
             <el-table-column prop="id" label="ID" width="60" align="center" />
             <el-table-column prop="serviceCode" label="权益码" width="160" show-overflow-tooltip />
@@ -99,7 +88,7 @@
             <el-table-column prop="description" label="描述" min-width="180" show-overflow-tooltip />
             <el-table-column label="状态" width="80" align="center">
               <template #default="{ row }">
-                <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">{{ row.status === 1 ? '启用' : '停用' }}</el-tag>
+                <StatusTag :status="String(row.status)" :mapping="pkgStatusMapping" />
               </template>
             </el-table-column>
             <el-table-column label="操作" width="160" fixed="right" align="center">
@@ -110,8 +99,7 @@
               </template>
             </el-table-column>
           </el-table>
-
-          <div class="pagination-wrapper">
+          <template #pagination>
             <el-pagination
               v-model:current-page="benefitQuery.page"
               v-model:page-size="benefitQuery.pageSize"
@@ -121,8 +109,8 @@
               @size-change="handleBenefitSizeChange"
               @current-change="loadBenefits"
             />
-          </div>
-        </div>
+          </template>
+        </TableCard>
       </el-tab-pane>
     </el-tabs>
 
@@ -202,7 +190,8 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { Search, Refresh, Plus } from '@element-plus/icons-vue'
+import { Plus } from '@element-plus/icons-vue'
+import { SearchBar, TableCard, StatusTag } from '@/components'
 import {
   getVipPackagePageApi,
   createVipPackageApi,
@@ -224,6 +213,12 @@ function formatAmount(amount: number) {
 function levelLabel(level: number) {
   const map: Record<number, string> = { 1: '月卡', 2: '季卡', 3: '年卡' }
   return map[level] || `L${level}`
+}
+
+// 状态映射（套餐/权益通用：1=上架/启用，0=下架/停用）
+const pkgStatusMapping = {
+  '1': { label: '上架', type: 'success' as const },
+  '0': { label: '下架', type: 'info' as const },
 }
 
 // ============ 套餐 ============
@@ -443,7 +438,7 @@ onMounted(() => {
 <style scoped>
 .form-tip {
   margin-left: 8px;
-  color: #909399;
+  color: var(--xfjy-text-secondary);
   font-size: 12px;
 }
 </style>

@@ -1,43 +1,43 @@
 <template>
   <div class="page-container">
-    <!-- 搜索栏 -->
-    <div class="search-bar">
-      <el-form :inline="true" :model="query" @submit.prevent>
-        <el-form-item label="敏感词">
-          <el-input v-model="query.word" placeholder="关键词" clearable style="width: 160px" @keyup.enter="handleSearch" />
-        </el-form-item>
-        <el-form-item label="分类">
-          <el-select v-model="query.category" placeholder="全部" clearable style="width: 120px">
-            <el-option label="政治" value="POLITICS" />
-            <el-option label="色情" value="PORN" />
-            <el-option label="暴力" value="VIOLENCE" />
-            <el-option label="广告" value="AD" />
-            <el-option label="其他" value="OTHER" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="级别">
-          <el-select v-model="query.level" placeholder="全部" clearable style="width: 110px">
-            <el-option label="高危" :value="1" />
-            <el-option label="中危" :value="2" />
-            <el-option label="低危" :value="3" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="query.status" placeholder="全部" clearable style="width: 110px">
-            <el-option label="启用" :value="1" />
-            <el-option label="停用" :value="0" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
-          <el-button :icon="Refresh" @click="handleReset">重置</el-button>
-          <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" :icon="Plus" @click="handleAdd">新增</el-button>
-          <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="warning" :icon="Upload" @click="handleBatchImport">批量导入</el-button>
-          <el-button v-perm="['SUPER_ADMIN','ADMIN']" :icon="Download" @click="handleExport">导出</el-button>
-          <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="danger" :icon="RefreshRight" @click="handleRefresh">刷新词库</el-button>
-        </el-form-item>
-      </el-form>
-    </div>
+    <PageHeader title="敏感词库" :subtitle="`共 ${total} 条记录`">
+      <template #actions>
+        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" :icon="Plus" @click="handleAdd">新增</el-button>
+        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="warning" :icon="Upload" @click="handleBatchImport">批量导入</el-button>
+      </template>
+    </PageHeader>
+
+    <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
+      <el-form-item label="敏感词">
+        <el-input v-model="query.word" placeholder="关键词" clearable style="width: 160px" @keyup.enter="handleSearch" />
+      </el-form-item>
+      <el-form-item label="分类">
+        <el-select v-model="query.category" placeholder="全部" clearable style="width: 120px">
+          <el-option label="政治" value="POLITICS" />
+          <el-option label="色情" value="PORN" />
+          <el-option label="暴力" value="VIOLENCE" />
+          <el-option label="广告" value="AD" />
+          <el-option label="其他" value="OTHER" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="级别">
+        <el-select v-model="query.level" placeholder="全部" clearable style="width: 110px">
+          <el-option label="高危" :value="1" />
+          <el-option label="中危" :value="2" />
+          <el-option label="低危" :value="3" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="状态">
+        <el-select v-model="query.status" placeholder="全部" clearable style="width: 110px">
+          <el-option label="启用" :value="1" />
+          <el-option label="停用" :value="0" />
+        </el-select>
+      </el-form-item>
+      <template #extra-actions>
+        <el-button v-perm="['SUPER_ADMIN','ADMIN']" :icon="Download" @click="handleExport">导出</el-button>
+        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="danger" :icon="RefreshRight" @click="handleRefresh">刷新词库</el-button>
+      </template>
+    </SearchBar>
 
     <!-- 命中测试 -->
     <div class="test-box">
@@ -61,14 +61,13 @@
           </div>
           <div v-else>未命中敏感词</div>
         </template>
-        <div v-if="testResult.filteredText !== testText" style="margin-top: 8px; color: #909399">
+        <div v-if="testResult.filteredText !== testText" style="margin-top: 8px; color: var(--xfjy-text-secondary)">
           过滤后文本：{{ testResult.filteredText || '(空)' }}
         </div>
       </el-alert>
     </div>
 
-    <!-- 表格 -->
-    <div class="table-container">
+    <TableCard>
       <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" empty-text="暂无敏感词数据">
         <el-table-column prop="id" label="ID" width="70" align="center" />
         <el-table-column prop="word" label="敏感词" min-width="160" show-overflow-tooltip />
@@ -84,7 +83,7 @@
         </el-table-column>
         <el-table-column label="状态" width="80" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">{{ row.status === 1 ? '启用' : '停用' }}</el-tag>
+            <StatusTag :status="String(row.status)" :mapping="sensitiveStatusMapping" />
           </template>
         </el-table-column>
         <el-table-column prop="updated" label="更新时间" width="170" />
@@ -97,8 +96,7 @@
           </template>
         </el-table-column>
       </el-table>
-
-      <div class="pagination-wrapper">
+      <template #pagination>
         <el-pagination
           v-model:current-page="query.page"
           v-model:page-size="query.pageSize"
@@ -108,8 +106,8 @@
           @size-change="handleSizeChange"
           @current-change="loadData"
         />
-      </div>
-    </div>
+      </template>
+    </TableCard>
 
     <!-- 新增/编辑弹窗 -->
     <el-dialog v-model="formVisible" :title="editingId ? '编辑敏感词' : '新增敏感词'" width="480px">
@@ -181,7 +179,8 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { Search, Refresh, Plus, RefreshRight, Upload, Download, Promotion } from '@element-plus/icons-vue'
+import { Plus, RefreshRight, Upload, Download, Promotion } from '@element-plus/icons-vue'
+import { PageHeader, SearchBar, TableCard, StatusTag } from '@/components'
 import {
   getSensitiveWordPageApi,
   createSensitiveWordApi,
@@ -261,6 +260,12 @@ function levelLabel(level: number) {
 function levelColor(level: number) {
   const map: Record<number, string> = { 1: 'danger', 2: 'warning', 3: 'info' }
   return map[level] || 'info'
+}
+
+// 敏感词状态映射（1=启用 0=停用）
+const sensitiveStatusMapping = {
+  '1': { label: '启用', type: 'success' as const },
+  '0': { label: '停用', type: 'info' as const },
 }
 
 // 新增/编辑
@@ -433,16 +438,16 @@ onMounted(() => {
 <style scoped>
 .test-box {
   display: flex;
-  margin-bottom: 12px;
+  margin-bottom: var(--xfjy-space-3);
 }
 
 .test-result {
-  margin-bottom: 16px;
+  margin-bottom: var(--xfjy-space-4);
 }
 
 .batch-import-tip {
-  font-size: 12px;
-  color: #909399;
-  margin-top: 4px;
+  font-size: var(--xfjy-font-size-xs);
+  color: var(--xfjy-text-secondary);
+  margin-top: var(--xfjy-space-1);
 }
 </style>

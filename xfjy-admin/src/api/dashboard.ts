@@ -1,26 +1,29 @@
 import request from './request'
 
 export interface StatOverview {
-  dau: number
-  dauChange: number
-  newUsers: number
-  newUsersChange: number
-  matchRate: number
-  matchRateChange: number
-  payRate: number
-  payRateChange: number
-  totalUsers: number
-  totalPosts: number
-  totalReports: number
-  pendingReviews: number
+  dau: number | null
+  dauChange: number | null
+  newUsers: number | null
+  newUsersChange: number | null
+  matchRate: number | null
+  matchRateChange: number | null
+  payRate: number | null
+  payRateChange: number | null
+  totalUsers: number | null
+  totalPosts: number | null
+  totalReports: number | null
+  pendingReviews: number | null
 }
 
 export interface TrendData {
   dates: string[]
-  dauList: number[]
+  /** 暂无统计源时为 null */
+  dauList: number[] | null
   newUserList: number[]
-  matchRateList: number[]
-  payRateList: number[]
+  /** 暂无统计源时为 null */
+  matchRateList: number[] | null
+  /** 暂无统计源时为 null */
+  payRateList: number[] | null
 }
 
 export interface GenderRatio {

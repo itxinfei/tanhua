@@ -2,7 +2,7 @@
   <view class="verify-page">
     <!-- 已认证 -->
     <view v-if="verified" class="verified-card">
-      <text class="verified-icon">✓</text>
+      <text class="verified-icon" aria-hidden="true">✓</text>
       <text class="verified-text">已完成实名认证</text>
     </view>
     <!-- 未认证 -->
@@ -10,12 +10,12 @@
       <view class="tips">实名信息仅用于身份核验，不会公开展示</view>
       <view class="form-card">
         <view class="form-item">
-          <text class="form-label">真实姓名</text>
-          <input v-model="realName" placeholder="请输入真实姓名" placeholder-class="ph" />
+          <text :id="realNameLabelId" class="form-label">真实姓名</text>
+          <input v-model="realName" placeholder="请输入真实姓名" placeholder-class="ph" aria-label="真实姓名" :aria-labelledby="realNameLabelId" />
         </view>
         <view class="form-item">
-          <text class="form-label">身份证号</text>
-          <input v-model="idCard" maxlength="18" placeholder="18位身份证号" placeholder-class="ph" />
+          <text :id="idCardLabelId" class="form-label">身份证号</text>
+          <input v-model="idCard" maxlength="18" placeholder="18位身份证号" placeholder-class="ph" aria-label="身份证号" :aria-labelledby="idCardLabelId" />
         </view>
       </view>
       <button class="submit-btn" :disabled="submitting" @click="submit">提交认证</button>
@@ -27,6 +27,10 @@
 import { ref } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import { submitVerify, getVerifyStatus } from "@/api/mine";
+
+/** 表单字段唯一 id：用于 aria-labelledby 建立程序化标签关联（WCAG 1.3.1 / 3.3.2） */
+const realNameLabelId = "verify-realname-label";
+const idCardLabelId = "verify-idcard-label";
 
 const verified = ref(false);
 const realName = ref('');
@@ -73,7 +77,7 @@ async function submit() {
 
 <style lang="scss" scoped>
 .verify-page { min-height: 100vh; background: #f5f5f5; padding: 24rpx; }
-.tips { font-size: 24rpx; color: #999; line-height: 1.6; margin-bottom: 24rpx; }
+.tips { font-size: 24rpx; color: #767676; line-height: 1.6; margin-bottom: 24rpx; }
 .form-card { background: #fff; border-radius: 24rpx; padding: 8rpx 32rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   .form-item { display: flex; align-items: center; padding: 26rpx 0; border-bottom: 1rpx solid #f5f5f5;
     &:last-child { border-bottom: none; }
@@ -81,7 +85,7 @@ async function submit() {
     input { flex: 1; font-size: 28rpx; color: #333; }
   }
 }
-.ph { color: #ccc; }
+.ph { color: #767676; }
 .submit-btn { margin-top: 60rpx; background: #ff5e9c; color: #fff; font-size: 30rpx; border-radius: 48rpx; height: 88rpx; line-height: 88rpx;
   &[disabled] { opacity: 0.6; }
 }

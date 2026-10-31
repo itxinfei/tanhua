@@ -1,13 +1,114 @@
 /* ==================== 品牌主题（心飞交友） ==================== */
 :root {
-  /* 品牌主色：玫红 #ff5e9c，辅助紫 #b13bff */
+  /* ===== 品牌主色：玫红 #ff5e9c，辅助紫 #b13bff ===== */
   --xfjy-primary: #ff5e9c;
   --xfjy-primary-deep: #b13bff;
   --xfjy-primary-soft: #ff8fb1;
   --xfjy-primary-violet: #8a5cf6;
   --xfjy-primary-mist: #ffd1e8;
 
-  /* 覆盖 Element Plus 默认主色（默认蓝 #409EFF），统一全站按钮/链接/高亮态 */
+  /* ===== 品牌色阶（用于背景/边框/文字渐变） ===== */
+  --xfjy-primary-50: #fff5f9;
+  --xfjy-primary-100: #ffe4f0;
+  --xfjy-primary-200: #ffc8de;
+  --xfjy-deep-50: #f5f0ff;
+  --xfjy-deep-100: #e8d5ff;
+  --xfjy-deep-200: #d4b3ff;
+
+  /* ===== 品牌渐变 ===== */
+  --xfjy-gradient-brand: linear-gradient(135deg, #ff5e9c, #b13bff);
+  --xfjy-gradient-rose: linear-gradient(135deg, #ff8fb1, #ff5e9c);
+  --xfjy-gradient-purple: linear-gradient(135deg, #8a5cf6, #b13bff);
+  --xfjy-gradient-soft: linear-gradient(135deg, #ffd1e8, #e8d5ff);
+
+  /* ===== 中性色 - 文字 ===== */
+  --xfjy-text-primary: #1f2329;
+  --xfjy-text-regular: #4e5969;
+  --xfjy-text-secondary: #86909c;
+  --xfjy-text-disabled: #c9cdd4;
+
+  /* ===== 中性色 - 边框/分割 ===== */
+  --xfjy-border: #e5e6eb;
+  --xfjy-border-light: #f2f3f5;
+  --xfjy-border-hover: #d4d6db;
+
+  /* ===== 中性色 - 背景 ===== */
+  --xfjy-bg-page: #f5f7fa;
+  --xfjy-bg-card: #ffffff;
+  --xfjy-bg-hover: #f7f8fa;
+  --xfjy-bg-header: #fafafa;
+
+  /* ===== 状态色 ===== */
+  --xfjy-success: #00b42a;
+  --xfjy-warning: #ff7d00;
+  --xfjy-danger: #f53f3f;
+  --xfjy-info: #86909c;
+
+  /* ===== 侧边栏专用 ===== */
+  --xfjy-sidebar-bg: #ffffff;
+  --xfjy-sidebar-border: #e8eaed;
+  --xfjy-sidebar-text: #4e5969;
+  --xfjy-sidebar-text-secondary: #86909c;
+  --xfjy-sidebar-hover: #f7f8fa;
+  --xfjy-sidebar-active-bg: rgba(255, 94, 156, 0.08);
+  --xfjy-sidebar-active-text: #ff5e9c;
+  --xfjy-sidebar-active-border: #ff5e9c;
+  --xfjy-sidebar-sub-bg: #fafafa;
+
+  /* ===== Header 专用 ===== */
+  --xfjy-header-bg: #ffffff;
+  --xfjy-header-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  --xfjy-header-height: 56px;
+
+  /* ===== 图表色板（CVD 验证通过） ===== */
+  --xfjy-chart-1: #ff5e9c;
+  --xfjy-chart-2: #7c3aed;
+  --xfjy-chart-3: #00b894;
+  --xfjy-chart-4: #f59e0b;
+  --xfjy-chart-5: #3b82f6;
+  --xfjy-chart-6: #ef4444;
+  --xfjy-chart-7: #8b5cf6;
+  --xfjy-chart-8: #10b981;
+
+  /* ===== 图表墨色 ===== */
+  --xfjy-chart-ink: #1f2329;
+  --xfjy-chart-ink-2: #4e5969;
+  --xfjy-chart-ink-3: #86909c;
+  --xfjy-chart-grid: #f2f3f5;
+
+  /* ===== 间距 Token（8px 基准） ===== */
+  --xfjy-space-1: 4px;
+  --xfjy-space-2: 8px;
+  --xfjy-space-3: 12px;
+  --xfjy-space-4: 16px;
+  --xfjy-space-5: 20px;
+  --xfjy-space-6: 24px;
+  --xfjy-space-8: 32px;
+
+  /* ===== 阴影 Token ===== */
+  --xfjy-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --xfjy-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --xfjy-shadow-dropdown: 0 6px 20px rgba(0, 0, 0, 0.08);
+
+  /* ===== 圆角 Token ===== */
+  --xfjy-radius-sm: 4px;
+  --xfjy-radius-md: 8px;
+  --xfjy-radius-lg: 12px;
+  --xfjy-radius-xl: 16px;
+
+  /* ===== 字体 Token ===== */
+  --xfjy-font-family: 'Helvetica Neue', Helvetica, 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+  --xfjy-font-size-xs: 12px;
+  --xfjy-font-size-sm: 13px;
+  --xfjy-font-size-base: 14px;
+  --xfjy-font-size-md: 16px;
+  --xfjy-font-size-lg: 20px;
+  --xfjy-font-size-xl: 24px;
+  --xfjy-font-size-2xl: 28px;
+  --xfjy-line-height: 1.5;
+
+  /* ===== 覆盖 Element Plus 默认主色（默认蓝 #409EFF），统一全站按钮/链接/高亮态 ===== */
   --el-color-primary: #ff5e9c;
   --el-color-primary-light-3: #ff7eb0;
   --el-color-primary-light-5: #ffafce;
@@ -17,7 +118,7 @@
   --el-color-primary-dark-2: #cc4b7d;
 }
 
-/* 全局样式重置 */
+/* ==================== 全局样式重置 ==================== */
 * {
   margin: 0;
   padding: 0;
@@ -29,11 +130,10 @@ body,
 #app {
   height: 100%;
   width: 100%;
-  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB',
-    'Microsoft YaHei', Arial, sans-serif;
-  font-size: 14px;
-  color: #303133;
-  background-color: #f0f2f5;
+  font-family: var(--xfjy-font-family);
+  font-size: var(--xfjy-font-size-base);
+  color: var(--xfjy-text-regular);
+  background-color: var(--xfjy-bg-page);
 }
 
 a {
@@ -60,7 +160,7 @@ a {
   background: #909399;
 }
 
-/* 通用工具类 */
+/* ==================== 通用工具类 ==================== */
 .flex {
   display: flex;
 }
@@ -83,68 +183,76 @@ a {
   white-space: nowrap;
 }
 
-/* 页面容器 */
+/* ==================== 页面容器 ==================== */
 .page-container {
-  padding: 20px;
+  padding: var(--xfjy-space-6);
 }
 
-/* 搜索栏 */
+/* 搜索栏（向后兼容，新页面用 SearchBar 组件） */
 .search-bar {
-  margin-bottom: 16px;
-  padding: 16px 20px;
-  background: #fff;
-  border-radius: 4px;
+  margin-bottom: var(--xfjy-space-3);
+  padding: var(--xfjy-space-3) var(--xfjy-space-4);
+  background: var(--xfjy-bg-card);
+  border: 1px solid var(--xfjy-border);
+  border-radius: var(--xfjy-radius-lg);
+  box-shadow: var(--xfjy-shadow-card);
 }
 
-/* 表格容器 */
+/* 表格容器（向后兼容） */
 .table-container {
-  background: #fff;
-  border-radius: 4px;
-  padding: 16px 20px;
+  background: var(--xfjy-bg-card);
+  border: 1px solid var(--xfjy-border);
+  border-radius: var(--xfjy-radius-lg);
+  padding: var(--xfjy-space-4);
+  box-shadow: var(--xfjy-shadow-card);
 }
 
 /* 分页 */
 .pagination-wrapper {
   display: flex;
   justify-content: flex-end;
-  margin-top: 16px;
+  margin-top: var(--xfjy-space-3);
 }
 
-/* 统计卡片 */
+/* 统计卡片（向后兼容） */
 .stat-card {
-  background: #fff;
-  border-radius: 8px;
-  padding: 20px;
+  background: var(--xfjy-bg-card);
+  border: 1px solid var(--xfjy-border);
+  border-radius: var(--xfjy-radius-md);
+  padding: var(--xfjy-space-4);
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--xfjy-space-3);
+  box-shadow: var(--xfjy-shadow-card);
   transition: box-shadow 0.3s;
 }
 
 .stat-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--xfjy-shadow-hover);
 }
 
 .stat-icon {
   width: 48px;
   height: 48px;
-  border-radius: 8px;
+  border-radius: var(--xfjy-radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
   color: #fff;
+  flex-shrink: 0;
 }
 
 .stat-value {
-  font-size: 24px;
+  font-size: var(--xfjy-font-size-xl);
   font-weight: 600;
-  color: #303133;
+  color: var(--xfjy-text-primary);
   line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
-  font-size: 13px;
-  color: #909399;
-  margin-top: 4px;
+  font-size: var(--xfjy-font-size-xs);
+  color: var(--xfjy-text-secondary);
+  margin-top: var(--xfjy-space-1);
 }

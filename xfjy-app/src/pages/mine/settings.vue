@@ -3,20 +3,20 @@
     <!-- 账号与安全 -->
     <view class="group">
       <text class="group-title">账号与安全</text>
-      <view class="item" @click="goPhone">
+      <a11y-button class="item" :label="`手机号，当前 ${phoneMasked || '未绑定'}`" @tap="goPhone">
         <text class="label">手机号</text>
         <text class="value">{{ phoneMasked || '未绑定' }}</text>
-        <text class="arrow">›</text>
-      </view>
-      <view class="item" @click="goVerify">
+        <text class="arrow" aria-hidden="true">›</text>
+      </a11y-button>
+      <a11y-button class="item" :label="`实名认证，当前 ${isVerified ? '已认证' : '未认证'}`" @tap="goVerify">
         <text class="label">实名认证</text>
         <text class="value" :class="{ verified: isVerified }">{{ isVerified ? '已认证' : '未认证' }}</text>
-        <text class="arrow">›</text>
-      </view>
-      <view class="item" @click="goBlacklist">
+        <text class="arrow" aria-hidden="true">›</text>
+      </a11y-button>
+      <a11y-button class="item" label="黑名单" @tap="goBlacklist">
         <text class="label">黑名单</text>
-        <text class="arrow">›</text>
-      </view>
+        <text class="arrow" aria-hidden="true">›</text>
+      </a11y-button>
     </view>
 
     <!-- 通知设置 -->
@@ -24,7 +24,7 @@
       <text class="group-title">通知设置</text>
       <view class="item" v-for="s in notificationSettings" :key="s.key">
         <text class="label">{{ s.label }}</text>
-        <switch :checked="s.value" color="#ff5e9c" @change="toggleNotification(s.key, $event)" />
+        <switch :checked="s.value" :aria-label="s.label" color="#ff5e9c" @change="toggleNotification(s.key, $event)" />
       </view>
     </view>
 
@@ -33,30 +33,30 @@
       <text class="group-title">隐私</text>
       <view class="item">
         <text class="label">显示距离</text>
-        <switch :checked="showDistance" color="#ff5e9c" @change="showDistance = ($event as any).detail.value" />
+        <switch :checked="showDistance" aria-label="显示距离" color="#ff5e9c" @change="showDistance = ($event as any).detail.value" />
       </view>
     </view>
 
     <!-- 通用 -->
     <view class="group">
       <text class="group-title">通用</text>
-      <view class="item" @click="clearCache">
+      <a11y-button class="item" :label="`清除缓存，当前 ${cacheSize}`" @tap="clearCache">
         <text class="label">清除缓存</text>
         <text class="value">{{ cacheSize }}</text>
-      </view>
-      <view class="item" @click="showAbout">
+      </a11y-button>
+      <a11y-button class="item" label="关于心飞，版本 v1.0.0" @tap="showAbout">
         <text class="label">关于心飞</text>
         <text class="value">v1.0.0</text>
-      </view>
+      </a11y-button>
     </view>
 
     <!-- 退出登录 -->
     <button class="logout-btn" @click="handleLogout">退出登录</button>
 
-    <!-- 注销账号 -->
-    <view class="delete-account" @click="handleDeleteAccount">
+    <!-- 注销账号（破坏性操作：需可聚焦 + 语义化 + 足够对比度） -->
+    <a11y-button class="delete-account" label="注销账号" @tap="handleDeleteAccount">
       <text>注销账号</text>
-    </view>
+    </a11y-button>
   </view>
 </template>
 
@@ -67,6 +67,7 @@ import { useUserStore } from "@/store/user";
 import { useMatchStore } from "@/store/match";
 import { useChatStore } from "@/store/chat";
 import { getToken, setToken } from "@/utils/request";
+import A11yButton from "@/components/a11y-button.vue";
 import { getUserSettings, deleteAccount, getVerifyStatus, updateNotificationSetting } from "@/api/mine";
 import { sendSmsCode } from "@/api/auth";
 
@@ -85,8 +86,17 @@ const notificationSettings = ref([
   { key: 'announcement', label: '系统公告', value: false },
 ]);
 
+/** 服务端通知配置是否已加载（未加载前开关只改本地、不提交，避免默认值覆盖服务端） */
+const settingsLoaded = ref(false);
+
 async function toggleNotification(key: string, e: any) {
   const s = notificationSettings.value.find(n => n.key === key);
+  if (!settingsLoaded.value) {
+    // 配置尚未从服务端加载，提交会把其余未加载项的默认值一并覆盖——拒绝并回弹
+    if (s) s.value = !e.detail.value;
+    uni.showToast({ title: "配置加载中，请稍候", icon: "none" });
+    return;
+  }
   if (s) s.value = e.detail.value;
   // 四项开关统一持久化到 /users/notifications/setting
   const find = (k: string) => notificationSettings.value.find(n => n.key === k)?.value ?? true;
@@ -123,6 +133,7 @@ async function loadPhone() {
       setVal('comment', settings.pinglunNotification);
       setVal('announcement', settings.gonggaoNotification);
       setVal('match', settings.matchNotification);
+      settingsLoaded.value = true;
     }
   } catch {
     // 请求失败由 request 层统一 toast
@@ -139,9 +150,20 @@ async function loadVerifyStatus() {
   }
 }
 
+/** 计算本地缓存实际占用（currentSize 单位 KB） */
+function loadCacheSize(): void {
+  try {
+    const info = uni.getStorageInfoSync();
+    cacheSize.value = `${(info.currentSize / 1024).toFixed(1)}MB`;
+  } catch {
+    cacheSize.value = '0MB';
+  }
+}
+
 onShow(() => {
   loadPhone();
   loadVerifyStatus();
+  loadCacheSize();
 });
 
 function clearCache() {
@@ -249,13 +271,16 @@ function inputDeleteCode() {
 .settings-page { min-height: 100vh; background: #f5f5f5; padding: 20rpx 24rpx 80rpx; }
 
 .group { background: #fff; margin: 0 0 24rpx; padding: 8rpx 32rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
-  .group-title { font-size: 24rpx; color: #999; padding: 16rpx 0 8rpx; display: block; }
+  /* 分组标题原 #999（≈2.85:1）→ #767676 */
+  .group-title { font-size: 24rpx; color: #767676; padding: 16rpx 0 8rpx; display: block; }
   .item { display: flex; align-items: center; padding: 26rpx 0; border-bottom: 1rpx solid #f5f5f5;
     &:last-child { border-bottom: none; }
     .label { flex: 1; font-size: 28rpx; color: #333; }
-    .value { font-size: 26rpx; color: #999; margin-right: 8rpx; }
-    .value.verified { color: #ff5e9c; font-weight: 500; }
-    .arrow { font-size: 32rpx; color: #ccc; }
+    /* 副文本 #999 → #767676 */
+    .value { font-size: 26rpx; color: #767676; margin-right: 8rpx; }
+    .value.verified { color: #c2185b; font-weight: 500; }
+    /* 箭头 #ccc → #767676 */
+    .arrow { font-size: 32rpx; color: #767676; }
   }
 }
 
@@ -266,7 +291,8 @@ function inputDeleteCode() {
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 }
 
-.delete-account { text-align: center; padding: 32rpx;
-  text { font-size: 24rpx; color: #ccc; }
+/* 破坏性操作：#ccc（≈1.6:1）改为深红并保证触摸目标 ≥24px */
+.delete-account { text-align: center; padding: 32rpx; min-height: 48rpx;
+  text { font-size: 26rpx; color: #c62828; }
 }
 </style>

@@ -4,7 +4,7 @@
     <scroll-view scroll-y class="msg-list" :scroll-into-view="scrollToId" :scroll-with-animation="true">
       <!-- VIP 专属客服通道标识（exclusive_service 权益） -->
       <view v-if="isVip" class="vip-banner">
-        <text class="vip-crown">👑</text>
+        <uni-icons class="vip-crown" type="vip" size="28"></uni-icons>
         <text class="vip-text">VIP 专属客服通道 · 优先服务</text>
       </view>
       <!-- 客服欢迎语 -->
@@ -16,14 +16,15 @@
           <text class="time-text">{{ formatChatTime(msg.timestamp) }}</text>
         </view>
         <view :id="'msg-' + msg.id" class="msg-item" :class="{ mine: msg.isMine }">
-          <view class="agent-avatar" v-if="!msg.isMine">🎧</view>
-          <view class="bubble-wrap" :class="{ mine: msg.isMine }">
-            <view v-if="msg.isMine && msg.status === 'sending'" class="status-loading" />
-            <view class="bubble pop-in" :class="{ mine: msg.isMine }">
-              <text>{{ msg.content }}</text>
-            </view>
+        <!-- 装饰性 emoji 头像，语义由上下文承载 -->
+        <view class="agent-avatar" v-if="!msg.isMine" aria-hidden="true"><uni-icons type="headphones" size="40" color="#ff5e9c"></uni-icons></view>
+        <view class="bubble-wrap" :class="{ mine: msg.isMine }">
+          <view v-if="msg.isMine && msg.status === 'sending'" class="status-loading" aria-hidden="true" />
+          <view class="bubble pop-in" :class="{ mine: msg.isMine }">
+            <text>{{ msg.content }}</text>
           </view>
-          <image v-if="msg.isMine" class="avatar" :src="myAvatar" mode="aspectFill" />
+        </view>
+        <image lazy-load v-if="msg.isMine" class="avatar" :src="myAvatar" mode="aspectFill" aria-label="我的头像" />
         </view>
       </template>
     </scroll-view>
@@ -33,14 +34,15 @@
       <!-- 快捷问题（仅新会话显示，发送首条后隐藏） -->
       <scroll-view v-if="messageList.length === 0" scroll-x class="quick-bar" :show-scrollbar="false">
         <view class="quick-list">
-          <view
+          <a11y-button
             v-for="q in QUICK_QUESTIONS"
             :key="q"
             class="quick-chip btn-feedback"
-            @click="sendQuick(q)"
+            :label="`发送快捷问题：${q}`"
+            @tap="sendQuick(q)"
           >
             <text>{{ q }}</text>
-          </view>
+          </a11y-button>
         </view>
       </scroll-view>
       <view class="input-bar">
@@ -49,14 +51,15 @@
           class="text-input"
           :class="{ focus: isInputFocus }"
           placeholder="请描述您的问题..."
+          aria-label="客服聊天输入框"
           confirm-type="send"
           @confirm="sendText"
           @focus="isInputFocus = true"
           @blur="isInputFocus = false"
         />
-        <view class="send-btn btn-feedback" :class="{ disabled: !inputText.trim() || sending }" @click="sendText">
+        <a11y-button class="send-btn btn-feedback" :class="{ disabled: !inputText.trim() || sending }" :disabled="!inputText.trim() || sending" label="发送消息" @tap="sendText">
           <text>发送</text>
-        </view>
+        </a11y-button>
       </view>
     </view>
   </view>
@@ -65,6 +68,7 @@
 <script setup lang="ts">
 import { ref, nextTick, onUnmounted } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
+import A11yButton from "@/components/a11y-button.vue";
 import { useUserStore } from "@/store/user";
 import { getHuanXinUser } from "@/api/chat";
 import { getAgentApi } from "@/api/kefu";
@@ -154,11 +158,14 @@ async function sendQuick(text: string): Promise<void> {
   await doSend(text);
 }
 
+/** 本地消息自增序号（避免 Date.now() 同毫秒撞 id） */
+let msgSeq = 0;
+
 /** 实际发送逻辑：追加消息并通过环信 SDK 发送 */
 async function doSend(text: string): Promise<void> {
   sending.value = true;
   const msg: Message = {
-    id: Date.now().toString(),
+    id: `local-${Date.now()}-${++msgSeq}`,
     content: text,
     isMine: true,
     timestamp: Date.now(),
@@ -245,13 +252,13 @@ onUnmounted(() => {
 }
 
 .welcome-tip { display: flex; justify-content: center; margin: 24rpx 0;
-  text { font-size: 24rpx; color: #999; background: rgba(0, 0, 0, 0.05); padding: 10rpx 28rpx; border-radius: 24rpx; }
+  text { font-size: 24rpx; color: #767676; background: rgba(0, 0, 0, 0.05); padding: 10rpx 28rpx; border-radius: 24rpx; }
 }
 
 .msg-list { flex: 1; padding: 12rpx 24rpx; }
 
 .time-divider { display: flex; justify-content: center; margin: 16rpx 0 24rpx;
-  .time-text { font-size: 22rpx; color: #bbb; background: rgba(0, 0, 0, 0.05); padding: 6rpx 24rpx; border-radius: 24rpx; }
+  .time-text { font-size: 22rpx; color: #767676; background: rgba(0, 0, 0, 0.05); padding: 6rpx 24rpx; border-radius: 24rpx; }
 }
 
 .msg-item { display: flex; align-items: flex-start; margin-bottom: 28rpx; gap: 16rpx;
@@ -279,16 +286,18 @@ onUnmounted(() => {
 
 .quick-bar { background: #fafafa; border-bottom: 1rpx solid #f0f0f0; }
 .quick-list { display: flex; gap: 16rpx; padding: 16rpx 20rpx; }
-.quick-chip { flex-shrink: 0; background: #fff; border: 1rpx solid #ffb3c9; border-radius: 32rpx; padding: 12rpx 28rpx;
-  text { font-size: 24rpx; color: #ff5e9c; white-space: nowrap; }
+/* 快捷问题 chip：#ff5e9c on #fff ≈2.6:1 → #c2185b */
+.quick-chip { flex-shrink: 0; background: #fff; border: 1rpx solid #ffb3c9; border-radius: 32rpx; padding: 14rpx 28rpx; min-height: 48rpx;
+  text { font-size: 24rpx; color: #c2185b; white-space: nowrap; }
 }
 
 .input-bar { display: flex; align-items: center; gap: 16rpx; padding: 14rpx 16rpx; }
 .text-input { flex: 1; height: 72rpx; background: #f5f5f5; border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; transition: all 0.2s;
   &.focus { background: #fff; box-shadow: 0 0 0 3rpx rgba(255, 94, 142, 0.35); }
 }
+/* 发送按钮：禁用态仅 opacity 会让对比度跌破阈值 → 改用不透明深灰背景（WCAG 1.4.1 不依赖单一视觉线索） */
 .send-btn { padding: 0 36rpx; height: 72rpx; background: #ff5e9c; border-radius: 36rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   text { color: #fff; font-size: 28rpx; font-weight: 500; }
-  &.disabled { opacity: 0.5; }
+  &.disabled { background: #c7c7c7; }
 }
 </style>

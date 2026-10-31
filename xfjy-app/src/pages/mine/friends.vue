@@ -1,16 +1,18 @@
 <template>
   <view class="friends-page">
-    <!-- Tab 切换 -->
-    <view class="tab-bar">
-      <view
+    <!-- Tab 切换（role=tablist/tab + aria-selected） -->
+    <view class="tab-bar" role="tablist" aria-label="好友关系分类">
+      <a11y-button
         v-for="tab in TAB_LIST"
         :key="tab.type"
         class="tab-item"
-        :class="{ active: activeType === tab.type }"
-        @click="switchTab(tab.type)"
+        role="tab"
+        :checked="activeType === tab.type"
+        :label="tab.label"
+        @tap="switchTab(tab.type)"
       >
         <text>{{ tab.label }}</text>
-      </view>
+      </a11y-button>
     </view>
 
     <!-- 搜索框 -->
@@ -19,6 +21,7 @@
         class="search-input"
         v-model="keyword"
         placeholder="按昵称搜索"
+        aria-label="按昵称搜索好友"
         confirm-type="search"
         @confirm="handleSearch"
       />
@@ -34,45 +37,50 @@
       @scrolltolower="loadMore"
     >
       <view v-if="userList.length === 0 && !loading" class="empty-state">
-        <view class="empty-icon"><text>👥</text></view>
+        <view class="empty-icon"><uni-icons type="person" size="28" color="#767676"></uni-icons></view>
         <text class="empty-title">暂无数据</text>
         <text class="empty-desc">去探花频道发现更多有缘人</text>
       </view>
 
-      <view
-        v-for="user in userList"
-        :key="user.id"
+      <!-- 每行 = 一个可聚焦的列表项 + 独立操作按钮（避免可聚焦元素嵌套） -->
+      <view v-for="user in userList" :key="user.id" class="user-row">
+      <a11y-button
         class="user-item"
+        :label="`查看 ${user.nickname || '未设置昵称'} 的个人主页`"
+        @tap="goDetail(user.id)"
       >
         <image
           class="user-avatar"
           :src="user.avatar || '/static/logo/logo-icon-transparent.png'"
           mode="aspectFill"
           lazy-load
-          @click="goDetail(user.id)"
+          aria-hidden="true"
         />
-        <view class="user-info" @click="goDetail(user.id)">
+        <view class="user-info">
           <text class="user-nickname">{{ user.nickname || '未设置昵称' }}</text>
           <text class="user-meta">
             {{ user.gender === 'man' ? '男' : '女' }} · {{ user.age || '—' }}岁
             <template v-if="user.city"> · {{ user.city }}</template>
           </text>
         </view>
-        <!-- 操作按钮 -->
-        <view
-          v-if="activeType === FRIEND_TYPE.FOLLOW"
-          class="action-btn cancel"
-          @click="handleCancelLike(user.id)"
-        >
-          <text>取消喜欢</text>
-        </view>
-        <view
-          v-else-if="activeType === FRIEND_TYPE.FANS"
-          class="action-btn follow"
-          @click="handleFollowFan(user.id)"
-        >
-          <text>喜欢 TA</text>
-        </view>
+      </a11y-button>
+      <!-- 操作按钮 -->
+      <a11y-button
+        v-if="activeType === FRIEND_TYPE.FOLLOW"
+        class="action-btn cancel"
+        :label="`取消喜欢 ${user.nickname || '该用户'}`"
+        @tap="handleCancelLike(user.id)"
+      >
+        <text>取消喜欢</text>
+      </a11y-button>
+      <a11y-button
+        v-else-if="activeType === FRIEND_TYPE.FANS"
+        class="action-btn follow"
+        :label="`喜欢 ${user.nickname || '该用户'}`"
+        @tap="handleFollowFan(user.id)"
+      >
+        <text>喜欢 TA</text>
+      </a11y-button>
       </view>
 
       <view v-if="loading" class="loading-tip">
@@ -88,6 +96,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
+import A11yButton from "@/components/a11y-button.vue";
 import {
   getFriendList,
   cancelLike,
@@ -274,13 +283,21 @@ function goDetail(userId: string): void {
   padding: 20rpx 24rpx;
 }
 
+/* 行容器：列表项与操作按钮并列 */
+.user-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
 .user-item {
+  flex: 1;
   display: flex;
   align-items: center;
   padding: 24rpx;
   background: #fff;
   border-radius: 24rpx;
-  margin-bottom: 16rpx;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 
   .user-avatar {
@@ -302,29 +319,34 @@ function goDetail(userId: string): void {
       display: block;
     }
 
+    /* 副信息 #999 → #767676 */
     .user-meta {
       font-size: 24rpx;
-      color: #999;
+      color: #767676;
       margin-top: 8rpx;
       display: block;
     }
   }
+}
 
-  .action-btn {
-    font-size: 24rpx;
-    padding: 12rpx 28rpx;
-    border-radius: 28rpx;
+/* 触摸目标 ≥24px：原 padding 12rpx 28rpx 在 24rpx 字号下偏小 */
+.action-btn {
+  font-size: 24rpx;
+  padding: 16rpx 28rpx;
+  min-height: 48rpx;
+  border-radius: 28rpx;
+  flex-shrink: 0;
 
-    &.cancel {
-      color: #999;
-      background: #f5f5f5;
-    }
+  /* #999 on #f5f5f5 不达标 → 提深 */
+  &.cancel {
+    color: #767676;
+    background: #f5f5f5;
+  }
 
-    &.follow {
-      color: #fff;
-      background: linear-gradient(135deg, #b13bff, #ff5e9c);
-      box-shadow: 0 4rpx 14rpx rgba(255, 94, 142, 0.3);
-    }
+  &.follow {
+    color: #fff;
+    background: linear-gradient(135deg, #b13bff, #ff5e9c);
+    box-shadow: 0 4rpx 14rpx rgba(255, 94, 142, 0.3);
   }
 }
 
@@ -333,9 +355,10 @@ function goDetail(userId: string): void {
   justify-content: center;
   padding: 24rpx 0;
 
+  /* #ccc ≈1.6:1 → #767676 */
   text {
     font-size: 24rpx;
-    color: #ccc;
+    color: #767676;
   }
 }
 </style>

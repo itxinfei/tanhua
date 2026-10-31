@@ -144,6 +144,9 @@ function toReceivedMessage(message: Message): ReceivedMessage | null {
     const parsed = JSON.parse(content);
     if (parsed && typeof parsed.type === "string") {
       switch (parsed.type) {
+        case "match":
+          // 匹配事件走单独分发（onMessage 上游已处理），不作为聊天消息展示
+          return null;
         case "image":
           if (parsed.url) {
             return { from: message.from, content: String(parsed.url), type: "image", time: message.timestamp };
@@ -235,6 +238,9 @@ export async function loginEasemob(
   userId: string,
   token: string
 ): Promise<boolean> {
+  if (isLoggedIn) {
+    return true;
+  }
   try {
     const connection = getClient();
     await connection.login({ userId, token });

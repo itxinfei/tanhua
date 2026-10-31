@@ -2,19 +2,20 @@
   <view class="match-page">
     <!-- 顶部栏 -->
     <view class="top-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
-      <view class="city" @click="openCityPicker" aria-label="选择城市">
+      <a11y-button class="city" label="选择城市" @tap="openCityPicker">
         <text class="city-name">{{ currentCity }}</text>
-        <text class="arrow">▾</text>
-      </view>
-      <view class="filter-btn" @click="goNearby" aria-label="查看附近的人">
+        <text class="arrow" aria-hidden="true">▾</text>
+      </a11y-button>
+      <a11y-button class="filter-btn" label="查看附近的人" @tap="goNearby">
         <text>附近</text>
-      </view>
+      </a11y-button>
     </view>
 
     <!-- 卡片区域 -->
     <view class="card-area">
       <!-- 骨架卡片（首屏加载中，模拟堆叠效果） -->
-      <view v-if="cardList.length === 0 && loading" class="skeleton-cards">
+      <!-- 骨架卡片（首屏加载中）：占位元素，对读屏隐藏 -->
+      <view v-if="cardList.length === 0 && loading" class="skeleton-cards" aria-hidden="true">
         <view
           v-for="i in VISIBLE_CARD_COUNT"
           :key="i"
@@ -44,25 +45,34 @@
         @touchstart="onTouchStart($event, index)"
         @touchmove="onTouchMove($event, index)"
         @touchend="onTouchEnd($event, index)"
+        :aria-label="`推荐卡片：${card.nickname}，${card.age}岁`"
       >
         <!-- 主图 -->
-        <image
+        <image lazy-load
           class="card-image"
           :src="card.avatar"
           mode="aspectFill"
+          :aria-label="`${card.nickname} 的照片`"
         />
-        <!-- 底部渐变遮罩 -->
-        <view class="card-mask" />
+        <!-- 底部渐变遮罩（纯装饰） -->
+        <view class="card-mask" aria-hidden="true" />
         <!-- 用户信息 -->
         <view class="card-info">
           <view class="name-row">
             <text class="nickname">{{ card.nickname }}</text>
             <text class="age">{{ card.age }}</text>
           </view>
-          <!-- 缘分值进度条 -->
+          <!-- 缘分值进度条：告知读屏当前值而非仅视觉呈现 -->
           <view v-if="card.fateValue" class="fate-row">
             <text class="fate-label">缘分值</text>
-            <view class="fate-bar">
+            <view
+              class="fate-bar"
+              role="progressbar"
+              aria-label="缘分值"
+              :aria-valuenow="Math.min(card.fateValue, 100)"
+              aria-valuemin="0"
+              aria-valuemax="100"
+            >
               <view
                 class="fate-fill"
                 :style="{ width: Math.min(card.fateValue, 100) + '%' }"
@@ -75,11 +85,11 @@
             <text v-for="tag in card.tags.slice(0, MAX_TAG_COUNT)" :key="tag" class="tag glass">{{ tag }}</text>
           </view>
         </view>
-        <!-- 滑动提示（喜欢 / 不喜欢） -->
-        <view v-if="index === 0" class="swipe-hint like" :style="{ opacity: likeOpacity }">
+        <!-- 滑动提示（喜欢 / 不喜欢）：随手势显示的视觉反馈，对读屏隐藏 -->
+        <view v-if="index === 0" class="swipe-hint like" :style="{ opacity: likeOpacity }" aria-hidden="true">
           喜欢
         </view>
-        <view v-if="index === 0" class="swipe-hint nope" :style="{ opacity: nopeOpacity }">
+        <view v-if="index === 0" class="swipe-hint nope" :style="{ opacity: nopeOpacity }" aria-hidden="true">
           不喜欢
         </view>
       </view>
@@ -87,21 +97,21 @@
 
     <!-- 底部操作栏 -->
     <view class="action-bar safe-area-bottom">
-      <view class="action-btn rewind btn-feedback" @click="handleRewind" aria-label="撤销上一个滑动">
-        <text>↩</text>
-      </view>
-      <view class="action-btn dislike btn-feedback" @click="handleDislike" aria-label="不喜欢">
-        <text>✕</text>
-      </view>
-      <view class="action-btn superlike btn-feedback" @click="handleSuperlike" aria-label="超级喜欢">
-        <text>★</text>
-      </view>
-      <view class="action-btn like btn-feedback" @click="handleLike" aria-label="喜欢">
-        <text>♥</text>
-      </view>
-      <view class="action-btn boost btn-feedback" @click="handleBoost" aria-label="曝光提升">
-        <text>⚡</text>
-      </view>
+      <a11y-button class="action-btn rewind btn-feedback" label="撤销上一个滑动" @tap="handleRewind">
+        <text aria-hidden="true">↩</text>
+      </a11y-button>
+      <a11y-button class="action-btn dislike btn-feedback" label="不喜欢" @tap="handleDislike">
+        <uni-icons type="close" size="24" color="#ff5e9c"></uni-icons>
+      </a11y-button>
+      <a11y-button class="action-btn superlike btn-feedback" label="超级喜欢" @tap="handleSuperlike">
+        <uni-icons type="star-filled" size="24" color="#4dabf7"></uni-icons>
+      </a11y-button>
+      <a11y-button class="action-btn like btn-feedback" label="喜欢" @tap="handleLike">
+        <uni-icons type="heart-filled" size="24" color="#ff5e9c"></uni-icons>
+      </a11y-button>
+      <a11y-button class="action-btn boost btn-feedback" label="曝光提升" @tap="handleBoost">
+        <text aria-hidden="true">⚡</text>
+      </a11y-button>
     </view>
 
     <!-- 匹配成功弹窗（全局组件，由 match store 驱动；同步匹配与环信匹配消息共用） -->
@@ -110,13 +120,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { onShow, onShareAppMessage } from "@dcloudio/uni-app";
 import { useMatchStore } from "@/store/match";
 import { getCards, type TodayBest } from "@/api/match";
 import { checkBenefit, recordBenefitUsage } from "@/api/mine";
 import { useUserStore } from "@/store/user";
 import MatchPopup from "@/components/match-popup.vue";
+import A11yButton from "@/components/a11y-button.vue";
 
 const matchStore = useMatchStore();
 const userStore = useUserStore();
@@ -235,12 +246,9 @@ function onTouchMove(e: TouchEvent, index: number) {
   if (index !== 0 || !isDragging.value) return;
   const deltaX = e.touches[0].clientX - touchStartX.value;
   const deltaY = e.touches[0].clientY - touchStartY.value;
-  // rpx 换算：750rpx / 屏幕宽度px
-  const rpxRatio =
-    RPX_BASE_WIDTH /
-    (uni.getSystemInfoSync().windowWidth || DEFAULT_WINDOW_WIDTH_PX);
-  dragX.value = deltaX * rpxRatio;
-  dragY.value = deltaY * rpxRatio;
+  // rpx 换算比例已在 onMounted 缓存（750rpx / 屏幕宽度px），避免高频同步取系统信息
+  dragX.value = deltaX * rpxRatio.value;
+  dragY.value = deltaY * rpxRatio.value;
 }
 
 /** 触摸结束：超过阈值判定滑出，否则回弹复位 */
@@ -259,16 +267,24 @@ function onTouchEnd(_e: TouchEvent, index: number) {
 }
 
 // ===== 滑动出栈 =====
+/** 滑出动画/上报进行中（防连点重复上报同一张卡片） */
+const swiping = ref(false);
+/** 待执行的卡片移除定时器（页面卸载时清理） */
+let cardRemoveTimer: ReturnType<typeof setTimeout> | null = null;
+
 /** 卡片滑出并上报操作，互相喜欢时弹出匹配成功弹窗 */
 async function swipeOut(action: "like" | "dislike" | "superlike") {
   const card = visibleCards.value[0];
   if (!card) return;
+  if (swiping.value) return;
+  swiping.value = true;
 
   // 检查每日免费滑动次数
   if (!matchStore.canSwipe()) {
     uni.showToast({ title: "今日免费次数已用完，开通VIP无限滑", icon: "none" });
     dragX.value = 0;
     dragY.value = 0;
+    swiping.value = false;
     return;
   }
 
@@ -293,14 +309,21 @@ async function swipeOut(action: "like" | "dislike" | "superlike") {
       });
     }
   } catch {
-    // 静默处理，不影响滑动手感
+    // 上报失败：回弹卡片并提示，避免后端未记录却把推荐划走
+    dragX.value = 0;
+    dragY.value = 0;
+    swiping.value = false;
+    uni.showToast({ title: "操作失败，请重试", icon: "none" });
+    return;
   }
 
   // 延迟移除卡片（等待飞出动画完成）
-  setTimeout(() => {
+  cardRemoveTimer = setTimeout(() => {
+    cardRemoveTimer = null;
     currentCardIndex.value++;
     dragX.value = 0;
     dragY.value = 0;
+    swiping.value = false;
     // 剩余卡片不足时预加载更多
     if (cardList.value.length - currentCardIndex.value < MIN_REMAINING_CARDS) {
       loadMoreCards();
@@ -402,16 +425,27 @@ async function loadMoreCards() {
 }
 
 // ===== 生命周期 =====
+/** px → rpx 换算比例（onMounted 按实际屏宽缓存，触摸移动高频路径不再取系统信息） */
+const rpxRatio = ref(RPX_BASE_WIDTH / DEFAULT_WINDOW_WIDTH_PX);
+
 onMounted(() => {
   const sysInfo = uni.getSystemInfoSync();
   statusBarHeight.value =
     sysInfo.statusBarHeight || DEFAULT_STATUS_BAR_HEIGHT_PX;
+  rpxRatio.value = RPX_BASE_WIDTH / (sysInfo.windowWidth || DEFAULT_WINDOW_WIDTH_PX);
   // 检查登录状态
   if (!userStore.isLogin) {
     uni.reLaunch({ url: "/pages/auth/login" });
     return;
   }
   loadMoreCards();
+});
+
+onUnmounted(() => {
+  if (cardRemoveTimer) {
+    clearTimeout(cardRemoveTimer);
+    cardRemoveTimer = null;
+  }
 });
 
 onShow(() => {
@@ -458,9 +492,10 @@ onShareAppMessage(() => ({
       font-weight: bold;
     }
 
+    /* 下拉箭头原 #999（≈2.85:1）→ #767676 */
     .arrow {
       font-size: 24rpx;
-      color: #999;
+      color: #767676;
     }
   }
 

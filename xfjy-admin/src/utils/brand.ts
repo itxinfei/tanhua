@@ -25,6 +25,9 @@ export interface BrandColors {
   primaryLight7: string
   primaryLight9: string
   violet: string
+  chartPrimary: string
+  chartSecondary: string
+  chartThird: string
 }
 
 export function getBrandColors(): BrandColors {
@@ -35,5 +38,9 @@ export function getBrandColors(): BrandColors {
     primaryLight7: readCssVar('--el-color-primary-light-7', '#ffcfe1'),
     primaryLight9: readCssVar('--el-color-primary-light-9', '#ffeff5'),
     violet: readCssVar('--xfjy-primary-violet', '#8a5cf6'),
+    // CVD 安全图表色（与品牌主色区分度足够，通过色盲模拟验证）
+    chartPrimary: readCssVar('--xfjy-chart-1', '#ff5e9c'),    // 玫红
+    chartSecondary: readCssVar('--xfjy-chart-2', '#7c3aed'),  // CVD 安全紫（比 #b13bff 更深）
+    chartThird: readCssVar('--xfjy-chart-3', '#00b894'),      // 青绿
   }
 }

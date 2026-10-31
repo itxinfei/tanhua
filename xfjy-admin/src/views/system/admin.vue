@@ -1,27 +1,19 @@
 <template>
   <div class="page-container">
-    <!-- 搜索栏 -->
-    <div class="search-bar">
-      <el-input
-        v-model="searchKeyword"
-        placeholder="搜索用户名或昵称"
-        clearable
-        style="width: 240px"
-        @keyup.enter="handleSearch"
-      />
-      <el-button type="primary" @click="handleSearch">查询</el-button>
-      <el-button @click="handleReset">重置</el-button>
-      <el-button
-        v-if="isSuperAdmin"
-        type="success"
-        @click="openCreateDialog"
-      >
-        <el-icon><Plus /></el-icon>&nbsp;新增管理员
-      </el-button>
-    </div>
+    <PageHeader title="管理员管理" :subtitle="`共 ${total} 条记录`">
+      <template #actions>
+        <el-button v-if="isSuperAdmin" type="success" :icon="Plus" @click="openCreateDialog">新增管理员</el-button>
+      </template>
+    </PageHeader>
 
-    <!-- 表格 -->
-    <el-table v-loading="loading" :data="tableData" border stripe>
+    <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
+      <el-form-item label="关键词">
+        <el-input v-model="query.keyword" placeholder="搜索用户名或昵称" clearable style="width: 240px" @keyup.enter="handleSearch" />
+      </el-form-item>
+    </SearchBar>
+
+    <TableCard>
+      <el-table v-loading="loading" :data="tableData" border stripe>
       <el-table-column label="ID" prop="id" width="70" align="center" />
       <el-table-column label="用户名" prop="username" width="140" />
       <el-table-column label="昵称" prop="nickname" width="140" />
@@ -34,9 +26,7 @@
       </el-table-column>
       <el-table-column label="状态" width="90" align="center">
         <template #default="{ row }">
-          <el-tag :type="row.status === 'NORMAL' ? 'success' : 'danger'" size="small">
-            {{ row.status === 'NORMAL' ? '启用' : '禁用' }}
-          </el-tag>
+          <StatusTag :status="row.status" :mapping="adminStatusMapping" />
         </template>
       </el-table-column>
       <el-table-column label="创建时间" prop="created" width="170" />
@@ -66,20 +56,19 @@
           <span v-else class="no-op">仅超管可操作</span>
         </template>
       </el-table-column>
-    </el-table>
-
-    <!-- 分页 -->
-    <div class="pagination-bar">
-      <el-pagination
-        v-model:current-page="page"
-        v-model:page-size="pageSize"
-        :total="total"
-        :page-sizes="[10, 20, 50]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="loadData"
-        @current-change="loadData"
-      />
-    </div>
+      </el-table>
+      <template #pagination>
+        <el-pagination
+          v-model:current-page="query.page"
+          v-model:page-size="query.pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="loadData"
+          @current-change="loadData"
+        />
+      </template>
+    </TableCard>
 
     <!-- 新增弹窗 -->
     <el-dialog v-model="createVisible" title="新增管理员" width="440px" destroy-on-close>
@@ -130,6 +119,8 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
+import { PageHeader, SearchBar, TableCard, StatusTag } from '@/components'
 import {
   getAdminPageApi,
   createAdminApi,
@@ -147,9 +138,7 @@ const loading = ref(false)
 const submitting = ref(false)
 const tableData = ref<AdminAccount[]>([])
 const total = ref(0)
-const page = ref(1)
-const pageSize = ref(10)
-const searchKeyword = ref('')
+const query = reactive({ keyword: '', page: 1, pageSize: 10 })
 
 const createVisible = ref(false)
 const editVisible = ref(false)
@@ -177,8 +166,8 @@ const editRules: FormRules = {
 async function loadData() {
   loading.value = true
   try {
-    const params: any = { page: page.value, pageSize: pageSize.value }
-    if (searchKeyword.value.trim()) params.keyword = searchKeyword.value.trim()
+    const params: any = { page: query.page, pageSize: query.pageSize }
+    if (query.keyword.trim()) params.keyword = query.keyword.trim()
     const res = await getAdminPageApi(params)
     tableData.value = res.list || []
     total.value = res.total || 0
@@ -190,13 +179,13 @@ async function loadData() {
 }
 
 function handleSearch() {
-  page.value = 1
+  query.page = 1
   loadData()
 }
 
 function handleReset() {
-  searchKeyword.value = ''
-  page.value = 1
+  query.keyword = ''
+  query.page = 1
   loadData()
 }
 
@@ -304,6 +293,12 @@ function roleTagType(role: string): 'danger' | 'primary' | 'info' {
   return 'info'
 }
 
+// 管理员状态映射
+const adminStatusMapping = {
+  NORMAL: { label: '启用', type: 'success' as const },
+  DISABLED: { label: '禁用', type: 'danger' as const },
+}
+
 onMounted(() => {
   authStore.restoreAdminInfo()
   loadData()
@@ -311,20 +306,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.search-bar {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
 .no-op {
-  font-size: 12px;
-  color: #c0c4cc;
-}
-
-.pagination-bar {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
+  font-size: var(--xfjy-font-size-xs);
+  color: var(--xfjy-text-secondary);
 }
 </style>

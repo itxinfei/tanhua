@@ -1,13 +1,14 @@
 <template>
   <view class="login-page">
-    <!-- 漂浮装饰心形（增强品牌区氛围） -->
-    <view class="deco-heart deco-1 float" />
-    <view class="deco-heart deco-2 float" />
-    <view class="deco-heart deco-3 float" />
+    <!-- 漂浮装饰心形（增强品牌区氛围）：纯装饰，对读屏隐藏 -->
+    <view class="deco-heart deco-1 float" aria-hidden="true" />
+    <view class="deco-heart deco-2 float" aria-hidden="true" />
+    <view class="deco-heart deco-3 float" aria-hidden="true" />
 
     <!-- 品牌区 -->
     <view class="brand">
-      <image class="logo" src="/static/logo/logo-icon-transparent.png" mode="aspectFit" />
+      <!-- logo 与紧随其后的 app-name 文字语义重复，标为装饰避免重复朗读 -->
+      <image lazy-load class="logo" src="/static/logo/logo-icon-transparent.png" mode="aspectFit" aria-hidden="true" />
       <text class="app-name">心飞交友</text>
       <text class="slogan">心飞为你飞，遇见对的人</text>
     </view>
@@ -15,7 +16,7 @@
     <!-- 表单区 -->
     <view class="form">
       <view class="input-group">
-        <text class="label">手机号</text>
+        <text :id="PHONE_LABEL_ID" class="label">手机号</text>
         <input
           v-model="phone"
           class="input"
@@ -23,11 +24,12 @@
           maxlength="11"
           placeholder="请输入手机号"
           placeholder-class="placeholder"
+          :aria-labelledby="PHONE_LABEL_ID"
         />
       </view>
 
       <view class="input-group">
-        <text class="label">验证码</text>
+        <text :id="CODE_LABEL_ID" class="label">验证码</text>
         <view class="code-row">
           <input
             v-model="code"
@@ -36,6 +38,7 @@
             maxlength="6"
             placeholder="请输入验证码"
             placeholder-class="placeholder"
+            :aria-labelledby="CODE_LABEL_ID"
           />
           <button
             class="code-btn"
@@ -47,18 +50,24 @@
         </view>
       </view>
 
-      <!-- 用户协议 -->
-      <view class="agreement" @click="agree = !agree">
+      <!-- 用户协议：整行作为语义 checkbox，支持键盘 Space 切换（WCAG 2.1.1 / 4.1.2） -->
+      <a11y-button
+        class="agreement"
+        role="checkbox"
+        :checked="agree"
+        label="我已阅读并同意《用户协议》和《隐私政策》"
+        @tap="agree = !agree"
+      >
         <view class="checkbox" :class="{ checked: agree }">
           <text v-if="agree" class="check-icon">✓</text>
         </view>
         <text class="agreement-text">
           我已阅读并同意
-          <text class="link" @click.stop="openAgreement('user')">《用户协议》</text>
+          <text class="link" role="link" @click.stop="openAgreement('user')">《用户协议》</text>
           和
-          <text class="link" @click.stop="openAgreement('privacy')">《隐私政策》</text>
+          <text class="link" role="link" @click.stop="openAgreement('privacy')">《隐私政策》</text>
         </text>
-      </view>
+      </a11y-button>
 
       <!-- 登录按钮 -->
       <button
@@ -77,6 +86,11 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useUserStore } from "@/store/user";
+import A11yButton from "@/components/a11y-button.vue";
+
+/** 表单标签 id：供 input 的 aria-labelledby 关联，保证读屏能读出字段名 */
+const PHONE_LABEL_ID = "login-phone-label";
+const CODE_LABEL_ID = "login-code-label";
 
 const userStore = useUserStore();
 
@@ -264,7 +278,7 @@ async function handleLogin() {
   }
 
   .placeholder {
-    color: #ccc;
+    color: #767676;
   }
 }
 
@@ -290,7 +304,7 @@ async function handleLogin() {
     padding: 0;
 
     &[disabled] {
-      color: #ccc;
+      color: #767676;
       border-color: #eee;
       background: #fafafa;
     }
@@ -325,10 +339,10 @@ async function handleLogin() {
 
   .agreement-text {
     font-size: 24rpx;
-    color: #999;
+    color: #767676;
 
     .link {
-      color: #ff5e9c;
+      color: #c2185b;
     }
   }
 }

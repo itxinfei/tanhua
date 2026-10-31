@@ -1,41 +1,33 @@
 <template>
   <div class="page-container">
-    <!-- 搜索栏 -->
-    <div class="search-bar">
-      <el-form :inline="true" :model="query" @submit.prevent>
-        <el-form-item label="状态">
-          <el-select v-model="query.status" placeholder="全部" clearable style="width: 130px">
-            <el-option label="待处理" value="PENDING" />
-            <el-option label="处理中" value="PROCESSING" />
-            <el-option label="已处理" value="RESOLVED" />
-            <el-option label="已驳回" value="DISMISSED" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="举报类型">
-          <el-select v-model="query.targetType" placeholder="全部" clearable style="width: 120px">
-            <el-option label="用户" value="USER" />
-            <el-option label="动态" value="POST" />
-            <el-option label="评论" value="COMMENT" />
-            <el-option label="私信" value="MESSAGE" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
-          <el-button :icon="Refresh" @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </div>
+    <PageHeader title="举报处理" :subtitle="`共 ${total} 条记录`" />
 
-    <!-- 表格 -->
-    <div class="table-container">
-      <!-- 批量处理栏：仅当选中行时可见 -->
-      <div v-if="selectedIds.length > 0" class="batch-bar">
+    <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
+      <el-form-item label="状态">
+        <el-select v-model="query.status" placeholder="全部" clearable style="width: 130px">
+          <el-option label="待处理" value="PENDING" />
+          <el-option label="处理中" value="PROCESSING" />
+          <el-option label="已处理" value="RESOLVED" />
+          <el-option label="已驳回" value="DISMISSED" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="举报类型">
+        <el-select v-model="query.targetType" placeholder="全部" clearable style="width: 120px">
+          <el-option label="用户" value="USER" />
+          <el-option label="动态" value="POST" />
+          <el-option label="评论" value="COMMENT" />
+          <el-option label="私信" value="MESSAGE" />
+        </el-select>
+      </el-form-item>
+    </SearchBar>
+
+    <TableCard>
+      <template #batch v-if="selectedIds.length > 0">
         <span class="batch-count">已选 {{ selectedIds.length }} 项</span>
         <el-button type="danger" size="small" @click="openBatchHandle('RESOLVED')">批量处理</el-button>
         <el-button size="small" @click="openBatchHandle('DISMISSED')">批量驳回</el-button>
         <el-button link size="small" @click="clearSelection">清空选择</el-button>
-      </div>
-
+      </template>
       <el-table
         ref="tableRef"
         :data="tableData"
@@ -69,7 +61,7 @@
         <el-table-column prop="description" label="详细描述" min-width="200" show-overflow-tooltip />
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
-            <el-tag :type="statusColor(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
+            <StatusTag :status="row.status" :mapping="reportStatusMapping" />
           </template>
         </el-table-column>
         <el-table-column label="处理人" width="100" align="center">
@@ -89,8 +81,7 @@
           </template>
         </el-table-column>
       </el-table>
-
-      <div class="pagination-wrapper">
+      <template #pagination>
         <el-pagination
           v-model:current-page="query.page"
           v-model:page-size="query.pageSize"
@@ -100,8 +91,8 @@
           @size-change="handleSizeChange"
           @current-change="loadData"
         />
-      </div>
-    </div>
+      </template>
+    </TableCard>
 
     <!-- 详情抽屉：右侧滑出，展示举报人/被举报对象/证据图片 -->
     <el-drawer v-model="detailVisible" title="举报详情" direction="rtl" size="480px">
@@ -199,13 +190,13 @@
       <el-form ref="handleFormRef" :model="handleForm" :rules="handleRules" label-width="80px">
         <el-form-item label="处理方式" prop="result">
           <el-radio-group v-model="handleForm.result">
-            <el-radio value="RESOLVED">确认违规（封禁对方）</el-radio>
+            <el-radio value="RESOLVED">确认违规（封禁被举报人）</el-radio>
             <el-radio value="DISMISSED">驳回举报（无违规）</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item v-if="handleForm.result === 'RESOLVED'" class="handle-tip">
           <el-alert type="error" :closable="false" show-icon>
-            确认违规后，系统将对被举报目标用户执行封禁操作。
+            确认违规后，系统将立即封禁被举报用户，封禁原因记录为「举报违规：举报原因」，操作不可撤销。
           </el-alert>
         </el-form-item>
         <el-form-item label="处理备注" prop="note">
@@ -231,7 +222,8 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { Search, Refresh, UserFilled } from '@element-plus/icons-vue'
+import { UserFilled } from '@element-plus/icons-vue'
+import { PageHeader, SearchBar, TableCard, StatusTag } from '@/components'
 import {
   getReportPageApi,
   getReportDetailApi,
@@ -315,6 +307,14 @@ function targetTypeLabel(type: string): string {
 function targetTypeColor(type: string): string {
   const map: Record<string, string> = { USER: 'danger', POST: 'primary', COMMENT: 'warning', MESSAGE: 'info' }
   return map[type] || 'info'
+}
+
+// 举报状态映射
+const reportStatusMapping = {
+  PENDING: { label: '待处理', type: 'warning' as const },
+  PROCESSING: { label: '处理中', type: 'primary' as const },
+  RESOLVED: { label: '已处理', type: 'success' as const },
+  DISMISSED: { label: '已驳回', type: 'info' as const },
 }
 
 function statusLabel(status: string): string {
@@ -441,11 +441,11 @@ async function confirmHandle() {
     try {
       if (handleMode.value === 'batch') {
         await batchHandleReportApi(selectedIds.value, handleForm.result, handleForm.note.trim())
-        ElMessage.success(`批量${handleForm.result === 'RESOLVED' ? '处理' : '驳回'}成功，共 ${selectedIds.value.length} 项`)
+        ElMessage.success(`批量${handleForm.result === 'RESOLVED' ? '处理并封禁' : '驳回'}成功，共 ${selectedIds.value.length} 项`)
       } else {
         if (!handleTarget.value) return
         await handleReportApi(handleTarget.value.id, handleForm.result, handleForm.note.trim())
-        ElMessage.success(handleForm.result === 'RESOLVED' ? '已处理，目标用户已封禁' : '举报已驳回')
+        ElMessage.success(handleForm.result === 'RESOLVED' ? '已处理，被举报用户已封禁' : '举报已驳回')
       }
       handleDialogVisible.value = false
       clearSelection()
@@ -507,7 +507,7 @@ onMounted(() => {
   color: var(--el-text-color-primary);
   margin-bottom: 10px;
   padding-left: 8px;
-  border-left: 3px solid #409eff;
+  border-left: 3px solid var(--el-color-primary);
   line-height: 1.2;
 }
 

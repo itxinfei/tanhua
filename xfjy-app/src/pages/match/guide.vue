@@ -1,7 +1,7 @@
 <template>
   <view class="guide-page">
-    <!-- 进度指示 -->
-    <view class="progress-bar">
+    <!-- 进度指示（role=progressbar：读屏可获知完整度而非仅视觉宽度） -->
+    <view class="progress-bar" role="progressbar" aria-label="资料完整度" :aria-valuenow="completeness" aria-valuemin="0" aria-valuemax="100">
       <view class="progress-fill" :style="{ width: completeness + '%' }" />
       <text class="progress-text">资料完整度 {{ completeness }}%</text>
     </view>
@@ -9,46 +9,45 @@
     <!-- 头像 -->
     <view class="section">
       <text class="section-title">头像</text>
-      <view class="avatar-picker" @click="chooseAvatar">
-        <image
+      <a11y-button class="avatar-picker" label="更换头像" @tap="chooseAvatar">
+        <image lazy-load
           class="avatar"
           :src="form.avatar || '/static/logo/logo-icon-transparent.png'"
           mode="aspectFill"
+          aria-hidden="true"
         />
         <text class="avatar-hint">点击更换</text>
-      </view>
+      </a11y-button>
     </view>
 
     <!-- 昵称 -->
     <view class="section">
-      <text class="section-title">昵称</text>
+      <text :id="nicknameLabelId" class="section-title">昵称</text>
       <input
         class="input"
         v-model="form.nickname"
         placeholder="请输入昵称"
+        aria-label="昵称"
+        :aria-labelledby="nicknameLabelId"
         maxlength="20"
       />
     </view>
 
-    <!-- 性别 -->
+    <!-- 性别（语义单选组） -->
     <view class="section">
       <text class="section-title">性别</text>
-      <view class="gender-row">
-        <view
-          class="gender-btn"
-          :class="{ active: form.gender === 'man' }"
-          @click="form.gender = 'man'"
-        >
-          <text>男</text>
-        </view>
-        <view
-          class="gender-btn"
-          :class="{ active: form.gender === 'woman' }"
-          @click="form.gender = 'woman'"
-        >
-          <text>女</text>
-        </view>
-      </view>
+      <a11y-radio-group
+        class="gender-row"
+        label="性别"
+        :options="GENDER_OPTIONS"
+        :model-value="form.gender"
+        option-class="gender-btn"
+        @update:model-value="form.gender = $event"
+      >
+        <template #option="{ option }">
+          <text>{{ option.label }}</text>
+        </template>
+      </a11y-radio-group>
     </view>
 
     <!-- 生日 -->
@@ -65,11 +64,13 @@
 
     <!-- 城市 -->
     <view class="section">
-      <text class="section-title">城市</text>
+      <text :id="cityLabelId" class="section-title">城市</text>
       <input
         class="input"
         v-model="form.city"
         placeholder="如：北京"
+        aria-label="城市"
+        :aria-labelledby="cityLabelId"
         maxlength="20"
       />
     </view>
@@ -90,16 +91,28 @@
     <button class="submit-btn" :disabled="submitting" @click="handleSubmit">
       {{ submitting ? '保存中...' : '完成' }}
     </button>
-    <text class="skip-btn" @click="handleSkip">跳过，稍后完善</text>
+    <a11y-button class="skip-btn" label="跳过，稍后完善资料" @tap="handleSkip">跳过，稍后完善</a11y-button>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import A11yButton from "@/components/a11y-button.vue";
+import A11yRadioGroup from "@/components/a11y-radio-group.vue";
 import { updateUserProfile } from "@/api/mine";
+
+/** 表单字段唯一 id：用于 aria-labelledby 建立程序化标签关联（WCAG 1.3.1 / 3.3.2） */
+const nicknameLabelId = "guide-nickname-label";
+const cityLabelId = "guide-city-label";
 
 /** 学历选项（与后端枚举一致） */
 const EDUCATION_OPTIONS = ["本科", "硕士", "双硕", "博士", "双博"];
+
+/** 性别选项（value 与后端一致；label 供读屏朗读） */
+const GENDER_OPTIONS = [
+  { value: "man", label: "男" },
+  { value: "woman", label: "女" },
+];
 
 /** 表单数据 */
 const form = ref({
@@ -217,7 +230,8 @@ function handleSkip(): void {
 
   .section-title {
     font-size: 28rpx;
-    color: #999;
+    /* #999 → #767676 */
+    color: #767676;
     display: block;
     margin-bottom: 16rpx;
   }
@@ -233,7 +247,7 @@ function handleSkip(): void {
     padding: 8rpx 0;
 
     .placeholder {
-      color: #ccc;
+      color: #767676;
     }
   }
 }
@@ -299,11 +313,14 @@ function handleSkip(): void {
   }
 }
 
+/* 跳过：#999 → #767676；触摸目标 ≥24px */
 .skip-btn {
   display: block;
   text-align: center;
   margin-top: 24rpx;
   font-size: 28rpx;
-  color: #999;
+  color: #767676;
+  min-height: 48rpx;
+  padding: 12rpx 0;
 }
 </style>

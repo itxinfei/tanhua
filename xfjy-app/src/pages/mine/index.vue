@@ -2,11 +2,11 @@
   <view class="mine-page">
     <!-- 头部背景区 -->
     <view class="header" :style="{ paddingTop: statusBarHeight + HEADER_EXTRA_PADDING_PX + 'px' }">
-      <!-- 漂浮装饰圆 -->
-      <view class="deco-circle deco-1 float" />
-      <view class="deco-circle deco-2 float" />
-      <view class="user-row" @click="goProfile">
-        <image class="avatar" :src="userInfo?.avatar || '/static/logo/logo-icon-transparent.png'" mode="aspectFill" />
+      <!-- 漂浮装饰圆（纯装饰，对读屏隐藏） -->
+      <view class="deco-circle deco-1 float" aria-hidden="true" />
+      <view class="deco-circle deco-2 float" aria-hidden="true" />
+      <a11y-button class="user-row" label="编辑个人资料" @tap="goProfile">
+        <image lazy-load class="avatar" :src="userInfo?.avatar || '/static/logo/logo-icon-transparent.png'" mode="aspectFill" aria-hidden="true" />
         <view class="user-info">
           <view class="name-row">
             <text class="nickname">{{ userInfo?.nickname || '未设置昵称' }}</text>
@@ -17,37 +17,38 @@
           <text class="meta">{{ userInfo?.city || '未知城市' }} · {{ userInfo?.age || '—' }}岁</text>
           <text v-if="userInfo?.signature" class="signature ellipsis">{{ userInfo.signature }}</text>
         </view>
-        <text class="edit-arrow">›</text>
-      </view>
+        <!-- 箭头为装饰符号，避免读屏逐字朗读 -->
+        <text class="edit-arrow" aria-hidden="true">›</text>
+      </a11y-button>
 
       <!-- 数据栏（与后端 CountsVo 对齐：eachLoveCount/loveCount/fanCount） -->
       <view class="stats-row">
-        <view class="stat-item" @click="goFriends(FRIEND_TYPE.MUTUAL)">
+        <a11y-button class="stat-item" :label="`互相喜欢 ${counts.eachLoveCount} 人，查看列表`" @tap="goFriends(FRIEND_TYPE.MUTUAL)">
           <text class="stat-num">{{ counts.eachLoveCount }}</text>
           <text class="stat-label">互相喜欢</text>
-        </view>
-        <view class="stat-item" @click="goFriends(FRIEND_TYPE.FOLLOW)">
+        </a11y-button>
+        <a11y-button class="stat-item" :label="`我喜欢 ${counts.loveCount} 人，查看列表`" @tap="goFriends(FRIEND_TYPE.FOLLOW)">
           <text class="stat-num">{{ counts.loveCount }}</text>
           <text class="stat-label">我喜欢</text>
-        </view>
-        <view class="stat-item" @click="goFriends(FRIEND_TYPE.FANS)">
+        </a11y-button>
+        <a11y-button class="stat-item" :label="`粉丝 ${counts.fanCount} 人，查看列表`" @tap="goFriends(FRIEND_TYPE.FANS)">
           <text class="stat-num">{{ counts.fanCount }}</text>
           <text class="stat-label">粉丝</text>
-        </view>
+        </a11y-button>
       </view>
     </view>
 
     <!-- VIP 入口 -->
-    <view class="vip-card" @click="goVip">
+    <a11y-button class="vip-card" :label="userInfo?.vip ? '会员中心' : '开通会员'" @tap="goVip">
       <view class="vip-left">
-        <text class="vip-icon">👑</text>
+        <uni-icons class="vip-icon" type="vip" size="24"></uni-icons>
         <view>
           <text class="vip-title">{{ userInfo?.vip ? '会员中心' : '开通会员' }}</text>
           <text class="vip-desc">{{ userInfo?.vip ? '查看你的会员权益' : '无限滑动 · 查看谁喜欢我 · 位置穿越' }}</text>
         </view>
       </view>
-      <text class="vip-arrow">›</text>
-    </view>
+      <text class="vip-arrow" aria-hidden="true">›</text>
+    </a11y-button>
 
     <!-- 功能列表（表驱动渲染） -->
     <view
@@ -55,18 +56,19 @@
       :key="groupIndex"
       class="menu-group"
     >
-      <view
+      <a11y-button
         v-for="item in group"
         :key="item.label"
         class="menu-item btn-feedback"
-        @click="item.action()"
+        :label="item.label"
+        @tap="item.action()"
       >
         <view class="menu-icon-bg" :style="{ background: item.color }">
-          <text class="menu-icon">{{ item.icon }}</text>
+          <uni-icons class="menu-icon" :type="item.uniIcon" size="24" color="#fff"></uni-icons>
         </view>
         <text class="menu-label">{{ item.label }}</text>
-        <text class="menu-arrow">›</text>
-      </view>
+        <text class="menu-arrow" aria-hidden="true">›</text>
+      </a11y-button>
     </view>
     <!-- 匹配成功弹窗（全局，由 match store 驱动） -->
     <MatchPopup />
@@ -77,6 +79,7 @@
 import { ref, computed } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import MatchPopup from "@/components/match-popup.vue";
+import A11yButton from "@/components/a11y-button.vue";
 import { useUserStore } from "@/store/user";
 import { getRelationCounts, FRIEND_TYPE, type RelationCounts } from "@/api/mine";
 
@@ -98,7 +101,7 @@ const counts = ref<RelationCounts>({
 
 /** 菜单项配置（表驱动：图标/文案/色块颜色/点击行为） */
 interface MenuItemConfig {
-  icon: string;
+  uniIcon: string;
   label: string;
   color: string;
   action: () => void;
@@ -107,31 +110,31 @@ interface MenuItemConfig {
 /** 社交关系菜单组 */
 const socialMenuItems: MenuItemConfig[] = [
   {
-    icon: "✏️",
+    uniIcon: "compose",
     label: "编辑资料",
     color: "#ff5e9c",
     action: () => goPage("/pages/mine/profile"),
   },
   {
-    icon: "👥",
+    uniIcon: "contact",
     label: "我的好友",
     color: "#4a90d9",
     action: () => goFriends(FRIEND_TYPE.MUTUAL),
   },
   {
-    icon: "👁",
+    uniIcon: "eye",
     label: "谁看过我",
     color: "#a78bfa",
     action: () => goFriends(FRIEND_TYPE.VISITOR),
   },
   {
-    icon: "♥",
+    uniIcon: "heart-filled",
     label: "我喜欢",
     color: "#ff5e9c",
     action: () => goFriends(FRIEND_TYPE.FOLLOW),
   },
   {
-    icon: "🙋",
+    uniIcon: "person",
     label: "粉丝",
     color: "#4cd964",
     action: () => goFriends(FRIEND_TYPE.FANS),
@@ -141,19 +144,19 @@ const socialMenuItems: MenuItemConfig[] = [
 /** 系统设置菜单组 */
 const settingsMenuItems: MenuItemConfig[] = [
   {
-    icon: "🚫",
+    uniIcon: "close",
     label: "黑名单",
     color: "#999999",
     action: () => goPage("/pages/mine/blacklist"),
   },
   {
-    icon: "🎧",
+    uniIcon: "headphones",
     label: "在线客服",
     color: "#ff5e9c",
     action: () => goPage("/pages/kefu/index"),
   },
   {
-    icon: "⚙",
+    uniIcon: "gear",
     label: "设置",
     color: "#666666",
     action: () => goPage("/pages/mine/settings"),
@@ -284,23 +287,24 @@ onShow(() => {
         }
       }
 
+      /* 渐变底上的小字：透明度提至接近不透明，保证 4.5:1 */
       .uid {
-        font-size: 22rpx;
-        color: rgba(255, 255, 255, 0.7);
+        font-size: 24rpx;
+        color: rgba(255, 255, 255, 0.95);
         margin-top: 6rpx;
         display: block;
       }
 
       .meta {
         font-size: 24rpx;
-        color: rgba(255, 255, 255, 0.85);
+        color: rgba(255, 255, 255, 0.95);
         margin-top: 6rpx;
         display: block;
       }
 
       .signature {
         font-size: 24rpx;
-        color: rgba(255, 255, 255, 0.8);
+        color: rgba(255, 255, 255, 0.95);
         margin-top: 8rpx;
         display: block;
       }
@@ -308,7 +312,7 @@ onShow(() => {
 
     .edit-arrow {
       font-size: 40rpx;
-      color: rgba(255, 255, 255, 0.6);
+      color: rgba(255, 255, 255, 0.85);
     }
   }
 
@@ -331,9 +335,10 @@ onShow(() => {
         color: #fff;
       }
 
+      /* 22rpx 小字 + 半透明不达标 → 提至 0.95 */
       .stat-label {
-        font-size: 22rpx;
-        color: rgba(255, 255, 255, 0.7);
+        font-size: 24rpx;
+        color: rgba(255, 255, 255, 0.95);
         margin-top: 4rpx;
       }
     }
@@ -369,7 +374,7 @@ onShow(() => {
 
     .vip-desc {
       font-size: 22rpx;
-      color: rgba(255, 215, 0, 0.7);
+      color: rgba(255, 215, 0, 0.95);
       margin-top: 4rpx;
       display: block;
     }
@@ -420,9 +425,10 @@ onShow(() => {
       margin-left: 16rpx;
     }
 
+    /* #ccc on #fff ≈1.6:1，提至 #767676（≈4.54:1） */
     .menu-arrow {
       font-size: 32rpx;
-      color: #ccc;
+      color: #767676;
     }
   }
 }

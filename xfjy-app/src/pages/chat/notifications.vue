@@ -2,7 +2,7 @@
   <view class="notifications-page">
     <!-- VIP 权益锁定状态（心动/谁喜欢我） -->
     <view v-if="locked" class="locked-state">
-      <view class="locked-icon"><text>🔒</text></view>
+      <view class="locked-icon"><uni-icons type="locked" size="28" color="#fff"></uni-icons></view>
       <text class="locked-title">VIP 专享权益</text>
       <text class="locked-desc">开通会员即可查看谁喜欢你</text>
       <button class="locked-btn btn-feedback" @click="goVip">开通 VIP</button>
@@ -10,24 +10,25 @@
 
     <!-- 空状态 -->
     <view v-else-if="list.length === 0" class="empty-state">
-      <view class="empty-icon"><text>🔔</text></view>
+      <view class="empty-icon"><uni-icons type="notification" size="28" color="#767676"></uni-icons></view>
       <text class="empty-title">暂无通知</text>
       <text class="empty-desc">有人喜欢你时会在这里提醒你</text>
     </view>
 
     <!-- 通知列表 -->
     <template v-else>
-      <view v-for="item in list" :key="item.id" class="notice-item shadow-card btn-feedback" @click="goDetail(item)">
+      <a11y-button v-for="item in list" :key="item.id" class="notice-item shadow-card btn-feedback" :label="noticeLabel(item)" @tap="goDetail(item)">
         <view class="avatar-wrap">
-          <image class="avatar" :src="item.avatar || '/static/logo/logo-icon-transparent.png'" mode="aspectFill" lazy-load />
-          <view class="type-badge" :style="{ background: typeMeta.color }"><text>{{ typeMeta.icon }}</text></view>
+          <image class="avatar" :src="item.avatar || '/static/logo/logo-icon-transparent.png'" mode="aspectFill" lazy-load :aria-label="`${item.nickname} 的头像`" />
+          <!-- 类型徽章为纯图标，语义已由 desc 文本（赞了你的动态等）承载，避免重复朗读 -->
+          <view class="type-badge" :style="{ background: typeMeta.color }" aria-hidden="true"><uni-icons :type="typeMeta.uniIcon" size="18" color="#fff"></uni-icons></view>
         </view>
         <view class="info">
           <text class="nickname">{{ item.nickname }}</text>
           <text class="desc">{{ item.desc }}</text>
         </view>
         <text class="time">{{ item.time }}</text>
-      </view>
+      </a11y-button>
     </template>
   </view>
 </template>
@@ -35,6 +36,8 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { onLoad, onShow, onPullDownRefresh } from "@dcloudio/uni-app";
+import A11yButton from "@/components/a11y-button.vue";
+import { useChatStore, type NoticeType } from "@/store/chat";
 import {
   getLikeMessages,
   getCommentMessages,
@@ -55,14 +58,16 @@ interface NoticeItem {
   userId?: number;
 }
 
+const chatStore = useChatStore();
+
 /** 通知类型元数据（图标+颜色，与会话列表 NOTICE_META 保持一致） */
-const TYPE_META: Record<string, { icon: string; color: string }> = {
-  like: { icon: "♥", color: "#ff5e9c" },
-  comment: { icon: "💬", color: "#4a90d9" },
-  love: { icon: "★", color: "#ff5e9c" },
-  announcement: { icon: "📢", color: "#4cd964" },
-  visitors: { icon: "👁", color: "#a78bfa" },
-  fans: { icon: "👥", color: "#ff8fb1" },
+const TYPE_META: Record<string, { uniIcon: string; color: string }> = {
+  like: { uniIcon: "heart-filled", color: "#ff5e9c" },
+  comment: { uniIcon: "chatbubble", color: "#4a90d9" },
+  love: { uniIcon: "star-filled", color: "#ff5e9c" },
+  announcement: { uniIcon: "notification", color: "#4cd964" },
+  visitors: { uniIcon: "eye", color: "#a78bfa" },
+  fans: { uniIcon: "person", color: "#ff8fb1" },
 };
 
 /** 页面标题映射 */
@@ -96,6 +101,14 @@ function goVip(): void {
 const typeMeta = computed(() => TYPE_META[type.value] || TYPE_META.like);
 
 /** 跳转用户详情 */
+/**
+ * 通知项无障碍标签：合并昵称/行为/时间，读屏一次朗读完整信息
+ * @param item 通知项
+ */
+function noticeLabel(item: NoticeItem): string {
+  return `${item.nickname}，${item.desc}，${item.time}`;
+}
+
 function goDetail(item: NoticeItem): void {
   if (!item.userId) return;
   uni.navigateTo({ url: `/pages/match/detail?id=${item.userId}` });
@@ -174,7 +187,11 @@ onLoad((options: any) => {
   uni.setNavigationBarTitle({ title: PAGE_TITLES[type.value] || "通知" });
 });
 
-onShow(() => loadList());
+onShow(async () => {
+  await loadList();
+  // 真正进入通知页并完成加载后才清零未读，避免入口误触即丢未读计数
+  chatStore.markNoticeRead(type.value as NoticeType);
+});
 
 /** 下拉刷新：重新拉取当前类型通知列表 */
 onPullDownRefresh(async () => {
@@ -196,23 +213,26 @@ onPullDownRefresh(async () => {
   }
   .info { flex: 1; margin-left: 20rpx;
     .nickname { font-size: 28rpx; font-weight: bold; color: #333; display: block; }
-    .desc { font-size: 24rpx; color: #999; margin-top: 6rpx; display: block; }
+    /* #999 → #767676 */
+    .desc { font-size: 24rpx; color: #767676; margin-top: 6rpx; display: block; }
   }
-  .time { font-size: 22rpx; color: #ccc; flex-shrink: 0; }
+  /* #ccc → #767676 */
+  .time { font-size: 22rpx; color: #767676; flex-shrink: 0; }
 }
 
 /* 空状态 */
 .empty-state { display: flex; flex-direction: column; align-items: center; padding: 160rpx 0 80rpx;
   .empty-icon { width: 120rpx; height: 120rpx; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 56rpx; margin-bottom: 24rpx; }
-  .empty-title { font-size: 30rpx; color: #666; font-weight: bold; }
-  .empty-desc { font-size: 24rpx; color: #aaa; margin-top: 12rpx; }
+  .empty-title { font-size: 30rpx; color: #595959; font-weight: bold; }
+  /* #aaa → #767676 */
+  .empty-desc { font-size: 24rpx; color: #767676; margin-top: 12rpx; }
 }
 
 /* VIP 权益锁定状态 */
 .locked-state { display: flex; flex-direction: column; align-items: center; padding: 160rpx 48rpx 80rpx;
   .locked-icon { width: 120rpx; height: 120rpx; border-radius: 50%; background: linear-gradient(135deg, #ffd700, #ffb347); display: flex; align-items: center; justify-content: center; font-size: 56rpx; margin-bottom: 24rpx; box-shadow: 0 8rpx 24rpx rgba(255, 179, 71, 0.35); }
   .locked-title { font-size: 32rpx; color: #333; font-weight: bold; }
-  .locked-desc { font-size: 24rpx; color: #999; margin-top: 12rpx; text-align: center; }
+  .locked-desc { font-size: 24rpx; color: #767676; margin-top: 12rpx; text-align: center; }
   .locked-btn { margin-top: 40rpx; width: 320rpx; height: 80rpx; line-height: 80rpx; background: linear-gradient(90deg, #ffd700, #ffb347); color: #1a1a2e; font-size: 28rpx; font-weight: bold; border-radius: 40rpx; border: none; }
 }
 </style>

@@ -197,7 +197,7 @@ async function submitPassword() {
       await changePasswordApi(passwordForm.oldPassword, passwordForm.newPassword)
       ElMessage.success('密码修改成功，请重新登录')
       passwordVisible.value = false
-      authStore.logout()
+      await authStore.logout()
       router.push('/login')
     } catch {
       // 拦截器已提示
@@ -226,16 +226,16 @@ async function submitPassword() {
 .nickname {
   margin: 0;
   font-size: 18px;
-  color: #303133;
+  color: var(--xfjy-text-primary);
 }
 
 .card-title {
   font-size: 15px;
   font-weight: 600;
-  color: #303133;
+  color: var(--xfjy-text-primary);
   margin-bottom: 20px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--xfjy-border-light);
 }
 
 .security-item {
@@ -247,13 +247,13 @@ async function submitPassword() {
 
 .security-label {
   font-size: 14px;
-  color: #303133;
+  color: var(--xfjy-text-primary);
   font-weight: 500;
 }
 
 .security-desc {
   font-size: 12px;
-  color: #909399;
+  color: var(--xfjy-text-secondary);
   margin-top: 4px;
 }
 </style>

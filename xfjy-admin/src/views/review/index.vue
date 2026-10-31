@@ -1,28 +1,21 @@
 <template>
   <div class="page-container review-workbench">
-    <!-- 搜索栏 -->
-    <div class="search-bar">
-      <el-form :inline="true" :model="query" @submit.prevent>
-        <el-form-item label="类型">
-          <el-select v-model="query.type" placeholder="全部" clearable style="width: 120px">
-            <el-option label="动态" value="POST" />
-            <el-option label="图片" value="PHOTO" />
-            <el-option label="视频" value="VIDEO" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="query.status" placeholder="全部" clearable style="width: 120px">
-            <el-option label="待审核" value="PENDING" />
-            <el-option label="已通过" value="APPROVED" />
-            <el-option label="已驳回" value="REJECTED" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
-          <el-button :icon="Refresh" @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </div>
+    <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
+      <el-form-item label="类型">
+        <el-select v-model="query.type" placeholder="全部" clearable style="width: 120px">
+          <el-option label="动态" value="POST" />
+          <el-option label="图片" value="PHOTO" />
+          <el-option label="视频" value="VIDEO" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="状态">
+        <el-select v-model="query.status" placeholder="全部" clearable style="width: 120px">
+          <el-option label="待审核" value="PENDING" />
+          <el-option label="已通过" value="APPROVED" />
+          <el-option label="已驳回" value="REJECTED" />
+        </el-select>
+      </el-form-item>
+    </SearchBar>
 
     <!-- 快捷键提示条 -->
     <div class="shortcut-bar">
@@ -220,7 +213,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh } from '@element-plus/icons-vue'
+import { SearchBar } from '@/components'
 import {
   getReviewPageApi,
   approveReviewApi,
@@ -517,10 +510,10 @@ onUnmounted(() => {
   gap: 16px;
   margin-bottom: 12px;
   padding: 8px 16px;
-  background: #ecf5ff;
-  border: 1px solid #d9ecff;
+  background: var(--xfjy-primary-50);
+  border: 1px solid var(--xfjy-primary-100);
   border-radius: 8px;
-  color: #409eff;
+  color: var(--el-color-primary);
   font-size: 13px;
 }
 
@@ -529,7 +522,7 @@ onUnmounted(() => {
 }
 
 .shortcut-tip {
-  color: #909399;
+  color: var(--xfjy-text-secondary);
 }
 
 kbd {
@@ -537,10 +530,10 @@ kbd {
   padding: 1px 6px;
   margin: 0 2px;
   background: #fff;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--xfjy-border);
   border-bottom-width: 2px;
   border-radius: 4px;
-  color: #303133;
+  color: var(--xfjy-text-primary);
   font-family: inherit;
   font-size: 12px;
   line-height: 1.6;
@@ -561,7 +554,7 @@ kbd {
   flex-direction: column;
   background: #fff;
   border-radius: 8px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--xfjy-border-light);
   overflow: hidden;
 }
 
@@ -570,11 +563,11 @@ kbd {
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--xfjy-border-light);
 }
 
 .queue-count {
-  color: #909399;
+  color: var(--xfjy-text-secondary);
   font-size: 12px;
   margin-right: auto;
 }
@@ -594,18 +587,18 @@ kbd {
   gap: 8px;
   padding: 10px 12px;
   cursor: pointer;
-  border-bottom: 1px solid #f2f6fc;
+  border-bottom: 1px solid var(--xfjy-border-light);
   border-left: 3px solid transparent;
   transition: background-color 0.15s;
 }
 
 .queue-item:hover {
-  background: #f5f7fa;
+  background: var(--xfjy-bg-hover);
 }
 
 .queue-item.active {
-  background: #ecf5ff;
-  border-left-color: #409eff;
+  background: var(--xfjy-primary-50);
+  border-left-color: var(--el-color-primary);
 }
 
 .queue-item.processed {
@@ -629,7 +622,7 @@ kbd {
 }
 
 .queue-user {
-  color: #303133;
+  color: var(--xfjy-text-primary);
   font-size: 13px;
   font-weight: 500;
   max-width: 120px;
@@ -639,19 +632,19 @@ kbd {
 }
 
 .queue-id {
-  color: #c0c4cc;
+  color: var(--xfjy-text-disabled);
   font-size: 12px;
 }
 
 .queue-time {
   margin-left: auto;
-  color: #c0c4cc;
+  color: var(--xfjy-text-disabled);
   font-size: 12px;
   flex-shrink: 0;
 }
 
 .queue-content {
-  color: #606266;
+  color: var(--xfjy-text-regular);
   font-size: 13px;
   line-height: 1.5;
   display: -webkit-box;
@@ -670,7 +663,7 @@ kbd {
 
 .pagination-wrapper {
   padding: 8px;
-  border-top: 1px solid #ebeef5;
+  border-top: 1px solid var(--xfjy-border-light);
   display: flex;
   justify-content: center;
 }
@@ -683,7 +676,7 @@ kbd {
   flex-direction: column;
   background: #fff;
   border-radius: 8px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--xfjy-border-light);
   overflow: hidden;
 }
 
@@ -692,7 +685,7 @@ kbd {
   align-items: center;
   gap: 12px;
   padding: 16px 20px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--xfjy-border-light);
 }
 
 .detail-user {
@@ -701,14 +694,14 @@ kbd {
 }
 
 .detail-name {
-  color: #303133;
+  color: var(--xfjy-text-primary);
   font-size: 15px;
   font-weight: 600;
   margin-bottom: 2px;
 }
 
 .detail-time {
-  color: #909399;
+  color: var(--xfjy-text-secondary);
   font-size: 12px;
   flex-shrink: 0;
 }
@@ -726,13 +719,13 @@ kbd {
 
 .detail-section h4 {
   margin: 0 0 10px;
-  color: #303133;
+  color: var(--xfjy-text-primary);
   font-size: 14px;
 }
 
 .detail-content {
   margin: 0;
-  color: #303133;
+  color: var(--xfjy-text-primary);
   font-size: 14px;
   line-height: 1.8;
   white-space: pre-wrap;
@@ -751,12 +744,12 @@ kbd {
   height: 200px;
   flex-shrink: 0;
   border-radius: 8px;
-  background: #f5f7fa;
+  background: var(--xfjy-bg-hover);
 }
 
 .review-result {
   padding: 14px 16px;
-  background: #f5f7fa;
+  background: var(--xfjy-bg-hover);
   border-radius: 8px;
 }
 
@@ -775,7 +768,7 @@ kbd {
   align-items: center;
   gap: 12px;
   padding: 14px 20px;
-  border-top: 1px solid #ebeef5;
+  border-top: 1px solid var(--xfjy-border-light);
 }
 
 .detail-footer .el-button {
@@ -790,7 +783,7 @@ kbd {
 }
 
 .text-muted {
-  color: #909399;
+  color: var(--xfjy-text-secondary);
   font-size: 12px;
 }
 </style>

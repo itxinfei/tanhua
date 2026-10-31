@@ -1,53 +1,48 @@
 <template>
   <div class="page-container">
-    <!-- 搜索栏 -->
-    <div class="search-bar">
-      <el-form :inline="true" :model="query" @submit.prevent>
-        <el-form-item label="关键词">
-          <el-input v-model="query.keyword" placeholder="手机号/昵称" clearable style="width: 180px" @keyup.enter="handleSearch" />
-        </el-form-item>
-        <el-form-item label="性别">
-          <el-select v-model="query.gender" placeholder="全部" clearable style="width: 100px">
-            <el-option label="男" value="男" />
-            <el-option label="女" value="女" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="query.status" placeholder="全部" clearable style="width: 120px">
-            <el-option label="正常" value="NORMAL" />
-            <el-option label="已封禁" value="FROZEN" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="注册时间">
-          <el-date-picker
-            v-model="dateRange"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            value-format="YYYY-MM-DD"
-            style="width: 260px"
-            @change="handleDateChange"
-          />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
-          <el-button :icon="Refresh" @click="handleReset">重置</el-button>
-          <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" :icon="Download" @click="handleExport">导出</el-button>
-        </el-form-item>
-      </el-form>
-    </div>
+    <PageHeader title="用户列表" :subtitle="`共 ${total} 条记录`">
+      <template #actions>
+        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" :icon="Download" @click="handleExport">导出</el-button>
+      </template>
+    </PageHeader>
 
-    <!-- 批量操作栏 -->
-    <div class="batch-bar" v-if="selectedRows.length > 0">
-      <span class="batch-count">已选 {{ selectedRows.length }} 项</span>
-      <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="danger" size="small" @click="handleBatchFreeze">批量封禁</el-button>
-      <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" size="small" @click="handleBatchUnfreeze">批量解封</el-button>
-      <el-button size="small" @click="selectedRows = []">取消选择</el-button>
-    </div>
+    <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
+      <el-form-item label="关键词">
+        <el-input v-model="query.keyword" placeholder="手机号/昵称" clearable style="width: 180px" @keyup.enter="handleSearch" />
+      </el-form-item>
+      <el-form-item label="性别">
+        <el-select v-model="query.gender" placeholder="全部" clearable style="width: 100px">
+          <el-option label="男" value="男" />
+          <el-option label="女" value="女" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="状态">
+        <el-select v-model="query.status" placeholder="全部" clearable style="width: 120px">
+          <el-option label="正常" value="NORMAL" />
+          <el-option label="已封禁" value="FROZEN" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="注册时间">
+        <el-date-picker
+          v-model="dateRange"
+          type="daterange"
+          range-separator="至"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期"
+          value-format="YYYY-MM-DD"
+          style="width: 260px"
+          @change="handleDateChange"
+        />
+      </el-form-item>
+    </SearchBar>
 
-    <!-- 表格 -->
-    <div class="table-container">
+    <TableCard>
+      <template #batch v-if="selectedRows.length > 0">
+        <span class="batch-count">已选 {{ selectedRows.length }} 项</span>
+        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="danger" size="small" @click="handleBatchFreeze">批量封禁</el-button>
+        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" size="small" @click="handleBatchUnfreeze">批量解封</el-button>
+        <el-button size="small" @click="selectedRows = []">取消选择</el-button>
+      </template>
       <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="50" align="center" :selectable="() => true" />
         <el-table-column type="index" label="#" width="50" align="center" />
@@ -75,9 +70,7 @@
         </el-table-column>
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'NORMAL' ? 'success' : 'danger'" size="small">
-              {{ row.status === 'NORMAL' ? '正常' : '已封禁' }}
-            </el-tag>
+            <StatusTag :status="row.status" :mapping="userStatusMapping" />
           </template>
         </el-table-column>
         <el-table-column prop="createdAt" label="注册时间" width="170" />
@@ -91,8 +84,7 @@
           </template>
         </el-table-column>
       </el-table>
-
-      <div class="pagination-wrapper">
+      <template #pagination>
         <el-pagination
           v-model:current-page="query.page"
           v-model:page-size="query.pageSize"
@@ -102,8 +94,8 @@
           @size-change="handleSizeChange"
           @current-change="loadData"
         />
-      </div>
-    </div>
+      </template>
+    </TableCard>
 
     <!-- 封禁弹窗 -->
     <el-dialog v-model="freezeDialogVisible" title="封禁用户" width="440px">
@@ -156,7 +148,8 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh, Download } from '@element-plus/icons-vue'
+import { Download } from '@element-plus/icons-vue'
+import { PageHeader, SearchBar, TableCard, StatusTag } from '@/components'
 import { getUserPageApi, freezeUserApi, unfreezeUserApi, resetUserPasswordApi, exportUsersApi } from '@/api/user'
 import type { UserItem, UserQuery } from '@/api/user'
 import request from '@/api/request'
@@ -178,6 +171,12 @@ const query = reactive<UserQuery>({
   startDate: '',
   endDate: '',
 })
+
+// 用户状态映射
+const userStatusMapping = {
+  NORMAL: { label: '正常', type: 'success' as const },
+  FROZEN: { label: '已封禁', type: 'danger' as const },
+}
 
 function handleDateChange(val: [string, string] | null) {
   if (val) {
@@ -363,23 +362,9 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.text-muted {
-  color: #c0c4cc;
-}
-
-.batch-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  margin-bottom: 12px;
-  background: #f5f7fa;
-  border-radius: 6px;
-}
-
 .batch-count {
   font-size: 13px;
-  color: #606266;
+  color: var(--xfjy-text-regular);
   margin-right: auto;
 }
 </style>
