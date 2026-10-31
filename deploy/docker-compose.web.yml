@@ -15,8 +15,8 @@ services:
 
   xfjy-admin:
     build:
-      # 最小构建上下文：只含前端源码 + nginx.conf + Dockerfile
-      # 由 deploy/ci/stage-artifacts.sh 生成，避免传输整个仓库（~10GB）
+      # 最小构建上下文：只含 dist 构建产物 + nginx.conf + Dockerfile
+      # 前端构建在 CI 容器内完成（复用 npm 缓存卷），由 stage-artifacts.sh 暂存
       context: build/xfjy-admin
       dockerfile: Dockerfile
     pull_policy: never
@@ -28,8 +28,8 @@ services:
 
   xfjy-h5:
     build:
-      # 最小构建上下文：只含前端源码 + nginx.conf + Dockerfile
-      # 由 deploy/ci/stage-artifacts.sh 生成，避免传输整个仓库（~10GB）
+      # 最小构建上下文：只含 dist 构建产物 + nginx.conf + Dockerfile
+      # 前端构建在 CI 容器内完成（复用 npm 缓存卷），由 stage-artifacts.sh 暂存
       context: build/xfjy-h5
       dockerfile: Dockerfile
     pull_policy: never

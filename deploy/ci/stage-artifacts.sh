@@ -17,9 +17,15 @@
 #   Dockerfile  ← deploy/docker/Dockerfile.java 的副本
 #
 # 前端暂存目录内容：
-#   Dockerfile  ← deploy/docker/Dockerfile.{admin,h5} 的副本
-#   src/ 等前端源码（排除 node_modules / dist）
+#   dist/       ← 前端构建产物（CI 容器内已构建完成，见 deploy.yml「构建前端」步骤）
+#   Dockerfile  ← deploy/docker/Dockerfile.{admin,h5} 的副本（单阶段 nginx + COPY dist）
 #   nginx.conf  ← deploy/docker/nginx.conf
+#
+# 前端构建提速原理：
+#   旧方式暂存源码、在 Docker build 内 npm ci —— 构建容器吃不到 CI 挂载的
+#   /root/.npm 缓存卷，每次从零下载依赖 3-8 分钟。
+#   新方式在 CI 容器内 npm ci --prefer-offline（走缓存卷秒级装依赖）+ npm run build，
+#   本脚本只暂存现成 dist 产物，Docker build 退化为 COPY dist → nginx，秒级出镜像。
 #
 # 用法：
 #   bash deploy/ci/stage-artifacts.sh                    # 暂存所有服务
@@ -75,18 +81,19 @@ stage_backend() {
 }
 
 # ---- 前端 ----
-# stage_frontend <服务名> <源码目录> <Dockerfile 名>
+# stage_frontend <服务名> <dist产物目录> <Dockerfile 名>
+# 只暂存现成构建产物（前端构建已在 CI 容器内完成）。
 stage_frontend() {
-  local svc="$1" src="$2" df="$3"
-  [ -d "${src}" ] || return 1
+  local svc="$1" dist="$2" df="$3"
+  if [ ! -f "${dist}/index.html" ]; then
+    warn "${svc}: 缺少构建产物 ${dist}/index.html（前端未构建？CI 应先执行「构建前端」步骤）"
+    return 1
+  fi
   local dir="${STAGE_ROOT}/${svc}"
   rm -rf "${dir}"
-  mkdir -p "${dir}"
-  # 复制前端源码（排除 node_modules / dist / .git 等大目录）
-  ( cd "${src}" && tar -cf - \
-      --exclude=node_modules --exclude=dist --exclude=.git \
-      --exclude=.workbuddy --exclude=unpackage --exclude=.hbuilderx \
-      . ) | ( cd "${dir}" && tar -xf - )
+  mkdir -p "${dir}/dist"
+  # 复制构建产物到统一位置（Dockerfile 统一 COPY dist/ → nginx html）
+  cp -a "${dist}/." "${dir}/dist/"
   cp -f "deploy/docker/${df}" "${dir}/Dockerfile"
   cp -f "deploy/docker/nginx.conf" "${dir}/nginx.conf"
   return 0
@@ -114,11 +121,12 @@ if [ "${FRONTEND_ONLY}" != "true" ]; then
 fi
 
 # ---- 前端 ----
-for pair in "xfjy-admin:xfjy-admin:Dockerfile.admin" "xfjy-h5:xfjy-app:Dockerfile.h5"; do
-  svc="${pair%%:*}"; rest="${pair#*:}"; src="${rest%%:*}"; df="${rest#*:}"
+# pair 格式：<服务名>:<dist产物目录>:<Dockerfile 名>
+for pair in "xfjy-admin:xfjy-admin/dist:Dockerfile.admin" "xfjy-h5:xfjy-app/dist/build/h5:Dockerfile.h5"; do
+  svc="${pair%%:*}"; rest="${pair#*:}"; dist_dir="${rest%%:*}"; df="${rest#*:}"
   if [ "${FRONTEND_ONLY}" = "true" ] || { [ ${#TARGETS[@]} -eq 0 ] && [ "${FRONTEND_ONLY}" != "true" ]; } \
      || printf '%s\n' "${TARGETS[@]}" | grep -qx "${svc}"; then
-    if stage_frontend "${svc}" "${src}" "${df}"; then
+    if stage_frontend "${svc}" "${dist_dir}" "${df}"; then
       STAGED+=("${svc}")
     else
       MISSING+=("${svc}")

@@ -157,10 +157,13 @@ async function loadData() {
   loading.value = true
   try {
     // userId 非数字时忽略该筛选条件，避免传 NaN 给后端
-    // 注意：空字符串 '' 时 Number('') === 0 不是 NaN，需额外判断
+    // 表单清空时运行时为 ''（string），统一转字符串判空再转回 number
     const params = { ...query }
-    if (params.userId != null && (params.userId === '' || Number.isNaN(Number(params.userId)))) {
+    const uid = String(params.userId ?? '').trim()
+    if (!uid || Number.isNaN(Number(uid))) {
       params.userId = undefined
+    } else {
+      params.userId = Number(uid)
     }
     const res = await getPayOrderPageApi(params)
     tableData.value = res.list

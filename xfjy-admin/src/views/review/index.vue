@@ -454,10 +454,6 @@ function typeLabel(type: string) {
   return typeMapping[type as keyof typeof typeMapping]?.label ?? type
 }
 
-function typeColor(type: ReviewItem['type']): 'primary' | 'success' | 'warning' {
-  return typeMapping[type]?.type ?? 'primary'
-}
-
 function statusLabel(status: string) {
   return statusMapping[status as keyof typeof statusMapping]?.label ?? status
 }
