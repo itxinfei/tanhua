@@ -128,6 +128,16 @@
       </swiper-item>
     </swiper>
 
+    <!-- 顶部/底部暗角渐变：保证白字在任意视频上都清晰（抖音式层次） -->
+    <view class="top-scrim" aria-hidden="true"></view>
+    <view class="bottom-scrim" aria-hidden="true"></view>
+
+    <!-- 上滑提示（纯装饰，弱化动效偏好下自动静止） -->
+    <view class="swipe-hint" aria-hidden="true">
+      <text class="swipe-arrow">︿</text>
+      <text class="swipe-text">上滑看更多</text>
+    </view>
+
     <!-- 骨架屏（首屏加载中）：占位元素，对读屏隐藏 -->
     <skeleton v-if="displayList.length === 0 && loading" variant="video" />
 
@@ -599,22 +609,23 @@ onShareAppMessage(() => ({
 
   .tab {
     position: relative;
-    font-size: 32rpx;
-    color: rgba(255, 255, 255, 0.55);
-    padding: 6rpx 4rpx;
-    transition: color 0.2s ease;
+    font-size: 30rpx;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 6rpx 6rpx;
+    transition: color 0.2s ease, font-size 0.2s ease;
 
     &.active {
       color: #fff;
       font-weight: 700;
+      font-size: 36rpx;
 
       &::after {
         content: "";
         position: absolute;
         left: 50%;
-        bottom: -8rpx;
+        bottom: -6rpx;
         transform: translateX(-50%);
-        width: 40rpx;
+        width: 44rpx;
         height: 6rpx;
         border-radius: 3rpx;
         background: #fff;
@@ -716,7 +727,7 @@ onShareAppMessage(() => ({
     }
 
     .icon-text {
-      font-size: 44rpx;
+      font-size: 52rpx;
       color: #fff;
       line-height: 1;
     }
@@ -867,6 +878,67 @@ onShareAppMessage(() => ({
     background: #fff;
     transition: width 0.2s linear;
   }
+}
+
+/* 顶部/底部暗角渐变（提升白字可读性，纯视觉、不拦截点击） */
+.top-scrim {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 200rpx;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0));
+  z-index: 8;
+  pointer-events: none;
+}
+
+.bottom-scrim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 440rpx;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0));
+  z-index: 8;
+  pointer-events: none;
+}
+
+/* 上滑提示（抖音式微动效） */
+.swipe-hint {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 24rpx);
+  z-index: 11;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+  animation: hintBounce 1.6s ease-in-out infinite;
+
+  .swipe-arrow {
+    font-size: 30rpx;
+    line-height: 1;
+    text-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.5);
+  }
+
+  .swipe-text {
+    font-size: 22rpx;
+    margin-top: 2rpx;
+    text-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.5);
+  }
+}
+
+@keyframes hintBounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-10rpx); }
+}
+
+/* 尊重系统「减弱动效」偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .swipe-hint { animation: none; }
+  .music-text { animation: none; }
 }
 
 /* 底部分享面板 */
