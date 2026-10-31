@@ -55,3 +55,4 @@
 2026-10-31 | xfjy-app 前端 | 发布页全屏化：pages.json 将 pages/circle/publish 改为 navigationStyle:custom，新增顶部「取消」栏（含状态栏高度适配），使点按中间发布键进入的全屏发布流程意图明确（返回后圈子 tab 恢复） | 开发者：itxinfei
 2026-10-31 | xfjy-app 前端 | 视频页对齐抖音布局：①右侧操作栏由 bottom:220rpx 改为 top:0;bottom:0 且 justify-content:flex-end，占满菜单栏上方整列（头像约屏幕中部、音乐唱片贴近 tabBar）；②顶部频道栏右侧新增搜索图标（点击提示即将上线） | 开发者：itxinfei
 2026-10-31 | xfjy-app 前端 | 发布图标重绘：白底透明加号 -> 品牌渐变粉圆 -> 本次改为品牌粉渐变圆角方块（#FF6FA8→#F02E7C）+ 白色加号；480px SDF 抗锯齿渲染后 4× 盒式降采样输出 120px（预乘 alpha 避免光晕），加号加宽至按钮 50% 更清晰，白色 tabBar 背景三档尺寸（24/30/40px）实测可读 | 开发者：itxinfei
+2026-10-31 | xfjy-app 前端 | 发布键样式对齐其它 tab：publish.png 重绘为 81x81 灰色(#999999)加号图标（与 gen-tabbar-icons.ps1 生成的图标同规格同色系，4x SDF 抗锯齿），替代此前突兀的粉渐变圆角方块；midButton 高度 34px→50px、iconWidth 30px→26px，保证「图标在上、发布文字在下」与其他 tab 完全一致（34px 时文字放不下） | 开发者：itxinfei
