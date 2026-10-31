@@ -34,9 +34,12 @@
       </view>
     </view>
 
-    <!-- 评论输入 -->
+    <!-- 评论输入：发送按钮 + 回车双通道（H5 浏览器/部分输入法 confirm 不可靠，仅回车会让用户以为"评论发不出去"） -->
     <view class="comment-bar safe-area-bottom">
       <input v-model="commentText" class="comment-input" placeholder="写评论..." aria-label="写评论" confirm-type="send" @confirm="sendComment" />
+      <a11y-button class="send-btn btn-feedback" label="发送评论" @tap="sendComment">
+        <text>发送</text>
+      </a11y-button>
     </view>
   </view>
 </template>
@@ -144,7 +147,10 @@ onLoad((options: any) => {
     }
   }
 }
-.comment-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 16rpx 24rpx; background: var(--bg-card); box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.05);
-  .comment-input { height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; }
+.comment-bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 16rpx; padding: 16rpx 24rpx; background: var(--bg-card); box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.05);
+  .comment-input { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; }
+  .send-btn { flex-shrink: 0; height: 72rpx; padding: 0 36rpx; display: flex; align-items: center; justify-content: center; border-radius: 36rpx; background: var(--gradient-brand);
+    text { font-size: 28rpx; color: #fff; }
+  }
 }
 </style>
