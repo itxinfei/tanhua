@@ -152,9 +152,9 @@ public class QuanziApiImpl implements QuanZiApi {
 
     @Override
     @GetMapping("/queryPublishList")
-    public PageInfo<Publish> queryPublishList(@RequestParam("userId") Long userId,
-                                              @RequestParam("page") Integer page,
-                                              @RequestParam("pageSize") Integer pageSize) {
+    public PageInfo<Publish> queryPublishList(@RequestParam(value = "userId", required = false) Long userId,
+                                              @RequestParam(value = "page", required = false) Integer page,
+                                              @RequestParam(value = "pageSize", required = false) Integer pageSize) {
 
         Pageable pageable = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Order.desc("date")));
         Query query = new Query().with(pageable);
@@ -192,8 +192,8 @@ public class QuanziApiImpl implements QuanZiApi {
 
     @Override
     @PostMapping("/saveLikeComment")
-    public boolean saveLikeComment(@RequestParam("userId") Long userId,
-                                   @RequestParam("publishId") String publishId) {
+    public boolean saveLikeComment(@RequestParam(value = "userId", required = false) Long userId,
+                                   @RequestParam(value = "publishId", required = false) String publishId) {
 
         //判断是否已经点赞，如果已经点赞就返回
         Criteria criteria = Criteria.where("userId").is(userId)
@@ -216,9 +216,9 @@ public class QuanziApiImpl implements QuanZiApi {
 
     @Override
     @PostMapping("/removeComment")
-    public boolean removeComment(@RequestParam("userId") Long userId,
-                                 @RequestParam("publishId") String publishId,
-                                 @RequestParam("commentType") Integer commentType) {
+    public boolean removeComment(@RequestParam(value = "userId", required = false) Long userId,
+                                 @RequestParam(value = "publishId", required = false) String publishId,
+                                 @RequestParam(value = "commentType", required = false) Integer commentType) {
 
         Criteria criteria = Criteria.where("userId").is(userId)
                 .and("publishId").is(new ObjectId(publishId))
@@ -240,8 +240,8 @@ public class QuanziApiImpl implements QuanZiApi {
 
     @Override
     @PostMapping("/saveLoveComment")
-    public boolean saveLoveComment(@RequestParam("userId") Long userId,
-                                   @RequestParam("publishId") String publishId) {
+    public boolean saveLoveComment(@RequestParam(value = "userId", required = false) Long userId,
+                                   @RequestParam(value = "publishId", required = false) String publishId) {
         //判断是否已经喜欢，如果已经喜欢就返回
         Criteria criteria = Criteria.where("userId").is(userId)
                 .and("publishId").is(new ObjectId(publishId))
@@ -263,10 +263,10 @@ public class QuanziApiImpl implements QuanZiApi {
 
     @Override
     @PostMapping("/saveComment")
-    public boolean saveComment(@RequestParam("userId") Long userId,
-                               @RequestParam("publishId") String publishId,
-                               @RequestParam("type") Integer type,
-                               @RequestParam("content") String content) {
+    public boolean saveComment(@RequestParam(value = "userId", required = false) Long userId,
+                               @RequestParam(value = "publishId", required = false) String publishId,
+                               @RequestParam(value = "type", required = false) Integer type,
+                               @RequestParam(value = "content", required = false) String content) {
 
         try {
             Comment comment = new Comment();
@@ -307,10 +307,10 @@ public class QuanziApiImpl implements QuanZiApi {
 
     @Override
     @PostMapping("/saveReplyComment")
-    public boolean saveReplyComment(@RequestParam("userId") Long userId,
-                                    @RequestParam("publishId") String publishId,
-                                    @RequestParam("parentId") String parentId,
-                                    @RequestParam("content") String content) {
+    public boolean saveReplyComment(@RequestParam(value = "userId", required = false) Long userId,
+                                    @RequestParam(value = "publishId", required = false) String publishId,
+                                    @RequestParam(value = "parentId", required = false) String parentId,
+                                    @RequestParam(value = "content", required = false) String content) {
         try {
             Comment parent = this.mongoTemplate.findById(new ObjectId(parentId), Comment.class);
             if (parent == null) {
@@ -356,8 +356,8 @@ public class QuanziApiImpl implements QuanZiApi {
 
     @Override
     @GetMapping("/queryCommentCount")
-    public Long queryCommentCount(@RequestParam("publishId") String publishId,
-                                  @RequestParam("type") Integer type) {
+    public Long queryCommentCount(@RequestParam(value = "publishId", required = false) String publishId,
+                                  @RequestParam(value = "type", required = false) Integer type) {
         Criteria criteria = Criteria.where("publishId").is(new ObjectId(publishId))
                 .and("commentType").is(type);
         Query query = Query.query(criteria);
@@ -367,7 +367,7 @@ public class QuanziApiImpl implements QuanZiApi {
     @Override
     @PostMapping("/queryCommentCountBatch")
     public Map<String, Long> queryCommentCountBatch(@RequestBody List<String> publishIds,
-                                                    @RequestParam("type") Integer type) {
+                                                    @RequestParam(value = "type", required = false) Integer type) {
         Map<String, Long> result = new HashMap<>();
         if (CollectionUtils.isEmpty(publishIds)) {
             return result;
@@ -406,21 +406,21 @@ public class QuanziApiImpl implements QuanZiApi {
 
     @Override
     @GetMapping("/queryPublishById")
-    public Publish queryPublishById(@RequestParam("publishId") String publishId) {
+    public Publish queryPublishById(@RequestParam(value = "publishId", required = false) String publishId) {
         return this.mongoTemplate.findById(new ObjectId(publishId), Publish.class);
     }
 
     @Override
     @GetMapping("/queryCommentById")
-    public Comment queryCommentById(@RequestParam("commentId") String commentId) {
+    public Comment queryCommentById(@RequestParam(value = "commentId", required = false) String commentId) {
         return this.mongoTemplate.findById(new ObjectId(commentId), Comment.class);
     }
 
     @Override
     @GetMapping("/queryCommentList")
-    public PageInfo<Comment> queryCommentList(@RequestParam("publishId") String publishId,
-                                              @RequestParam("page") Integer page,
-                                              @RequestParam("pageSize") Integer pageSize) {
+    public PageInfo<Comment> queryCommentList(@RequestParam(value = "publishId", required = false) String publishId,
+                                              @RequestParam(value = "page", required = false) Integer page,
+                                              @RequestParam(value = "pageSize", required = false) Integer pageSize) {
 
         PageRequest pageRequest = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Order.asc("created")));
 
@@ -447,10 +447,10 @@ public class QuanziApiImpl implements QuanZiApi {
 
     @Override
     @GetMapping("/queryCommentListByUser")
-    public PageInfo<Comment> queryCommentListByUser(@RequestParam("userId") Long userId,
-                                                    @RequestParam("type") Integer type,
-                                                    @RequestParam("page") Integer page,
-                                                    @RequestParam("pageSize") Integer pageSize) {
+    public PageInfo<Comment> queryCommentListByUser(@RequestParam(value = "userId", required = false) Long userId,
+                                                    @RequestParam(value = "type", required = false) Integer type,
+                                                    @RequestParam(value = "page", required = false) Integer page,
+                                                    @RequestParam(value = "pageSize", required = false) Integer pageSize) {
 
         PageRequest pageRequest = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Order.desc("created")));
         Query query = new Query(Criteria
@@ -469,9 +469,9 @@ public class QuanziApiImpl implements QuanZiApi {
 
     @Override
     @GetMapping("/queryAlbumList")
-    public PageInfo<Publish> queryAlbumList(@RequestParam("userId") Long userId,
-                                            @RequestParam("page") Integer page,
-                                            @RequestParam("pageSize") Integer pageSize) {
+    public PageInfo<Publish> queryAlbumList(@RequestParam(value = "userId", required = false) Long userId,
+                                            @RequestParam(value = "page", required = false) Integer page,
+                                            @RequestParam(value = "pageSize", required = false) Integer pageSize) {
         PageInfo<Publish> pageInfo = new PageInfo<>();
         pageInfo.setPageNum(page);
         pageInfo.setPageSize(pageSize);
@@ -500,7 +500,7 @@ public class QuanziApiImpl implements QuanZiApi {
 
     @Override
     @PostMapping("/removePublish")
-    public boolean removePublish(@RequestParam("publishId") String publishId) {
+    public boolean removePublish(@RequestParam(value = "publishId", required = false) String publishId) {
         if (publishId == null || publishId.isEmpty()) {
             return false;
         }
@@ -580,8 +580,8 @@ public class QuanziApiImpl implements QuanZiApi {
 
     @Override
     @PostMapping("/recordPublishView")
-    public boolean recordPublishView(@RequestParam("userId") Long userId,
-                                     @RequestParam("publishId") String publishId) {
+    public boolean recordPublishView(@RequestParam(value = "userId", required = false) Long userId,
+                                     @RequestParam(value = "publishId", required = false) String publishId) {
         // 评分事件：浏览动态（type=2）
         Publish publish = this.mongoTemplate.findById(new ObjectId(publishId), Publish.class);
         this.sendScoringMsg(2, userId, publish);
@@ -632,7 +632,7 @@ public class QuanziApiImpl implements QuanZiApi {
 
     @Override
     @PostMapping("/removeCommentById")
-    public boolean removeCommentById(@RequestParam("commentId") String commentId) {
+    public boolean removeCommentById(@RequestParam(value = "commentId", required = false) String commentId) {
         if (commentId == null || commentId.isEmpty()) {
             return false;
         }
@@ -655,28 +655,28 @@ public class QuanziApiImpl implements QuanZiApi {
 
     @Override
     @GetMapping("/countPublishByUser")
-    public Long countPublishByUser(@RequestParam("userId") Long userId) {
+    public Long countPublishByUser(@RequestParam(value = "userId", required = false) Long userId) {
         Query query = Query.query(Criteria.where("userId").is(userId));
         return this.mongoTemplate.count(query, Publish.class);
     }
 
     @Override
     @GetMapping("/countFollowerByUser")
-    public Long countFollowerByUser(@RequestParam("userId") Long userId) {
+    public Long countFollowerByUser(@RequestParam(value = "userId", required = false) Long userId) {
         Query query = Query.query(Criteria.where("followUserId").is(userId));
         return this.mongoTemplate.count(query, FollowUser.class);
     }
 
     @Override
     @GetMapping("/countFollowingByUser")
-    public Long countFollowingByUser(@RequestParam("userId") Long userId) {
+    public Long countFollowingByUser(@RequestParam(value = "userId", required = false) Long userId) {
         Query query = Query.query(Criteria.where("userId").is(userId));
         return this.mongoTemplate.count(query, FollowUser.class);
     }
 
     @Override
     @PostMapping("/countLikeByUser")
-    public Long countLikeByUser(@RequestParam("userId") Long userId) {
+    public Long countLikeByUser(@RequestParam(value = "userId", required = false) Long userId) {
         Query query = Query.query(Criteria.where("likeUserId").is(userId));
         return this.mongoTemplate.count(query, UserLike.class);
     }

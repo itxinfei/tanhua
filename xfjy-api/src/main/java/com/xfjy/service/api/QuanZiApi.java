@@ -29,44 +29,44 @@ public interface QuanZiApi {
      */
     @GetExchange("/queryPublishList")
     @GetMapping("/queryPublishList")
-    PageInfo<Publish> queryPublishList(@RequestParam("userId") Long userId,
-                                       @RequestParam("page") Integer page,
-                                       @RequestParam("pageSize") Integer pageSize);
+    PageInfo<Publish> queryPublishList(@RequestParam(value = "userId", required = false) Long userId,
+                                       @RequestParam(value = "page", required = false) Integer page,
+                                       @RequestParam(value = "pageSize", required = false) Integer pageSize);
 
     /**
      * 点赞
      */
     @PostExchange("/saveLikeComment")
     @PostMapping("/saveLikeComment")
-    boolean saveLikeComment(@RequestParam("userId") Long userId,
-                            @RequestParam("publishId") String publishId);
+    boolean saveLikeComment(@RequestParam(value = "userId", required = false) Long userId,
+                            @RequestParam(value = "publishId", required = false) String publishId);
 
     /**
      * 取消点赞、喜欢等
      */
     @PostExchange("/removeComment")
     @PostMapping("/removeComment")
-    boolean removeComment(@RequestParam("userId") Long userId,
-                          @RequestParam("publishId") String publishId,
-                          @RequestParam("commentType") Integer commentType);
+    boolean removeComment(@RequestParam(value = "userId", required = false) Long userId,
+                          @RequestParam(value = "publishId", required = false) String publishId,
+                          @RequestParam(value = "commentType", required = false) Integer commentType);
 
     /**
      * 喜欢
      */
     @PostExchange("/saveLoveComment")
     @PostMapping("/saveLoveComment")
-    boolean saveLoveComment(@RequestParam("userId") Long userId,
-                            @RequestParam("publishId") String publishId);
+    boolean saveLoveComment(@RequestParam(value = "userId", required = false) Long userId,
+                            @RequestParam(value = "publishId", required = false) String publishId);
 
     /**
      * 保存评论
      */
     @PostExchange("/saveComment")
     @PostMapping("/saveComment")
-    boolean saveComment(@RequestParam("userId") Long userId,
-                        @RequestParam("publishId") String publishId,
-                        @RequestParam("type") Integer type,
-                        @RequestParam("content") String content);
+    boolean saveComment(@RequestParam(value = "userId", required = false) Long userId,
+                        @RequestParam(value = "publishId", required = false) String publishId,
+                        @RequestParam(value = "type", required = false) Integer type,
+                        @RequestParam(value = "content", required = false) String content);
 
     /**
      * 保存回复评论（挂到父评论下，isParent=false）
@@ -78,18 +78,18 @@ public interface QuanZiApi {
      */
     @PostExchange("/saveReplyComment")
     @PostMapping("/saveReplyComment")
-    boolean saveReplyComment(@RequestParam("userId") Long userId,
-                             @RequestParam("publishId") String publishId,
-                             @RequestParam("parentId") String parentId,
-                             @RequestParam("content") String content);
+    boolean saveReplyComment(@RequestParam(value = "userId", required = false) Long userId,
+                             @RequestParam(value = "publishId", required = false) String publishId,
+                             @RequestParam(value = "parentId", required = false) String parentId,
+                             @RequestParam(value = "content", required = false) String content);
 
     /**
      * 查询评论数
      */
     @GetExchange("/queryCommentCount")
     @GetMapping("/queryCommentCount")
-    Long queryCommentCount(@RequestParam("publishId") String publishId,
-                           @RequestParam("type") Integer type);
+    Long queryCommentCount(@RequestParam(value = "publishId", required = false) String publishId,
+                           @RequestParam(value = "type", required = false) Integer type);
 
     /**
      * 批量查询评论数（消除列表页 N+1 远程调用）
@@ -100,38 +100,38 @@ public interface QuanZiApi {
     @PostExchange("/queryCommentCountBatch")
     @PostMapping("/queryCommentCountBatch")
     Map<String, Long> queryCommentCountBatch(@RequestBody List<String> publishIds,
-                                             @RequestParam("type") Integer type);
+                                             @RequestParam(value = "type", required = false) Integer type);
 
     /**
      * 根据id查询
      */
     @GetExchange("/queryPublishById")
     @GetMapping("/queryPublishById")
-    Publish queryPublishById(@RequestParam("publishId") String publishId);
+    Publish queryPublishById(@RequestParam(value = "publishId", required = false) String publishId);
 
     /**
      * 记录动态浏览（评分事件 type=2，由圈子服务内部发送 xfjy-quanzi 消息）
      */
     @PostExchange("/recordPublishView")
     @PostMapping("/recordPublishView")
-    boolean recordPublishView(@RequestParam("userId") Long userId,
-                              @RequestParam("publishId") String publishId);
+    boolean recordPublishView(@RequestParam(value = "userId", required = false) Long userId,
+                              @RequestParam(value = "publishId", required = false) String publishId);
 
     /**
      * 根据id查询评论（评论点赞通知评论作者用）
      */
     @GetExchange("/queryCommentById")
     @GetMapping("/queryCommentById")
-    Comment queryCommentById(@RequestParam("commentId") String commentId);
+    Comment queryCommentById(@RequestParam(value = "commentId", required = false) String commentId);
 
     /**
      * 查询评论
      */
     @GetExchange("/queryCommentList")
     @GetMapping("/queryCommentList")
-    PageInfo<Comment> queryCommentList(@RequestParam("publishId") String publishId,
-                                       @RequestParam("page") Integer page,
-                                       @RequestParam("pageSize") Integer pageSize);
+    PageInfo<Comment> queryCommentList(@RequestParam(value = "publishId", required = false) String publishId,
+                                       @RequestParam(value = "page", required = false) Integer page,
+                                       @RequestParam(value = "pageSize", required = false) Integer pageSize);
 
     /**
      * 根据pid批量查询数据
@@ -145,19 +145,19 @@ public interface QuanZiApi {
      */
     @GetExchange("/queryCommentListByUser")
     @GetMapping("/queryCommentListByUser")
-    PageInfo<Comment> queryCommentListByUser(@RequestParam("userId") Long userId,
-                                             @RequestParam("type") Integer type,
-                                             @RequestParam("page") Integer page,
-                                             @RequestParam("pageSize") Integer pageSize);
+    PageInfo<Comment> queryCommentListByUser(@RequestParam(value = "userId", required = false) Long userId,
+                                             @RequestParam(value = "type", required = false) Integer type,
+                                             @RequestParam(value = "page", required = false) Integer page,
+                                             @RequestParam(value = "pageSize", required = false) Integer pageSize);
 
     /**
      * 查询相册
      */
     @GetExchange("/queryAlbumList")
     @GetMapping("/queryAlbumList")
-    PageInfo<Publish> queryAlbumList(@RequestParam("userId") Long userId,
-                                     @RequestParam("page") Integer page,
-                                     @RequestParam("pageSize") Integer pageSize);
+    PageInfo<Publish> queryAlbumList(@RequestParam(value = "userId", required = false) Long userId,
+                                     @RequestParam(value = "page", required = false) Integer page,
+                                     @RequestParam(value = "pageSize", required = false) Integer pageSize);
 
     /**
      * 删除动态（内容审核驳回时联动下架）
@@ -169,7 +169,7 @@ public interface QuanZiApi {
      */
     @PostExchange("/removePublish")
     @PostMapping("/removePublish")
-    boolean removePublish(@RequestParam("publishId") String publishId);
+    boolean removePublish(@RequestParam(value = "publishId", required = false) String publishId);
 
     /**
      * 管理后台全量分页查询动态（按发布时间倒序，支持关键词/用户ID/日期范围筛选）
@@ -219,35 +219,35 @@ public interface QuanZiApi {
      */
     @PostExchange("/removeCommentById")
     @PostMapping("/removeCommentById")
-    boolean removeCommentById(@RequestParam("commentId") String commentId);
+    boolean removeCommentById(@RequestParam(value = "commentId", required = false) String commentId);
 
     /**
      * 统计用户发布动态数（quanzi_publish 中 userId=userId）
      */
     @GetExchange("/countPublishByUser")
     @GetMapping("/countPublishByUser")
-    Long countPublishByUser(@RequestParam("userId") Long userId);
+    Long countPublishByUser(@RequestParam(value = "userId", required = false) Long userId);
 
     /**
      * 统计用户粉丝数（follow_user 中 followUserId=userId）
      */
     @GetExchange("/countFollowerByUser")
     @GetMapping("/countFollowerByUser")
-    Long countFollowerByUser(@RequestParam("userId") Long userId);
+    Long countFollowerByUser(@RequestParam(value = "userId", required = false) Long userId);
 
     /**
      * 统计用户关注数（follow_user 中 userId=userId）
      */
     @GetExchange("/countFollowingByUser")
     @GetMapping("/countFollowingByUser")
-    Long countFollowingByUser(@RequestParam("userId") Long userId);
+    Long countFollowingByUser(@RequestParam(value = "userId", required = false) Long userId);
 
     /**
      * 统计用户被喜欢数（user_like 中 likeUserId=userId）
      */
     @GetExchange("/countLikeByUser")
     @GetMapping("/countLikeByUser")
-    Long countLikeByUser(@RequestParam("userId") Long userId);
+    Long countLikeByUser(@RequestParam(value = "userId", required = false) Long userId);
 
     /**
      * 批量删除动态（含相册、时间线中的记录）
