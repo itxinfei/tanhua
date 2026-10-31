@@ -48,9 +48,11 @@ x-common-env: &common-env
   MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-}
   MINIO_BUCKET: ${MINIO_BUCKET:-test-media}
   MINIO_URL_PREFIX: ${MINIO_URL_PREFIX:-http://192.168.20.133:9000/test-media/}
-  # 环信 IM（凭证留空则 IM 接口报错，真实值由 deploy/.env 注入）
+  # 环信 IM（huanxin 通道时启用，凭证留空则 IM 接口报错，真实值由 deploy/.env 注入）
   HANXIN_CLIENT_ID: ${HANXIN_CLIENT_ID:-}
   HANXIN_CLIENT_SECRET: ${HANXIN_CLIENT_SECRET:-}
+  # WuKongIM 开源 IM（wukongim 通道默认启用，REST API 仅内网调用）
+  WUKONGIM_API_HOST: ${WUKONGIM_API_HOST:-http://192.168.20.133:5001}
 
 services:
 

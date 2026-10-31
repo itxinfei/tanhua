@@ -11,6 +11,9 @@ import com.xfjy.service.api.UserLocationApi;
 import com.xfjy.service.api.UsersApi;
 import com.xfjy.service.api.VideoApi;
 import com.xfjy.service.api.VisitorsApi;
+import com.xfjy.service.api.WuKongImApi;
+import com.xfjy.server.service.ImProviderDelegate;
+import com.xfjy.server.service.SysConfigService;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -215,8 +218,25 @@ public class HttpServiceProxyConfig {
     // ---- 消息/IM服务（18086）----
 
     @Bean
-    public HuanXinApi huanXinApi(@Qualifier("messageServiceProxyFactory") HttpServiceProxyFactory factory) {
+    public HuanXinApi huanXinApiClient(@Qualifier("messageServiceProxyFactory") HttpServiceProxyFactory factory) {
         return factory.createClient(HuanXinApi.class);
+    }
+
+    @Bean
+    public WuKongImApi wuKongImApiClient(@Qualifier("messageServiceProxyFactory") HttpServiceProxyFactory factory) {
+        return factory.createClient(WuKongImApi.class);
+    }
+
+    /**
+     * IM 通道委派器：按 tb_sys_config.im.provider 运行时委派
+     * 5个调用点注入 HuanXinApi 类型，容器注入本委派器，实现零改动通道切换
+     * 默认 wukongim（开源 WuKongIM），后台可切换回 huanxin（环信）
+     */
+    @Bean
+    public HuanXinApi huanXinApi(HuanXinApi huanXinApiClient,
+                                 WuKongImApi wuKongImApiClient,
+                                 SysConfigService sysConfigService) {
+        return new ImProviderDelegate(huanXinApiClient, wuKongImApiClient, sysConfigService);
     }
 
     // ---- 支付服务（18089）----

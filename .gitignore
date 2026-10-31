@@ -107,6 +107,8 @@ deploy/build/
 .serena/
 .workbuddy/
 .atomcode/
+.playwright-cli/
+.playwright-mcp/
 
 # ===== 部署临时目录与备份文件 =====
 deploy/tmp_sync/
