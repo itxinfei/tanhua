@@ -1,74 +1,102 @@
 <template>
-  <div class="page-container">
-    <!-- 统计卡片 -->
-    <el-row :gutter="16">
-      <el-col :xs="12" :sm="6" v-for="card in statCards" :key="card.label">
-        <StatCard :label="card.label" :value="card.value" :change="card.change" :icon="card.icon" :suffix="card.suffix" :icon-bg="card.bg" />
+  <div class="page-container dashboard">
+    <PageHeader title="数据看板" subtitle="平台运营概览">
+      <template #actions>
+        <span v-if="updatedAt" class="dash-updated">更新于 {{ updatedAt }}</span>
+        <el-button :icon="Refresh" :loading="loading" @click="loadAll">刷新</el-button>
+      </template>
+    </PageHeader>
+
+    <el-alert v-if="hasError" class="dash-alert" type="warning" :closable="false" show-icon>
+      <template #title>
+        部分数据加载失败，当前展示可能不完整
+        <el-button link type="primary" @click="loadAll">重新加载</el-button>
+      </template>
+    </el-alert>
+
+    <!-- 核心指标：只放有真实数据源的字段 -->
+    <el-row v-loading="loading" :gutter="16" class="dash-row">
+      <el-col v-for="item in kpiCards" :key="item.label" :xs="12" :sm="12" :md="6">
+        <div
+          class="kpi-card"
+          :class="{ 'kpi-card--link': item.to }"
+          @click="item.to && router.push(item.to)"
+        >
+          <div class="kpi-card__top">
+            <span class="kpi-card__icon" :style="{ color: item.color, background: item.bg }">
+              <el-icon :size="15"><component :is="item.icon" /></el-icon>
+            </span>
+            <span class="kpi-card__label">{{ item.label }}</span>
+          </div>
+          <div class="kpi-card__value" :style="{ color: item.valueColor }">{{ item.value }}</div>
+          <div class="kpi-card__foot">
+            <span>{{ item.hint }}</span>
+            <el-icon v-if="item.to" :size="12"><ArrowRight /></el-icon>
+          </div>
+        </div>
       </el-col>
     </el-row>
 
-    <!-- 趋势大图 + 性别/年龄 -->
-    <el-row :gutter="16" class="chart-row">
+    <!-- 趋势 + 快捷入口 -->
+    <el-row :gutter="16" class="dash-row">
       <el-col :xs="24" :lg="16">
-        <div class="chart-card">
-          <div class="chart-header">
-            <span class="chart-title">用户趋势</span>
-            <el-radio-group v-model="trendDays" size="small" @change="loadTrend">
-              <el-radio-button :value="7">近7天</el-radio-button>
-              <el-radio-button :value="30">近30天</el-radio-button>
+        <div class="dash-card">
+          <div class="dash-card__head">
+            <div class="dash-card__heading">
+              <span class="dash-card__title">新增用户趋势</span>
+              <span v-if="trendSummary" class="dash-card__sub">
+                近 {{ trendDays }} 天累计 {{ formatCount(trendSummary.total) }} 人 · 日均
+                {{ formatCount(trendSummary.avg) }} 人
+              </span>
+            </div>
+            <el-radio-group v-model="trendDays" size="small" @change="refreshTrend">
+              <el-radio-button :value="7">近 7 天</el-radio-button>
+              <el-radio-button :value="30">近 30 天</el-radio-button>
             </el-radio-group>
           </div>
-          <BaseChart :option="trendOption" height="240px" />
-          <div v-if="!hasDau" class="chart-hint">DAU 统计待接入，当前仅展示新增用户</div>
+          <BaseChart v-if="trendData.dates.length" :option="trendOption" height="268px" />
+          <el-empty v-else-if="!loading" description="暂无趋势数据" :image-size="72" />
         </div>
       </el-col>
+
       <el-col :xs="24" :lg="8">
-        <div class="chart-card">
-          <div class="chart-header">
-            <span class="chart-title">性别比例</span>
+        <div class="dash-card">
+          <div class="dash-card__head">
+            <span class="dash-card__title">快捷入口</span>
           </div>
-          <BaseChart :option="genderOption" height="180px" />
-        </div>
-        <div class="chart-card" style="margin-top: 12px">
-          <div class="chart-header">
-            <span class="chart-title">年龄分布</span>
+          <div class="shortcut-grid">
+            <div v-for="s in shortcuts" :key="s.label" class="shortcut" @click="router.push(s.to)">
+              <el-icon :size="18"><component :is="s.icon" /></el-icon>
+              <span>{{ s.label }}</span>
+            </div>
           </div>
-          <BaseChart :option="ageOption" height="180px" />
+          <p class="dash-note">
+            DAU、匹配成功率、付费转化率暂无统计源，未纳入本页展示，避免用 0 值误导运营判断。
+          </p>
         </div>
       </el-col>
     </el-row>
 
-    <!-- 转化率 + 平台总览 -->
-    <el-row :gutter="16" class="chart-row">
-      <el-col :xs="24" :lg="8">
-        <div class="chart-card">
-          <div class="chart-header">
-            <span class="chart-title">匹配率 & 付费率趋势</span>
+    <!-- 用户结构 -->
+    <el-row :gutter="16" class="dash-row">
+      <el-col :xs="24" :lg="12">
+        <div class="dash-card">
+          <div class="dash-card__head">
+            <span class="dash-card__title">性别构成</span>
+            <span v-if="genderTotal" class="dash-card__meta">共 {{ formatCount(genderTotal) }} 人</span>
           </div>
-          <BaseChart v-if="hasRate" :option="rateOption" height="200px" />
-          <div v-else class="chart-empty">匹配率 / 付费率统计待接入</div>
+          <BaseChart v-if="genderTotal" :option="genderOption" height="220px" />
+          <el-empty v-else-if="!loading" description="暂无性别数据" :image-size="72" />
         </div>
       </el-col>
-      <el-col :xs="24" :lg="16">
-        <div class="chart-card">
-          <div class="chart-header"><span class="chart-title">平台总览</span></div>
-          <el-row :gutter="12">
-            <el-col :xs="12" :sm="8" v-for="item in overviewCards" :key="item.label">
-              <div class="ov-card">
-                <div class="ov-card__icon" :style="{ background: item.bg, color: item.color }">
-                  <el-icon :size="16"><component :is="item.icon" /></el-icon>
-                </div>
-                <div class="ov-card__n">{{ formatNumber(item.value) }}</div>
-                <div class="ov-card__l">{{ item.label }}</div>
-              </div>
-            </el-col>
-          </el-row>
-          <div class="todo-row">
-            <div class="todo-item" v-for="todo in todoList" :key="todo.label" @click="todo.action">
-              <span class="todo-label">{{ todo.label }}</span>
-              <el-badge :value="todo.count" :type="todo.count > 0 ? 'danger' : 'info'" />
-            </div>
+
+      <el-col :xs="24" :lg="12">
+        <div class="dash-card">
+          <div class="dash-card__head">
+            <span class="dash-card__title">年龄分布</span>
           </div>
+          <BaseChart v-if="ageData.counts.length" :option="ageOption" height="220px" />
+          <el-empty v-else-if="!loading" description="暂无年龄数据" :image-size="72" />
         </div>
       </el-col>
     </el-row>
@@ -76,11 +104,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAppStore } from '@/stores/app'
+import { Refresh } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
-import { StatCard, BaseChart } from '@/components'
+import { PageHeader, BaseChart } from '@/components'
 import {
   getStatOverviewApi,
   getTrendDataApi,
@@ -88,417 +116,475 @@ import {
   getAgeDistributionApi,
 } from '@/api/dashboard'
 import { getBrandColors, hexToRgba } from '@/utils/brand'
+
 const BRAND = getBrandColors()
-
 const router = useRouter()
-const appStore = useAppStore()
 
-// ==================== 统计卡片 ====================
-const statCards = ref<Array<{ label: string; value: number | null; suffix: string; change: number | null; icon: string; bg: string }>>([
-  { label: '日活跃用户(DAU)', value: 0, suffix: '', change: 0, icon: 'TrendCharts', bg: 'linear-gradient(135deg, var(--xfjy-primary-deep), var(--xfjy-primary))' },
-  { label: '今日新增用户', value: 0, suffix: '', change: 0, icon: 'UserFilled', bg: 'linear-gradient(135deg, var(--xfjy-primary), var(--xfjy-primary-soft))' },
-  { label: '匹配成功率', value: 0, suffix: '%', change: 0, icon: 'Connection', bg: 'linear-gradient(135deg, var(--xfjy-primary-violet), var(--xfjy-primary-deep))' },
-  { label: '付费转化率', value: 0, suffix: '%', change: 0, icon: 'Wallet', bg: 'linear-gradient(135deg, var(--xfjy-primary-soft), var(--xfjy-primary-mist))' },
-])
+// ==================== 状态 ====================
+const loading = ref(false)
+const hasError = ref(false)
+const updatedAt = ref('')
 
-const overview = reactive({
-  dau: 0,
-  dauChange: 0,
-  newUsers: 0,
-  newUsersChange: 0,
-  matchRate: 0,
-  matchRateChange: 0,
-  payRate: 0,
-  payRateChange: 0,
-  totalUsers: 0,
-  totalPosts: 0,
-  totalReports: 0,
-  pendingReviews: 0,
+const overview = reactive<{
+  totalUsers: number | null
+  newUsers: number | null
+  pendingReviews: number | null
+  totalReports: number | null
+}>({
+  totalUsers: null,
+  newUsers: null,
+  pendingReviews: null,
+  totalReports: null,
 })
 
-const overviewCards = computed(() => [
-  { label: '注册用户', value: overview.totalUsers, icon: 'User', bg: 'var(--xfjy-primary-50)', color: 'var(--xfjy-primary)' },
-  { label: '动态总数', value: overview.totalPosts, icon: 'Document', bg: 'var(--xfjy-primary-50)', color: 'var(--xfjy-primary-deep)' },
-  { label: '今日DAU', value: overview.dau, icon: 'DataLine', bg: 'var(--xfjy-primary-50)', color: 'var(--xfjy-primary)' },
-  { label: '今日新增', value: overview.newUsers, icon: 'CirclePlus', bg: 'var(--xfjy-primary-50)', color: 'var(--xfjy-primary-deep)' },
-  { label: '待审核', value: overview.pendingReviews, icon: 'Warning', bg: '#fff5f0', color: 'var(--xfjy-warning)' },
-  { label: '待举报', value: overview.totalReports, icon: 'WarningFilled', bg: '#fff5f0', color: 'var(--xfjy-danger)' },
-])
-
-const todoList = ref([
-  { label: '待审核内容', count: 0, action: () => router.push('/audit/review') },
-  { label: '待处理举报', count: 0, action: () => router.push('/audit/report') },
-  { label: '草稿公告', count: 0, action: () => router.push('/operation/notice') },
-])
-
-// ==================== 图表数据 ====================
 const trendDays = ref(7)
-const trendData = ref<{ dates: string[]; dauList: number[] | null; newUserList: number[] }>({ dates: [], dauList: null, newUserList: [] })
-const genderData = ref<{ male: number; female: number }>({ male: 0, female: 0 })
-const rateData = ref<{ dates: string[]; matchRateList: number[] | null; payRateList: number[] | null }>({ dates: [], matchRateList: null, payRateList: null })
-const ageData = ref<{ ranges: string[]; counts: number[] }>({ ranges: [], counts: [] })
+const trendData = reactive<{ dates: string[]; newUserList: number[] }>({ dates: [], newUserList: [] })
+const genderData = reactive({ male: 0, female: 0 })
+const ageData = reactive<{ ranges: string[]; counts: number[] }>({ ranges: [], counts: [] })
 
-const hasDau = computed(() => Array.isArray(trendData.value.dauList) && trendData.value.dauList.length > 0)
-const hasRate = computed(
-  () => Array.isArray(rateData.value.matchRateList) && rateData.value.matchRateList.length > 0
-)
+// ==================== 派生数据 ====================
+/** 今日新增与昨日的差值：由趋势接口的最后两天真实数据相减，不依赖后端 newUsersChange（当前恒为 null） */
+const newUsersDelta = computed<number | null>(() => {
+  const list = trendData.newUserList
+  if (list.length < 2) return null
+  return list[list.length - 1] - list[list.length - 2]
+})
+
+const trendSummary = computed(() => {
+  const list = trendData.newUserList
+  if (!list.length) return null
+  const total = list.reduce((sum, n) => sum + n, 0)
+  return { total, avg: Math.round(total / list.length) }
+})
+
+const genderTotal = computed(() => genderData.male + genderData.female)
+
+interface KpiCard {
+  label: string
+  value: string
+  hint: string
+  icon: string
+  color: string
+  bg: string
+  valueColor: string
+  to?: string
+}
+
+const kpiCards = computed<KpiCard[]>(() => [
+  {
+    label: '总用户数',
+    value: formatCount(overview.totalUsers),
+    hint: '累计注册用户',
+    icon: 'User',
+    color: 'var(--xfjy-primary)',
+    bg: 'var(--xfjy-primary-50)',
+    valueColor: 'var(--xfjy-text-primary)',
+  },
+  {
+    label: '今日新增',
+    value: formatCount(overview.newUsers),
+    hint: newUsersDelta.value === null
+      ? '较昨日 —'
+      : `较昨日 ${newUsersDelta.value >= 0 ? '+' : ''}${newUsersDelta.value}`,
+    icon: 'CirclePlus',
+    color: 'var(--xfjy-primary-deep)',
+    bg: 'var(--xfjy-deep-50)',
+    valueColor: 'var(--xfjy-text-primary)',
+  },
+  {
+    label: '待审核内容',
+    value: formatCount(overview.pendingReviews),
+    hint: '点击处理',
+    icon: 'DocumentChecked',
+    color: 'var(--xfjy-warning)',
+    bg: 'var(--xfjy-warning-50)',
+    valueColor: (overview.pendingReviews ?? 0) > 0 ? 'var(--xfjy-warning)' : 'var(--xfjy-text-primary)',
+    to: '/audit/review',
+  },
+  {
+    label: '待处理举报',
+    value: formatCount(overview.totalReports),
+    hint: '点击处理',
+    icon: 'WarningFilled',
+    color: 'var(--xfjy-danger)',
+    bg: 'var(--xfjy-danger-50)',
+    valueColor: (overview.totalReports ?? 0) > 0 ? 'var(--xfjy-danger)' : 'var(--xfjy-text-primary)',
+    to: '/audit/report',
+  },
+])
+
+const shortcuts = [
+  { label: '用户管理', icon: 'UserFilled', to: '/user/list' },
+  { label: '内容审核', icon: 'DocumentChecked', to: '/audit/review' },
+  { label: '举报处理', icon: 'Warning', to: '/audit/report' },
+  { label: '订单管理', icon: 'Wallet', to: '/operation/pay' },
+]
 
 // ==================== 图表配置 ====================
+const tooltipBase = {
+  backgroundColor: 'rgba(31, 35, 41, 0.92)',
+  borderWidth: 0,
+  padding: [8, 12],
+  textStyle: { color: '#ffffff', fontSize: 12 },
+}
+
 const trendOption = computed<echarts.EChartsOption>(() => ({
-  tooltip: { trigger: 'axis' },
-  legend: { data: hasDau.value ? ['DAU', '新增用户'] : ['新增用户'], bottom: 0 },
-  grid: { left: 50, right: 50, top: 24, bottom: 40 },
-  xAxis: { type: 'category', data: trendData.value.dates, boundaryGap: false },
-  yAxis: [
-    { type: 'value', name: 'DAU', position: 'left' },
-    { type: 'value', name: '新增', position: 'right' },
-  ],
+  tooltip: { ...tooltipBase, trigger: 'axis', axisPointer: { type: 'line', lineStyle: { color: BRAND.primaryLight7 } } },
+  grid: { left: 8, right: 16, top: 16, bottom: 8, containLabel: true },
+  xAxis: {
+    type: 'category',
+    boundaryGap: false,
+    data: trendData.dates,
+    axisLine: { lineStyle: { color: BRAND.chartGrid } },
+    axisTick: { show: false },
+    axisLabel: { fontSize: 12, color: BRAND.chartInk3, hideOverlap: true },
+  },
+  yAxis: {
+    type: 'value',
+    axisLine: { show: false },
+    axisTick: { show: false },
+    splitLine: { lineStyle: { color: BRAND.chartGrid } },
+    axisLabel: { fontSize: 12, color: BRAND.chartInk3 },
+  },
   series: [
-    ...(hasDau.value
-      ? [
-          {
-            name: 'DAU',
-            type: 'line' as const,
-            smooth: true,
-            data: trendData.value.dauList as number[],
-            itemStyle: { color: BRAND.chartSecondary },
-            areaStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: hexToRgba(BRAND.chartSecondary, 0.3) },
-                { offset: 1, color: hexToRgba(BRAND.chartSecondary, 0.02) },
-              ]),
-            },
-          },
-        ]
-      : []),
     {
       name: '新增用户',
       type: 'line',
       smooth: true,
-      yAxisIndex: 1,
-      data: trendData.value.newUserList,
-      itemStyle: { color: BRAND.chartPrimary },
+      showSymbol: false,
+      symbol: 'circle',
+      symbolSize: 6,
+      data: trendData.newUserList,
+      lineStyle: { width: 2, color: BRAND.primary },
+      itemStyle: { color: BRAND.primary },
       areaStyle: {
         color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: hexToRgba(BRAND.chartPrimary, 0.3) },
-          { offset: 1, color: hexToRgba(BRAND.chartPrimary, 0.02) },
+          { offset: 0, color: hexToRgba(BRAND.primary, 0.22) },
+          { offset: 1, color: hexToRgba(BRAND.primary, 0.01) },
         ]),
       },
     },
   ],
 }))
 
-const genderOption = computed<echarts.EChartsOption>(() => ({
-  tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-  legend: { bottom: 0, itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 11 } },
-  series: [
-    {
-      type: 'pie',
-      radius: ['20%', '44%'],
-      center: ['50%', '42%'],
-      avoidLabelOverlap: false,
-      label: { show: true, formatter: '{b} {d}%', fontSize: 9 },
-      data: [
-        { value: genderData.value.male, name: '男性', itemStyle: { color: BRAND.chartSecondary } },
-        { value: genderData.value.female, name: '女性', itemStyle: { color: BRAND.chartPrimary } },
-      ],
+const genderOption = computed<echarts.EChartsOption>(() => {
+  const total = genderTotal.value || 1
+  return {
+    tooltip: {
+      ...tooltipBase,
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter: (params: any) => {
+        const p = Array.isArray(params) ? params[0] : params
+        return `${p.name}<br/>${formatCount(p.value)} 人 · ${((p.value / total) * 100).toFixed(1)}%`
+      },
     },
-  ],
-}))
-
-const rateOption = computed<echarts.EChartsOption>(() => ({
-  tooltip: { trigger: 'axis', formatter: '{b}<br/>{a}: {c}%' },
-  legend: { data: ['匹配率', '付费率'], bottom: 0, itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 9 } },
-  grid: { left: 32, right: 12, top: 10, bottom: 26 },
-  xAxis: { type: 'category', data: rateData.value.dates, boundaryGap: false, axisLabel: { fontSize: 8, interval: 0 } },
-  yAxis: { type: 'value', axisLabel: { formatter: '{value}%', fontSize: 8 } },
-  series: [
-    {
-      name: '匹配率',
-      type: 'line',
-      smooth: true,
-      data: rateData.value.matchRateList ?? [],
-      itemStyle: { color: BRAND.chartThird },
+    grid: { left: 8, right: 132, top: 40, bottom: 40, containLabel: true },
+    xAxis: { type: 'value', show: false },
+    yAxis: {
+      type: 'category',
+      data: ['男性', '女性'],
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { fontSize: 12, color: BRAND.chartInk2 },
     },
-    {
-      name: '付费率',
-      type: 'line',
-      smooth: true,
-      data: rateData.value.payRateList ?? [],
-      itemStyle: { color: BRAND.chartPrimary },
-    },
-  ],
-}))
+    series: [
+      {
+        type: 'bar',
+        barWidth: 16,
+        showBackground: true,
+        backgroundStyle: { color: BRAND.chartGrid, borderRadius: 4 },
+        data: [
+          { value: genderData.male, itemStyle: { color: BRAND.chartSecondary, borderRadius: [0, 4, 4, 0] } },
+          { value: genderData.female, itemStyle: { color: BRAND.chartPrimary, borderRadius: [0, 4, 4, 0] } },
+        ],
+        label: {
+          show: true,
+          position: 'right',
+          distance: 10,
+          fontSize: 12,
+          color: BRAND.chartInk2,
+          formatter: (p: any) => `${formatCount(p.value)} 人 · ${((p.value / total) * 100).toFixed(1)}%`,
+        },
+      },
+    ],
+  }
+})
 
 const ageOption = computed<echarts.EChartsOption>(() => ({
-  tooltip: { trigger: 'axis' },
-  grid: { left: 36, right: 14, top: 8, bottom: 20 },
-  xAxis: { type: 'category', data: ageData.value.ranges, axisLabel: { fontSize: 9 } },
-  yAxis: { type: 'value', axisLabel: { fontSize: 9 } },
+  tooltip: { ...tooltipBase, trigger: 'axis', axisPointer: { type: 'shadow' } },
+  grid: { left: 8, right: 72, top: 8, bottom: 8, containLabel: true },
+  xAxis: { type: 'value', show: false },
+  yAxis: {
+    type: 'category',
+    // 年龄从高到低，让 18-22 显示在顶部
+    data: [...ageData.ranges].reverse(),
+    axisLine: { show: false },
+    axisTick: { show: false },
+    axisLabel: { fontSize: 12, color: BRAND.chartInk2 },
+  },
   series: [
     {
       type: 'bar',
-      data: ageData.value.counts,
-      barWidth: '40%',
+      barWidth: 12,
+      showBackground: true,
+      backgroundStyle: { color: BRAND.chartGrid, borderRadius: 4 },
+      data: [...ageData.counts].reverse(),
       itemStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: BRAND.chartPrimary },
-          { offset: 1, color: hexToRgba(BRAND.chartPrimary, 0.3) },
+        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+          { offset: 0, color: hexToRgba(BRAND.primary, 0.5) },
+          { offset: 1, color: BRAND.primary },
         ]),
-        borderRadius: [2, 2, 0, 0],
+        borderRadius: [0, 4, 4, 0],
+      },
+      label: {
+        show: true,
+        position: 'right',
+        distance: 10,
+        fontSize: 12,
+        color: BRAND.chartInk2,
+        formatter: (p: any) => formatCount(p.value),
       },
     },
   ],
 }))
 
 // ==================== 工具函数 ====================
-function formatNumber(n: number | null | undefined): string {
-  if (n === null || n === undefined || isNaN(n)) return '待接入'
+function formatCount(n: number | null | undefined): string {
+  if (n === null || n === undefined || Number.isNaN(n)) return '—'
   return n.toLocaleString('zh-CN')
-}
-
-function generateMockTrend(days: number) {
-  const dates: string[] = []
-  const dauList: number[] = []
-  const newUserList: number[] = []
-  const matchRateList: number[] = []
-  const payRateList: number[] = []
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date()
-    d.setDate(d.getDate() - i)
-    dates.push(`${d.getMonth() + 1}/${d.getDate()}`)
-    dauList.push(Math.floor(8000 + Math.random() * 6000))
-    newUserList.push(Math.floor(300 + Math.random() * 400))
-    matchRateList.push(+(35 + Math.random() * 20).toFixed(1))
-    payRateList.push(+(5 + Math.random() * 8).toFixed(1))
-  }
-  return { dates, dauList, newUserList, matchRateList, payRateList }
 }
 
 // ==================== 数据加载 ====================
 async function loadOverview() {
-  try {
-    const res = await getStatOverviewApi()
-    Object.assign(overview, res)
-  } catch {
-    if (import.meta.env.DEV) {
-      Object.assign(overview, {
-        dau: 12856, dauChange: 5.2,
-        newUsers: 486, newUsersChange: 12.3,
-        matchRate: 42.8, matchRateChange: 2.1,
-        payRate: 8.6, payRateChange: -0.5,
-        totalUsers: 358920, totalPosts: 1284567,
-        totalReports: 23, pendingReviews: 15,
-      })
-    }
-  }
-  statCards.value[0].value = overview.dau
-  statCards.value[0].change = overview.dauChange
-  statCards.value[1].value = overview.newUsers
-  statCards.value[1].change = overview.newUsersChange
-  statCards.value[2].value = overview.matchRate
-  statCards.value[2].change = overview.matchRateChange
-  statCards.value[3].value = overview.payRate
-  statCards.value[3].change = overview.payRateChange
-  todoList.value[0].count = overview.pendingReviews
-  todoList.value[1].count = overview.totalReports
+  const res = await getStatOverviewApi()
+  overview.totalUsers = res.totalUsers ?? null
+  overview.newUsers = res.newUsers ?? null
+  overview.pendingReviews = res.pendingReviews ?? null
+  overview.totalReports = res.totalReports ?? null
 }
 
 async function loadTrend() {
-  let data
-  try {
-    data = await getTrendDataApi(trendDays.value)
-  } catch {
-    if (import.meta.env.DEV) {
-      data = generateMockTrend(trendDays.value)
-    }
-  }
-  if (data) {
-    trendData.value = { dates: data.dates, dauList: data.dauList, newUserList: data.newUserList }
-    rateData.value = { dates: data.dates, matchRateList: data.matchRateList, payRateList: data.payRateList }
-  }
+  const res = await getTrendDataApi(trendDays.value)
+  trendData.dates = res.dates ?? []
+  trendData.newUserList = res.newUserList ?? []
 }
 
 async function loadGender() {
-  let male = 0, female = 0
-  try {
-    const res = await getGenderRatioApi()
-    male = res.male
-    female = res.female
-  } catch {
-    if (import.meta.env.DEV) {
-      male = 58
-      female = 42
-    }
-  }
-  genderData.value = { male, female }
+  const res = await getGenderRatioApi()
+  genderData.male = res.male ?? 0
+  genderData.female = res.female ?? 0
 }
 
 async function loadAge() {
-  let ranges: string[] = [], counts: number[] = []
-  try {
-    const res = await getAgeDistributionApi()
-    ranges = res.ranges
-    counts = res.counts
-  } catch {
-    if (import.meta.env.DEV) {
-      ranges = ['18-22', '23-27', '28-32', '33-37', '38-42', '43+']
-      counts = [45200, 98600, 87400, 52300, 28100, 12300]
-    }
-  }
-  ageData.value = { ranges, counts }
+  const res = await getAgeDistributionApi()
+  ageData.ranges = res.ranges ?? []
+  ageData.counts = res.counts ?? []
 }
 
-// ==================== 生命周期 ====================
-onMounted(async () => {
-  await loadOverview()
-  loadTrend()
-  loadGender()
-  loadAge()
-})
+async function loadAll() {
+  loading.value = true
+  const results = await Promise.allSettled([loadOverview(), loadTrend(), loadGender(), loadAge()])
+  hasError.value = results.some((r) => r.status === 'rejected')
+  loading.value = false
+  updatedAt.value = new Date().toLocaleTimeString('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
 
-// 侧边栏折叠时图表自适应（等待 0.3s CSS transition 完成后再 resize）
-watch(
-  () => appStore.sidebarCollapsed,
-  () => {
-    setTimeout(() => {
-      // BaseChart 内部已监听 resize，这里只需等待过渡完成
-    }, 350)
+async function refreshTrend() {
+  try {
+    await loadTrend()
+  } catch {
+    hasError.value = true
   }
-)
+}
+
+onMounted(loadAll)
 </script>
 
 <style scoped>
-.chart-hint {
-  margin-top: 6px;
-  font-size: var(--xfjy-font-size-xs);
-  color: var(--xfjy-text-secondary);
-  text-align: center;
-}
-
-.chart-empty {
-  height: 200px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--xfjy-font-size-sm);
-  color: var(--xfjy-text-secondary);
-  background: var(--xfjy-bg-subtle, transparent);
-  border: 1px dashed var(--xfjy-border);
-  border-radius: var(--xfjy-radius-md);
-}
-
-.page-container {
+.dashboard {
   padding: var(--xfjy-space-6);
   box-sizing: border-box;
 }
 
-.chart-row {
+.dash-updated {
+  margin-right: var(--xfjy-space-2);
+  font-size: var(--xfjy-font-size-xs);
+  color: var(--xfjy-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-alert {
   margin-bottom: var(--xfjy-space-4);
 }
 
-.chart-card {
+.dash-row {
+  margin-bottom: var(--xfjy-space-4);
+  /* 小屏 KPI 换行时保证纵向间距 */
+  row-gap: var(--xfjy-space-4);
+}
+
+.dash-row:last-child {
+  margin-bottom: 0;
+}
+
+/* ==================== KPI 卡 ==================== */
+.kpi-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--xfjy-space-2);
+  height: 100%;
+  padding: var(--xfjy-space-4) var(--xfjy-space-5);
   background: var(--xfjy-bg-card);
   border: 1px solid var(--xfjy-border);
   border-radius: var(--xfjy-radius-lg);
-  padding: var(--xfjy-space-3) var(--xfjy-space-4);
+  box-shadow: var(--xfjy-shadow-card);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* 可点击的卡片：hover 用主色描边，明确「这里能点」 */
+.kpi-card--link {
+  cursor: pointer;
+}
+
+.kpi-card--link:hover {
+  border-color: var(--xfjy-primary-200);
+  box-shadow: var(--xfjy-shadow-hover);
+}
+
+.kpi-card__top {
+  display: flex;
+  align-items: center;
+  gap: var(--xfjy-space-2);
+  min-width: 0;
+}
+
+.kpi-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--xfjy-radius-sm);
+}
+
+.kpi-card__label {
+  font-size: var(--xfjy-font-size-sm);
+  color: var(--xfjy-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kpi-card__value {
+  font-size: var(--xfjy-font-size-2xl);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi-card__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--xfjy-space-1);
+  min-height: 18px;
+  font-size: var(--xfjy-font-size-xs);
+  color: var(--xfjy-text-secondary);
+}
+
+.kpi-card--link .kpi-card__foot {
+  color: var(--xfjy-primary);
+}
+
+/* ==================== 通用卡片 ==================== */
+.dash-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: var(--xfjy-space-4) var(--xfjy-space-5);
+  background: var(--xfjy-bg-card);
+  border: 1px solid var(--xfjy-border);
+  border-radius: var(--xfjy-radius-lg);
   box-shadow: var(--xfjy-shadow-card);
 }
 
-.chart-header {
+.dash-card__head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: var(--xfjy-space-3);
   margin-bottom: var(--xfjy-space-3);
 }
 
-.chart-title {
+.dash-card__heading {
+  min-width: 0;
+}
+
+.dash-card__title {
   font-size: var(--xfjy-font-size-md);
   font-weight: 600;
   color: var(--xfjy-text-primary);
-  position: relative;
-  padding-left: var(--xfjy-space-2);
 }
 
-/* 若依式面板标题：玫红竖条 */
-.chart-title::before {
-  content: "";
-  display: inline-block;
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 14px;
-  background: var(--xfjy-primary);
-  border-radius: 2px;
-}
-
-/* 平台总览卡片 */
-.ov-card {
-  background: var(--xfjy-bg-hover);
-  border-radius: var(--xfjy-radius-sm);
-  padding: var(--xfjy-space-3) var(--xfjy-space-4);
-  text-align: center;
-  margin-bottom: var(--xfjy-space-3);
-  transition: background 0.2s;
-}
-
-.ov-card:hover {
-  background: var(--xfjy-primary-50);
-}
-
-.ov-card__icon {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--xfjy-radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto var(--xfjy-space-2);
-}
-
-.ov-card__n {
-  font-size: var(--xfjy-font-size-md);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--xfjy-text-primary);
-}
-
-.ov-card__l {
+.dash-card__sub {
+  display: block;
+  margin-top: 2px;
   font-size: var(--xfjy-font-size-xs);
   color: var(--xfjy-text-secondary);
-  margin-top: var(--xfjy-space-1);
+  font-variant-numeric: tabular-nums;
 }
 
-/* 待处理事项 */
-.todo-row {
-  display: flex;
-  gap: var(--xfjy-space-3);
-  border-top: 1px solid var(--xfjy-border-light);
-  margin-top: var(--xfjy-space-3);
-  padding-top: var(--xfjy-space-3);
+.dash-card__meta {
+  flex-shrink: 0;
+  font-size: var(--xfjy-font-size-xs);
+  color: var(--xfjy-text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
-.todo-item {
+/* ==================== 快捷入口 ==================== */
+.shortcut-grid {
   flex: 1;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: 1fr;
+  gap: var(--xfjy-space-3);
+}
+
+.shortcut {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: var(--xfjy-space-2) var(--xfjy-space-3);
-  background: var(--xfjy-bg-hover);
-  border: 1px solid var(--xfjy-border-light);
-  border-radius: var(--xfjy-radius-sm);
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.todo-item:hover {
-  background: var(--xfjy-primary-50);
-}
-
-.todo-label {
+  gap: var(--xfjy-space-2);
+  padding: var(--xfjy-space-3) var(--xfjy-space-4);
+  border: 1px solid var(--xfjy-border);
+  border-radius: var(--xfjy-radius-md);
   font-size: var(--xfjy-font-size-sm);
   color: var(--xfjy-text-regular);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+
+.shortcut .el-icon {
+  color: var(--xfjy-primary);
+  flex-shrink: 0;
+}
+
+.shortcut:hover {
+  border-color: var(--xfjy-primary);
+  background: var(--xfjy-primary-50);
+  color: var(--xfjy-primary);
+}
+
+.dash-note {
+  margin-top: var(--xfjy-space-3);
+  padding-top: var(--xfjy-space-3);
+  border-top: 1px solid var(--xfjy-border-light);
+  font-size: var(--xfjy-font-size-xs);
+  line-height: 1.6;
+  color: var(--xfjy-text-secondary);
 }
 </style>

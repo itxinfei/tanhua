@@ -33,7 +33,7 @@
       <text class="group-title">隐私</text>
       <view class="item">
         <text class="label">显示距离</text>
-        <switch :checked="showDistance" aria-label="显示距离" color="#ff5e9c" @change="showDistance = ($event as any).detail.value" />
+        <switch :checked="showDistance" aria-label="显示距离" color="#ff5e9c" @change="onDistanceChange" />
       </view>
     </view>
 
@@ -160,10 +160,31 @@ function loadCacheSize(): void {
   }
 }
 
+/** 读取本地持久化的「显示距离」偏好（后端无对应字段，存本地存储） */
+function loadDistance(): void {
+  try {
+    const saved = uni.getStorageSync('xfjy_show_distance');
+    if (typeof saved === 'boolean') showDistance.value = saved;
+  } catch {
+    // 读取失败静默降级，沿用默认值
+  }
+}
+
+/** 切换「显示距离」并持久化到本地存储，避免返回即丢失 */
+function onDistanceChange(e: any): void {
+  showDistance.value = !!e?.detail?.value;
+  try {
+    uni.setStorageSync('xfjy_show_distance', showDistance.value);
+  } catch {
+    // 持久化失败静默降级
+  }
+}
+
 onShow(() => {
   loadPhone();
   loadVerifyStatus();
   loadCacheSize();
+  loadDistance();
 });
 
 function clearCache() {

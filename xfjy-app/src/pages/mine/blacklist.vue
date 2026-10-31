@@ -143,14 +143,13 @@ async function handleRemove(userId: string): Promise<void> {
   &:first-child { margin-top: 0; }
 }
 
-.user-item {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  border-bottom: 1rpx solid #f0f0f0;
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 24rpx;
+  .user-item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border-radius: 20rpx;
+    padding: 24rpx;
 
   .user-avatar {
     width: 96rpx;

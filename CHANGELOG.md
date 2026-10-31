@@ -37,3 +37,5 @@
 2026-10-31 | xfjy-app 前端 | 「我的」页头部高度收窄使 8 项功能菜单单屏展示：HEADER_EXTRA_PADDING_PX 40→24、.header 底部内边距 32→24rpx、.stats-row 上间距 32→24rpx、.avatar 140→128rpx（功能菜单本已全量渲染，仅收窄头部腾出空间） | 开发者：itxinfei
 
 2026-10-31 | xfjy-app 前端 | 全站按钮遮挡/定位系统排查与修复：①profile 保存按钮、vip 支付按钮由 bottom:40rpx 改为 bottom:calc(40rpx + env(safe-area-inset-bottom))，避免被设备底部 Home 指示条遮挡（原 safe-area-bottom 类对按 bottom 定位的自包含按钮无效）；②video 顶部 Tab「＋发布」按钮原为 position:absolute 右置，会与居中「推荐」Tab 在窄屏重叠，重构为 tab-group（flex:1 居中）+ 独立 发布 按钮，消除遮挡；③修正 match/circle/video/chat/mine 五个 tab 页 height/min-height 中 calc(100vh - var(--window-bottom)) 的重复扣减（webview 已排除原生 tabbar），消除底部操作栏与标签栏间的空隙 | 开发者：itxinfei
+
+2026-10-31 | xfjy-app 前端 | 「我的」菜单全页审计（模拟点击逐一核对保存与布局）：①设置页「显示距离」开关此前仅改本地 ref 未持久化（后端无对应字段），返回即丢失；改为 onChange 写入、onShow 读取本地存储（key=xfjy_show_distance）实现跨会话保存；②好友页/黑名单页列表项 .user-item 圆角卡片上残留 border-bottom 直边分隔线（与圆角冲突、视觉错误），移除；③核对确认 profile 保存（updateUserProfile）、好友取消喜欢（cancelLike）/喜欢粉丝（followFan）、黑名单移除（removeFromBlacklist）、通知开关（updateNotificationSetting）、VIP 支付、客服 FAQ 展开等保存/操作均正确联通后端，无失效 | 开发者：itxinfei

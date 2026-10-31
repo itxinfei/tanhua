@@ -11,7 +11,7 @@
       <img
         v-else
         class="logo-horizontal"
-        src="/logo/logo-horizontal-reverse-transparent.png"
+        src="/logo/logo-horizontal-transparent.png"
         alt="心飞交友后台"
       />
     </div>
@@ -120,14 +120,14 @@ const activeMenu = computed(() => {
 }
 
 .logo-icon {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   object-fit: contain;
 }
 
 .logo-horizontal {
-  height: 30px;
-  max-width: 160px;
+  height: 38px;
+  max-width: 180px;
   object-fit: contain;
 }
 
@@ -138,6 +138,12 @@ const activeMenu = computed(() => {
 /* ==================== 清新卡片式主题 ==================== */
 .sidebar-menu {
   border-right: 1px solid var(--xfjy-sidebar-border);
+}
+
+/* 菜单文字：统一用侧边栏字号令牌，避免 Element 默认 14px 偏小 */
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  font-size: var(--xfjy-sidebar-font-size);
 }
 
 /* 顶级菜单项 hover */

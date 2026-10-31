@@ -44,6 +44,11 @@
   --xfjy-danger: #f53f3f;
   --xfjy-info: #86909c;
 
+  /* ===== 状态色浅底（仅用于图标底色/标签背景，不做大面积铺色） ===== */
+  --xfjy-success-50: #f0fdf4;
+  --xfjy-warning-50: #fff7ed;
+  --xfjy-danger-50: #fef2f2;
+
   /* ===== 侧边栏专用 ===== */
   --xfjy-sidebar-bg: #ffffff;
   --xfjy-sidebar-border: #e8eaed;
@@ -54,6 +59,7 @@
   --xfjy-sidebar-active-text: #ff5e9c;
   --xfjy-sidebar-active-border: #ff5e9c;
   --xfjy-sidebar-sub-bg: #fafafa;
+  --xfjy-sidebar-font-size: 15px;
 
   /* ===== Header 专用 ===== */
   --xfjy-header-bg: #ffffff;
@@ -293,4 +299,75 @@ a {
 }
 .el-button.is-link:active {
   transform: translateX(0) scale(0.98);
+}
+
+/* ==================== 响应式（Task 3） ==================== */
+/* 断点 token：xs<768 / sm≥768 / md≥992 / lg≥1200 / xl≥1920 */
+:root {
+  --xfjy-bp-xs: 768px;
+  --xfjy-bp-sm: 992px;
+  --xfjy-bp-md: 1200px;
+  --xfjy-bp-lg: 1920px;
+  /* 表格信息密度：紧凑行高，适配数据密集型后台 */
+  --xfjy-table-row-height: 44px;
+  --xfjy-table-cell-padding-x: 12px;
+}
+
+/* 移动端隐藏工具类（≤767px 隐藏，用于次要表格列） */
+.hide-on-mobile {
+  display: table-cell;
+}
+
+/* 信息密度 - 全局表格紧凑化（深度优化） */
+.el-table {
+  --el-table-row-hover-bg-color: var(--xfjy-primary-50);
+}
+.el-table .el-table__cell {
+  padding: var(--xfjy-space-1) var(--xfjy-table-cell-padding-x);
+}
+/* 紧凑行高（保留表头略高以维持层级） */
+.el-table--medium .el-table__body tr > td.el-table__cell {
+  height: var(--xfjy-table-row-height);
+}
+/* 数字列等宽对齐 */
+.el-table .number-cell {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* 移动端分页精简：窄屏只保留总数+翻页（深度优化） */
+@media (max-width: 767px) {
+  .hide-on-mobile {
+    display: none !important;
+  }
+  .el-pagination {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--xfjy-space-1);
+  }
+  /* 隐藏每页条数选择器/跳页框，仅留总数与翻页 */
+  .el-pagination .el-pagination__sizes,
+  .el-pagination .el-pagination__jump {
+    display: none !important;
+  }
+  /* 页面容器收窄，充分利用窄屏 */
+  .page-container {
+    padding: var(--xfjy-space-4);
+  }
+}
+
+/* 大屏优化：超宽屏限制最大宽度并居中，避免单行过长难读 */
+@media (min-width: 1920px) {
+  .page-container {
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+}
+
+/* 中等屏：统计卡片两列起步 */
+@media (max-width: 991px) {
+  .el-row .el-col {
+    max-width: 100%;
+    flex: 0 0 100%;
+  }
 }

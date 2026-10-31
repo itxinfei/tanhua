@@ -28,6 +28,9 @@ export interface BrandColors {
   chartPrimary: string
   chartSecondary: string
   chartThird: string
+  chartInk2: string
+  chartInk3: string
+  chartGrid: string
 }
 
 export function getBrandColors(): BrandColors {
@@ -42,5 +45,9 @@ export function getBrandColors(): BrandColors {
     chartPrimary: readCssVar('--xfjy-chart-1', '#ff5e9c'),    // 玫红
     chartSecondary: readCssVar('--xfjy-chart-2', '#7c3aed'),  // CVD 安全紫（比 #b13bff 更深）
     chartThird: readCssVar('--xfjy-chart-3', '#00b894'),      // 青绿
+    // 图表墨色/网格：与 style.css 的 --xfjy-chart-ink-* / --xfjy-chart-grid 同源
+    chartInk2: readCssVar('--xfjy-chart-ink-2', '#4e5969'),
+    chartInk3: readCssVar('--xfjy-chart-ink-3', '#86909c'),
+    chartGrid: readCssVar('--xfjy-chart-grid', '#f2f3f5'),
   }
 }
