@@ -3,10 +3,16 @@
     <!-- 顶部 关注 / 推荐 Tab（role=tablist 语义 + 可键盘操作） -->
     <view class="top-tabs" role="tablist" aria-label="视频频道">
       <view class="tab-group">
-        <a11y-button class="tab" role="tab" :checked="activeTab === 'follow'" label="关注" @tap="switchTab('follow')">关注</a11y-button>
-        <a11y-button class="tab" role="tab" :checked="activeTab === 'recommend'" label="推荐" @tap="switchTab('recommend')">推荐</a11y-button>
+        <a11y-button
+          v-for="ch in CHANNELS"
+          :key="ch.key"
+          class="tab"
+          role="tab"
+          :checked="activeChannel === ch.key"
+          :label="ch.label"
+          @tap="switchChannel(ch.key)"
+        >{{ ch.label }}</a11y-button>
       </view>
-      <a11y-button class="publish-btn btn-feedback" label="发布视频" @tap="chooseAndPublish">＋ 发布</a11y-button>
     </view>
 
     <swiper
@@ -147,8 +153,8 @@
       overlay
       dark
       icon="eye"
-      :title="activeTab === 'follow' ? '还没有关注的作者' : '暂无视频'"
-      :desc="activeTab === 'follow' ? '去推荐页关注喜欢的人吧' : '精彩内容即将上线'"
+      :title="emptyStateTitle"
+      :desc="emptyStateDesc"
     />
 
     <!-- 评论抽屉 -->
@@ -195,7 +201,6 @@ import {
   dislikeVideo,
   focusVideoUser,
   unfocusVideoUser,
-  publishVideo,
   type Video,
 } from "@/api/video";
 import VideoCommentDrawer from "@/components/video-comment-drawer.vue";
@@ -215,7 +220,17 @@ const followPage = ref(1);
 
 const currentId = ref("");
 const swiperIndex = ref(0);
-const activeTab = ref<"follow" | "recommend">("recommend");
+type ChannelKey = "hot" | "friend" | "follow" | "location" | "recommend";
+const CHANNELS = [
+  { key: "hot", label: "热点" },
+  { key: "friend", label: "朋友" },
+  { key: "follow", label: "关注" },
+  { key: "location", label: "定位" },
+  { key: "recommend", label: "推荐" },
+] as const;
+const activeChannel = ref<ChannelKey>("recommend");
+/** 暂未接入后端的频道：展示占位空状态 */
+const PLACEHOLDER_CHANNELS: ChannelKey[] = ["hot", "friend", "location"];
 const isPlaying = ref(true);
 /** 是否静音：默认关闭（抖音式有声），可手动切换 */
 const isMuted = ref(false);
@@ -250,8 +265,31 @@ const showShare = ref(false);
 const shareVideo = ref<Video | null>(null);
 
 /** 当前 Tab 展示的列表：关注 = 关注流接口返回，推荐 = 推荐流接口返回 */
-const displayList = computed(() =>
-  activeTab.value === "follow" ? followVideos.value : recommendVideos.value
+const displayList = computed<Video[]>(() => {
+  switch (activeChannel.value) {
+    case "follow":
+      return followVideos.value;
+    case "recommend":
+      return recommendVideos.value;
+    default:
+      return [];
+  }
+});
+
+/** 空状态文案随频道变化 */
+const emptyStateTitle = computed(() => {
+  if (PLACEHOLDER_CHANNELS.includes(activeChannel.value)) {
+    const label = CHANNELS.find((c) => c.key === activeChannel.value)?.label ?? "";
+    return `「${label}」频道即将上线`;
+  }
+  return activeChannel.value === "follow" ? "还没有关注的作者" : "暂无视频";
+});
+const emptyStateDesc = computed(() =>
+  PLACEHOLDER_CHANNELS.includes(activeChannel.value)
+    ? "更多精彩内容正在筹备中，先看看推荐吧"
+    : activeChannel.value === "follow"
+    ? "去推荐页关注喜欢的人吧"
+    : "精彩内容即将上线"
 );
 
 /** 单击/双击判定 */
@@ -295,18 +333,20 @@ function toggleMute() {
 /**
  * 切换顶部 Tab，重置到首条
  */
-async function switchTab(tab: "follow" | "recommend") {
-  if (activeTab.value === tab || loading.value) return;
-  activeTab.value = tab;
+async function switchChannel(ch: ChannelKey) {
+  if (activeChannel.value === ch) return;
+  activeChannel.value = ch;
   swiperIndex.value = 0;
-  const list = activeTab.value === "follow" ? followVideos.value : recommendVideos.value;
-  if (list.length === 0) {
+  currentId.value = "";
+  isPlaying.value = true;
+  progress.value = 0;
+  if (ch === "follow" && followVideos.value.length === 0) {
+    await loadVideos();
+  } else if (ch === "recommend" && recommendVideos.value.length === 0) {
     await loadVideos();
   }
   const first = displayList.value[0];
   currentId.value = first ? first.id : "";
-  isPlaying.value = true;
-  progress.value = 0;
 }
 
 /**
@@ -405,7 +445,7 @@ async function handleFocus(video: Video) {
       video.hasFocus = 0;
       await unfocusVideoUser(video.userId);
       // 关注流中取关：从关注列表移除该视频并修正当前播放位置
-      if (activeTab.value === "follow") {
+      if (activeChannel.value === "follow") {
         followVideos.value = followVideos.value.filter((v) => v.id !== video.id);
         if (followVideos.value.length === 0) {
           currentId.value = "";
@@ -450,34 +490,6 @@ function doShare(channel: "wechat" | "moments" | "copy") {
   }
 }
 
-/** 发布流程：选视频 → 封面兜底 → 上传发布 → 刷新列表 */
-function chooseAndPublish(): void {
-  uni.chooseVideo({
-    sourceType: ["album", "camera"],
-    compressed: true,
-    success: (res) => {
-      const videoPath = res.tempFilePath;
-      if (!videoPath) {
-        uni.showToast({ title: "未选择视频", icon: "none" });
-        return;
-      }
-      // 部分平台不返回封面（H5），用默认封面兜底；thumbTempFilePath 运行时存在但类型定义缺失
-      const thumb = (res as { thumbTempFilePath?: string }).thumbTempFilePath;
-      const thumbnailPath = thumb || "/static/logo/logo-horizontal.jpg";
-      uni.showLoading({ title: "发布中", mask: true });
-      publishVideo({ thumbnailPath, videoPath })
-        .then(() => {
-          uni.hideLoading();
-          uni.showToast({ title: "发布成功", icon: "success" });
-          loadVideos();
-        })
-        .catch(() => {
-          uni.hideLoading();
-          // request 层已统一 toast 失败原因
-        });
-    },
-  });
-}
 
 /**
  * 加载视频列表首页
@@ -485,7 +497,7 @@ function chooseAndPublish(): void {
 async function loadVideos() {
   loading.value = true;
   try {
-    if (activeTab.value === "follow") {
+    if (activeChannel.value === "follow") {
       followPage.value = 1;
       followHasMore.value = true;
       const res = await getFollowVideoList({ page: 1, pagesize: PAGE_SIZE });
@@ -513,10 +525,10 @@ async function loadVideos() {
  */
 async function loadMoreVideos() {
   if (loadingMore.value) return;
-  if (activeTab.value === "follow" ? !followHasMore.value : !recommendHasMore.value) return;
+  if (activeChannel.value === "follow" ? !followHasMore.value : !recommendHasMore.value) return;
   loadingMore.value = true;
   try {
-    if (activeTab.value === "follow") {
+    if (activeChannel.value === "follow") {
       const nextPage = followPage.value + 1;
       const res = await getFollowVideoList({ page: nextPage, pagesize: PAGE_SIZE });
       if (res.items && res.items.length > 0) {
@@ -546,7 +558,10 @@ async function loadMoreVideos() {
 let wasPlayingBeforeHide = false;
 
 onShow(() => {
-  if (displayList.value.length === 0) {
+  if (
+    (activeChannel.value === "follow" || activeChannel.value === "recommend") &&
+    displayList.value.length === 0
+  ) {
     loadVideos();
   } else if (wasPlayingBeforeHide) {
     wasPlayingBeforeHide = false;
@@ -594,17 +609,7 @@ onShareAppMessage(() => ({
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 48rpx;
-  }
-
-  .publish-btn {
-    flex-shrink: 0;
-    margin-left: 16rpx;
-    font-size: 26rpx;
-    color: #fff;
-    background: linear-gradient(90deg, var(--color-primary-deep), var(--color-primary));
-    padding: 8rpx 24rpx;
-    border-radius: 28rpx;
+    gap: 36rpx;
   }
 
   .tab {
