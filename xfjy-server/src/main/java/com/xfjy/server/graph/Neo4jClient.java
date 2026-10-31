@@ -6,8 +6,6 @@ import org.neo4j.driver.GraphDatabase;
 import org.neo4j.driver.Query;
 import org.neo4j.driver.Result;
 import org.neo4j.driver.Session;
-import org.neo4j.driver.Value;
-import org.neo4j.driver.exceptions.Neo4jException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -248,8 +246,8 @@ public class Neo4jClient implements AutoCloseable {
 
             List<Long> secondDegree = new ArrayList<>();
             while (result.hasNext()) {
-                org.neo4j.driver.Record record = result.next();
-                Value friendIdValue = record.get("friendId");
+                var record = result.next();
+                var friendIdValue = record.get("friendId");
                 if (!friendIdValue.isNull()) {
                     secondDegree.add(friendIdValue.asLong());
                 }
@@ -289,8 +287,8 @@ public class Neo4jClient implements AutoCloseable {
 
             List<Long> commonFriends = new ArrayList<>();
             while (result.hasNext()) {
-                org.neo4j.driver.Record record = result.next();
-                Value friendIdValue = record.get("friendId");
+                var record = result.next();
+                var friendIdValue = record.get("friendId");
                 if (!friendIdValue.isNull()) {
                     commonFriends.add(friendIdValue.asLong());
                 }
@@ -328,8 +326,8 @@ public class Neo4jClient implements AutoCloseable {
 
             List<Long> friends = new ArrayList<>();
             while (result.hasNext()) {
-                org.neo4j.driver.Record record = result.next();
-                Value friendIdValue = record.get("friendId");
+                var record = result.next();
+                var friendIdValue = record.get("friendId");
                 if (!friendIdValue.isNull()) {
                     friends.add(friendIdValue.asLong());
                 }
