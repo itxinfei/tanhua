@@ -13,19 +13,15 @@
 
     <!-- 卡片区域 -->
     <view class="card-area">
-      <!-- 骨架卡片（首屏加载中，模拟堆叠效果） -->
-      <!-- 骨架卡片（首屏加载中）：占位元素，对读屏隐藏 -->
-      <view v-if="cardList.length === 0 && loading" class="skeleton-cards" aria-hidden="true">
-        <view
-          v-for="i in VISIBLE_CARD_COUNT"
-          :key="i"
-          class="skeleton skel-card"
-          :style="{
-            transform: `scale(${1 - (i - 1) * CARD_SCALE_STEP}) translateY(${(i - 1) * CARD_OFFSET_STEP_RPX}rpx)`,
-            zIndex: CARD_BASE_Z_INDEX - (i - 1),
-          }"
-        />
-      </view>
+      <!-- 骨架卡片（首屏加载中，模拟堆叠效果）：占位元素，对读屏隐藏 -->
+      <skeleton
+        v-if="cardList.length === 0 && loading"
+        variant="match"
+        :stack-count="VISIBLE_CARD_COUNT"
+        :stack-scale-step="CARD_SCALE_STEP"
+        :stack-offset-step="CARD_OFFSET_STEP_RPX"
+        :stack-base-z="CARD_BASE_Z_INDEX"
+      />
 
       <!-- 空状态 -->
       <empty-state title="暂无推荐" desc="稍后再来看看，缘分不期而至" />
@@ -116,6 +112,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import EmptyState from "@/components/empty-state.vue";
+import Skeleton from "@/components/skeleton.vue";
 import { onShow, onShareAppMessage } from "@dcloudio/uni-app";
 import { useMatchStore } from "@/store/match";
 import { getCards, type TodayBest } from "@/api/match";
@@ -508,21 +505,6 @@ onShareAppMessage(() => ({
   position: relative;
   padding: 24rpx;
   overflow: hidden;
-}
-
-/* 骨架卡片堆叠（首屏加载占位） */
-.skeleton-cards {
-  position: absolute;
-  left: 24rpx;
-  right: 24rpx;
-  top: 24rpx;
-  bottom: 24rpx;
-
-  .skel-card {
-    position: absolute;
-    inset: 0;
-    border-radius: 32rpx;
-  }
 }
 
 .card-wrapper {

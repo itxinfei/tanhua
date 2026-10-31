@@ -125,13 +125,8 @@
       </swiper-item>
     </swiper>
 
-    <!-- 骨架屏（首屏加载中） -->
     <!-- 骨架屏（首屏加载中）：占位元素，对读屏隐藏 -->
-    <view v-if="displayList.length === 0 && loading" class="skeleton-video" aria-hidden="true">
-      <view class="skeleton skeleton--dark skel-full" />
-      <view class="skeleton skeleton--dark skel-author" />
-      <view class="skeleton skeleton--dark skel-desc" />
-    </view>
+    <skeleton v-if="displayList.length === 0 && loading" variant="video" />
 
     <!-- 空状态 -->
     <empty-state
@@ -193,6 +188,7 @@ import {
 import VideoCommentDrawer from "@/components/video-comment-drawer.vue";
 import A11yButton from "@/components/a11y-button.vue";
 import EmptyState from "@/components/empty-state.vue";
+import Skeleton from "@/components/skeleton.vue";
 import A11yDialog from "@/components/a11y-dialog.vue";
 
 /** 分页大小 */
@@ -868,35 +864,6 @@ onShareAppMessage(() => ({
     height: 100%;
     background: #fff;
     transition: width 0.2s linear;
-  }
-}
-
-/* 骨架屏 */
-.skeleton-video {
-  position: absolute;
-  inset: 0;
-  z-index: 20;
-
-  .skel-full {
-    position: absolute;
-    inset: 0;
-    border-radius: 0;
-  }
-
-  .skel-author {
-    position: absolute;
-    left: 24rpx;
-    bottom: 140rpx;
-    width: 200rpx;
-    height: 32rpx;
-  }
-
-  .skel-desc {
-    position: absolute;
-    left: 24rpx;
-    bottom: 90rpx;
-    width: 400rpx;
-    height: 26rpx;
   }
 }
 

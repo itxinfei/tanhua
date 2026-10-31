@@ -28,21 +28,8 @@
       @refresherrefresh="onRefresh"
       @scrolltolower="loadMore"
     >
-      <!-- 骨架屏（首屏加载中） -->
       <!-- 骨架屏（首屏加载中）：占位元素，对读屏隐藏 -->
-      <view v-if="feedList.length === 0 && loading" class="skeleton-feed" aria-hidden="true">
-        <view v-for="i in SKELETON_CARD_COUNT" :key="i" class="skeleton-card">
-          <view class="skeleton-header">
-            <view class="skeleton skel-avatar" />
-            <view class="skeleton skel-name" />
-          </view>
-          <view class="skeleton skel-text" />
-          <view class="skeleton skel-text skel-short" />
-          <view class="skeleton skel-grid-row">
-            <view v-for="j in GRID_COLUMN_COUNT" :key="j" class="skeleton skel-grid" />
-          </view>
-        </view>
-      </view>
+      <skeleton v-if="feedList.length === 0 && loading" variant="feed" :count="SKELETON_CARD_COUNT" :grid-cols="GRID_COLUMN_COUNT" />
       <!-- 空状态 -->
       <empty-state icon="camera" title="暂无动态" desc="快来发布第一条，分享你的生活" />
       <view v-for="item in feedList" :key="item.id" class="post-card">
@@ -99,6 +86,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import EmptyState from "@/components/empty-state.vue";
+import Skeleton from "@/components/skeleton.vue";
 import { onShow, onShareAppMessage } from "@dcloudio/uni-app";
 import MatchPopup from "@/components/match-popup.vue";
 import A11yButton from "@/components/a11y-button.vue";
@@ -413,53 +401,4 @@ onShareAppMessage(() => ({
   font-size: 24rpx;
 }
 
-/* ===== 骨架屏 ===== */
-.skeleton-card {
-  background: #fff;
-  border-radius: 24rpx;
-  padding: 24rpx;
-  margin-bottom: 16rpx;
-
-  .skeleton-header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 20rpx;
-
-    .skel-avatar {
-      width: 72rpx;
-      height: 72rpx;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    .skel-name {
-      width: 180rpx;
-      height: 28rpx;
-      margin-left: 16rpx;
-    }
-  }
-
-  .skel-text {
-    width: 100%;
-    height: 26rpx;
-    margin-bottom: 12rpx;
-
-    &.skel-short {
-      width: 60%;
-    }
-  }
-
-  .skel-grid-row {
-    display: flex;
-    gap: 8rpx;
-    height: 200rpx;
-    margin-top: 8rpx;
-
-    .skel-grid {
-      flex: 1;
-      height: 100%;
-      border-radius: 8rpx;
-    }
-  }
-}
 </style>
