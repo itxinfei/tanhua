@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { onLaunch, onShow } from "@dcloudio/uni-app";
 import { installAuthGuard } from "@/utils/auth-guard";
+// #ifdef H5
+import { installGlobalTabbar } from "@/utils/global-tabbar";
+// #endif
 import { getToken } from "@/utils/request";
 import { getHuanXinUser } from "@/api/chat";
 import { loginEasemob, isEasemobLoggedIn, onMatchReceived } from "@/utils/easemob";
@@ -9,6 +12,10 @@ import { useMatchStore } from "@/store/match";
 onLaunch(() => {
   // 安装全局登录路由守卫（需先于任何页面导航）
   installAuthGuard();
+  // #ifdef H5
+  // 安装 H5 全局底栏：非 tab 页（vip/nearby 等）原生 tabBar 不存在，注入统一底栏
+  installGlobalTabbar();
+  // #endif
   // 启动兜底：冷启动落在非登录页且无 token 时，重定向到登录页
   const pages = getCurrentPages();
   const current = pages.length ? pages[pages.length - 1].route : "";
@@ -126,18 +133,19 @@ page {
 }
 
 /* #ifdef H5 */
-/* ===== 底部 tabBar 美化（仅 H5；小程序端为原生 tabBar，由 theme.json 控制） =====
-   默认 1px 灰线生硬，交友 App 改为：毛玻璃底栏 + 品牌色渐变发丝线 + 柔光投影 */
+/* ===== 底部 tabBar（仅 H5；小程序端为原生 tabBar，由 theme.json 控制） =====
+   白色系：毛玻璃白底 + 黑色图标/文字（theme.json 已配 #00000080 / #000000）+ 品牌色发丝线 */
 .uni-tabbar {
-  background: rgba(255, 255, 255, 0.82) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(1.5);
-  backdrop-filter: blur(24px) saturate(1.5);
-  box-shadow: 0 -8px 28px rgba(255, 94, 156, 0.1);
+  background: #ffffff !important;
+  box-shadow: none;
 }
 
-/* 中间发布键：对标抖音，无方块底色，仅绘制深色粗体实心“+”（圆润端点） */
+/* 中间发布键：对标抖音，无方块底色，仅绘制深色粗体实心“+”（圆润端点）。
+   必须保持框架默认的 absolute 定位——改成 relative 会让发布键进入文档流，
+   tab item 高度变成 mid(50px)+内容(50px)=100px，整个底栏被撑高一倍 */
 .uni-tabbar__mid {
-  position: relative;
+  position: absolute;
+  bottom: 0;
   background: transparent !important;
   border-radius: 0;
   box-shadow: none;
@@ -150,7 +158,7 @@ page {
   top: 50%;
   left: 50%;
   border-radius: 5px;
-  /* 抖音主黑实心，笔画饱满 */
+  /* 白底上深色实心，笔画饱满 */
   background: #161823;
   transform: translate(-50%, -50%);
 }
@@ -421,20 +429,39 @@ button:focus-visible {
 /* ===== H5 原生 tabBar 视觉优化（仅 H5 运行时类名，小程序端不生效）===== */
 /* 毛玻璃半透明底栏，融入沉浸式视频页，消除白色硬切割感 */
 .uni-tabbar {
-  background-color: rgba(255, 255, 255, 0.82) !important;
-  -webkit-backdrop-filter: saturate(180%) blur(18px);
-  backdrop-filter: saturate(180%) blur(18px);
+  /* 实色白底：半透明毛玻璃在浅色页面上发透，底栏内容与页面混在一起 */
+  background-color: #ffffff !important;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  /* 与运行时 --tab-bar-height: 50px 的占位高度对齐，消除页面底部与底栏之间的空隙 */
+  min-height: 50px;
 }
 
-/* tabbar 顶部分割线：对标抖音发丝线，高度锁定 1px，颜色用品牌主色（深色模式自动跟随 --color-primary） */
+/* 图标尺寸锁定 28px：框架默认不约束 .uni-tabbar__icon 尺寸，img 的 100% 会解析成
+   PNG 原始尺寸（81px），把整个 tabbar 撑到 100px —— “顶部分割线看起来太高”的根因 */
+.uni-tabbar__icon {
+  width: 28px;
+  height: 28px;
+}
+
+/* tabbar 顶部分割线：对标抖音发丝线，高度锁定 1px。
+   --color-primary 只定义在 uni-page-body 内，到不了 tabbar（其兄弟元素），
+   此处必须显式写颜色，否则该线透明不可见 */
 .uni-tabbar-border {
   height: 1px !important;
-  background-color: var(--color-primary) !important;
+  background-color: #ff5e9c !important;
 }
 
 /* 发布键兜底：保持透明、无圆角方块，加号由前面的 ::before/::after 绘制 */
 .uni-tabbar__mid {
   background-color: transparent !important;
   border-radius: 0 !important;
+}
+
+/* 深色模式：分割线用亮一档的品牌色（同上，变量不可达，写显式色值） */
+@media (prefers-color-scheme: dark) {
+  .uni-tabbar-border {
+    background-color: #ff8eb9 !important;
+  }
 }
 </style>

@@ -79,11 +79,8 @@ function handleKeydown(e: any): void {
     outline-offset: 2px;
   }
 
-  /* 小程序端不支持 focus-visible，用 :focus 兜底 */
-  &:focus {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
-  }
+  /* 不再使用 :focus 兜底：鼠标点击也会触发 :focus，导致点击出现色块边框；
+     键盘可达性由 :focus-visible 保证（H5/APP-webview），小程序端无 outline 概念 */
 
   &--disabled {
     cursor: not-allowed;

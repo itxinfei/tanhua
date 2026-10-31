@@ -28,6 +28,12 @@
       </view>
     </view>
 
+    <!-- 加载失败提示：不再静默空白，提供重试入口 -->
+    <view v-if="loadError" class="load-error">
+      <text class="load-error-text">数据加载失败，部分内容未显示</text>
+      <button class="retry-btn btn-feedback" @click="loadVipData">重新加载</button>
+    </view>
+
     <!-- 权益矩阵（后端 tb_value_added_service 驱动） -->
     <view class="benefits-card shadow-gold">
       <view class="benefit-head">
@@ -103,6 +109,8 @@ const paying = ref(false);
 
 /** 权益矩阵（后端 tb_value_added_service 驱动，新增权益只改 DB 不改前端） */
 const benefits = ref<ValueAddedService[]>([]);
+/** 数据加载失败标记：展示重试入口，避免静默空白让用户以为菜单消失 */
+const loadError = ref(false);
 
 /** 套餐展示模型：分转元 + 月均价 + 营销标签 */
 const plans = computed(() =>
@@ -158,23 +166,24 @@ const vipInfo = computed(() => {
   return { isVip, levelName, expireText };
 });
 
-/** 拉取套餐列表与会员状态 */
+/** 拉取套餐列表与会员状态：allSettled 各请求独立容错，单个接口失败不清空其它数据 */
 async function loadVipData(): Promise<void> {
-  try {
-    const [pkgs, status, benefitList] = await Promise.all([
-      getVipPackages(),
-      getVipStatus(),
-      getVipBenefits(),
-    ]);
-    packages.value = pkgs || [];
-    vipStatus.value = status;
-    benefits.value = benefitList || [];
-    // 默认选年卡（level=3），无年卡则选最后一个
-    const yearPkg = packages.value.find((p) => p.level === 3);
-    selectedId.value = yearPkg?.id ?? packages.value[packages.value.length - 1]?.id ?? 0;
-  } catch (e) {
-    // 请求层已统一 toast，这里静默
+  loadError.value = false;
+  const results = await Promise.allSettled([
+    getVipPackages(),
+    getVipStatus(),
+    getVipBenefits(),
+  ]);
+  if (results[0].status === "fulfilled") packages.value = results[0].value || [];
+  if (results[1].status === "fulfilled") vipStatus.value = results[1].value;
+  if (results[2].status === "fulfilled") benefits.value = results[2].value || [];
+  loadError.value = results.some((r) => r.status === "rejected");
+  if (loadError.value) {
+    // 请求层已统一 toast，这里只标记错误态展示重试入口
   }
+  // 默认选年卡（level=3），无年卡则选最后一个
+  const yearPkg = packages.value.find((p) => p.level === 3);
+  selectedId.value = yearPkg?.id ?? packages.value[packages.value.length - 1]?.id ?? 0;
 }
 
 /** 发起支付：下单 → 二次确认 → 渠道支付（当前为模拟渠道）→ 刷新状态 */
@@ -246,6 +255,12 @@ onLoad(() => {
 
 <style lang="scss" scoped>
 .vip-page { min-height: 100vh; background: #1a1a2e; padding-bottom: 180rpx; overflow: hidden; }
+
+/* ===== 加载失败态 ===== */
+.load-error { margin: 24rpx 32rpx 0; padding: 36rpx; text-align: center; background: rgba(255, 255, 255, 0.06); border: 1rpx solid rgba(255, 215, 0, 0.35); border-radius: 16rpx;
+  .load-error-text { font-size: 26rpx; color: rgba(255, 215, 0, 0.85); display: block; }
+  .retry-btn { margin-top: 24rpx; font-size: 26rpx; color: #1a1a2e; background: #ffd700; border-radius: 999rpx; padding: 0 56rpx; line-height: 68rpx; }
+}
 
 /* ===== 顶部权益区 ===== */
 .header { text-align: center; padding-bottom: 48rpx; background: linear-gradient(180deg, #2c2c54 0%, #1a1a2e 100%); position: relative; overflow: hidden;

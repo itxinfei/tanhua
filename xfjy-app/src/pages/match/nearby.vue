@@ -133,22 +133,27 @@ onPullDownRefresh(async () => {
 <style lang="scss" scoped>
 .nearby-page { min-height: 100vh; background: var(--bg-sub); }
 
-/* ===== 筛选栏 ===== */
-.filter-bar { display: flex; gap: 12rpx; padding: 20rpx 24rpx; background: var(--bg-card); position: sticky; top: 0; z-index: 10; box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
+/* ===== 筛选栏（探探式：左距离胶囊组，右性别筛选） ===== */
+.filter-bar { display: flex; align-items: center; gap: 12rpx; padding: 20rpx 24rpx; background: var(--bg-card); position: sticky; top: 0; z-index: 10; box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
   /* 触摸目标 ≥24px：10rpx 26rpx padding + 24rpx 字号偏小 */
-  .filter-item { padding: 16rpx 26rpx; min-height: 48rpx; border-radius: 28rpx; font-size: 24rpx; color: var(--text-hint-strong); background: var(--bg-sub); transition: all 0.2s;
+  /* flex 垂直居中：view(block) 内的 inline text 走基线对齐会把文字顶偏（上 9px/下 19px），
+     flex 项脱离行盒布局后上下精确居中；高度统一由 min-height 控制，触摸目标同步提升 */
+  .filter-item { display: flex; align-items: center; justify-content: center; padding: 0 26rpx; min-height: 64rpx; border-radius: 32rpx; font-size: 24rpx; line-height: 1; color: var(--text-hint-strong); background: var(--bg-sub); transition: all 0.2s;
     &.active { background: var(--gradient-brand); color: #fff; box-shadow: 0 4rpx 12rpx rgba(255, 94, 142, 0.3); }
     &.gender.active { background: var(--gradient-brand); }
   }
+  /* 性别筛选独立推到右侧，与距离组分离，主次清晰 */
+  .gender { margin-left: auto; }
 }
 
 /* ===== 用户列表 ===== */
 .user-list { padding: 20rpx 24rpx; }
 
-/* 行容器：卡片主体 + 独立喜欢按钮 */
-.user-row { display: flex; align-items: center; gap: 16rpx; margin-bottom: 16rpx; }
+/* 探探式行卡片：整行一张卡片，喜欢按钮嵌在卡片内右缘（不再孤立在卡片外） */
+.user-row { display: flex; align-items: center; gap: 16rpx; margin-bottom: 16rpx; padding: 24rpx; background: var(--bg-card); border-radius: 24rpx; }
 
-.user-item { flex: 1; display: flex; align-items: center; padding: 24rpx; background: var(--bg-card); border-radius: 24rpx;
+/* 卡片主体：透明承载（背景由 .user-row 统一提供） */
+.user-item { flex: 1; display: flex; align-items: center; min-width: 0;
   .avatar-wrap { position: relative; flex-shrink: 0;
     .avatar { width: 100rpx; height: 100rpx; border-radius: 50%; background: var(--bg-sub); border: 3rpx solid var(--bg-icon-soft); }
   }

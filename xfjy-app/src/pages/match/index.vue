@@ -78,13 +78,19 @@
       </view>
     </view>
 
-    <!-- 底部操作栏（不喜欢 / 喜欢 / 曝光提升 三个动作，卡片为前进队列：左右滑动即移动到下一张） -->
+    <!-- 底部操作栏（探探式五键：回看 / 不喜欢 / 超级喜欢 / 心动 / 曝光提升） -->
     <view class="action-bar safe-area-bottom">
-      <a11y-button class="action-btn dislike btn-feedback" label="不喜欢" @tap="handleDislike">
-        <uni-icons type="close" size="24" color="var(--color-primary)"></uni-icons>
+      <a11y-button class="action-btn rewind btn-feedback" label="回看上一张" @tap="handleRewind">
+        <text aria-hidden="true">↺</text>
       </a11y-button>
-      <a11y-button class="action-btn like btn-feedback" label="喜欢" @tap="handleLike">
-        <uni-icons type="heart-filled" size="24" color="var(--color-primary)"></uni-icons>
+      <a11y-button class="action-btn dislike btn-feedback" label="不喜欢" @tap="handleDislike">
+        <uni-icons type="close" size="24" color="#ff3b30"></uni-icons>
+      </a11y-button>
+      <a11y-button class="action-btn superlike btn-feedback" label="超级喜欢" @tap="handleSuperLike">
+        <uni-icons type="star-filled" size="22" color="#4dabf7"></uni-icons>
+      </a11y-button>
+      <a11y-button class="action-btn like btn-feedback" label="心动" @tap="handleLike">
+        <uni-icons type="heart-filled" size="24" color="#4cd964"></uni-icons>
       </a11y-button>
       <a11y-button class="action-btn boost btn-feedback" label="曝光提升" @tap="handleBoost">
         <text aria-hidden="true">⚡</text>
@@ -102,7 +108,9 @@ import EmptyState from "@/components/empty-state.vue";
 import Skeleton from "@/components/skeleton.vue";
 import { onShow, onShareAppMessage } from "@dcloudio/uni-app";
 import { useMatchStore } from "@/store/match";
+import { useSystemStore } from "@/store/system";
 import { getCards, type TodayBest } from "@/api/match";
+import { checkBenefit, recordBenefitUsage } from "@/api/mine";
 import { useUserStore } from "@/store/user";
 import MatchPopup from "@/components/match-popup.vue";
 import A11yButton from "@/components/a11y-button.vue";
@@ -145,10 +153,34 @@ const DEFAULT_STATUS_BAR_HEIGHT_PX = 20;
 
 // 状态栏高度（自定义导航栏适配）
 const statusBarHeight = ref(0);
-const currentCity = ref("北京");
+const systemStore = useSystemStore();
+/** 顶部城市：读取 system store（本地持久化，默认北京）；
+ *  坐标→城市名的逆地理编码需地图服务 key，接入后改为定位结果 */
+const currentCity = computed(() => systemStore.currentCity);
 /** 城市选择暂未上线，点击给出明确提示（避免死交互） */
 function openCityPicker() {
   uni.showToast({ title: "城市选择功能即将上线", icon: "none" });
+}
+
+/**
+ * 定位同步：获取当前坐标并上报后端（写入 ES），供「附近的人」检索。
+ * 此前整条上报链路从未被调用，导致附近的人搜不到本用户。
+ * 授权拒绝/非 https 环境静默跳过，下次进入重试。
+ */
+function syncLocation(): void {
+  uni.getLocation({
+    type: "wgs84",
+    success: (res) => {
+      systemStore
+        .updateLocation({
+          longitude: res.longitude,
+          latitude: res.latitude,
+          // 无逆地理服务，地址描述以坐标串占位
+          addrStr: `${res.longitude.toFixed(6)},${res.latitude.toFixed(6)}`,
+        })
+        .catch(() => {});
+    },
+  });
 }
 
 // 卡片数据
@@ -262,6 +294,8 @@ function onTouchEnd(_e: TouchEvent, index: number) {
 const swiping = ref(false);
 /** 待执行的卡片移除定时器（页面卸载时清理） */
 let cardRemoveTimer: ReturnType<typeof setTimeout> | null = null;
+/** 上一张已完成上报的卡片（回看撤销用） */
+const lastSwipe = ref<{ id: number; action: "like" | "dislike" | "superlike" } | null>(null);
 
 /** 卡片滑出并上报操作，互相喜欢时弹出匹配成功弹窗 */
 async function swipeOut(action: "like" | "dislike" | "superlike") {
@@ -297,6 +331,13 @@ async function swipeOut(action: "like" | "dislike" | "superlike") {
         avatar: card.avatar,
       });
     }
+    // 超级喜欢为 VIP 权益：先上报成功再扣次数（与 detail 页一致，避免失败白扣）
+    if (action === "superlike") {
+      const ok = await recordBenefitUsage("super_like");
+      if (!ok) {
+        uni.showToast({ title: "今日超级喜欢次数已用完", icon: "none" });
+      }
+    }
   } catch {
     // 上报失败：回弹卡片并提示，避免后端未记录却把推荐划走
     dragX.value = 0;
@@ -309,6 +350,8 @@ async function swipeOut(action: "like" | "dislike" | "superlike") {
   // 延迟移除卡片（等待飞出动画完成）
   cardRemoveTimer = setTimeout(() => {
     cardRemoveTimer = null;
+    // 记录刚出栈的卡片供「回看」撤销
+    lastSwipe.value = { id: card.id, action };
     currentCardIndex.value++;
     dragX.value = 0;
     dragY.value = 0;
@@ -328,6 +371,56 @@ function handleLike() {
 function handleDislike() {
   dragX.value = 0;
   swipeOut("dislike");
+}
+/**
+ * 回看（探探式 ↺）：撤销上一张的上报（store.undoSwipe 回滚后端并返还次数），
+ * 再把卡片放回队首；无历史记录时提示。
+ */
+async function handleRewind(): Promise<void> {
+  const last = lastSwipe.value;
+  if (swiping.value || !last) {
+    uni.showToast({ title: "没有可回看的卡片", icon: "none" });
+    return;
+  }
+  try {
+    // 先回滚后端再动队列：失败时保持现状，避免前后端状态不一致
+    await matchStore.undoSwipe(last.id, last.action);
+    if (cardRemoveTimer) {
+      clearTimeout(cardRemoveTimer);
+      cardRemoveTimer = null;
+    }
+    swiping.value = false;
+    currentCardIndex.value = Math.max(0, currentCardIndex.value - 1);
+    dragX.value = 0;
+    dragY.value = 0;
+    lastSwipe.value = null;
+    uni.showToast({ title: "已回看上一张", icon: "none" });
+  } catch {
+    uni.showToast({ title: "回看失败，请重试", icon: "none" });
+  }
+}
+/**
+ * 超级喜欢（探探式 ★，VIP1 每日 5 次）：权益校验通过后向上飞出上报，
+ * 次数扣减在 swipeOut 上报成功后执行（先上报后扣，避免失败白扣）。
+ */
+async function handleSuperLike(): Promise<void> {
+  if (swiping.value) return;
+  try {
+    const benefit = await checkBenefit("super_like");
+    if (!benefit.hasBenefit) {
+      uni.showToast({ title: "超级喜欢需开通VIP", icon: "none" });
+      setTimeout(() => uni.navigateTo({ url: "/pages/mine/vip" }), 600);
+      return;
+    }
+    if (benefit.remainingToday === 0) {
+      uni.showToast({ title: "今日超级喜欢次数已用完", icon: "none" });
+      return;
+    }
+    dragX.value = 0;
+    swipeOut("superlike");
+  } catch {
+    // 请求失败由 request 层统一 toast
+  }
 }
 function handleBoost() {
   uni.showToast({ title: "曝光提升（VIP专属）", icon: "none" });
@@ -392,6 +485,8 @@ onShow(() => {
   if (userStore.isLogin) {
     matchStore.loadSwipeBenefit();
   }
+  // 每次进入同步一次定位：后端 ES 有坐标，附近的人才能搜到本用户
+  syncLocation();
 });
 
 /** 小程序端分享配置（H5 端静默忽略） */
@@ -404,7 +499,10 @@ onShareAppMessage(() => ({
 <style lang="scss" scoped>
 .match-page {
   position: relative;
-  height: calc(100vh - var(--window-bottom, 0px));
+  /* tab 页可用高度 = 视口 - 原生 tabbar（50px）。
+     不能用 var(--window-bottom)：uni-h5 把真实值设在 :root，页面 body 上是 0px，
+     用它会铺满整屏，底部操作栏/照片被 tabbar 遮挡一半 */
+  height: calc(100vh - var(--tab-bar-height, 0px));
   background: var(--bg-page);
   overflow: hidden;
 }
@@ -610,6 +708,16 @@ onShareAppMessage(() => ({
     border-radius: 50%;
     font-size: 44rpx;
 
+    /* 探探式尺寸梯度：✕/心动大、超级喜欢中、回看/曝光小 */
+    &.rewind {
+      width: 88rpx;
+      height: 88rpx;
+      background: var(--bg-card);
+      color: #f6b93b;
+      border: 4rpx solid #f6b93b;
+      box-shadow: 0 6rpx 20rpx rgba(246, 185, 59, 0.25);
+    }
+
     &.dislike {
       width: 100rpx;
       height: 100rpx;
@@ -619,13 +727,22 @@ onShareAppMessage(() => ({
       box-shadow: 0 6rpx 20rpx rgba(255, 59, 48, 0.25);
     }
 
+    &.superlike {
+      width: 88rpx;
+      height: 88rpx;
+      background: var(--bg-card);
+      color: #4dabf7;
+      border: 4rpx solid #4dabf7;
+      box-shadow: 0 6rpx 20rpx rgba(77, 171, 247, 0.25);
+    }
+
     &.like {
       width: 100rpx;
       height: 100rpx;
       background: var(--bg-card);
-      color: var(--color-primary);
-      border: 4rpx solid var(--color-primary);
-      box-shadow: 0 6rpx 20rpx rgba(255, 94, 142, 0.3);
+      color: #4cd964;
+      border: 4rpx solid #4cd964;
+      box-shadow: 0 6rpx 20rpx rgba(76, 217, 100, 0.3);
     }
 
     &.boost {

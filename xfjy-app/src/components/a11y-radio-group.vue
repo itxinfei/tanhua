@@ -85,8 +85,8 @@ function handleKeydown(e: any, opt: RadioOption): void {
 }
 
 .a11y-radio {
-  &:focus-visible,
-  &:focus {
+  /* 仅键盘导航显示焦点环；:focus 兜底会让鼠标点击也出框，已移除 */
+  &:focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
   }
