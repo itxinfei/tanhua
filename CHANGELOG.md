@@ -31,3 +31,7 @@
 2026-10-31 | xfjy-app 前端 | 修复「我的」页头部头像/昵称未与后端打通：mine/index.vue onShow 新增 userStore.fetchUserInfo() 调用（此前仅加载关系统计，用户信息仅登录时写入，恢复登录态或编辑资料后头部恒显「未设置昵称」+默认头像）；同步修正 store/user.ts fetchUserInfo 忽略 profile.signature 的映射 bug | 开发者：itxinfei
 
 2026-10-31 | xfjy-admin + deploy + docs | 管理后台多模块页面完善（协议/内容/客服/通知/支付/举报/敏感/系统/用户/VIP）与 LiveKit、WuKongIM 中间件部署配置落地（config.yaml 密钥改由环境变量注入，去除硬编码），需求/技术约束/部署/落地方案文档同步更新 | 开发者：itxinfei
+
+2026-10-31 | xfjy-app 前端 | 浏览器标签页 favicon 替换为心飞交友品牌图标：选用 docs/logo/logo-icon-transparent.png（方形透明 app 图标，含品牌吉祥物），覆盖 xfjy-app/src/static/logo.png；index.html 的 <link rel=icon> 无需改动即可生效。注：当前源文件约 1.9MB，建议后续用工具生成 64/128px 优化版以减小首屏体积 | 开发者：itxinfei
+
+2026-10-31 | xfjy-app 前端 | 「我的」页头部高度收窄使 8 项功能菜单单屏展示：HEADER_EXTRA_PADDING_PX 40→24、.header 底部内边距 32→24rpx、.stats-row 上间距 32→24rpx、.avatar 140→128rpx（功能菜单本已全量渲染，仅收窄头部腾出空间） | 开发者：itxinfei

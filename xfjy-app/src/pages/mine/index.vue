@@ -90,7 +90,7 @@ const statusBarHeight = ref(0);
 /** 状态栏高度兜底值（px） */
 const DEFAULT_STATUS_BAR_HEIGHT_PX = 20;
 /** 头部额外顶部留白（px，状态栏下方间距） */
-const HEADER_EXTRA_PADDING_PX = 40;
+const HEADER_EXTRA_PADDING_PX = 24;
 
 /** 关系统计（与后端 CountsVo 对齐） */
 const counts = ref<RelationCounts>({
@@ -216,7 +216,7 @@ onShow(() => {
 
 .header {
   background: linear-gradient(180deg, var(--color-primary-deep) 0%, var(--color-primary) 100%);
-  padding: 0 32rpx 32rpx;
+  padding: 0 32rpx 24rpx;
   border-radius: 0 0 40rpx 40rpx;
   position: relative;
   overflow: hidden;
@@ -251,8 +251,8 @@ onShow(() => {
     align-items: center;
 
     .avatar {
-      width: 140rpx;
-      height: 140rpx;
+      width: 128rpx;
+      height: 128rpx;
       border-radius: 50%;
       border: 4rpx solid rgba(255, 255, 255, 0.6);
     }
@@ -321,7 +321,7 @@ onShow(() => {
   .stats-row {
     display: flex;
     justify-content: space-around;
-    margin-top: 32rpx;
+    margin-top: 24rpx;
     background: rgba(255, 255, 255, 0.15);
     border-radius: 20rpx;
     padding: 20rpx 0;
