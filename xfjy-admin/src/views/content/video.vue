@@ -206,8 +206,8 @@ async function loadData() {
     const res = await getVideoPageApi(params)
     tableData.value = res.list || []
     total.value = res.total || 0
-  } catch {
-    // 拦截器已提示
+  } catch (err) {
+    ElMessage.error('数据加载失败，请检查后端服务')
   } finally {
     loading.value = false
   }

@@ -1,22 +1,24 @@
 # ============================================================
 # LiveKit SFU 生产配置（单节点，无需 Redis；集群多节点才需 redis）
 # 官方配置参考：https://github.com/livekit/livekit/blob/master/config-sample.yaml
-# 注意：上线前请把 keys 的密钥改为随机长字符串，并与后端 livekit.api.* 保持一致
+#
+# 密钥不写在本文件：由 docker-compose 的 LIVEKIT_KEYS 环境变量注入，
+# 值形如 "<key>: <secret>"，来源是 deploy/.env 的 LIVEKIT_API_KEY / LIVEKIT_API_SECRET。
+# 后端 application.yml 的 livekit.api.key / livekit.api.secret 必须与 .env 完全一致，
+# 否则客户端拿到的 JWT 无法通过 SFU 校验。
 # ============================================================
 
 port: 7880
 log_level: info
 
 rtc:
-  # 云服务器/有公网映射时通过 STUN 自动发现公网 IP
-  use_external_ip: true
+  # 内网部署：显式指定节点 IP，不做 STUN 公网探测。
+  # 私网环境下 STUN 探测会失败或返回不可达地址，导致客户端 ICE candidate 连不上。
+  # 若将来改为公网/NAT 映射部署，再置 true 并去掉 node_ip。
+  use_external_ip: false
+  node_ip: 192.168.20.133
   # UDP 不通时的 WebRTC over TCP 回退端口（必须直接暴露，不能放 TLS/负载均衡后面）
   tcp_port: 7881
   # WebRTC 媒体 UDP 端口范围（防火墙需放行，每个参与者约占 2 个端口）
   port_range_start: 50000
   port_range_end: 60000
-
-# API key / secret 对：后端用它签发客户端 JWT；可配多对
-# 格式：<key>: <secret>
-keys:
-  xfjykey: CHANGE_ME_TO_RANDOM_SECRET_32_CHARS_MIN

@@ -126,8 +126,8 @@ async function loadData() {
     const res = await getFaqPageApi(query)
     tableData.value = res.list
     total.value = res.total
-  } catch {
-    // 错误已由拦截器处理
+  } catch (err) {
+    ElMessage.error('数据加载失败，请检查后端服务')
   } finally {
     loading.value = false
   }

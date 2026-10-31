@@ -140,14 +140,12 @@ async function loadData() {
     const res = await getAgreementPageApi(query)
     tableData.value = res.list
     total.value = res.total
-  } catch {
+  } catch (err) {
+    ElMessage.error('数据加载失败，请检查后端服务')
     if (import.meta.env.DEV) {
       const mock = getMockAgreements(query.page, query.pageSize)
       tableData.value = mock.list
       total.value = mock.total
-    } else {
-      tableData.value = []
-      total.value = 0
     }
   } finally {
     loading.value = false

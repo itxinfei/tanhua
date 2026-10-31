@@ -159,9 +159,8 @@ async function loadData() {
     const res = await getPayOrderPageApi(params)
     tableData.value = res.list
     total.value = res.total
-  } catch {
-    tableData.value = []
-    total.value = 0
+  } catch (err) {
+    ElMessage.error('数据加载失败，请检查后端服务')
   } finally {
     loading.value = false
   }

@@ -233,9 +233,8 @@ async function loadPackages() {
     const res = await getVipPackagePageApi(pkgQuery)
     pkgData.value = res.list
     pkgTotal.value = res.total
-  } catch {
-    pkgData.value = []
-    pkgTotal.value = 0
+  } catch (err) {
+    ElMessage.error('数据加载失败，请检查后端服务')
   } finally {
     pkgLoading.value = false
   }

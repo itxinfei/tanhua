@@ -290,6 +290,11 @@ services:
     command: --config /etc/livekit/config.yaml
     environment:
       TZ: Asia/Shanghai
+      # 密钥单一事实源在 deploy/.env：经 LIVEKIT_KEYS 注入，格式 "<key>: <secret>"
+      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:-xfjykey}: ${LIVEKIT_API_SECRET:-CHANGE_ME_TO_RANDOM_SECRET_32_CHARS_MIN}"
+      # 内网部署固定节点 IP、关闭 STUN 公网探测（环境变量优先级高于 config.yaml）
+      LIVEKIT_RTC_USE_EXTERNAL_IP: "${LIVEKIT_USE_EXTERNAL_IP:-false}"
+      LIVEKIT_RTC_NODE_IP: "${LIVEKIT_NODE_IP:-192.168.20.133}"
     ports:
       - "7880:7880"
       - "7881:7881"

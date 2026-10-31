@@ -159,15 +159,13 @@ async function loadData() {
     const res = await getNoticePageApi(query)
     tableData.value = res.list
     total.value = res.total
-  } catch {
-    // Mock 兜底仅开发环境生效，生产环境显示空列表避免假数据误导
+  } catch (err) {
+    ElMessage.error('数据加载失败，请检查后端服务')
+    // 开发环境可用 mock 数据兜底，生产环境保留上次数据
     if (import.meta.env.DEV) {
       const mock = getMockNotices(query.page, query.pageSize)
       tableData.value = mock.list
       total.value = mock.total
-    } else {
-      tableData.value = []
-      total.value = 0
     }
   } finally {
     loading.value = false

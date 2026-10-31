@@ -213,10 +213,8 @@ async function loadData() {
     const res = await getSensitiveWordPageApi(query)
     tableData.value = res.list
     total.value = res.total
-  } catch {
-    // 生产环境显示空列表，词库变更需后端可用
-    tableData.value = []
-    total.value = 0
+  } catch (err) {
+    ElMessage.error('数据加载失败，请检查后端服务')
   } finally {
     loading.value = false
   }

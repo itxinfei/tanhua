@@ -29,3 +29,5 @@
 2026-10-31 | xfjy-app 前端 | 骨架屏组件 components/skeleton.vue 新增 match 变体（卡片堆叠占位）：match 首页改用 <skeleton variant="match" />，堆叠参数 stack-count/stack-scale-step/stack-offset-step/stack-base-z 由页面域常量透传（默认值与页面一致），删除页内 .skeleton-cards 死 CSS；全站三种骨架（feed/video/match）现已统一收敛到同一组件 | 开发者：itxinfei
 
 2026-10-31 | xfjy-app 前端 | 修复「我的」页头部头像/昵称未与后端打通：mine/index.vue onShow 新增 userStore.fetchUserInfo() 调用（此前仅加载关系统计，用户信息仅登录时写入，恢复登录态或编辑资料后头部恒显「未设置昵称」+默认头像）；同步修正 store/user.ts fetchUserInfo 忽略 profile.signature 的映射 bug | 开发者：itxinfei
+
+2026-10-31 | xfjy-admin + deploy + docs | 管理后台多模块页面完善（协议/内容/客服/通知/支付/举报/敏感/系统/用户/VIP）与 LiveKit、WuKongIM 中间件部署配置落地（config.yaml 密钥改由环境变量注入，去除硬编码），需求/技术约束/部署/落地方案文档同步更新 | 开发者：itxinfei

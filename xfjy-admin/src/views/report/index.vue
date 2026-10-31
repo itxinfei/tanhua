@@ -269,10 +269,8 @@ async function loadData() {
     const res = await getReportPageApi(query)
     tableData.value = res.list
     total.value = res.total
-  } catch {
-    // 接口失败只置空列表，不造假数据兜底
-    tableData.value = []
-    total.value = 0
+  } catch (err) {
+    ElMessage.error('数据加载失败，请检查后端服务')
   } finally {
     loading.value = false
   }
