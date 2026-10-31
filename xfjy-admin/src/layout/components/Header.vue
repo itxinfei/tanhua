@@ -111,7 +111,7 @@ function goReview() {
 }
 
 function refreshPage() {
-  window.location.reload()
+  appStore.refreshCurrentPage()
 }
 
 function toggleFullscreen() {

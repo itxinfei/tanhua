@@ -11,12 +11,13 @@
         <Header />
       </el-header>
 
-      <!-- 主内容区：keep-alive 缓存列表页状态（搜索条件/分页），切回不丢 -->
+      <!-- 主内容区：keep-alive 缓存列表页状态（搜索条件/分页），切回不丢；
+           :key 绑定路由+refreshKey，顶栏刷新按钮触发局部重建当前组件而非整页 reload -->
       <el-main class="layout-main">
         <router-view v-slot="{ Component }">
           <transition name="fade" mode="out-in">
-            <keep-alive>
-              <component :is="Component" />
+            <keep-alive :max="12">
+              <component :is="Component" :key="route.fullPath + '-' + appStore.refreshKey" />
             </keep-alive>
           </transition>
         </router-view>
@@ -28,9 +29,11 @@
 <script setup lang="ts">
 import Sidebar from './components/Sidebar.vue'
 import Header from './components/Header.vue'
+import { useRoute } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 
 const appStore = useAppStore()
+const route = useRoute()
 </script>
 
 <style scoped>

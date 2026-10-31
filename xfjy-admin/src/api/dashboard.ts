@@ -47,6 +47,48 @@ export interface PayTypeDistribution {
   sandbox: number
 }
 
+/** 实时统计 */
+export interface RealtimeStats {
+  todayMessages: number | null
+  todayPosters: number
+  todayVideos: number
+}
+
+/** 在线用户统计 */
+export interface OnlineStats {
+  onlineUsers: number
+  peakToday: number
+}
+
+/** 热门内容条目 */
+export interface HotContentItem {
+  id: string
+  text: string | null
+  userId: number
+  likeCount: number
+  commentCount: number
+}
+
+/** 热门视频条目 */
+export interface HotVideoItem {
+  videoId: string
+  text: string | null
+  userId: number
+}
+
+/** 热门内容 */
+export interface HotContent {
+  hotPosts: HotContentItem[]
+  hotVideos: HotVideoItem[]
+}
+
+/** 按维度趋势 */
+export interface TrendByDimension {
+  dates: string[]
+  postList: number[]
+  videoList: number[]
+}
+
 /** 获取看板概览数据 */
 export function getStatOverviewApi() {
   return request.get<any, StatOverview>('/admin/dashboard/overview')
@@ -75,4 +117,24 @@ export function getPayTrendApi(days: number = 7) {
 /** 获取支付方式分布 */
 export function getPayTypeApi() {
   return request.get<any, PayTypeDistribution>('/admin/dashboard/pay-type')
+}
+
+/** 获取实时统计 */
+export function getRealtimeStatsApi() {
+  return request.get<any, RealtimeStats>('/admin/dashboard/realtime-stats')
+}
+
+/** 获取在线用户统计 */
+export function getOnlineStatsApi() {
+  return request.get<any, OnlineStats>('/admin/dashboard/online-stats')
+}
+
+/** 获取热门内容 */
+export function getHotContentApi() {
+  return request.get<any, HotContent>('/admin/dashboard/hot-content')
+}
+
+/** 获取按维度趋势 */
+export function getTrendByDimensionApi(days: number = 7) {
+  return request.get<any, TrendByDimension>('/admin/dashboard/trend-by-dimension', { params: { days } })
 }

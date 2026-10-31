@@ -1,17 +1,5 @@
 <template>
   <div class="page-container dashboard">
-    <div class="dash-toolbar">
-      <span v-if="updatedAt" class="dash-updated">更新于 {{ updatedAt }}</span>
-      <el-button :icon="Refresh" :loading="loading" @click="loadAll">刷新</el-button>
-    </div>
-
-    <el-alert v-if="hasError" class="dash-alert" type="warning" :closable="false" show-icon>
-      <template #title>
-        部分数据加载失败，当前展示可能不完整
-        <el-button link type="primary" @click="loadAll">重新加载</el-button>
-      </template>
-    </el-alert>
-
     <!-- 核心指标：只放有真实数据源的字段 -->
     <el-row v-loading="loading" :gutter="16" class="dash-row">
       <el-col v-for="item in kpiCards" :key="item.label" :xs="12" :sm="12" :md="6">
@@ -61,7 +49,7 @@
               </div>
               <div class="rt-metric__body">
                 <div class="rt-metric__value">{{ formatCount(todayMessages) }}</div>
-                <div class="rt-metric__label">消息发送<span class="rt-metric__pending">待接入</span></div>
+                <div class="rt-metric__label">消息发送</div>
               </div>
             </div>
             <div class="rt-metric">
@@ -70,7 +58,7 @@
               </div>
               <div class="rt-metric__body">
                 <div class="rt-metric__value">{{ formatCount(todayMomentPosters) }}</div>
-                <div class="rt-metric__label">发圈子人数<span class="rt-metric__pending">待接入</span></div>
+                <div class="rt-metric__label">发圈子人数</div>
               </div>
             </div>
             <div class="rt-metric">
@@ -79,9 +67,18 @@
               </div>
               <div class="rt-metric__body">
                 <div class="rt-metric__value">{{ formatCount(todayVideos) }}</div>
-                <div class="rt-metric__label">视频发送量<span class="rt-metric__pending">待接入</span></div>
+                <div class="rt-metric__label">视频发送量</div>
               </div>
             </div>
+          </div>
+
+          <!-- 趋势图 tab 切换器 -->
+          <div class="trend-tabs">
+            <el-radio-group v-model="trendTab" size="small">
+              <el-radio-button value="users">新增用户</el-radio-button>
+              <el-radio-button value="posts">动态发布</el-radio-button>
+              <el-radio-button value="videos">视频发布</el-radio-button>
+            </el-radio-group>
           </div>
 
           <BaseChart v-if="trendData.dates.length" :option="trendOption" height="232px" />
@@ -100,7 +97,6 @@
           <div class="insight-block">
             <div class="insight-block__head">
               <span class="insight-block__title">APP 使用人数</span>
-              <span class="insight-pending">待接入</span>
             </div>
             <div class="rt-metrics">
               <div class="rt-metric">
@@ -156,13 +152,39 @@
             </div>
           </div>
 
-          <!-- 热点 & 热门视频（占位，后端聚合后替换） -->
+          <!-- 热点 & 热门视频 -->
           <div class="insight-block">
             <div class="insight-block__head">
               <span class="insight-block__title">热点 & 热门视频</span>
-              <span class="insight-pending">待接入</span>
             </div>
-            <div class="insight-empty">热门动态 / 话题 / 视频排行，后端聚合后展示</div>
+            <div class="hot-content">
+              <!-- 热门动态 TOP5 -->
+              <div class="hot-section">
+                <div class="hot-section__title">热门动态 TOP5</div>
+                <div v-if="hotPosts.length" class="hot-list">
+                  <div v-for="(post, idx) in hotPosts" :key="post.id" class="hot-item">
+                    <span class="hot-item__rank" :class="{ 'hot-item__rank--top': idx < 3 }">{{ idx + 1 }}</span>
+                    <span class="hot-item__text">{{ post.text || '（无文案）' }}</span>
+                    <span class="hot-item__stats">
+                      <span class="hot-item__stat">赞 {{ post.likeCount }}</span>
+                      <span class="hot-item__stat">评 {{ post.commentCount }}</span>
+                    </span>
+                  </div>
+                </div>
+                <div v-else class="insight-empty">暂无热门动态</div>
+              </div>
+              <!-- 热门视频 TOP5 -->
+              <div class="hot-section">
+                <div class="hot-section__title">热门视频 TOP5</div>
+                <div v-if="hotVideos.length" class="hot-list">
+                  <div v-for="(video, idx) in hotVideos" :key="video.videoId" class="hot-item">
+                    <span class="hot-item__rank" :class="{ 'hot-item__rank--top': idx < 3 }">{{ idx + 1 }}</span>
+                    <span class="hot-item__text">{{ video.text || '（无文案）' }}</span>
+                  </div>
+                </div>
+                <div v-else class="insight-empty">暂无热门视频</div>
+              </div>
+            </div>
           </div>
         </div>
       </el-col>
@@ -200,7 +222,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Refresh, ChatDotRound, Share, VideoCamera, Connection, TrendCharts } from '@element-plus/icons-vue'
+import { ChatDotRound, Share, VideoCamera, Connection, TrendCharts } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import { BaseChart } from '@/components'
 import {
@@ -210,6 +232,10 @@ import {
   getAgeDistributionApi,
   getPayTrendApi,
   getPayTypeApi,
+  getRealtimeStatsApi,
+  getOnlineStatsApi,
+  getHotContentApi,
+  getTrendByDimensionApi,
 } from '@/api/dashboard'
 import { getBrandColors, hexToRgba } from '@/utils/brand'
 
@@ -218,8 +244,6 @@ const router = useRouter()
 
 // ==================== 状态 ====================
 const loading = ref(false)
-const hasError = ref(false)
-const updatedAt = ref('')
 
 const overview = reactive<{
   totalUsers: number | null
@@ -242,15 +266,24 @@ const ageData = reactive<{ ranges: string[]; counts: number[] }>({ ranges: [], c
 const payTrendData = reactive<{ dates: string[]; orderList: number[] }>({ dates: [], orderList: [] })
 const payTypeData = reactive({ alipay: 0, wechat: 0, sandbox: 0 })
 
-// 洞察面板数据源：APP 使用人数（待后端接入实时在线接口，暂为 null 占位）
-const onlineUsers = ref<number | null>(null)
-const peakToday = ref<number | null>(null)
-
-// 平台实时发送行为数据（待后端接入聚合接口，暂为 null 占位）
-// 今日消息发送数 / 发圈子人数 / 视频发送量
+// 平台实时发送行为数据（后端 realtime-stats 接口）
 const todayMessages = ref<number | null>(null)
-const todayMomentPosters = ref<number | null>(null)
-const todayVideos = ref<number | null>(null)
+const todayMomentPosters = ref<number>(0)
+const todayVideos = ref<number>(0)
+
+// 在线用户统计（后端 online-stats 接口）
+const onlineUsers = ref<number>(0)
+const peakToday = ref<number>(0)
+
+// 热门内容（后端 hot-content 接口）
+const hotPosts = ref<Array<{ id: string; text: string | null; userId: number; likeCount: number; commentCount: number }>>([])
+const hotVideos = ref<Array<{ videoId: string; text: string | null; userId: number }>>([])
+
+// 按维度趋势（后端 trend-by-dimension 接口）
+const dimensionTrendData = reactive<{ dates: string[]; postList: number[]; videoList: number[] }>({ dates: [], postList: [], videoList: [] })
+
+// 趋势图切换 tab：新增用户 / 动态发布 / 视频发布
+const trendTab = ref<'users' | 'posts' | 'videos'>('users')
 
 // ==================== 派生数据 ====================
 /** 今日新增与昨日的差值：由趋势接口的最后两天真实数据相减，不依赖后端 newUsersChange（当前恒为 null） */
@@ -265,12 +298,6 @@ const trendSummary = computed(() => {
   if (!list.length) return null
   const total = list.reduce((sum, n) => sum + n, 0)
   return { total, avg: Math.round(total / list.length) }
-})
-
-/** 今日新增用户：取趋势接口最后一天（最新）的真实数据，作为四宫格真实指标 */
-const todayNewUsers = computed(() => {
-  const list = trendData.newUserList
-  return list.length ? list[list.length - 1] : 0
 })
 
 const genderTotal = computed(() => genderData.male + genderData.female)
@@ -371,44 +398,65 @@ const tooltipBase = {
   textStyle: { color: '#ffffff', fontSize: 12 },
 }
 
-const trendOption = computed<echarts.EChartsOption>(() => ({
-  tooltip: { ...tooltipBase, trigger: 'axis', axisPointer: { type: 'line', lineStyle: { color: BRAND.primaryLight7 } } },
-  grid: { left: 8, right: 16, top: 16, bottom: 8, containLabel: true },
-  xAxis: {
-    type: 'category',
-    boundaryGap: false,
-    data: trendData.dates,
-    axisLine: { lineStyle: { color: BRAND.chartGrid } },
-    axisTick: { show: false },
-    axisLabel: { fontSize: 12, color: BRAND.chartInk3, hideOverlap: true },
-  },
-  yAxis: {
-    type: 'value',
-    axisLine: { show: false },
-    axisTick: { show: false },
-    splitLine: { lineStyle: { color: BRAND.chartGrid } },
-    axisLabel: { fontSize: 12, color: BRAND.chartInk3 },
-  },
-  series: [
-    {
-      name: '新增用户',
-      type: 'line',
-      smooth: true,
-      showSymbol: false,
-      symbol: 'circle',
-      symbolSize: 6,
-      data: trendData.newUserList,
-      lineStyle: { width: 2, color: BRAND.primary },
-      itemStyle: { color: BRAND.primary },
-      areaStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: hexToRgba(BRAND.primary, 0.22) },
-          { offset: 1, color: hexToRgba(BRAND.primary, 0.01) },
-        ]),
-      },
+const trendOption = computed<echarts.EChartsOption>(() => {
+  // 根据 tab 选择不同数据集
+  let seriesData: number[]
+  let seriesName: string
+  let seriesColor: string
+
+  if (trendTab.value === 'users') {
+    seriesData = trendData.newUserList
+    seriesName = '新增用户'
+    seriesColor = BRAND.primary
+  } else if (trendTab.value === 'posts') {
+    seriesData = dimensionTrendData.postList
+    seriesName = '动态发布'
+    seriesColor = BRAND.primaryDeep
+  } else {
+    seriesData = dimensionTrendData.videoList
+    seriesName = '视频发布'
+    seriesColor = BRAND.chartThird
+  }
+
+  return {
+    tooltip: { ...tooltipBase, trigger: 'axis', axisPointer: { type: 'line', lineStyle: { color: BRAND.primaryLight7 } } },
+    grid: { left: 8, right: 16, top: 16, bottom: 8, containLabel: true },
+    xAxis: {
+      type: 'category',
+      boundaryGap: false,
+      data: trendData.dates,
+      axisLine: { lineStyle: { color: BRAND.chartGrid } },
+      axisTick: { show: false },
+      axisLabel: { fontSize: 12, color: BRAND.chartInk3, hideOverlap: true },
     },
-  ],
-}))
+    yAxis: {
+      type: 'value',
+      axisLine: { show: false },
+      axisTick: { show: false },
+      splitLine: { lineStyle: { color: BRAND.chartGrid } },
+      axisLabel: { fontSize: 12, color: BRAND.chartInk3 },
+    },
+    series: [
+      {
+        name: seriesName,
+        type: 'line',
+        smooth: true,
+        showSymbol: false,
+        symbol: 'circle',
+        symbolSize: 6,
+        data: seriesData,
+        lineStyle: { width: 2, color: seriesColor },
+        itemStyle: { color: seriesColor },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: hexToRgba(seriesColor, 0.22) },
+            { offset: 1, color: hexToRgba(seriesColor, 0.01) },
+          ]),
+        },
+      },
+    ],
+  }
+})
 
 const payTrendOption = computed<echarts.EChartsOption>(() => ({
   tooltip: { ...tooltipBase, trigger: 'axis', axisPointer: { type: 'line', lineStyle: { color: BRAND.primaryLight7 } } },
@@ -525,23 +573,49 @@ async function loadPayType() {
   payTypeData.sandbox = res.sandbox ?? 0
 }
 
+async function loadRealtimeStats() {
+  const res = await getRealtimeStatsApi()
+  todayMessages.value = res.todayMessages ?? null
+  todayMomentPosters.value = res.todayPosters ?? 0
+  todayVideos.value = res.todayVideos ?? 0
+}
+
+async function loadOnlineStats() {
+  const res = await getOnlineStatsApi()
+  onlineUsers.value = res.onlineUsers ?? 0
+  peakToday.value = res.peakToday ?? 0
+}
+
+async function loadHotContent() {
+  const res = await getHotContentApi()
+  hotPosts.value = res.hotPosts ?? []
+  hotVideos.value = res.hotVideos ?? []
+}
+
+async function loadDimensionTrend() {
+  const res = await getTrendByDimensionApi(trendDays.value)
+  dimensionTrendData.dates = res.dates ?? []
+  dimensionTrendData.postList = res.postList ?? []
+  dimensionTrendData.videoList = res.videoList ?? []
+}
+
 async function loadAll() {
   loading.value = true
-  const results = await Promise.allSettled([loadOverview(), loadTrend(), loadGender(), loadAge(), loadPayTrend(), loadPayType()])
-  hasError.value = results.some((r) => r.status === 'rejected')
+  await Promise.allSettled([
+    loadOverview(), loadTrend(), loadGender(), loadAge(),
+    loadPayTrend(), loadPayType(),
+    loadRealtimeStats(), loadOnlineStats(), loadHotContent(), loadDimensionTrend(),
+  ])
   loading.value = false
-  updatedAt.value = new Date().toLocaleTimeString('zh-CN', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 
 async function refreshTrend() {
   try {
     await loadTrend()
     await loadPayTrend()
+    await loadDimensionTrend()
   } catch {
-    hasError.value = true
+    // 趋势切换失败静默保留旧数据，由局部刷新兜底重载
   }
 }
 
@@ -552,24 +626,6 @@ onMounted(loadAll)
 .dashboard {
   padding: var(--xfjy-space-6);
   box-sizing: border-box;
-}
-
-.dash-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--xfjy-space-2);
-  margin-bottom: var(--xfjy-space-4);
-}
-
-.dash-updated {
-  font-size: var(--xfjy-font-size-xs);
-  color: var(--xfjy-text-secondary);
-  font-variant-numeric: tabular-nums;
-}
-
-.dash-alert {
-  margin-bottom: var(--xfjy-space-4);
 }
 
 .dash-row {
@@ -881,4 +937,78 @@ onMounted(loadAll)
 .insight-profile__row--age .insight-profile__pct {
   color: var(--xfjy-primary-deep);
 }
-</style>
+
+/* ==================== 趋势 tab 切换器 ==================== */
+.trend-tabs {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--xfjy-space-3);
+}
+
+/* ==================== 热点内容 ==================== */
+.hot-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--xfjy-space-3);
+}
+
+.hot-section__title {
+  font-size: var(--xfjy-font-size-xs);
+  font-weight: 600;
+  color: var(--xfjy-text-secondary);
+  margin-bottom: var(--xfjy-space-2);
+}
+
+.hot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hot-item {
+  display: flex;
+  align-items: center;
+  gap: var(--xfjy-space-2);
+  font-size: var(--xfjy-font-size-sm);
+  padding: 4px 0;
+}
+
+.hot-item__rank {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--xfjy-text-secondary);
+  background: var(--xfjy-bg-hover);
+}
+
+.hot-item__rank--top {
+  color: #fff;
+  background: var(--xfjy-primary);
+}
+
+.hot-item__text {
+  flex: 1;
+  min-width: 0;
+  color: var(--xfjy-text-regular);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hot-item__stats {
+  flex-shrink: 0;
+  display: flex;
+  gap: var(--xfjy-space-2);
+}
+
+.hot-item__stat {
+  font-size: var(--xfjy-font-size-xs);
+  color: var(--xfjy-text-secondary);
+  font-variant-numeric: tabular-nums;
+}</style>
