@@ -9,6 +9,8 @@ import com.xfjy.server.mapper.ReportMapper;
 import com.xfjy.server.pojo.Report;
 import com.xfjy.server.utils.AdminThreadLocal;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -20,11 +22,16 @@ import java.util.*;
 @Service
 public class AdminReportService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(AdminReportService.class);
+
     @Autowired
     private ReportMapper reportMapper;
 
     @Autowired
     private UserInfoApi userInfoApi;
+
+    @Autowired
+    private AdminUserService adminUserService;
 
     /**
      * 分页查询举报列表
@@ -83,7 +90,20 @@ public class AdminReportService {
         report.setHandleResult(note);
         report.setHandler(AdminThreadLocal.get() != null ? AdminThreadLocal.get().getNickname() : "admin");
         report.setHandledAt(new Date());
-        return this.reportMapper.updateById(report) > 0;
+        boolean updated = this.reportMapper.updateById(report) > 0;
+
+        // 确认违规：同步封禁被举报用户（封禁失败不回滚举报处理结果，仅记录告警）
+        if (updated && "RESOLVED".equals(result) && report.getTargetUserId() != null) {
+            try {
+                String reason = StringUtils.isNotBlank(report.getReason())
+                        ? "举报违规：" + report.getReason()
+                        : "举报违规";
+                this.adminUserService.freezeUser(report.getTargetUserId(), reason);
+            } catch (Exception e) {
+                LOGGER.warn("举报 {} 确认违规后封禁用户 {} 失败", id, report.getTargetUserId(), e);
+            }
+        }
+        return updated;
     }
 
     /**

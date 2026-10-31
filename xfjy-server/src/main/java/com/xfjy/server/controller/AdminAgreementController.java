@@ -29,10 +29,11 @@ public class AdminAgreementController {
     public ResponseEntity<Map<String, Object>> queryAgreementPage(
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestParam(required = false) String title,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String status) {
         try {
-            return ResponseEntity.ok(this.adminAgreementService.queryAgreementPage(page, pageSize, type, status));
+            return ResponseEntity.ok(this.adminAgreementService.queryAgreementPage(page, pageSize, title, type, status));
         } catch (Exception e) {
             LOGGER.error("接口处理异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

@@ -53,6 +53,18 @@ public interface PayApi {
                        @RequestParam("userId") Long userId);
 
     /**
+     * 取消订单（用户取消支付）：PENDING → CANCELLED
+     *
+     * @param orderNo 订单号
+     * @param userId  操作用户 id（校验订单归属）
+     * @return 是否取消成功
+     */
+    @PostExchange("/cancelOrder")
+    @PostMapping("/cancelOrder")
+    Boolean cancelOrder(@RequestParam("orderNo") String orderNo,
+                        @RequestParam("userId") Long userId);
+
+    /**
      * 查询用户 VIP 状态
      *
      * @param userId 用户 id

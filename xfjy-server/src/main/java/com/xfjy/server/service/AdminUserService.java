@@ -1,6 +1,7 @@
 package com.xfjy.server.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xfjy.service.api.HuanXinApi;
@@ -277,11 +278,12 @@ public class AdminUserService {
      * 解封用户
      */
     public Boolean unfreezeUser(Long userId) {
-        User user = new User();
-        user.setId(userId);
-        user.setStatus("NORMAL");
-        user.setFreezeReason(null);
-        return this.userMapper.updateById(user) > 0;
+        // updateById 默认忽略 null，封禁原因必须用 UpdateWrapper 显式置空
+        LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(User::getId, userId)
+                .set(User::getStatus, "NORMAL")
+                .set(User::getFreezeReason, null);
+        return this.userMapper.update(null, wrapper) > 0;
     }
 
     /**

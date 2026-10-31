@@ -46,6 +46,13 @@ public class PayApiImpl implements PayApi {
     }
 
     @Override
+    @PostMapping("/cancelOrder")
+    public Boolean cancelOrder(@RequestParam("orderNo") String orderNo,
+                               @RequestParam("userId") Long userId) {
+        return this.payService.cancelOrder(orderNo, userId);
+    }
+
+    @Override
     @GetMapping("/vipStatus")
     public UserVip queryVipStatus(@RequestParam("userId") Long userId) {
         return this.payService.queryVipStatus(userId);

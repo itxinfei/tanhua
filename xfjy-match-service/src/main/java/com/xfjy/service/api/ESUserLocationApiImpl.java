@@ -79,7 +79,14 @@ public class ESUserLocationApiImpl implements ESUserLocationApi {
     @GetMapping("/queryByUserId")
     public UserLocationVo queryByUserId(@RequestParam("userId") Long userId) {
         String url = this.esServerUrl + "user/location/" + userId;
-        ResponseEntity<String> responseEntity = this.restTemplate.getForEntity(url, String.class);
+        ResponseEntity<String> responseEntity;
+        try {
+            responseEntity = this.restTemplate.getForEntity(url, String.class);
+        } catch (RestClientException e) {
+            // 用户未上报位置时 ES 返回 404，RestTemplate 默认对 4xx 抛异常；属正常业务场景，返回 null 由上游处理
+            log.warn("ES queryByUserId failed (user may have no location), userId={}, error={}", userId, e.getMessage());
+            return null;
+        }
         if (responseEntity.getStatusCode().value() != 200) {
             return null;
         }

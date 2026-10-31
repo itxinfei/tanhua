@@ -25,8 +25,11 @@ public class AdminAgreementService {
     private AgreementMapper agreementMapper;
 
     public Map<String, Object> queryAgreementPage(Integer page, Integer pageSize,
-                                                  String type, String status) {
+                                                  String title, String type, String status) {
         QueryWrapper<Agreement> wrapper = new QueryWrapper<>();
+        if (StringUtils.isNotBlank(title)) {
+            wrapper.like("title", title.trim());
+        }
         if (StringUtils.isNotBlank(type)) {
             wrapper.eq("type", type);
         }

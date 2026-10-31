@@ -10,7 +10,7 @@ import java.sql.DriverManager;
 import java.sql.Statement;
 
 /**
- * 一次性工具：向 192.168.20.130 导入 docs/mytanhua.sql（建库 xfjy + 建表 + 初始数据）
+ * 一次性工具：向 192.168.20.130 导入 docs/xfjy.sql（建库 xfjy + 建表 + 初始数据）
  * 内网开发虚拟机，凭证 xfjy/123456
  */
 public class SqlImportTool {
@@ -33,7 +33,7 @@ public class SqlImportTool {
         }
 
         // 2. 读取 SQL 文件
-        Path sqlFile = Path.of("..", "docs", "mytanhua.sql");
+        Path sqlFile = Path.of("..", "docs", "xfjy.sql");
         String content = Files.readString(sqlFile, StandardCharsets.UTF_8);
         // 去掉 BOM
         if (content.startsWith("\uFEFF")) content = content.substring(1);
@@ -55,6 +55,6 @@ public class SqlImportTool {
                 count++;
             }
         }
-        System.out.println("[OK] imported " + count + " statements from mytanhua.sql");
+        System.out.println("[OK] imported " + count + " statements from xfjy.sql");
     }
 }

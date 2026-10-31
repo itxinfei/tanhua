@@ -5,6 +5,7 @@ import com.xfjy.service.api.UserInfoApi;
 import com.xfjy.service.pojo.Publish;
 import com.xfjy.service.pojo.UserInfo;
 import com.xfjy.service.vo.PageInfo;
+import com.xfjy.server.mapper.ReportMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +27,9 @@ public class AdminMovementService {
 
     @Autowired
     private UserInfoApi userInfoApi;
+
+    @Autowired
+    private ReportMapper reportMapper;
 
     /**
      * 分页查询动态列表（合并用户信息与互动数据）
@@ -63,17 +67,30 @@ public class AdminMovementService {
 
             // 批量查询互动数（点赞1/评论2/喜欢3）
             List<String> publishIds = new ArrayList<>();
+            List<Long> publishPids = new ArrayList<>();
             for (Publish publish : filteredRecords) {
                 if (publish.getId() != null) {
                     publishIds.add(publish.getId().toHexString());
+                }
+                if (publish.getPid() != null) {
+                    publishPids.add(publish.getPid());
                 }
             }
             Map<String, Long> likeCountMap = safeBatchCount(publishIds, 1);
             Map<String, Long> commentCountMap = safeBatchCount(publishIds, 2);
             Map<String, Long> loveCountMap = safeBatchCount(publishIds, 3);
 
+            // 批量统计举报数（target_type=POST，target_id=pid）
+            Map<Long, Long> reportCountMap;
+            try {
+                reportCountMap = this.reportMapper.countReportsByTargetIds(publishPids);
+            } catch (Exception e) {
+                LOGGER.warn("批量统计举报数失败", e);
+                reportCountMap = Collections.emptyMap();
+            }
+
             for (Publish publish : filteredRecords) {
-                items.add(convertToItem(publish, userMap, likeCountMap, commentCountMap, loveCountMap));
+                items.add(convertToItem(publish, userMap, likeCountMap, commentCountMap, loveCountMap, reportCountMap));
             }
         }
 
@@ -160,7 +177,8 @@ public class AdminMovementService {
                                                Map<Long, UserInfo> userMap,
                                                Map<String, Long> likeCountMap,
                                                Map<String, Long> commentCountMap,
-                                               Map<String, Long> loveCountMap) {
+                                               Map<String, Long> loveCountMap,
+                                               Map<Long, Long> reportCountMap) {
         Map<String, Object> item = new HashMap<>();
         String hexId = publish.getId() != null ? publish.getId().toHexString() : "";
         item.put("id", hexId);
@@ -184,6 +202,7 @@ public class AdminMovementService {
         item.put("likeCount", likeCountMap.getOrDefault(hexId, 0L));
         item.put("commentCount", commentCountMap.getOrDefault(hexId, 0L));
         item.put("loveCount", loveCountMap.getOrDefault(hexId, 0L));
+        item.put("reportCount", publish.getPid() != null ? reportCountMap.getOrDefault(publish.getPid(), 0L) : 0L);
         return item;
     }
 

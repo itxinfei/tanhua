@@ -48,7 +48,8 @@ public class AdminTokenInterceptor implements HandlerInterceptor {
 
         // 角色权限校验：方法级 @RequireRole 优先，其次类级；无注解则仅需登录
         RequireRole requireRole = resolveRequireRole(handler);
-        if (requireRole != null) {
+        if (requireRole != null && !"SUPER_ADMIN".equals(admin.getRole())) {
+            // SUPER_ADMIN 拥有全部权限直接放行，无需每个 @RequireRole 都枚举超管角色
             boolean allowed = Arrays.asList(requireRole.value()).contains(admin.getRole());
             if (!allowed) {
                 response.setStatus(403); //角色不符

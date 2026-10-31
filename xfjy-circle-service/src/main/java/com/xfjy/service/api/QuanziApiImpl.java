@@ -745,4 +745,24 @@ public class QuanziApiImpl implements QuanZiApi {
         return result;
     }
 
+    @Override
+    @GetMapping("/searchPublishByTag")
+    public PageInfo<Publish> searchPublishByTag(@RequestParam(value = "tag") String tag,
+                                                @RequestParam(value = "page", required = false, defaultValue = "1") Integer page,
+                                                @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize) {
+        // tags 为数组字段，Criteria.is(tag) 命中数组包含该元素的文档
+        Criteria criteria = Criteria.where("tags").is(tag);
+        long total = this.mongoTemplate.count(Query.query(criteria), Publish.class);
+
+        Pageable pageable = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Order.desc("created")));
+        List<Publish> records = this.mongoTemplate.find(Query.query(criteria).with(pageable), Publish.class);
+
+        PageInfo<Publish> pageInfo = new PageInfo<>();
+        pageInfo.setPageNum(page);
+        pageInfo.setPageSize(pageSize);
+        pageInfo.setTotal((int) total);
+        pageInfo.setRecords(records);
+        return pageInfo;
+    }
+
 }

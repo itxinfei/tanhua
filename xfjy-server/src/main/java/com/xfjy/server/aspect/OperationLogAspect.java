@@ -6,11 +6,13 @@ import com.xfjy.server.pojo.OperationLog;
 import com.xfjy.server.utils.AdminThreadLocal;
 import jakarta.servlet.http.HttpServletRequest;
 import org.aspectj.lang.JoinPoint;
-import org.aspectj.lang.annotation.AfterReturning;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -38,32 +40,38 @@ public class OperationLogAspect {
     private OperationLogMapper operationLogMapper;
 
     /**
-     * 拦截 controller 包下所有方法，在成功返回后判断是否需要记录
+     * 拦截 controller 包下所有方法，成功返回后判断是否需要记录
      */
-    @AfterReturning("execution(* com.xfjy.server.controller.*Controller.*(..))")
-    public void recordOperationLog(JoinPoint joinPoint) {
+    @Around("execution(* com.xfjy.server.controller.*Controller.*(..))")
+    public Object recordOperationLog(ProceedingJoinPoint joinPoint) throws Throwable {
+        Object result = joinPoint.proceed();
         try {
             Method method = getMethod(joinPoint);
             if (method == null) {
-                return;
+                return result;
             }
 
             // 只记录写操作
             String httpMethod = resolveHttpMethod(method);
             if (httpMethod == null) {
-                return;
+                return result;
+            }
+
+            // 业务失败（非 2xx）不记录，避免日志与真实结果不符
+            if (!isSuccess(result)) {
+                return result;
             }
 
             // 排除登录/登出
             String methodName = method.getName();
             if ("login".equals(methodName) || "logout".equals(methodName)) {
-                return;
+                return result;
             }
 
             // 只记录 Admin 开头的 Controller（后台操作）
             String className = joinPoint.getTarget().getClass().getSimpleName();
             if (!className.startsWith("Admin")) {
-                return;
+                return result;
             }
 
             OperationLog log = new OperationLog();
@@ -101,6 +109,17 @@ public class OperationLogAspect {
             // 日志记录失败不影响业务
             LOGGER.warn("操作日志记录失败: {}", joinPoint.getSignature().toShortString(), e);
         }
+        return result;
+    }
+
+    /**
+     * 判断控制器返回值是否为成功（ResponseEntity 2xx）
+     */
+    private boolean isSuccess(Object result) {
+        if (result instanceof ResponseEntity<?> responseEntity) {
+            return responseEntity.getStatusCode().is2xxSuccessful();
+        }
+        return true;
     }
 
     /**
@@ -220,8 +239,8 @@ public class OperationLogAspect {
     }
 
     /**
-     * 从 URI 提取操作对象ID（最后一个路径段）
-     * 如 /admin/users/123/freeze → 123
+     * 从 URI 提取操作对象ID（最后一个纯数字路径段）
+     * 如 /admin/users/123/freeze → 123；批量接口无 ID 时返回 null
      */
     private String extractTargetId(String uri) {
         if (uri == null) {
@@ -233,28 +252,17 @@ public class OperationLogAspect {
             uri = uri.substring(0, queryIdx);
         }
         String[] segments = uri.split("/");
-        // 从后往前找第一个非动作段（数字或非动作词）
         for (int i = segments.length - 1; i >= 0; i--) {
             String seg = segments[i];
             if (seg.isEmpty()) {
                 continue;
             }
-            // 跳过动作段
-            if (isActionSegment(seg)) {
-                continue;
+            // 只接受纯数字段，跳过 freeze/batch-handle 等动作段
+            if (seg.chars().allMatch(Character::isDigit)) {
+                return seg;
             }
-            return seg;
         }
         return null;
-    }
-
-    private boolean isActionSegment(String seg) {
-        return "freeze".equals(seg) || "unfreeze".equals(seg) || "approve".equals(seg)
-                || "reject".equals(seg) || "handle".equals(seg) || "publish".equals(seg)
-                || "offline".equals(seg) || "reset-password".equals(seg) || "status".equals(seg)
-                || "refresh".equals(seg) || "reply".equals(seg) || "close".equals(seg)
-                || "batch-approve".equals(seg) || "batch-reject".equals(seg)
-                || "batch-handle".equals(seg);
     }
 
     /**

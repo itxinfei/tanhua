@@ -1,5 +1,7 @@
 # xfjy-spark — 双塔推荐模型训练
 
+> **命名说明（重要）**：本模块名称中的 "spark" 是历史命名，**与 Apache Spark 大数据计算引擎没有任何关系**。它是一个独立的 **Python 3.13 + PyTorch** 工程，不在根 `pom.xml` 的 Maven modules 内，仅通过 REST 与 Qdrant/MongoDB 交互。为避免破坏既有脚本、文档与路径引用，暂保留目录名，详见 `docs/模块命名说明.md`。
+
 心飞交友推荐引擎的 AI 训练模块：权重共享对称双塔 + BPR loss，产出 64 维 L2 归一化用户向量，纯 REST 灌入 Qdrant 供线上互惠匹配精排使用。
 
 ## 训练流程

@@ -95,7 +95,6 @@ public class AdminKefuController {
      * PUT /admin/kefu/feedback/{id}/reply — 回复反馈
      * body: { reply }
      */
-    @RequireRole("ADMIN")
     @PutMapping("feedback/{id}/reply")
     public ResponseEntity replyFeedback(@PathVariable("id") Long id, @RequestBody Map<String, String> body) {
         try {
@@ -114,7 +113,6 @@ public class AdminKefuController {
     /**
      * PUT /admin/kefu/feedback/{id}/close — 关闭反馈
      */
-    @RequireRole("ADMIN")
     @PutMapping("feedback/{id}/close")
     public ResponseEntity closeFeedback(@PathVariable("id") Long id) {
         try {

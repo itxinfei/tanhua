@@ -268,4 +268,18 @@ public interface QuanZiApi {
     @PostExchange("/batchRemoveCommentByIds")
     @PostMapping("/batchRemoveCommentByIds")
     Map<String, Object> batchRemoveCommentByIds(@RequestBody List<String> commentIds);
+
+    /**
+     * 按话题标签搜索动态（tags 数组包含指定标签）
+     *
+     * @param tag      话题标签
+     * @param page     页码（从1开始，默认1）
+     * @param pageSize 每页条数（默认10）
+     * @return 分页结果
+     */
+    @GetExchange("/searchPublishByTag")
+    @GetMapping("/searchPublishByTag")
+    PageInfo<Publish> searchPublishByTag(@RequestParam(value = "tag") String tag,
+                                        @RequestParam(value = "page", required = false) Integer page,
+                                        @RequestParam(value = "pageSize", required = false) Integer pageSize);
 }

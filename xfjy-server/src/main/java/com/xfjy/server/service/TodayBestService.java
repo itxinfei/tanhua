@@ -271,7 +271,11 @@ public class TodayBestService {
     public List<NearUserVo> queryNearUser(String gender, String distance) {
         User user = UserThreadLocal.get();
         //查询当前用户的地理位置
+        // 修改点：当前用户未上报地理位置时 queryByUserId 返回 null，直接解引用会 NPE(500)；无中心点无法计算附近，返回空列表
         UserLocationVo userLocationVo = this.esUserLocationApi.queryByUserId(user.getId());
+        if (userLocationVo == null) {
+            return Collections.emptyList();
+        }
         Double longitude = userLocationVo.getLongitude();
         Double latitude = userLocationVo.getLatitude();
 

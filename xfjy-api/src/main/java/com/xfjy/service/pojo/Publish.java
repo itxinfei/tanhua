@@ -32,5 +32,6 @@ public class Publish implements java.io.Serializable {
     private String latitude; //纬度
     private String locationName; //位置名称
     private Long created; //发布时间
+    private List<String> tags; //动态话题标签（发布页勾选，如 交友日常/心动瞬间）
 
 }

@@ -70,6 +70,7 @@ public class MovementsService {
                                 String location,
                                 String longitude,
                                 String latitude,
+                                String tags,
                                 MultipartFile[] multipartFile) {
 
         User user = UserThreadLocal.get();
@@ -80,6 +81,11 @@ public class MovementsService {
         publish.setLocationName(location);
         publish.setLatitude(latitude);
         publish.setLongitude(longitude);
+
+        // 修改点：打通发布页话题标签。前端逗号分隔传入，解析为 List 落库 Publish.tags
+        if (StringUtils.isNotEmpty(tags)) {
+            publish.setTags(Arrays.asList(StringUtils.split(tags, ',')));
+        }
 
 
         //图片上传
@@ -186,6 +192,9 @@ public class MovementsService {
             commentCountMap = Collections.emptyMap();
         }
 
+        // 动态级话题标签：第一轮按动态 ID 暂存，第二轮填用户信息时使用
+        Map<String, String[]> movementTagsMap = new HashMap<>();
+
         for (Publish record : records) {
             Movements movements = new Movements();
 
@@ -240,6 +249,10 @@ public class MovementsService {
             movements.setTextContent(record.getText());
             movements.setImageContent(record.getMedias().toArray(new String[]{}));
 
+            if (record.getTags() != null && !record.getTags().isEmpty()) {
+                movementTagsMap.put(movements.getId(), record.getTags().toArray(new String[0]));
+            }
+
             movementsList.add(movements);
         }
 
@@ -252,7 +265,11 @@ public class MovementsService {
             for (UserInfo userInfo : userInfoList) {
                 if (movements.getUserId().longValue() == userInfo.getUserId().longValue()) {
 
-                    movements.setTags(StringUtils.split(userInfo.getTags(), ','));
+                    // 修改点：动态级话题标签优先（发布页勾选）；无则回退作者资料标签（兼容历史动态）
+                    String[] movementTags = movementTagsMap.get(movements.getId());
+                    movements.setTags(movementTags != null
+                            ? movementTags
+                            : StringUtils.split(userInfo.getTags(), ','));
                     movements.setNickname(userInfo.getNickName());
                     movements.setGender(userInfo.getSex().name().toLowerCase());
                     movements.setAvatar(userInfo.getLogo());
@@ -456,6 +473,27 @@ public class MovementsService {
         List<Publish> records = albumPageInfo.getRecords();
 
         if(CollectionUtils.isEmpty(records)){
+            return pageResult;
+        }
+        pageResult.setItems(this.fillValueToMovements(records));
+        return pageResult;
+    }
+
+    /**
+     * 按话题标签搜索动态（tags 数组包含指定标签）
+     */
+    public PageResult searchMovementsByTag(String tag, Integer page, Integer pageSize) {
+        PageResult pageResult = new PageResult();
+        pageResult.setPage(page);
+        pageResult.setPagesize(pageSize);
+
+        PageInfo<Publish> pageInfo = this.quanZiApi.searchPublishByTag(tag, page, pageSize);
+        int total = pageInfo.getTotal();
+        pageResult.setCounts(total);
+        pageResult.setPages(pageSize > 0 ? (total + pageSize - 1) / pageSize : 0);
+
+        List<Publish> records = pageInfo.getRecords();
+        if (CollectionUtils.isEmpty(records)) {
             return pageResult;
         }
         pageResult.setItems(this.fillValueToMovements(records));

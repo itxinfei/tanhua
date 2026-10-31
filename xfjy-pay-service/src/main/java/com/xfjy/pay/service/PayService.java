@@ -245,6 +245,39 @@ public class PayService {
     }
 
     /**
+     * 取消订单（用户取消支付）：PENDING → CANCELLED。
+     * 已支付/已过期/已取消的订单不允许取消；取消不退已支付款项。
+     *
+     * @param orderNo 订单号
+     * @param userId  操作用户 id（校验订单归属）
+     * @return 是否取消成功
+     */
+    public Boolean cancelOrder(String orderNo, Long userId) {
+        if (StringUtils.isBlank(orderNo) || userId == null) {
+            return false;
+        }
+        PayOrder order = this.queryOrder(orderNo);
+        if (order == null || !userId.equals(order.getUserId())) {
+            LOGGER.warn("订单不存在或不归属当前用户, orderNo = {}, userId = {}", orderNo, userId);
+            return false;
+        }
+        if (!"PENDING".equals(order.getStatus())) {
+            LOGGER.warn("订单状态不允许取消, orderNo = {}, status = {}", orderNo, order.getStatus());
+            return false;
+        }
+        PayOrder cancelled = new PayOrder();
+        cancelled.setId(order.getId());
+        cancelled.setStatus("CANCELLED");
+        cancelled.setUpdated(new Date());
+        int rows = this.payOrderMapper.updateById(cancelled);
+        if (rows > 0) {
+            LOGGER.info("订单已取消, orderNo = {}, userId = {}", orderNo, userId);
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * 生成订单号：VIP + yyyyMMdd + 6 位自增序列（Redis 保证分布式唯一）
      */
     private String generateOrderNo() {

@@ -53,6 +53,7 @@ public class MovementsController {
                                               @RequestParam("location") String location,
                                               @RequestParam("longitude") String longitude,
                                               @RequestParam("latitude") String latitude,
+                                              @RequestParam(value = "tags", required = false) String tags,
                                               @RequestParam("imageContent") MultipartFile[] multipartFile) {
         try {
             Long userId = UserThreadLocal.get().getId();
@@ -68,7 +69,7 @@ public class MovementsController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
             }
 
-            String publishId = this.movementsService.saveMovements(detect.getFilteredText(), location, longitude, latitude, multipartFile);
+            String publishId = this.movementsService.saveMovements(detect.getFilteredText(), location, longitude, latitude, tags, multipartFile);
             if (StringUtils.isNotEmpty(publishId)) {
                 // MANUAL 或含图片：写入人工审核队列（先发后审）
                 if ("MANUAL".equals(detect.getAction()) || (multipartFile != null && multipartFile.length > 0)) {
@@ -201,6 +202,27 @@ public class MovementsController {
 
                 return ResponseEntity.ok(count);
             }
+        } catch (Exception e) {
+            LOGGER.error("接口处理异常", e);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+
+    /**
+     * 按话题标签搜索动态
+     *
+     * @param tag      话题标签
+     * @param page     页码（默认1）
+     * @param pageSize 每页条数（默认10）
+     * @return 分页动态列表
+     */
+    @GetMapping("search")
+    public ResponseEntity<PageResult> searchMovements(@RequestParam("tag") String tag,
+                                                     @RequestParam(value = "page", defaultValue = "1") Integer page,
+                                                     @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize) {
+        try {
+            PageResult pageResult = this.movementsService.searchMovementsByTag(tag, page, pageSize);
+            return ResponseEntity.ok(pageResult);
         } catch (Exception e) {
             LOGGER.error("接口处理异常", e);
         }

@@ -106,6 +106,34 @@ public class PayController {
     }
 
     /**
+     * 取消订单（用户取消支付）：仅本人 PENDING 订单可取消
+     *
+     * @param param 请求体：orderNo - 订单号
+     */
+    @PostMapping("order/cancel")
+    public ResponseEntity<Void> cancelOrder(@RequestBody Map<String, String> param) {
+        try {
+            User user = UserThreadLocal.get();
+            if (user == null || user.getId() == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+            String orderNo = param.get("orderNo");
+            if (orderNo == null || orderNo.isBlank()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            }
+            Boolean success = this.payApi.cancelOrder(orderNo, user.getId());
+            if (Boolean.TRUE.equals(success)) {
+                return ResponseEntity.ok().build();
+            }
+            // 订单不存在/非本人/状态不允许取消 → 业务失败
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        } catch (Exception e) {
+            LOGGER.error("取消订单异常", e);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+
+    /**
      * 查询当前登录用户 VIP 状态
      */
     @GetMapping("status")

@@ -86,9 +86,6 @@ public class AdminDashboardService {
 
         List<String> dates = new ArrayList<>();
         List<Long> newUserList = new ArrayList<>();
-        List<Integer> dauList = new ArrayList<>();
-        List<Integer> matchRateList = new ArrayList<>();
-        List<Integer> payRateList = new ArrayList<>();
 
         SimpleDateFormat sdf = new SimpleDateFormat("MM-dd");
         Calendar cal = Calendar.getInstance();
@@ -107,20 +104,16 @@ public class AdminDashboardService {
             dayWrapper.ge("created", dayStart).lt("created", dayEnd);
             newUserList.add(this.userMapper.selectCount(dayWrapper));
 
-            // DAU等指标暂无统计，填充0
-            dauList.add(0);
-            matchRateList.add(0);
-            payRateList.add(0);
-
             cal.add(Calendar.DAY_OF_MONTH, 1);
         }
 
         Map<String, Object> result = new HashMap<>();
         result.put("dates", dates);
-        result.put("dauList", dauList);
+        // DAU / 匹配率 / 付费率暂无统计源，返回 null 由前端显示「待接入」，避免画成 0 值假曲线
+        result.put("dauList", null);
         result.put("newUserList", newUserList);
-        result.put("matchRateList", matchRateList);
-        result.put("payRateList", payRateList);
+        result.put("matchRateList", null);
+        result.put("payRateList", null);
         return result;
     }
 

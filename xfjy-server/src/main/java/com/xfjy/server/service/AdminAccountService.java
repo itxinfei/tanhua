@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xfjy.server.mapper.AdminMapper;
 import com.xfjy.server.pojo.Admin;
+import com.xfjy.server.utils.AdminThreadLocal;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -91,7 +92,10 @@ public class AdminAccountService {
             if (!isValidRole(role)) {
                 return false;
             }
-            // 不允许自我降级
+            // 不允许把自己降级，避免误操作后失去超管权限
+            if (!ROLE_SUPER_ADMIN.equals(role) && isCurrentAdmin(id)) {
+                return false;
+            }
             admin.setRole(role);
         }
         if (StringUtils.isNotBlank(nickname)) {
@@ -118,6 +122,10 @@ public class AdminAccountService {
         if (ROLE_SUPER_ADMIN.equals(admin.getRole()) && "DISABLED".equals(status)) {
             return false;
         }
+        // 不允许禁用自己
+        if ("DISABLED".equals(status) && isCurrentAdmin(id)) {
+            return false;
+        }
         admin.setStatus(status);
         admin.setUpdated(new Date());
         return this.adminMapper.updateById(admin) > 0;
@@ -141,5 +149,13 @@ public class AdminAccountService {
 
     private boolean isValidRole(String role) {
         return ROLE_SUPER_ADMIN.equals(role) || ROLE_ADMIN.equals(role) || ROLE_OPERATOR.equals(role);
+    }
+
+    /**
+     * 判断目标账号是否为当前登录管理员（无上下文时返回 false，避免误伤）
+     */
+    private boolean isCurrentAdmin(Long id) {
+        Admin current = AdminThreadLocal.get();
+        return current != null && id != null && id.equals(current.getId());
     }
 }
