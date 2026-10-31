@@ -17,7 +17,7 @@
         </view>
         <view :id="'msg-' + msg.id" class="msg-item" :class="{ mine: msg.isMine }">
         <!-- 装饰性 emoji 头像，语义由上下文承载 -->
-        <view class="agent-avatar" v-if="!msg.isMine" aria-hidden="true"><uni-icons type="headphones" size="40" color="#ff5e9c"></uni-icons></view>
+        <view class="agent-avatar" v-if="!msg.isMine" aria-hidden="true"><uni-icons type="headphones" size="40" color="var(--color-primary)"></uni-icons></view>
         <view class="bubble-wrap" :class="{ mine: msg.isMine }">
           <view v-if="msg.isMine && msg.status === 'sending'" class="status-loading" aria-hidden="true" />
           <view class="bubble pop-in" :class="{ mine: msg.isMine }">
@@ -241,8 +241,8 @@ onUnmounted(() => {
 });
 </script>
 
-<style lang="scss" scoped>
-.chat-room { height: 100vh; display: flex; flex-direction: column; background: #f5f5f5; }
+
+.chat-room { height: 100vh; display: flex; flex-direction: column; background: var(--bg-sub); }
 
 .vip-banner { display: flex; align-items: center; justify-content: center; gap: 8rpx;
   margin: 24rpx 24rpx 0; padding: 16rpx 0;
@@ -252,52 +252,51 @@ onUnmounted(() => {
 }
 
 .welcome-tip { display: flex; justify-content: center; margin: 24rpx 0;
-  text { font-size: 24rpx; color: #767676; background: rgba(0, 0, 0, 0.05); padding: 10rpx 28rpx; border-radius: 24rpx; }
+  text { font-size: 24rpx; color: var(--text-hint); background: rgba(0, 0, 0, 0.05); padding: 10rpx 28rpx; border-radius: 24rpx; }
 }
 
 .msg-list { flex: 1; padding: 12rpx 24rpx; }
 
 .time-divider { display: flex; justify-content: center; margin: 16rpx 0 24rpx;
-  .time-text { font-size: 22rpx; color: #767676; background: rgba(0, 0, 0, 0.05); padding: 6rpx 24rpx; border-radius: 24rpx; }
+  .time-text { font-size: 22rpx; color: var(--text-hint); background: rgba(0, 0, 0, 0.05); padding: 6rpx 24rpx; border-radius: 24rpx; }
 }
 
 .msg-item { display: flex; align-items: flex-start; margin-bottom: 28rpx; gap: 16rpx;
   &.mine { flex-direction: row-reverse; }
   .avatar { width: 76rpx; height: 76rpx; border-radius: 16rpx; flex-shrink: 0; background: #eee; }
-  .agent-avatar { width: 76rpx; height: 76rpx; border-radius: 16rpx; flex-shrink: 0; background: #ffeff5; display: flex; align-items: center; justify-content: center; font-size: 40rpx; }
+  .agent-avatar { width: 76rpx; height: 76rpx; border-radius: 16rpx; flex-shrink: 0; background: var(--bg-icon-soft); display: flex; align-items: center; justify-content: center; font-size: 40rpx; }
   .bubble-wrap { display: flex; align-items: center; gap: 12rpx; max-width: 480rpx;
     &.mine { flex-direction: row-reverse; }
   }
-  .status-loading { width: 28rpx; height: 28rpx; border: 3rpx solid #e0e0e0; border-top-color: #ff5e9c; border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
-  .bubble { position: relative; padding: 20rpx 24rpx; border-radius: 20rpx; background: #fff; font-size: 28rpx; line-height: 1.5; color: #333; box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  .status-loading { width: 28rpx; height: 28rpx; border: 3rpx solid var(--border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+  .bubble { position: relative; padding: 20rpx 24rpx; border-radius: 20rpx; background: var(--bg-card); font-size: 28rpx; line-height: 1.5; color: var(--text-primary); box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
     &::before { content: ""; position: absolute; top: 28rpx; width: 0; height: 0; border-top: 10rpx solid transparent; border-bottom: 10rpx solid transparent; }
     &:not(.mine) { border-top-left-radius: 6rpx;
       &::before { left: -16rpx; border-right: 16rpx solid #fff; }
     }
-    &.mine { background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary)); color: #fff; border-top-right-radius: 6rpx;
-      &::before { right: -16rpx; border-left: 16rpx solid #ff5e9c; }
+    &.mine { background: var(--gradient-brand); color: #fff; border-top-right-radius: 6rpx;
+      &::before { right: -16rpx; border-left: 16rpx solid var(--color-primary); }
     }
   }
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.input-area { background: #fff; border-top: 1rpx solid #eee; }
+.input-area { background: var(--bg-card); border-top: 1rpx solid var(--border-light); }
 
-.quick-bar { background: #fafafa; border-bottom: 1rpx solid #f0f0f0; }
+.quick-bar { background: var(--bg-sub); border-bottom: 1rpx solid var(--border-light); }
 .quick-list { display: flex; gap: 16rpx; padding: 16rpx 20rpx; }
 /* 快捷问题 chip：#ff5e9c on #fff ≈2.6:1 → #c2185b */
-.quick-chip { flex-shrink: 0; background: #fff; border: 1rpx solid #ffc8de; border-radius: 32rpx; padding: 14rpx 28rpx; min-height: 48rpx;
-  text { font-size: 24rpx; color: #c2185b; white-space: nowrap; }
+.quick-chip { flex-shrink: 0; background: var(--bg-card); border: 1rpx solid var(--color-primary-mist); border-radius: 32rpx; padding: 14rpx 28rpx; min-height: 48rpx;
+  text { font-size: 24rpx; color: var(--color-primary-text); white-space: nowrap; }
 }
 
 .input-bar { display: flex; align-items: center; gap: 16rpx; padding: 14rpx 16rpx; }
-.text-input { flex: 1; height: 72rpx; background: #f5f5f5; border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; transition: all 0.2s;
-  &.focus { background: #fff; box-shadow: 0 0 0 3rpx rgba(255, 94, 142, 0.35); }
+.text-input { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; transition: all 0.2s;
+  &.focus { background: var(--bg-card); box-shadow: 0 0 0 3rpx rgba(255, 94, 142, 0.35); }
 }
 /* 发送按钮：禁用态仅 opacity 会让对比度跌破阈值 → 改用不透明深灰背景（WCAG 1.4.1 不依赖单一视觉线索） */
-.send-btn { padding: 0 36rpx; height: 72rpx; background: #ff5e9c; border-radius: 36rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+.send-btn { padding: 0 36rpx; height: 72rpx; background: var(--color-primary); border-radius: 36rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   text { color: #fff; font-size: 28rpx; font-weight: 500; }
   &.disabled { background: #c7c7c7; }
 }
-</style>

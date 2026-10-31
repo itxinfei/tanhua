@@ -168,7 +168,7 @@ async function handleLogin() {
 }
 </script>
 
-<style lang="scss" scoped>
+
 .login-page {
   min-height: 100vh;
   background: linear-gradient(180deg, var(--color-primary-deep) 0%, var(--color-primary) 30%, #f5f5f5 60%);
@@ -245,7 +245,7 @@ async function handleLogin() {
 }
 
 .form {
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 32rpx;
   padding: 48rpx 40rpx;
   box-shadow: 0 8rpx 40rpx rgba(0, 0, 0, 0.06);
@@ -256,29 +256,29 @@ async function handleLogin() {
 
   .label {
     font-size: 28rpx;
-    color: #666;
+    color: var(--text-secondary);
     margin-bottom: 12rpx;
     display: block;
   }
 
   .input {
     height: 88rpx;
-    border: 2rpx solid #eee;
+    border: 2rpx solid var(--border-light);
     border-radius: 16rpx;
     padding: 0 24rpx;
     font-size: 32rpx;
-    background: #fafafa;
+    background: var(--bg-sub);
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
     &:focus {
-      border-color: #ff5e9c;
+      border-color: var(--color-primary);
       box-shadow: 0 0 0 4rpx rgba(255, 94, 142, 0.12);
-      background: #fff;
+      background: var(--bg-card);
     }
   }
 
   .placeholder {
-    color: #767676;
+    color: var(--text-hint);
   }
 }
 
@@ -297,16 +297,16 @@ async function handleLogin() {
     line-height: 88rpx;
     text-align: center;
     font-size: 26rpx;
-    color: #ff5e9c;
-    border: 2rpx solid #ff5e9c;
+    color: var(--color-primary);
+    border: 2rpx solid var(--color-primary);
     border-radius: 16rpx;
-    background: #fff;
+    background: var(--bg-card);
     padding: 0;
 
     &[disabled] {
-      color: #767676;
-      border-color: #eee;
-      background: #fafafa;
+      color: var(--text-hint);
+      border-color: var(--border-light);
+      background: var(--bg-sub);
     }
   }
 }
@@ -319,7 +319,7 @@ async function handleLogin() {
   .checkbox {
     width: 36rpx;
     height: 36rpx;
-    border: 2rpx solid #ddd;
+    border: 2rpx solid var(--border);
     border-radius: 50%;
     margin-right: 12rpx;
     display: flex;
@@ -327,8 +327,8 @@ async function handleLogin() {
     justify-content: center;
 
     &.checked {
-      background: #ff5e9c;
-      border-color: #ff5e9c;
+      background: var(--color-primary);
+      border-color: var(--color-primary);
     }
 
     .check-icon {
@@ -339,10 +339,10 @@ async function handleLogin() {
 
   .agreement-text {
     font-size: 24rpx;
-    color: #767676;
+    color: var(--text-hint);
 
     .link {
-      color: #c2185b;
+      color: var(--color-primary-text);
     }
   }
 }
@@ -352,7 +352,7 @@ async function handleLogin() {
   height: 96rpx;
   line-height: 96rpx;
   text-align: center;
-  background: linear-gradient(90deg, var(--color-primary-deep), var(--color-primary));
+  background: var(--gradient-brand-h);
   color: #fff;
   font-size: 34rpx;
   font-weight: bold;
@@ -365,4 +365,3 @@ async function handleLogin() {
     box-shadow: none;
   }
 }
-</style>

@@ -109,42 +109,41 @@ onLoad((options: any) => {
 });
 </script>
 
-<style lang="scss" scoped>
-.post-detail { min-height: 100vh; background: #f5f5f5; padding: 20rpx 24rpx 120rpx; }
-.post-card { background: #fff; padding: 28rpx; margin-bottom: 16rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+
+.post-detail { min-height: 100vh; background: var(--bg-sub); padding: 20rpx 24rpx 120rpx; }
+.post-card { background: var(--bg-card); padding: 28rpx; margin-bottom: 16rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   .post-header { display: flex; align-items: center;
-    .avatar { width: 76rpx; height: 76rpx; border-radius: 50%; border: 3rpx solid #ffeff5; }
+    .avatar { width: 76rpx; height: 76rpx; border-radius: 50%; border: 3rpx solid var(--bg-icon-soft); }
     .user-info { margin-left: 16rpx;
-      .nickname { font-size: 28rpx; font-weight: bold; display: block; color: #333; }
+      .nickname { font-size: 28rpx; font-weight: bold; display: block; color: var(--text-primary); }
       /* #ccc ≈1.6:1 → #767676 */
-      .time { font-size: 22rpx; color: #767676; margin-top: 4rpx; display: block; }
+      .time { font-size: 22rpx; color: var(--text-hint); margin-top: 4rpx; display: block; }
     }
   }
-  .post-content { font-size: 28rpx; line-height: 1.7; margin: 20rpx 0; color: #333; }
+  .post-content { font-size: 28rpx; line-height: 1.7; margin: 20rpx 0; color: var(--text-primary); }
 
   /* 话题标签（发布页勾选，落库 Movement.tags） */
   .tag-row { display: flex; flex-wrap: wrap; gap: 12rpx; margin: 0 0 20rpx; }
-  .tag-chip { font-size: 22rpx; color: #c2185b; background: #ffeff5; padding: 6rpx 18rpx; border-radius: 24rpx; }
+  .tag-chip { font-size: 22rpx; color: var(--color-primary-text); background: var(--bg-icon-soft); padding: 6rpx 18rpx; border-radius: 24rpx; }
   .image-grid { display: flex; flex-wrap: wrap; gap: 8rpx;
     /* 九宫格每格作为可聚焦按钮（原 image 直接 click 无键盘入口） */
     .grid-img { width: 210rpx; height: 210rpx; border-radius: 12rpx; overflow: hidden; }
     .grid-img-inner { width: 100%; height: 100%; display: block; }
   }
 }
-.comment-section { background: #fff; padding: 28rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
-  .section-title { font-size: 28rpx; font-weight: bold; display: block; margin-bottom: 16rpx; color: #333; }
-  .comment-item { display: flex; padding: 18rpx 0; border-bottom: 1rpx solid #f5f5f5;
+.comment-section { background: var(--bg-card); padding: 28rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+  .section-title { font-size: 28rpx; font-weight: bold; display: block; margin-bottom: 16rpx; color: var(--text-primary); }
+  .comment-item { display: flex; padding: 18rpx 0; border-bottom: 1rpx solid var(--border-faint);
     &:last-child { border-bottom: none; }
-    .avatar { width: 64rpx; height: 64rpx; border-radius: 50%; background: #f0f0f0; }
+    .avatar { width: 64rpx; height: 64rpx; border-radius: 50%; background: var(--bg-sub); }
     .comment-info { margin-left: 16rpx; flex: 1;
-      .nickname { font-size: 24rpx; color: #c2185b; display: block; }
-      .content { font-size: 28rpx; color: #333; margin-top: 6rpx; display: block; }
+      .nickname { font-size: 24rpx; color: var(--color-primary-text); display: block; }
+      .content { font-size: 28rpx; color: var(--text-primary); margin-top: 6rpx; display: block; }
       /* 20rpx 极小字号 + #ccc → 提字号并提深 */
-      .time { font-size: 22rpx; color: #767676; margin-top: 6rpx; display: block; }
+      .time { font-size: 22rpx; color: var(--text-hint); margin-top: 6rpx; display: block; }
     }
   }
 }
-.comment-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 16rpx 24rpx; background: #fff; box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.05);
-  .comment-input { height: 72rpx; background: #f5f5f5; border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; }
+.comment-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 16rpx 24rpx; background: var(--bg-card); box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.05);
+  .comment-input { height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; }
 }
-</style>

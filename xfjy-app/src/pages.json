@@ -1,4 +1,6 @@
 {
+	"darkmode": true,
+	"themeLocation": "theme.json",
 	"easycom": {
 		"autoscan": true,
 		"custom": {
@@ -16,7 +18,7 @@
 		{
 			"path": "pages/circle/index",
 			"style": {
-				"navigationBarTitleText": "圈子"
+				"navigationStyle": "custom"
 			}
 		},
 		{
@@ -157,16 +159,16 @@
 		}
 	],
 	"globalStyle": {
-		"navigationBarTextStyle": "black",
+		"navigationBarTextStyle": "@navTxtStyle",
 		"navigationBarTitleText": "心飞交友",
-		"navigationBarBackgroundColor": "#FFFFFF",
-		"backgroundColor": "#F5F5F5"
+		"navigationBarBackgroundColor": "@navBgColor",
+		"backgroundColor": "@bgColor"
 	},
 	"tabBar": {
-		"color": "#999999",
-		"selectedColor": "#FF5E9C",
-		"backgroundColor": "#FFFFFF",
-		"borderStyle": "white",
+		"color": "@tabColor",
+		"selectedColor": "@tabSelectedColor",
+		"backgroundColor": "@tabBgColor",
+		"borderStyle": "@tabBorderStyle",
 		"list": [
 			{
 				"pagePath": "pages/match/index",

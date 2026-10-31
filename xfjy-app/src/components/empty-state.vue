@@ -34,7 +34,7 @@ withDefaults(
 );
 </script>
 
-<style lang="scss" scoped>
+
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -45,7 +45,7 @@ withDefaults(
     width: 120rpx;
     height: 120rpx;
     border-radius: 50%;
-    background: #f5f5f5;
+    background: var(--bg-sub);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -54,13 +54,13 @@ withDefaults(
 
   .empty-title {
     font-size: 30rpx;
-    color: #595959;
+    color: var(--text-hint-strong);
     font-weight: bold;
   }
 
   .empty-desc {
     font-size: 24rpx;
-    color: #767676;
+    color: var(--text-hint);
     margin-top: 12rpx;
     text-align: center;
   }
@@ -88,4 +88,4 @@ withDefaults(
     color: rgba(255, 255, 255, 0.5);
   }
 }
-</style>
+

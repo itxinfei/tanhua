@@ -75,22 +75,21 @@ async function submit() {
 }
 </script>
 
-<style lang="scss" scoped>
-.verify-page { min-height: 100vh; background: #f5f5f5; padding: 24rpx; }
-.tips { font-size: 24rpx; color: #767676; line-height: 1.6; margin-bottom: 24rpx; }
-.form-card { background: #fff; border-radius: 24rpx; padding: 8rpx 32rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
-  .form-item { display: flex; align-items: center; padding: 26rpx 0; border-bottom: 1rpx solid #f5f5f5;
+
+.verify-page { min-height: 100vh; background: var(--bg-sub); padding: 24rpx; }
+.tips { font-size: 24rpx; color: var(--text-hint); line-height: 1.6; margin-bottom: 24rpx; }
+.form-card { background: var(--bg-card); border-radius: 24rpx; padding: 8rpx 32rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+  .form-item { display: flex; align-items: center; padding: 26rpx 0; border-bottom: 1rpx solid var(--border-faint);
     &:last-child { border-bottom: none; }
-    .form-label { width: 160rpx; font-size: 28rpx; color: #333; flex-shrink: 0; }
-    input { flex: 1; font-size: 28rpx; color: #333; }
+    .form-label { width: 160rpx; font-size: 28rpx; color: var(--text-primary); flex-shrink: 0; }
+    input { flex: 1; font-size: 28rpx; color: var(--text-primary); }
   }
 }
-.ph { color: #767676; }
-.submit-btn { margin-top: 60rpx; background: #ff5e9c; color: #fff; font-size: 30rpx; border-radius: 48rpx; height: 88rpx; line-height: 88rpx;
+.ph { color: var(--text-hint); }
+.submit-btn { margin-top: 60rpx; background: var(--color-primary); color: #fff; font-size: 30rpx; border-radius: 48rpx; height: 88rpx; line-height: 88rpx;
   &[disabled] { opacity: 0.6; }
 }
-.verified-card { background: #fff; border-radius: 24rpx; padding: 80rpx 32rpx; text-align: center; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
-  .verified-icon { display: block; width: 96rpx; height: 96rpx; line-height: 96rpx; margin: 0 auto 24rpx; border-radius: 50%; background: #ff5e9c; color: #fff; font-size: 48rpx; }
-  .verified-text { font-size: 30rpx; color: #333; }
+.verified-card { background: var(--bg-card); border-radius: 24rpx; padding: 80rpx 32rpx; text-align: center; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+  .verified-icon { display: block; width: 96rpx; height: 96rpx; line-height: 96rpx; margin: 0 auto 24rpx; border-radius: 50%; background: var(--color-primary); color: #fff; font-size: 48rpx; }
+  .verified-text { font-size: 30rpx; color: var(--text-primary); }
 }
-</style>

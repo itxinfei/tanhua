@@ -71,17 +71,17 @@ function handleKeydown(e: any): void {
 }
 </script>
 
-<style lang="scss" scoped>
+
 .a11y-btn {
   /* WCAG 2.4.7 Focus Visible：键盘聚焦必须可见 */
   &:focus-visible {
-    outline: 2px solid #ff5e9c;
+    outline: 2px solid var(--color-primary);
     outline-offset: 2px;
   }
 
   /* 小程序端不支持 focus-visible，用 :focus 兜底 */
   &:focus {
-    outline: 2px solid #ff5e9c;
+    outline: 2px solid var(--color-primary);
     outline-offset: 2px;
   }
 
@@ -89,4 +89,4 @@ function handleKeydown(e: any): void {
     cursor: not-allowed;
   }
 }
-</style>
+

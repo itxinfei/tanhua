@@ -3,7 +3,7 @@
     <!-- FAQ 搜索框 -->
     <view class="search-bar">
       <view class="search-input-wrap">
-        <uni-icons class="search-icon" type="search" size="18" color="#767676"></uni-icons>
+        <uni-icons class="search-icon" type="search" size="18" color="var(--text-hint)"></uni-icons>
         <input
           v-model="keyword"
           class="search-input"
@@ -12,7 +12,7 @@
           :maxlength="30"
           confirm-type="search"
         />
-        <a11y-button v-if="keyword" class="search-clear" label="清空搜索关键词" @tap="keyword = ''"><uni-icons type="close" size="18" color="#767676"></uni-icons></a11y-button>
+        <a11y-button v-if="keyword" class="search-clear" label="清空搜索关键词" @tap="keyword = ''"><uni-icons type="close" size="18" color="var(--text-hint)"></uni-icons></a11y-button>
       </view>
     </view>
 
@@ -125,22 +125,22 @@ function goFeedback(): void {
 }
 </script>
 
-<style lang="scss" scoped>
+
 .kefu-page {
   height: 100vh;
-  background: #f5f5f5;
+  background: var(--bg-sub);
   display: flex;
   flex-direction: column;
 }
 
 .search-bar {
   padding: 16rpx 24rpx 4rpx;
-  background: #f5f5f5;
+  background: var(--bg-sub);
 
   .search-input-wrap {
     display: flex;
     align-items: center;
-    background: #fff;
+    background: var(--bg-card);
     border-radius: 36rpx;
     padding: 0 24rpx;
     height: 72rpx;
@@ -154,13 +154,13 @@ function goFeedback(): void {
     .search-input {
       flex: 1;
       font-size: 26rpx;
-      color: #333;
+      color: var(--text-primary);
     }
 
     /* 清除按钮 #ccc → #767676，触摸目标 ≥24px */
     .search-clear {
       font-size: 28rpx;
-      color: #767676;
+      color: var(--text-hint);
       padding: 8rpx 12rpx;
       min-height: 48rpx;
       display: flex;
@@ -187,14 +187,14 @@ function goFeedback(): void {
 
     .group-tag {
       font-size: 26rpx;
-      color: #ff5e9c;
+      color: var(--color-primary);
       font-weight: bold;
     }
   }
 }
 
 .faq-item {
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 20rpx;
   padding: 28rpx 24rpx;
   margin-top: 16rpx;
@@ -210,14 +210,14 @@ function goFeedback(): void {
 
     .q-text {
       font-size: 30rpx;
-      color: #333;
+      color: var(--text-primary);
       font-weight: 500;
       flex: 1;
     }
 
     .q-arrow {
       font-size: 36rpx;
-      color: #767676;
+      color: var(--text-hint);
       transition: transform 0.2s;
       margin-left: 16rpx;
 
@@ -230,11 +230,11 @@ function goFeedback(): void {
   .faq-answer {
     margin-top: 20rpx;
     padding-top: 20rpx;
-    border-top: 1rpx solid #f0f0f0;
+    border-top: 1rpx solid var(--border-light);
 
     text {
       font-size: 26rpx;
-      color: #666;
+      color: var(--text-secondary);
       line-height: 1.7;
     }
   }
@@ -247,34 +247,34 @@ function goFeedback(): void {
 
   text {
     font-size: 24rpx;
-    color: #767676;
+    color: var(--text-hint);
   }
 }
 
 .bottom-bar {
   padding: 20rpx 24rpx;
-  background: #fff;
-  border-top: 1rpx solid #f0f0f0;
+  background: var(--bg-card);
+  border-top: 1rpx solid var(--border-light);
   display: flex;
   gap: 20rpx;
 
   .entry-btn {
     flex: 1;
-    background: #ffeff5;
-    border: 1rpx solid #ffc8de;
+    background: var(--bg-icon-soft);
+    border: 1rpx solid var(--color-primary-mist);
     border-radius: 44rpx;
     text-align: center;
     padding: 22rpx 0;
 
     text {
-      color: #ff5e9c;
+      color: var(--color-primary);
       font-size: 28rpx;
       font-weight: 500;
     }
 
     &.consult {
-      background: #ff5e9c;
-      border-color: #ff5e9c;
+      background: var(--color-primary);
+      border-color: var(--color-primary);
 
       text {
         color: #fff;
@@ -282,4 +282,3 @@ function goFeedback(): void {
     }
   }
 }
-</style>

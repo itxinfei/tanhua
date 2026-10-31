@@ -109,10 +109,10 @@ function statusClass(status: number): string {
 }
 </script>
 
-<style lang="scss" scoped>
+
 .feedback-page {
   height: 100vh;
-  background: #f5f5f5;
+  background: var(--bg-sub);
 }
 
 .fb-scroll {
@@ -121,13 +121,13 @@ function statusClass(status: number): string {
 }
 
 .form-card {
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 20rpx;
   padding: 32rpx 24rpx;
 
   .form-title {
     font-size: 32rpx;
-    color: #333;
+    color: var(--text-primary);
     font-weight: bold;
     display: block;
   }
@@ -142,7 +142,7 @@ function statusClass(status: number): string {
       width: 100%;
       min-height: 200rpx;
       font-size: 28rpx;
-      color: #333;
+      color: var(--text-primary);
       line-height: 1.6;
     }
 
@@ -153,7 +153,7 @@ function statusClass(status: number): string {
       text {
         /* 字数统计：原 #ccc 对比不足 */
         font-size: 22rpx;
-        color: #767676;
+        color: var(--text-hint);
       }
     }
   }
@@ -164,12 +164,12 @@ function statusClass(status: number): string {
     border-radius: 16rpx;
     padding: 20rpx;
     font-size: 28rpx;
-    color: #333;
+    color: var(--text-primary);
   }
 
   .submit-btn {
     margin-top: 32rpx;
-    background: #ff5e9c;
+    background: var(--color-primary);
     border-radius: 44rpx;
     text-align: center;
     padding: 22rpx 0;
@@ -192,7 +192,7 @@ function statusClass(status: number): string {
 
   .section-title {
     font-size: 30rpx;
-    color: #333;
+    color: var(--text-primary);
     font-weight: bold;
     display: block;
     padding: 8rpx;
@@ -204,13 +204,13 @@ function statusClass(status: number): string {
 
     text {
       font-size: 26rpx;
-      color: #767676;
+      color: var(--text-hint);
     }
   }
 }
 
 .history-item {
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 20rpx;
   padding: 24rpx;
   margin-top: 16rpx;
@@ -237,20 +237,20 @@ function statusClass(status: number): string {
       }
 
       &.st-closed {
-        color: #595959;
-        background: #f5f5f5;
+        color: var(--text-hint-strong);
+        background: var(--bg-sub);
       }
     }
 
     .item-date {
       font-size: 22rpx;
-      color: #767676;
+      color: var(--text-hint);
     }
   }
 
   .item-content {
     font-size: 28rpx;
-    color: #333;
+    color: var(--text-primary);
     line-height: 1.6;
     margin-top: 16rpx;
     display: block;
@@ -259,23 +259,22 @@ function statusClass(status: number): string {
   .item-reply {
     margin-top: 16rpx;
     padding: 16rpx 20rpx;
-    background: #ffeff5;
+    background: var(--bg-icon-soft);
     border-radius: 12rpx;
 
     /* 原 #ff5e9c 在 #ffeff5 底上仅约 2.5:1，提深至 ≥4.5:1 */
     .reply-label {
       font-size: 24rpx;
-      color: #c2185b;
+      color: var(--color-primary-text);
       font-weight: 500;
     }
 
     .reply-text {
       font-size: 26rpx;
-      color: #666;
+      color: var(--text-secondary);
       line-height: 1.6;
       margin-top: 8rpx;
       display: block;
     }
   }
 }
-</style>

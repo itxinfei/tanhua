@@ -77,24 +77,23 @@ async function submit() {
 }
 </script>
 
-<style lang="scss" scoped>
-.change-phone-page { min-height: 100vh; background: #f5f5f5; padding: 24rpx; }
+
+.change-phone-page { min-height: 100vh; background: var(--bg-sub); padding: 24rpx; }
 /* 提示文案 #999（≈2.85:1）→ #767676 */
-.tips { font-size: 24rpx; color: #767676; line-height: 1.6; margin-bottom: 24rpx; }
-.form-card { background: #fff; border-radius: 24rpx; padding: 8rpx 32rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
-  .form-item { display: flex; align-items: center; padding: 26rpx 0; border-bottom: 1rpx solid #f5f5f5;
+.tips { font-size: 24rpx; color: var(--text-hint); line-height: 1.6; margin-bottom: 24rpx; }
+.form-card { background: var(--bg-card); border-radius: 24rpx; padding: 8rpx 32rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+  .form-item { display: flex; align-items: center; padding: 26rpx 0; border-bottom: 1rpx solid var(--border-faint);
     &:last-child { border-bottom: none; }
-    .form-label { width: 160rpx; font-size: 28rpx; color: #333; flex-shrink: 0; }
-    input { flex: 1; font-size: 28rpx; color: #333; }
+    .form-label { width: 160rpx; font-size: 28rpx; color: var(--text-primary); flex-shrink: 0; }
+    input { flex: 1; font-size: 28rpx; color: var(--text-primary); }
   }
 }
 /* 发送验证码按钮：#ff5e9c on #fff ≈2.6:1 → #c2185b；禁用态 #ccc → #767676，并保证触摸目标 ≥24px */
-.send-btn { font-size: 26rpx; color: #c2185b; flex-shrink: 0; margin-left: 16rpx; padding: 12rpx 8rpx; min-height: 48rpx;
-  &.disabled { color: #767676; }
+.send-btn { font-size: 26rpx; color: var(--color-primary-text); flex-shrink: 0; margin-left: 16rpx; padding: 12rpx 8rpx; min-height: 48rpx;
+  &.disabled { color: var(--text-hint); }
 }
 /* 占位符 #ccc → #767676 */
-.ph { color: #767676; }
-.submit-btn { margin-top: 60rpx; background: #ff5e9c; color: #fff; font-size: 30rpx; border-radius: 48rpx; height: 88rpx; line-height: 88rpx;
+.ph { color: var(--text-hint); }
+.submit-btn { margin-top: 60rpx; background: var(--color-primary); color: #fff; font-size: 30rpx; border-radius: 48rpx; height: 88rpx; line-height: 88rpx;
   &[disabled] { opacity: 0.6; }
 }
-</style>

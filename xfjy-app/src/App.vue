@@ -43,9 +43,12 @@ onShow(() => {
 });
 
 // 原生 tabBar 居中发布键（抖音式发布入口）：跳转发布动态页
-uni.onTabBarMidButtonTap(() => {
-  uni.navigateTo({ url: "/pages/circle/publish" });
-});
+// midButton 仅微信小程序原生 tabBar 支持，H5/其他端无此 API 或永不触发，故加运行时保护
+if (typeof uni.onTabBarMidButtonTap === "function") {
+  uni.onTabBarMidButtonTap(() => {
+    uni.navigateTo({ url: "/pages/circle/publish" });
+  });
+}
 </script>
 
 <style lang="scss">
@@ -59,6 +62,14 @@ page {
   --color-primary-violet: #8a5cf6;
   --color-primary-soft: #ff8fb1;
   --color-primary-mist: #ffd1e8;
+  --color-primary-text: #c2185b;
+  --bg-sub: #f5f5f5;
+  --border-light: #f0f0f0;
+  --border: #e0e0e0;
+  --border-faint: #f5f5f5;
+  --text-hint-weak: #999999;
+  --gradient-brand: linear-gradient(135deg, #b13bff, #ff5e9c);
+  --gradient-brand-h: linear-gradient(90deg, #b13bff, #ff5e9c);
   --bg-page: #f5f5f5;
   --bg-card: #ffffff;
   --bg-icon-soft: #ffeff5;
@@ -88,6 +99,14 @@ page {
     --color-primary-violet: #a78bfa;
     --color-primary-soft: #ff8fb1;
     --color-primary-mist: #7a5a70;
+    --color-primary-text: #ff8eb9;
+    --bg-sub: #262626;
+    --border-light: #3a3a3a;
+    --border: #3f3f3f;
+    --border-faint: #333333;
+    --text-hint-weak: #8c8c8c;
+    --gradient-brand: linear-gradient(135deg, #9b5cf6, #f9578f);
+    --gradient-brand-h: linear-gradient(90deg, #9b5cf6, #f9578f);
     --bg-page: #1a1a1a;
     --bg-card: #2c2c2c;
     --bg-icon-soft: #3a2a30;
@@ -123,11 +142,11 @@ page {
 
 /* 主题色 */
 .text-primary {
-  color: #ff5e9c;
+  color: var(--color-primary);
 }
 
 .bg-primary {
-  background-color: #ff5e9c;
+  background-color: var(--color-primary);
 }
 
 /* 渐变遮罩（卡片底部） */
@@ -334,7 +353,7 @@ switch:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 button:focus-visible {
-  outline: 2px solid #ff5e9c;
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 </style>

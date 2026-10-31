@@ -82,14 +82,14 @@ function matchCardStyle(i: number): Record<string, string | number> {
 }
 </script>
 
-<style lang="scss" scoped>
+
 .skeleton-root {
   /* 容器本身透明，仅承载布局；闪烁动画由全局 .skeleton 提供 */
 }
 
 /* ===== feed：信息流卡片 ===== */
 .sk-card {
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 24rpx;
   padding: 24rpx;
   margin-bottom: 16rpx;
@@ -180,4 +180,4 @@ function matchCardStyle(i: number): Record<string, string | number> {
     border-radius: 32rpx;
   }
 }
-</style>
+

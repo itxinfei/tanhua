@@ -90,10 +90,10 @@ onLoad((options: any) => {
 });
 </script>
 
-<style lang="scss" scoped>
+
 .tag-page {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--bg-sub);
   padding: 24rpx;
 }
 
@@ -104,18 +104,18 @@ onLoad((options: any) => {
   padding: 16rpx 8rpx 24rpx;
   .hash {
     font-size: 36rpx;
-    color: #ff5e9c;
+    color: var(--color-primary);
     font-weight: bold;
   }
   .tag-name {
     font-size: 32rpx;
     font-weight: bold;
-    color: #333;
+    color: var(--text-primary);
   }
 }
 
 .post-card {
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 24rpx;
   padding: 24rpx;
   margin-bottom: 16rpx;
@@ -138,7 +138,7 @@ onLoad((options: any) => {
       }
       .meta {
         font-size: 22rpx;
-        color: #767676;
+        color: var(--text-hint);
         margin-top: 4rpx;
         display: block;
       }
@@ -149,7 +149,7 @@ onLoad((options: any) => {
     font-size: 28rpx;
     line-height: 1.6;
     margin: 16rpx 0;
-    color: #333;
+    color: var(--text-primary);
   }
 
   .image-grid {
@@ -167,7 +167,7 @@ onLoad((options: any) => {
 .loading {
   text-align: center;
   padding: 24rpx;
-  color: #ff5e9c;
+  color: var(--color-primary);
   font-size: 26rpx;
 }
-</style>
+

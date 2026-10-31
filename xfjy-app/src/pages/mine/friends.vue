@@ -220,18 +220,18 @@ function goDetail(userId: string): void {
 }
 </script>
 
-<style lang="scss" scoped>
+
 .friends-page {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f5f5f5;
+  background: var(--bg-sub);
 }
 
 .tab-bar {
   display: flex;
-  background: #fff;
-  border-bottom: 1rpx solid #f0f0f0;
+  background: var(--bg-card);
+  border-bottom: 1rpx solid var(--border-light);
 
   .tab-item {
     flex: 1;
@@ -240,11 +240,11 @@ function goDetail(userId: string): void {
     align-items: center;
     justify-content: center;
     font-size: 28rpx;
-    color: #666;
+    color: var(--text-secondary);
     position: relative;
 
     &.active {
-      color: #ff5e9c;
+      color: var(--color-primary);
       font-weight: bold;
 
       &::after {
@@ -255,7 +255,7 @@ function goDetail(userId: string): void {
         transform: translateX(-50%);
         width: 48rpx;
         height: 6rpx;
-        background: #ff5e9c;
+        background: var(--color-primary);
         border-radius: 3rpx;
       }
     }
@@ -264,11 +264,11 @@ function goDetail(userId: string): void {
 
 .search-bar {
   padding: 16rpx 32rpx;
-  background: #fff;
+  background: var(--bg-card);
 
   .search-input {
     height: 64rpx;
-    background: #f5f5f5;
+    background: var(--bg-sub);
     border-radius: 32rpx;
     padding: 0 32rpx;
     font-size: 26rpx;
@@ -293,7 +293,7 @@ function goDetail(userId: string): void {
   display: flex;
   align-items: center;
   padding: 24rpx;
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 24rpx;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 
@@ -301,8 +301,8 @@ function goDetail(userId: string): void {
     width: 100rpx;
     height: 100rpx;
     border-radius: 50%;
-    background: #f0f0f0;
-    border: 3rpx solid #ffeff5;
+    background: var(--bg-sub);
+    border: 3rpx solid var(--bg-icon-soft);
   }
 
   .user-info {
@@ -311,7 +311,7 @@ function goDetail(userId: string): void {
 
     .user-nickname {
       font-size: 30rpx;
-      color: #333;
+      color: var(--text-primary);
       font-weight: bold;
       display: block;
     }
@@ -319,7 +319,7 @@ function goDetail(userId: string): void {
     /* 副信息 #999 → #767676 */
     .user-meta {
       font-size: 24rpx;
-      color: #767676;
+      color: var(--text-hint);
       margin-top: 8rpx;
       display: block;
     }
@@ -336,13 +336,13 @@ function goDetail(userId: string): void {
 
   /* #999 on #f5f5f5 不达标 → 提深 */
   &.cancel {
-    color: #767676;
-    background: #f5f5f5;
+    color: var(--text-hint);
+    background: var(--bg-sub);
   }
 
   &.follow {
     color: #fff;
-    background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary));
+    background: var(--gradient-brand);
     box-shadow: 0 4rpx 14rpx rgba(255, 94, 142, 0.3);
   }
 }
@@ -355,7 +355,6 @@ function goDetail(userId: string): void {
   /* #ccc ≈1.6:1 → #767676 */
   text {
     font-size: 24rpx;
-    color: #767676;
+    color: var(--text-hint);
   }
 }
-</style>

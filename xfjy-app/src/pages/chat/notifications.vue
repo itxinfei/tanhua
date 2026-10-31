@@ -57,11 +57,11 @@ const chatStore = useChatStore();
 
 /** 通知类型元数据（图标+颜色，与会话列表 NOTICE_META 保持一致） */
 const TYPE_META: Record<string, { uniIcon: string; color: string }> = {
-  like: { uniIcon: "heart-filled", color: "#ff5e9c" },
+  like: { uniIcon: "heart-filled", color: "var(--color-primary)" },
   comment: { uniIcon: "chatbubble", color: "#4a90d9" },
-  love: { uniIcon: "star-filled", color: "#ff5e9c" },
+  love: { uniIcon: "star-filled", color: "var(--color-primary)" },
   announcement: { uniIcon: "notification", color: "#4cd964" },
-  visitors: { uniIcon: "eye", color: "#8a5cf6" },
+  visitors: { uniIcon: "eye", color: "var(--color-primary-violet)" },
   fans: { uniIcon: "person", color: "#ff8fb1" },
 };
 
@@ -198,28 +198,27 @@ onPullDownRefresh(async () => {
 });
 </script>
 
-<style lang="scss" scoped>
-.notifications-page { min-height: 100vh; background: #f5f5f5; padding: 20rpx 24rpx; }
 
-.notice-item { display: flex; align-items: center; padding: 24rpx; background: #fff; border-radius: 24rpx; margin-bottom: 16rpx;
+.notifications-page { min-height: 100vh; background: var(--bg-sub); padding: 20rpx 24rpx; }
+
+.notice-item { display: flex; align-items: center; padding: 24rpx; background: var(--bg-card); border-radius: 24rpx; margin-bottom: 16rpx;
   .avatar-wrap { position: relative; flex-shrink: 0;
-    .avatar { width: 88rpx; height: 88rpx; border-radius: 50%; background: #f0f0f0; border: 3rpx solid #ffeff5; }
+    .avatar { width: 88rpx; height: 88rpx; border-radius: 50%; background: var(--bg-sub); border: 3rpx solid var(--bg-icon-soft); }
     .type-badge { position: absolute; bottom: -4rpx; right: -4rpx; width: 36rpx; height: 36rpx; border-radius: 50%; border: 3rpx solid #fff; display: flex; align-items: center; justify-content: center; font-size: 18rpx; color: #fff; }
   }
   .info { flex: 1; margin-left: 20rpx;
-    .nickname { font-size: 28rpx; font-weight: bold; color: #333; display: block; }
+    .nickname { font-size: 28rpx; font-weight: bold; color: var(--text-primary); display: block; }
     /* #999 → #767676 */
-    .desc { font-size: 24rpx; color: #767676; margin-top: 6rpx; display: block; }
+    .desc { font-size: 24rpx; color: var(--text-hint); margin-top: 6rpx; display: block; }
   }
   /* #ccc → #767676 */
-  .time { font-size: 22rpx; color: #767676; flex-shrink: 0; margin-left: 16rpx; }
+  .time { font-size: 22rpx; color: var(--text-hint); flex-shrink: 0; margin-left: 16rpx; }
 }
 
 /* VIP 权益锁定状态 */
 .locked-state { display: flex; flex-direction: column; align-items: center; padding: 160rpx 48rpx 80rpx;
   .locked-icon { width: 120rpx; height: 120rpx; border-radius: 50%; background: linear-gradient(135deg, #ffd700, #ffb347); display: flex; align-items: center; justify-content: center; font-size: 56rpx; margin-bottom: 24rpx; box-shadow: 0 8rpx 24rpx rgba(255, 179, 71, 0.35); }
-  .locked-title { font-size: 32rpx; color: #333; font-weight: bold; }
-  .locked-desc { font-size: 24rpx; color: #767676; margin-top: 12rpx; text-align: center; }
+  .locked-title { font-size: 32rpx; color: var(--text-primary); font-weight: bold; }
+  .locked-desc { font-size: 24rpx; color: var(--text-hint); margin-top: 12rpx; text-align: center; }
   .locked-btn { margin-top: 40rpx; width: 320rpx; height: 80rpx; line-height: 80rpx; background: linear-gradient(90deg, #ffd700, #ffb347); color: #1a1a2e; font-size: 28rpx; font-weight: bold; border-radius: 40rpx; border: none; }
 }
-</style>

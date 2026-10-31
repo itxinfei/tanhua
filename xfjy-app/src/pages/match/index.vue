@@ -88,10 +88,10 @@
     <!-- 底部操作栏（不喜欢 / 喜欢 / 曝光提升 三个动作，卡片为前进队列：左右滑动即移动到下一张） -->
     <view class="action-bar safe-area-bottom">
       <a11y-button class="action-btn dislike btn-feedback" label="不喜欢" @tap="handleDislike">
-        <uni-icons type="close" size="24" color="#ff5e9c"></uni-icons>
+        <uni-icons type="close" size="24" color="var(--color-primary)"></uni-icons>
       </a11y-button>
       <a11y-button class="action-btn like btn-feedback" label="喜欢" @tap="handleLike">
-        <uni-icons type="heart-filled" size="24" color="#ff5e9c"></uni-icons>
+        <uni-icons type="heart-filled" size="24" color="var(--color-primary)"></uni-icons>
       </a11y-button>
       <a11y-button class="action-btn boost btn-feedback" label="曝光提升" @tap="handleBoost">
         <text aria-hidden="true">⚡</text>
@@ -383,10 +383,10 @@ onShareAppMessage(() => ({
 }));
 </script>
 
-<style lang="scss" scoped>
+
 .match-page {
   height: calc(100vh - var(--window-bottom, 0px));
-  background: #f0f0f5;
+  background: var(--bg-page);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -398,7 +398,7 @@ onShareAppMessage(() => ({
   align-items: center;
   padding: 0 32rpx;
   height: 88rpx;
-  background: #fff;
+  background: var(--bg-card);
 
   .city {
     display: flex;
@@ -413,14 +413,14 @@ onShareAppMessage(() => ({
     /* 下拉箭头原 #999（≈2.85:1）→ #767676 */
     .arrow {
       font-size: 24rpx;
-      color: #767676;
+      color: var(--text-hint);
     }
   }
 
   .filter-btn {
     font-size: 28rpx;
-    color: #ff5e9c;
-    background: #ffeff5;
+    color: var(--color-primary);
+    background: var(--bg-icon-soft);
     padding: 8rpx 24rpx;
     border-radius: 24rpx;
   }
@@ -442,7 +442,7 @@ onShareAppMessage(() => ({
   border-radius: 32rpx;
   overflow: hidden;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08), 0 16rpx 48rpx rgba(0, 0, 0, 0.12);
-  background: #fff;
+  background: var(--bg-card);
 
   .card-image {
     position: absolute;
@@ -509,7 +509,7 @@ onShareAppMessage(() => ({
 
       .fate-fill {
         height: 100%;
-        background: linear-gradient(90deg, var(--color-primary-deep), var(--color-primary));
+        background: var(--gradient-brand-h);
         border-radius: 6rpx;
         transition: width 0.4s ease-out;
       }
@@ -517,7 +517,7 @@ onShareAppMessage(() => ({
       .fate-value {
         font-size: 22rpx;
         font-weight: bold;
-        color: #ff5e9c;
+        color: var(--color-primary);
         min-width: 36rpx;
         text-align: right;
       }
@@ -573,7 +573,7 @@ onShareAppMessage(() => ({
   align-items: center;
   gap: 32rpx;
   padding: 24rpx 0;
-  background: #fff;
+  background: var(--bg-card);
 
   .action-btn {
     display: flex;
@@ -585,7 +585,7 @@ onShareAppMessage(() => ({
     &.dislike {
       width: 100rpx;
       height: 100rpx;
-      background: #fff;
+      background: var(--bg-card);
       color: #ff3b30;
       border: 4rpx solid #ff3b30;
       box-shadow: 0 6rpx 20rpx rgba(255, 59, 48, 0.25);
@@ -594,9 +594,9 @@ onShareAppMessage(() => ({
     &.like {
       width: 100rpx;
       height: 100rpx;
-      background: #fff;
-      color: #ff5e9c;
-      border: 4rpx solid #ff5e9c;
+      background: var(--bg-card);
+      color: var(--color-primary);
+      border: 4rpx solid var(--color-primary);
       box-shadow: 0 6rpx 20rpx rgba(255, 94, 142, 0.3);
     }
 
@@ -609,4 +609,3 @@ onShareAppMessage(() => ({
     }
   }
 }
-</style>

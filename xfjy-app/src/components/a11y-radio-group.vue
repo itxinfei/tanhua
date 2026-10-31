@@ -79,7 +79,7 @@ function handleKeydown(e: any, opt: RadioOption): void {
 }
 </script>
 
-<style lang="scss" scoped>
+
 .a11y-radio-group {
   display: contents;
 }
@@ -87,8 +87,8 @@ function handleKeydown(e: any, opt: RadioOption): void {
 .a11y-radio {
   &:focus-visible,
   &:focus {
-    outline: 2px solid #ff5e9c;
+    outline: 2px solid var(--color-primary);
     outline-offset: 2px;
   }
 }
-</style>
+

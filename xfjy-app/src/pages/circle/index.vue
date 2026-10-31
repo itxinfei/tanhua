@@ -75,15 +75,15 @@
           </view>
           <view class="action-row">
             <a11y-button class="action btn-feedback" :label="item.hasLiked ? '取消点赞，当前 ' + (item.likeCount || 0) + ' 赞' : '点赞，当前 ' + (item.likeCount || 0) + ' 赞'" @tap="handleLike(item)">
-              <uni-icons class="action-icon" :class="{ liked: item.hasLiked, 'heart-beat': item.hasLiked }" :type="item.hasLiked ? 'heart-filled' : 'heart'" :color="item.hasLiked ? '#c2185b' : '#767676'" size="18"></uni-icons>
+              <uni-icons class="action-icon" :class="{ liked: item.hasLiked, 'heart-beat': item.hasLiked }" :type="item.hasLiked ? 'heart-filled' : 'heart'" :color="item.hasLiked ? 'var(--color-primary-text)' : 'var(--text-hint)'" size="18"></uni-icons>
               <text class="count">{{ item.likeCount || '' }}</text>
             </a11y-button>
             <a11y-button class="action btn-feedback" :label="'查看评论，共 ' + (item.commentCount || 0) + ' 条'" @tap="goDetail(item)">
-              <uni-icons class="action-icon" type="chatbubble" color="#767676" size="18"></uni-icons>
+              <uni-icons class="action-icon" type="chatbubble" color="var(--text-hint)" size="18"></uni-icons>
               <text class="count">{{ item.commentCount || '' }}</text>
             </a11y-button>
             <a11y-button class="action btn-feedback" :label="item.hasLoved ? '取消心动' : '心动'" @tap="handleLove(item)">
-              <uni-icons class="action-icon" :class="{ loved: item.hasLoved }" :type="item.hasLoved ? 'star-filled' : 'star'" :color="item.hasLoved ? '#c2185b' : '#767676'" size="18"></uni-icons>
+              <uni-icons class="action-icon" :class="{ loved: item.hasLoved }" :type="item.hasLoved ? 'star-filled' : 'star'" :color="item.hasLoved ? 'var(--color-primary-text)' : 'var(--text-hint)'" size="18"></uni-icons>
             </a11y-button>
           </view>
         </view>
@@ -254,9 +254,9 @@ interface ChatListItem extends Contact {
 }
 
 const NOTICE_META: Record<NoticeType, { uniIcon: string; label: string; color: string }> = {
-  like: { uniIcon: "heart-filled", label: "喜欢", color: "#ff5e9c" },
+  like: { uniIcon: "heart-filled", label: "喜欢", color: "var(--color-primary)" },
   comment: { uniIcon: "chatbubble", label: "评论", color: "#4a90d9" },
-  love: { uniIcon: "star-filled", label: "心动", color: "#ff5e9c" },
+  love: { uniIcon: "star-filled", label: "心动", color: "var(--color-primary)" },
   announcement: { uniIcon: "notification", label: "公告", color: "#4cd964" },
 };
 
@@ -351,33 +351,34 @@ onShareAppMessage(() => ({
 }));
 </script>
 
-<style lang="scss" scoped>
+
 .social-page {
   height: calc(100vh - var(--window-bottom, 0px));
   display: flex;
   flex-direction: column;
-  background: #f5f5f5;
+  background: var(--bg-sub);
 }
 
-/* 顶级分区：圈子 / 消息 */
+/* 顶级分区：圈子 / 消息（custom 导航后直接贴状态栏，需自行避让） */
 .seg-bar {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 56rpx;
-  height: 88rpx;
-  background: #fff;
+  height: calc(88rpx + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
+  background: var(--bg-card);
   position: relative;
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: 1rpx solid var(--border-light);
 
   .seg {
     position: relative;
     font-size: 32rpx;
-    color: #767676;
+    color: var(--text-hint);
     padding: 6rpx 4rpx;
 
     &.active {
-      color: #333;
+      color: var(--text-primary);
       font-weight: 700;
 
       &::after {
@@ -388,7 +389,7 @@ onShareAppMessage(() => ({
         transform: translateX(-50%);
         width: 44rpx;
         height: 6rpx;
-        background: #ff5e9c;
+        background: var(--color-primary);
         border-radius: 3rpx;
       }
     }
@@ -404,7 +405,7 @@ onShareAppMessage(() => ({
     text-align: center;
     font-size: 20rpx;
     color: #fff;
-    background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary));
+    background: var(--gradient-brand);
     border-radius: 15rpx;
     padding: 0 8rpx;
     border: 2rpx solid #fff;
@@ -415,7 +416,7 @@ onShareAppMessage(() => ({
 .tab-bar {
   display: flex;
   align-items: center;
-  background: #fff;
+  background: var(--bg-card);
   padding: 0 32rpx;
   height: 88rpx;
   position: relative;
@@ -423,11 +424,11 @@ onShareAppMessage(() => ({
   .tab-item {
     padding: 0 32rpx;
     font-size: 30rpx;
-    color: #767676;
+    color: var(--text-hint);
     position: relative;
 
     &.active {
-      color: #333;
+      color: var(--text-primary);
       font-weight: bold;
 
       &::after {
@@ -438,7 +439,7 @@ onShareAppMessage(() => ({
         transform: translateX(-50%);
         width: 48rpx;
         height: 6rpx;
-        background: #ff5e9c;
+        background: var(--color-primary);
         border-radius: 3rpx;
       }
     }
@@ -452,7 +453,7 @@ onShareAppMessage(() => ({
 }
 
 .post-card {
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 24rpx;
   padding: 24rpx;
   margin-bottom: 16rpx;
@@ -479,7 +480,7 @@ onShareAppMessage(() => ({
 
       .meta {
         font-size: 22rpx;
-        color: #767676;
+        color: var(--text-hint);
         margin-top: 4rpx;
         display: block;
       }
@@ -490,7 +491,7 @@ onShareAppMessage(() => ({
     font-size: 28rpx;
     line-height: 1.6;
     margin: 16rpx 0;
-    color: #333;
+    color: var(--text-primary);
   }
 
   .tag-row {
@@ -502,8 +503,8 @@ onShareAppMessage(() => ({
 
   .tag-chip {
     font-size: 22rpx;
-    color: #c2185b;
-    background: #ffeff5;
+    color: var(--color-primary-text);
+    background: var(--bg-icon-soft);
     padding: 6rpx 18rpx;
     border-radius: 24rpx;
   }
@@ -525,7 +526,7 @@ onShareAppMessage(() => ({
     display: flex;
     gap: 48rpx;
     padding-top: 16rpx;
-    border-top: 1rpx solid #f5f5f5;
+    border-top: 1rpx solid var(--border-faint);
 
     .action {
       display: flex;
@@ -535,16 +536,16 @@ onShareAppMessage(() => ({
 
       .action-icon {
         font-size: 36rpx;
-        color: #767676;
+        color: var(--text-hint);
         line-height: 1;
 
-        &.liked { color: #c2185b; }
-        &.loved { color: #c2185b; }
+        &.liked { color: var(--color-primary-text); }
+        &.loved { color: var(--color-primary-text); }
       }
 
       .count {
         font-size: 24rpx;
-        color: #767676;
+        color: var(--text-hint);
       }
     }
   }
@@ -553,7 +554,7 @@ onShareAppMessage(() => ({
 .loading {
   text-align: center;
   padding: 24rpx;
-  color: #767676;
+  color: var(--text-hint);
   font-size: 24rpx;
 }
 
@@ -562,7 +563,7 @@ onShareAppMessage(() => ({
   display: flex;
   justify-content: space-around;
   padding: 24rpx 0;
-  background: #fff;
+  background: var(--bg-card);
   margin-bottom: 16rpx;
 
   .notice-item {
@@ -599,7 +600,7 @@ onShareAppMessage(() => ({
         text-align: center;
         font-size: 20rpx;
         color: #fff;
-        background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary));
+        background: var(--gradient-brand);
         border-radius: 16rpx;
         padding: 0 8rpx;
         border: 2rpx solid #fff;
@@ -608,7 +609,7 @@ onShareAppMessage(() => ({
 
     .notice-label {
       font-size: 24rpx;
-      color: #666;
+      color: var(--text-secondary);
     }
   }
 }
@@ -617,13 +618,13 @@ onShareAppMessage(() => ({
 .msg-list {
   flex: 1;
   min-height: 0;
-  background: #fff;
+  background: var(--bg-card);
 
   .chat-item {
     display: flex;
     align-items: center;
     padding: 24rpx 32rpx;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: 1rpx solid var(--border-light);
 
     .avatar-wrap {
       position: relative;
@@ -660,7 +661,7 @@ onShareAppMessage(() => ({
         .nickname {
           font-size: 30rpx;
           font-weight: 500;
-          color: #333;
+          color: var(--text-primary);
         }
       }
 
@@ -672,7 +673,7 @@ onShareAppMessage(() => ({
 
         .last-msg {
           font-size: 26rpx;
-          color: #767676;
+          color: var(--text-hint);
           flex: 1;
         }
 
@@ -683,7 +684,7 @@ onShareAppMessage(() => ({
           text-align: center;
           font-size: 20rpx;
           color: #fff;
-          background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary));
+          background: var(--gradient-brand);
           border-radius: 16rpx;
           padding: 0 8rpx;
           margin-left: 16rpx;
@@ -692,4 +693,4 @@ onShareAppMessage(() => ({
     }
   }
 }
-</style>
+

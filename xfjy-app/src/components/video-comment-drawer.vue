@@ -24,7 +24,7 @@
             :label="c.hasLiked === 1 ? `已点赞，共 ${c.likeCount} 个赞，点击取消点赞` : `点赞，共 ${c.likeCount} 个赞`"
             @tap="toggleLike(c)"
           >
-            <uni-icons class="like-icon" :type="c.hasLiked === 1 ? 'heart-filled' : 'heart'" size="32" :color="c.hasLiked === 1 ? '#c2185b' : '#767676'"></uni-icons>
+            <uni-icons class="like-icon" :type="c.hasLiked === 1 ? 'heart-filled' : 'heart'" size="32" :color="c.hasLiked === 1 ? 'var(--color-primary-text)' : 'var(--text-hint)'"></uni-icons>
             <text class="like-count">{{ c.likeCount > 0 ? c.likeCount : '' }}</text>
           </a11y-button>
         </view>
@@ -125,33 +125,32 @@ async function send() {
 }
 </script>
 
-<style lang="scss" scoped>
+
 .drawer-mask { position: fixed; left: 0; top: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 999; display: flex; align-items: flex-end; }
-.drawer-panel { width: 100%; height: 70vh; background: #fff; border-radius: 32rpx 32rpx 0 0; display: flex; flex-direction: column; animation: slideUp 0.25s ease; }
+.drawer-panel { width: 100%; height: 70vh; background: var(--bg-card); border-radius: 32rpx 32rpx 0 0; display: flex; flex-direction: column; animation: slideUp 0.25s ease; }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-.drawer-header { display: flex; align-items: center; justify-content: space-between; padding: 24rpx 32rpx; border-bottom: 1rpx solid #f5f5f5;
-  .drawer-title { font-size: 30rpx; font-weight: 600; color: #333; }
-  .drawer-close { font-size: 40rpx; color: #767676; padding: 0 12rpx; min-height: 48rpx; line-height: 1; }
+.drawer-header { display: flex; align-items: center; justify-content: space-between; padding: 24rpx 32rpx; border-bottom: 1rpx solid var(--border-faint);
+  .drawer-title { font-size: 30rpx; font-weight: 600; color: var(--text-primary); }
+  .drawer-close { font-size: 40rpx; color: var(--text-hint); padding: 0 12rpx; min-height: 48rpx; line-height: 1; }
 }
 .comment-list { flex: 1; padding: 0 32rpx; }
-.empty { text-align: center; color: #767676; font-size: 26rpx; padding: 80rpx 0; }
-.comment-item { display: flex; padding: 24rpx 0; border-bottom: 1rpx solid #f5f5f5;
+.empty { text-align: center; color: var(--text-hint); font-size: 26rpx; padding: 80rpx 0; }
+.comment-item { display: flex; padding: 24rpx 0; border-bottom: 1rpx solid var(--border-faint);
   .avatar { width: 72rpx; height: 72rpx; border-radius: 50%; flex-shrink: 0; background: #eee; }
-  .avatar-ph { display: flex; align-items: center; justify-content: center; font-size: 28rpx; color: #fff; background: #ff5e9c; }
+  .avatar-ph { display: flex; align-items: center; justify-content: center; font-size: 28rpx; color: #fff; background: var(--color-primary); }
   .comment-body { flex: 1; margin-left: 20rpx; display: flex; flex-direction: column;
-    .nickname { font-size: 26rpx; color: #595959; }
-    .content { font-size: 28rpx; color: #333; margin: 8rpx 0; word-break: break-all; }
-    .date { font-size: 22rpx; color: #767676; }
+    .nickname { font-size: 26rpx; color: var(--text-hint-strong); }
+    .content { font-size: 28rpx; color: var(--text-primary); margin: 8rpx 0; word-break: break-all; }
+    .date { font-size: 22rpx; color: var(--text-hint); }
   }
   .like-box { display: flex; flex-direction: column; align-items: center; padding: 8rpx 0 0 16rpx;
     .like-icon { font-size: 32rpx; }
-    .like-count { font-size: 22rpx; color: #767676; margin-top: 4rpx; }
+    .like-count { font-size: 22rpx; color: var(--text-hint); margin-top: 4rpx; }
   }
 }
-.load-more { text-align: center; color: #767676; font-size: 24rpx; padding: 24rpx 0; }
-.input-bar { display: flex; align-items: center; padding: 16rpx 24rpx; padding-bottom: calc(16rpx + env(safe-area-inset-bottom)); border-top: 1rpx solid #f5f5f5; background: #fff;
-  input { flex: 1; height: 72rpx; background: #f5f5f5; border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; }
-  .send-btn { margin-left: 20rpx; font-size: 28rpx; color: #767676; min-height: 48rpx; &.active { color: #c2185b; } }
+.load-more { text-align: center; color: var(--text-hint); font-size: 24rpx; padding: 24rpx 0; }
+.input-bar { display: flex; align-items: center; padding: 16rpx 24rpx; padding-bottom: calc(16rpx + env(safe-area-inset-bottom)); border-top: 1rpx solid var(--border-faint); background: var(--bg-card);
+  input { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; }
+  .send-btn { margin-left: 20rpx; font-size: 28rpx; color: var(--text-hint); min-height: 48rpx; &.active { color: var(--color-primary-text); } }
 }
-.ph { color: #767676; }
-</style>
+.ph { color: var(--text-hint); }

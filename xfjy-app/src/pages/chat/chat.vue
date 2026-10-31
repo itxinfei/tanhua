@@ -128,10 +128,10 @@ const EMOJI_LIST: string[] = [
 /** 更多面板快捷操作配置（表驱动） */
 interface QuickAction { uniIcon: string; label: string; bg: string; handler: () => void; }
 const QUICK_ACTIONS: QuickAction[] = [
-  { uniIcon: "image", label: "图片", bg: "#ff5e9c", handler: chooseImage },
+  { uniIcon: "image", label: "图片", bg: "var(--color-primary)", handler: chooseImage },
   { uniIcon: "camera", label: "拍照", bg: "#4a90d9", handler: () => showTodoToast("拍照") },
   { uniIcon: "location", label: "位置", bg: "#4cd964", handler: chooseLocation },
-  { uniIcon: "person", label: "名片", bg: "#8a5cf6", handler: chooseCardContact },
+  { uniIcon: "person", label: "名片", bg: "var(--color-primary-violet)", handler: chooseCardContact },
 ];
 
 /** 消息发送状态 */
@@ -538,15 +538,15 @@ onUnmounted(() => {
 });
 </script>
 
-<style lang="scss" scoped>
-.chat-room { height: 100vh; display: flex; flex-direction: column; background: #f5f5f5; }
+
+.chat-room { height: 100vh; display: flex; flex-direction: column; background: var(--bg-sub); }
 
 /* ===== 消息列表 ===== */
 .msg-list { flex: 1; padding: 24rpx 24rpx 12rpx; }
 
 /* #bbb on 浅灰底 ≈1.9:1 → #767676 */
 .time-divider { display: flex; justify-content: center; margin: 16rpx 0 24rpx;
-  .time-text { font-size: 22rpx; color: #767676; background: rgba(0, 0, 0, 0.05); padding: 6rpx 24rpx; border-radius: 24rpx; }
+  .time-text { font-size: 22rpx; color: var(--text-hint); background: rgba(0, 0, 0, 0.05); padding: 6rpx 24rpx; border-radius: 24rpx; }
 }
 
 .msg-item { display: flex; align-items: flex-start; margin-bottom: 28rpx; gap: 16rpx;
@@ -555,18 +555,18 @@ onUnmounted(() => {
   .bubble-wrap { display: flex; align-items: center; gap: 12rpx; max-width: 480rpx;
     &.mine { flex-direction: row-reverse; }
   }
-  .status-loading { width: 28rpx; height: 28rpx; border: 3rpx solid #e0e0e0; border-top-color: #ff5e9c; border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+  .status-loading { width: 28rpx; height: 28rpx; border: 3rpx solid var(--border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
   .status-failed { width: 32rpx; height: 32rpx; border-radius: 50%; background: #ff4d4f; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     .failed-icon { font-size: 22rpx; color: #fff; font-weight: bold; line-height: 1; }
   }
-  .bubble { position: relative; padding: 20rpx 24rpx; border-radius: 20rpx; background: #fff; font-size: 28rpx; line-height: 1.5; color: #333; box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  .bubble { position: relative; padding: 20rpx 24rpx; border-radius: 20rpx; background: var(--bg-card); font-size: 28rpx; line-height: 1.5; color: var(--text-primary); box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
     /* 气泡尾巴 */
     &::before { content: ""; position: absolute; top: 28rpx; width: 0; height: 0; border-top: 10rpx solid transparent; border-bottom: 10rpx solid transparent; }
     &:not(.mine) { border-top-left-radius: 6rpx;
       &::before { left: -16rpx; border-right: 16rpx solid #fff; }
     }
-    &.mine { background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary)); color: #fff; border-top-right-radius: 6rpx;
-      &::before { right: -16rpx; border-left: 16rpx solid #ff5e9c; }
+    &.mine { background: var(--gradient-brand); color: #fff; border-top-right-radius: 6rpx;
+      &::before { right: -16rpx; border-left: 16rpx solid var(--color-primary); }
     }
     .msg-image { max-width: 360rpx; border-radius: 12rpx; display: block; }
 
@@ -588,7 +588,7 @@ onUnmounted(() => {
 
     /* 名片气泡 */
     .msg-card { display: flex; align-items: center; gap: 16rpx;
-      .card-avatar { width: 72rpx; height: 72rpx; border-radius: 50%; background: #f0f0f0; }
+      .card-avatar { width: 72rpx; height: 72rpx; border-radius: 50%; background: var(--bg-sub); }
       .card-info { display: flex; flex-direction: column; gap: 4rpx;
         .card-name { font-size: 28rpx; }
         .card-hint { font-size: 22rpx; opacity: 0.7; }
@@ -604,20 +604,20 @@ onUnmounted(() => {
 }
 
 /* ===== 输入区 ===== */
-.input-area { background: #fff; border-top: 1rpx solid #eee; }
+.input-area { background: var(--bg-card); border-top: 1rpx solid var(--border-light); }
 .input-bar { display: flex; align-items: center; gap: 12rpx; padding: 14rpx 16rpx; }
 .icon-btn { width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center; font-size: 40rpx; border-radius: 50%; flex-shrink: 0;
   .icon-active { filter: drop-shadow(0 0 6rpx rgba(255, 94, 142, 0.6)); }
 }
-.text-input { flex: 1; height: 72rpx; background: #f5f5f5; border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; transition: all 0.2s;
-  &.focus { background: #fff; box-shadow: 0 0 0 3rpx rgba(255, 94, 142, 0.35); }
+.text-input { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; transition: all 0.2s;
+  &.focus { background: var(--bg-card); box-shadow: 0 0 0 3rpx rgba(255, 94, 142, 0.35); }
 }
-.voice-btn { flex: 1; height: 72rpx; background: #f5f5f5; border-radius: 36rpx; display: flex; align-items: center; justify-content: center; font-size: 28rpx; color: #666; transition: all 0.15s;
+.voice-btn { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; display: flex; align-items: center; justify-content: center; font-size: 28rpx; color: var(--text-secondary); transition: all 0.15s;
   &:active { background: #e8e8e8; transform: scale(0.98); }
 }
 
 /* ===== 底部面板 ===== */
-.panel { height: 380rpx; background: #f7f7f7; border-top: 1rpx solid #eee; animation: slideUp 0.2s ease-out; overflow: hidden; }
+.panel { height: 380rpx; background: #f7f7f7; border-top: 1rpx solid var(--border-light); animation: slideUp 0.2s ease-out; overflow: hidden; }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
 .emoji-panel .emoji-scroll { height: 100%; }
@@ -627,5 +627,4 @@ onUnmounted(() => {
 .more-grid { display: flex; flex-wrap: wrap; padding: 36rpx 16rpx; }
 .more-item { width: 25%; display: flex; flex-direction: column; align-items: center; gap: 14rpx; }
 .more-icon { width: 104rpx; height: 104rpx; border-radius: 24rpx; display: flex; align-items: center; justify-content: center; font-size: 44rpx; box-shadow: 0 6rpx 16rpx rgba(0, 0, 0, 0.08); }
-.more-label { font-size: 24rpx; color: #666; }
-</style>
+.more-label { font-size: 24rpx; color: var(--text-secondary); }

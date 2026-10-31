@@ -651,7 +651,7 @@ onShareAppMessage(() => ({
 }));
 </script>
 
-<style lang="scss" scoped>
+
 .video-page {
   height: calc(100vh - var(--window-bottom, 0px));
   background: #000;
@@ -698,7 +698,7 @@ onShareAppMessage(() => ({
         width: 44rpx;
         height: 6rpx;
         border-radius: 3rpx;
-        background: #fff;
+        background: var(--bg-card);
       }
     }
   }
@@ -767,7 +767,7 @@ onShareAppMessage(() => ({
 .float-heart {
   position: absolute;
   font-size: 96rpx;
-  color: #ff5e9c;
+  color: var(--color-primary);
   z-index: 20;
   pointer-events: none;
   transform: translate(-50%, -50%);
@@ -850,7 +850,7 @@ onShareAppMessage(() => ({
       height: 32rpx;
       line-height: 28rpx;
       text-align: center;
-      background: #ff5e9c;
+      background: var(--color-primary);
       color: #fff;
       border-radius: 50%;
       font-size: 24rpx;
@@ -971,7 +971,7 @@ onShareAppMessage(() => ({
 
   .progress-inner {
     height: 100%;
-    background: #fff;
+    background: var(--bg-card);
     transition: width 0.2s linear;
   }
 }
@@ -1048,7 +1048,7 @@ onShareAppMessage(() => ({
 
   .share-panel-inner {
     width: 100%;
-    background: #fff;
+    background: var(--bg-card);
     border-radius: 32rpx 32rpx 0 0;
     padding: 32rpx 32rpx calc(32rpx + env(safe-area-inset-bottom));
     animation: slideUp 0.25s ease;
@@ -1057,7 +1057,7 @@ onShareAppMessage(() => ({
       text-align: center;
       font-size: 30rpx;
       font-weight: 600;
-      color: #333;
+      color: var(--text-primary);
       margin-bottom: 32rpx;
     }
 
@@ -1086,12 +1086,12 @@ onShareAppMessage(() => ({
 
           &.ico-wechat { background: #07c160; }
           &.ico-moments { background: #ff8200; }
-          &.ico-copy { background: #ff5e9c; }
+          &.ico-copy { background: var(--color-primary); }
         }
 
         .share-label {
           font-size: 24rpx;
-          color: #666;
+          color: var(--text-secondary);
         }
       }
     }
@@ -1100,10 +1100,10 @@ onShareAppMessage(() => ({
     .share-cancel {
       text-align: center;
       font-size: 30rpx;
-      color: #767676;
+      color: var(--text-hint);
       padding: 24rpx 0;
       min-height: 48rpx;
-      border-top: 1rpx solid #f5f5f5;
+      border-top: 1rpx solid var(--border-faint);
       margin-top: 8rpx;
     }
   }
@@ -1113,4 +1113,4 @@ onShareAppMessage(() => ({
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
 }
-</style>
+

@@ -190,10 +190,10 @@ function handleSkip(): void {
 }
 </script>
 
-<style lang="scss" scoped>
+
 .guide-page {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--bg-sub);
   padding: 32rpx;
 }
 
@@ -206,7 +206,7 @@ function handleSkip(): void {
 
   .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--color-primary-deep), var(--color-primary));
+    background: var(--gradient-brand-h);
     border-radius: 4rpx;
     transition: width 0.3s ease;
   }
@@ -216,13 +216,13 @@ function handleSkip(): void {
     right: 0;
     top: 16rpx;
     font-size: 24rpx;
-    color: #ff5e9c;
+    color: var(--color-primary);
     white-space: nowrap;
   }
 }
 
 .section {
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 24rpx;
   padding: 28rpx 32rpx;
   margin-bottom: 24rpx;
@@ -231,23 +231,23 @@ function handleSkip(): void {
   .section-title {
     font-size: 28rpx;
     /* #999 → #767676 */
-    color: #767676;
+    color: var(--text-hint);
     display: block;
     margin-bottom: 16rpx;
   }
 
   .input {
     font-size: 32rpx;
-    color: #333;
+    color: var(--text-primary);
   }
 
   .picker-value {
     font-size: 32rpx;
-    color: #333;
+    color: var(--text-primary);
     padding: 8rpx 0;
 
     .placeholder {
-      color: #767676;
+      color: var(--text-hint);
     }
   }
 }
@@ -261,12 +261,12 @@ function handleSkip(): void {
     width: 120rpx;
     height: 120rpx;
     border-radius: 50%;
-    background: #f0f0f0;
+    background: var(--bg-sub);
   }
 
   .avatar-hint {
     font-size: 26rpx;
-    color: #ff5e9c;
+    color: var(--color-primary);
   }
 }
 
@@ -281,16 +281,16 @@ function handleSkip(): void {
     align-items: center;
     justify-content: center;
     border-radius: 16rpx;
-    background: #f5f5f5;
+    background: var(--bg-sub);
     font-size: 30rpx;
-    color: #666;
+    color: var(--text-secondary);
     border: 2rpx solid transparent;
     transition: all 0.2s;
 
     &.active {
-      background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary));
+      background: var(--gradient-brand);
       color: #fff;
-      border-color: #ff5e9c;
+      border-color: var(--color-primary);
       box-shadow: 0 4rpx 14rpx rgba(255, 94, 142, 0.3);
     }
   }
@@ -298,7 +298,7 @@ function handleSkip(): void {
 
 .submit-btn {
   margin-top: 48rpx;
-  background: linear-gradient(90deg, var(--color-primary-deep), var(--color-primary));
+  background: var(--gradient-brand-h);
   color: #fff;
   font-size: 32rpx;
   font-weight: bold;
@@ -319,8 +319,7 @@ function handleSkip(): void {
   text-align: center;
   margin-top: 24rpx;
   font-size: 28rpx;
-  color: #767676;
+  color: var(--text-hint);
   min-height: 48rpx;
   padding: 12rpx 0;
 }
-</style>

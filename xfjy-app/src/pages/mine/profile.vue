@@ -221,62 +221,61 @@ onShow(async () => {
 });
 </script>
 
-<style lang="scss" scoped>
-.profile-page { min-height: 100vh; background: #f5f5f5; padding-bottom: 180rpx; }
+
+.profile-page { min-height: 100vh; background: var(--bg-sub); padding-bottom: 180rpx; }
 
 /* ===== 头像行 ===== */
-.avatar-row { display: flex; align-items: center; padding: 32rpx; background: #fff;
-  .label { flex: 1; font-size: 28rpx; color: #333; font-weight: 500; }
+.avatar-row { display: flex; align-items: center; padding: 32rpx; background: var(--bg-card);
+  .label { flex: 1; font-size: 28rpx; color: var(--text-primary); font-weight: 500; }
   .avatar-wrap { position: relative; width: 120rpx; height: 120rpx;
-    .avatar { width: 100%; height: 100%; border-radius: 50%; border: 4rpx solid #ffeff5; }
+    .avatar { width: 100%; height: 100%; border-radius: 50%; border: 4rpx solid var(--bg-icon-soft); }
     .avatar-mask { position: absolute; bottom: 0; left: 0; right: 0; height: 40rpx; background: rgba(0, 0, 0, 0.45); border-radius: 0 0 60rpx 60rpx; display: flex; align-items: center; justify-content: center;
       text { font-size: 18rpx; color: #fff; }
     }
   }
-  .arrow { font-size: 36rpx; color: #767676; margin-left: 16rpx; }
+  .arrow { font-size: 36rpx; color: var(--text-hint); margin-left: 16rpx; }
 }
 
 /* ===== 分组 ===== */
-.section { background: #fff; margin-top: 16rpx; padding: 28rpx 32rpx;
-  .section-title { font-size: 26rpx; color: #767676; display: block; margin-bottom: 20rpx; }
+.section { background: var(--bg-card); margin-top: 16rpx; padding: 28rpx 32rpx;
+  .section-title { font-size: 26rpx; color: var(--text-hint); display: block; margin-bottom: 20rpx; }
 }
 
 /* ===== 照片墙 ===== */
 .album-grid { display: flex; flex-wrap: wrap; gap: 16rpx;
   .album-item { position: relative; width: 180rpx; height: 180rpx; border-radius: 16rpx; overflow: visible;
-    .album-img { width: 100%; height: 100%; border-radius: 16rpx; border: 2rpx solid #f0f0f0; }
+    .album-img { width: 100%; height: 100%; border-radius: 16rpx; border: 2rpx solid var(--border-light); }
     /* 触摸目标 ≥24px（WCAG 2.5.8）：40rpx≈20px 不达标，统一放大到 48rpx≈24px */
     .remove { position: absolute; top: -12rpx; right: -12rpx; width: 48rpx; height: 48rpx; background: rgba(0, 0, 0, 0.55); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24rpx; }
   }
-  .add-photo { width: 180rpx; height: 180rpx; background: #fafafa; border-radius: 16rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8rpx; border: 2rpx dashed #ddd;
-    .plus { font-size: 56rpx; color: #767676; line-height: 1; }
-    .add-label { font-size: 22rpx; color: #767676; }
+  .add-photo { width: 180rpx; height: 180rpx; background: var(--bg-sub); border-radius: 16rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8rpx; border: 2rpx dashed var(--border);
+    .plus { font-size: 56rpx; color: var(--text-hint); line-height: 1; }
+    .add-label { font-size: 22rpx; color: var(--text-hint); }
   }
 }
 
 /* ===== 表单项 ===== */
-.form-item { display: flex; align-items: center; padding: 24rpx 0; border-bottom: 1rpx solid #f5f5f5;
+.form-item { display: flex; align-items: center; padding: 24rpx 0; border-bottom: 1rpx solid var(--border-faint);
   &:last-child { border-bottom: none; }
-  .label { width: 140rpx; font-size: 28rpx; color: #666; }
+  .label { width: 140rpx; font-size: 28rpx; color: var(--text-secondary); }
   /* 未设置文案与箭头：原 #ccc(≈1.6:1) 远低于 4.5:1，提深至达标色 */
-  .value { flex: 1; font-size: 28rpx; color: #333; text-align: right;
-    &.unset { color: #767676; }
+  .value { flex: 1; font-size: 28rpx; color: var(--text-primary); text-align: right;
+    &.unset { color: var(--text-hint); }
   }
-  .arrow { font-size: 32rpx; color: #767676; margin-left: 8rpx; }
+  .arrow { font-size: 32rpx; color: var(--text-hint); margin-left: 8rpx; }
 }
 
 /* 性别色块选择器 */
 .gender-picker { flex: 1; display: flex; gap: 20rpx; justify-content: flex-end; }
-.gender-opt { display: flex; align-items: center; gap: 8rpx; padding: 12rpx 28rpx; border-radius: 32rpx; font-size: 26rpx; border: 2rpx solid #eee; transition: all 0.2s;
-  .gender-label { color: #666; }
+.gender-opt { display: flex; align-items: center; gap: 8rpx; padding: 12rpx 28rpx; border-radius: 32rpx; font-size: 26rpx; border: 2rpx solid var(--border-light); transition: all 0.2s;
+  .gender-label { color: var(--text-secondary); }
   &.male.active { background: linear-gradient(135deg, #4a90d9, #6bb0f5); border-color: #4a90d9; box-shadow: 0 4rpx 14rpx rgba(74, 144, 217, 0.3);
     .gender-label { color: #fff; }
   }
-  &.female.active { background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary)); border-color: #ff5e9c; box-shadow: 0 4rpx 14rpx rgba(255, 94, 142, 0.3);
+  &.female.active { background: var(--gradient-brand); border-color: var(--color-primary); box-shadow: 0 4rpx 14rpx rgba(255, 94, 142, 0.3);
     .gender-label { color: #fff; }
   }
 }
 
 /* ===== 保存按钮 ===== */
 .save-btn { position: fixed; left: 32rpx; right: 32rpx; bottom: calc(40rpx + env(safe-area-inset-bottom, 0px)); height: 88rpx; line-height: 88rpx; color: #fff; font-size: 32rpx; font-weight: bold; border-radius: 44rpx; border: none; }
-</style>

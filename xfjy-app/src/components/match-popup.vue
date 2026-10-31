@@ -10,7 +10,7 @@
       <text class="match-title gradient-text">It's a Match!</text>
       <view class="match-avatars">
         <image lazy-load class="match-avatar" :src="matchStore.matchPopup.avatar" mode="aspectFill" :aria-label="`${matchStore.matchPopup.nickname} 的头像`" />
-        <uni-icons class="match-heart heart-beat" type="heart-filled" size="28" color="#ff5e9c" aria-hidden="true"></uni-icons>
+        <uni-icons class="match-heart heart-beat" type="heart-filled" size="28" color="var(--color-primary)" aria-hidden="true"></uni-icons>
         <image lazy-load class="match-avatar" src="/static/logo/logo-icon-transparent.png" mode="aspectFill" aria-label="我的头像" />
       </view>
       <text class="match-name">你和 {{ matchStore.matchPopup.nickname }} 互相喜欢了</text>
@@ -37,7 +37,7 @@ function goChat(): void {
 }
 </script>
 
-<style lang="scss" scoped>
+
 .match-popup {
   position: fixed;
   inset: 0;
@@ -55,7 +55,7 @@ function goChat(): void {
     .match-title {
       font-size: 64rpx;
       font-weight: 900;
-      background: linear-gradient(90deg, var(--color-primary-deep), var(--color-primary));
+      background: var(--gradient-brand-h);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -72,12 +72,12 @@ function goChat(): void {
         width: 160rpx;
         height: 160rpx;
         border-radius: 50%;
-        border: 6rpx solid #ff5e9c;
+        border: 6rpx solid var(--color-primary);
       }
 
       .match-heart {
         font-size: 56rpx;
-        color: #ff5e9c;
+        color: var(--color-primary);
       }
     }
 
@@ -92,7 +92,7 @@ function goChat(): void {
       gap: 32rpx;
 
       .send-msg {
-        background: linear-gradient(90deg, var(--color-primary-deep), var(--color-primary));
+        background: var(--gradient-brand-h);
         color: #fff;
         font-size: 30rpx;
         padding: 0 48rpx;
@@ -115,4 +115,4 @@ function goChat(): void {
     }
   }
 }
-</style>
+

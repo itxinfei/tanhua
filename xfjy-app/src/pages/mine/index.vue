@@ -124,7 +124,7 @@ const socialMenuItems: MenuItemConfig[] = [
   {
     uniIcon: "eye",
     label: "谁看过我",
-    color: "#8a5cf6",
+    color: "var(--color-primary-violet)",
     action: () => goFriends(FRIEND_TYPE.VISITOR),
   },
   {
@@ -207,10 +207,10 @@ onShow(() => {
 });
 </script>
 
-<style lang="scss" scoped>
+
 .mine-page {
   min-height: calc(100vh - var(--window-bottom, 0px));
-  background: #f5f5f5;
+  background: var(--bg-sub);
   padding-bottom: calc(var(--window-bottom, 0px) + 40rpx);
 }
 
@@ -390,7 +390,7 @@ onShow(() => {
 
 .menu-group {
   margin: 0 32rpx 24rpx;
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 24rpx;
   overflow: hidden;
 
@@ -398,7 +398,7 @@ onShow(() => {
     display: flex;
     align-items: center;
     padding: 28rpx 32rpx;
-    border-bottom: 1rpx solid #f5f5f5;
+    border-bottom: 1rpx solid var(--border-faint);
 
     &:last-child {
       border-bottom: none;
@@ -423,15 +423,14 @@ onShow(() => {
     .menu-label {
       flex: 1;
       font-size: 28rpx;
-      color: #333;
+      color: var(--text-primary);
       margin-left: 16rpx;
     }
 
     /* #ccc on #fff ≈1.6:1，提至 #767676（≈4.54:1） */
     .menu-arrow {
       font-size: 32rpx;
-      color: #767676;
+      color: var(--text-hint);
     }
   }
 }
-</style>

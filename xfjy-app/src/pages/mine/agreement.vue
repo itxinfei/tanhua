@@ -80,10 +80,10 @@ onLoad((query: any) => {
 })
 </script>
 
-<style lang="scss" scoped>
+
 .agreement-page {
   min-height: 100vh;
-  background: #fff;
+  background: var(--bg-card);
   display: flex;
   flex-direction: column;
 }
@@ -110,4 +110,4 @@ onLoad((query: any) => {
   margin-bottom: 20rpx;
   text-align: justify;
 }
-</style>
+

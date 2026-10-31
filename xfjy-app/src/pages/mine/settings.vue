@@ -24,7 +24,7 @@
       <text class="group-title">通知设置</text>
       <view class="item" v-for="s in notificationSettings" :key="s.key">
         <text class="label">{{ s.label }}</text>
-        <switch :checked="s.value" :aria-label="s.label" color="#ff5e9c" @change="toggleNotification(s.key, $event)" />
+        <switch :checked="s.value" :aria-label="s.label" color="var(--color-primary)" @change="toggleNotification(s.key, $event)" />
       </view>
     </view>
 
@@ -33,7 +33,7 @@
       <text class="group-title">隐私</text>
       <view class="item">
         <text class="label">显示距离</text>
-        <switch :checked="showDistance" aria-label="显示距离" color="#ff5e9c" @change="onDistanceChange" />
+        <switch :checked="showDistance" aria-label="显示距离" color="var(--color-primary)" @change="onDistanceChange" />
       </view>
     </view>
 
@@ -61,19 +61,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import { useUserStore } from "@/store/user";
-import { useMatchStore } from "@/store/match";
-import { useChatStore } from "@/store/chat";
-import { getToken, setToken } from "@/utils/request";
 import A11yButton from "@/components/a11y-button.vue";
 import { getUserSettings, deleteAccount, getVerifyStatus, updateNotificationSetting } from "@/api/mine";
 import { sendSmsCode } from "@/api/auth";
 
 const userStore = useUserStore();
-const matchStore = useMatchStore();
-const chatStore = useChatStore();
 const phoneMasked = ref('');
 const isVerified = ref(false);
 const showDistance = ref(true);
@@ -193,10 +188,22 @@ function clearCache() {
     content: `将清除 ${cacheSize.value} 缓存数据`,
     success: (res) => {
       if (res.confirm) {
-        // 保留登录 token，避免清缓存后被登出
-        const savedToken = getToken();
+        // 保留登录 token 与用户偏好（城市/距离开关/通知已读标记），其余缓存清除
+        const keep: Record<string, unknown> = {};
+        for (const key of ["xfjy_token", "xfjy_city", "xfjy_show_distance"]) {
+          const v = uni.getStorageSync(key);
+          if (v !== "" && v !== null && v !== undefined) keep[key] = v;
+        }
+        // 通知已读标记前缀 xfjy_notice_seen_*
+        try {
+          for (const k of uni.getStorageInfoSync().keys) {
+            if (k.startsWith("xfjy_notice_seen_")) keep[k] = uni.getStorageSync(k);
+          }
+        } catch {
+          // 枚举失败则不保留该项
+        }
         uni.clearStorageSync();
-        if (savedToken) setToken(savedToken);
+        for (const [k, v] of Object.entries(keep)) uni.setStorageSync(k, v);
         cacheSize.value = '0MB';
         uni.showToast({ title: '清除成功', icon: 'success' });
       }
@@ -214,10 +221,8 @@ function handleLogout() {
     content: '确定要退出登录吗？',
     success: (res) => {
       if (res.confirm) {
-        // 清理业务 store，避免换账号登录后残留上一账号的滑动计数/通知已读标记
-        matchStore.clear();
-        chatStore.clear();
-        userStore.logout();
+        // 全量清理：业务 store + 环信 SDK + token，避免换账号登录后残留上一账号状态
+        userStore.signOutAll();
       }
     },
   });
@@ -278,7 +283,7 @@ function inputDeleteCode() {
         await deleteAccount(code);
         uni.hideLoading();
         uni.showToast({ title: '账号已注销', icon: 'success' });
-        userStore.logout();
+        userStore.signOutAll();
       } catch (e) {
         uni.hideLoading();
         uni.showToast({ title: '验证码错误，注销失败', icon: 'none' });
@@ -288,26 +293,26 @@ function inputDeleteCode() {
 }
 </script>
 
-<style lang="scss" scoped>
-.settings-page { min-height: 100vh; background: #f5f5f5; padding: 20rpx 24rpx 80rpx; }
 
-.group { background: #fff; margin: 0 0 24rpx; padding: 8rpx 32rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+.settings-page { min-height: 100vh; background: var(--bg-sub); padding: 20rpx 24rpx 80rpx; }
+
+.group { background: var(--bg-card); margin: 0 0 24rpx; padding: 8rpx 32rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   /* 分组标题原 #999（≈2.85:1）→ #767676 */
-  .group-title { font-size: 24rpx; color: #767676; padding: 16rpx 0 8rpx; display: block; }
-  .item { display: flex; align-items: center; padding: 26rpx 0; border-bottom: 1rpx solid #f5f5f5;
+  .group-title { font-size: 24rpx; color: var(--text-hint); padding: 16rpx 0 8rpx; display: block; }
+  .item { display: flex; align-items: center; padding: 26rpx 0; border-bottom: 1rpx solid var(--border-faint);
     &:last-child { border-bottom: none; }
-    .label { flex: 1; font-size: 28rpx; color: #333; }
+    .label { flex: 1; font-size: 28rpx; color: var(--text-primary); }
     /* 副文本 #999 → #767676 */
-    .value { font-size: 26rpx; color: #767676; margin-right: 8rpx; }
-    .value.verified { color: #c2185b; font-weight: 500; }
+    .value { font-size: 26rpx; color: var(--text-hint); margin-right: 8rpx; }
+    .value.verified { color: var(--color-primary-text); font-weight: 500; }
     /* 箭头 #ccc → #767676 */
-    .arrow { font-size: 32rpx; color: #767676; }
+    .arrow { font-size: 32rpx; color: var(--text-hint); }
   }
 }
 
 .logout-btn {
   margin: 16rpx 0 0; height: 88rpx; line-height: 88rpx;
-  background: #fff; color: #ff3b30; font-size: 30rpx; font-weight: 500;
+  background: var(--bg-card); color: #ff3b30; font-size: 30rpx; font-weight: 500;
   border-radius: 44rpx; border: none;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 }
@@ -316,4 +321,3 @@ function inputDeleteCode() {
 .delete-account { text-align: center; padding: 32rpx; min-height: 48rpx;
   text { font-size: 26rpx; color: #c62828; }
 }
-</style>

@@ -86,8 +86,8 @@
         <view class="m-body">
           <text class="m-text ellipsis-2">{{ m.textContent }}</text>
           <view class="m-stats">
-            <text><uni-icons type="heart-filled" size="14" color="#c2185b"></uni-icons> {{ m.likeCount }}</text>
-            <text><uni-icons type="chatbubble" size="14" color="#767676"></uni-icons> {{ m.commentCount }}</text>
+            <text><uni-icons type="heart-filled" size="14" color="var(--color-primary-text)"></uni-icons> {{ m.likeCount }}</text>
+            <text><uni-icons type="chatbubble" size="14" color="var(--text-hint)"></uni-icons> {{ m.commentCount }}</text>
           </view>
         </view>
       </a11y-button>
@@ -95,10 +95,10 @@
 
     <!-- 底部操作栏：4 按钮，全部补齐语义与键盘操作 -->
     <view class="action-bar safe-area-bottom">
-      <a11y-button class="action small dislike btn-feedback" label="不喜欢" @tap="handleDislike"><uni-icons type="close" size="22" color="#ff5e9c"></uni-icons></a11y-button>
-      <a11y-button class="action small chat btn-feedback" label="打招呼" @tap="handleChat"><uni-icons type="chatbubble" size="22" color="#ff5e9c"></uni-icons></a11y-button>
+      <a11y-button class="action small dislike btn-feedback" label="不喜欢" @tap="handleDislike"><uni-icons type="close" size="22" color="var(--color-primary)"></uni-icons></a11y-button>
+      <a11y-button class="action small chat btn-feedback" label="打招呼" @tap="handleChat"><uni-icons type="chatbubble" size="22" color="var(--color-primary)"></uni-icons></a11y-button>
       <a11y-button class="action super-like btn-feedback" label="超级喜欢" @tap="handleSuperLike"><uni-icons type="star-filled" size="22" color="#4dabf7"></uni-icons></a11y-button>
-      <a11y-button class="action like btn-feedback" label="喜欢" @tap="handleLike"><uni-icons type="heart-filled" size="22" color="#ff5e9c"></uni-icons></a11y-button>
+      <a11y-button class="action like btn-feedback" label="喜欢" @tap="handleLike"><uni-icons type="heart-filled" size="22" color="var(--color-primary)"></uni-icons></a11y-button>
     </view>
 
     <!-- 匹配成功弹窗（与匹配页行为一致） -->
@@ -344,8 +344,8 @@ onLoad(async (options: any) => {
 });
 </script>
 
-<style lang="scss" scoped>
-.detail-page { min-height: 100vh; background: #f5f5f5; padding-bottom: 160rpx; }
+
+.detail-page { min-height: 100vh; background: var(--bg-sub); padding-bottom: 160rpx; }
 
 /* ===== 照片轮播 ===== */
 .photo-swiper { height: 750rpx;
@@ -359,38 +359,38 @@ onLoad(async (options: any) => {
 .photo-count { position: absolute; right: 24rpx; top: 780rpx; padding: 6rpx 20rpx; border-radius: 20rpx; font-size: 22rpx; color: #fff; z-index: 10; }
 
 /* ===== 资料卡 ===== */
-.info-card { margin: -40rpx 24rpx 0; background: #fff; border-radius: 32rpx; padding: 36rpx 32rpx; position: relative; }
+.info-card { margin: -40rpx 24rpx 0; background: var(--bg-card); border-radius: 32rpx; padding: 36rpx 32rpx; position: relative; }
 
 .name-row { display: flex; align-items: center; gap: 16rpx;
   .nickname { font-size: 42rpx; font-weight: bold; color: #222; }
-  .age-badge { background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary)); color: #fff; font-size: 24rpx; padding: 4rpx 16rpx; border-radius: 16rpx; }
+  .age-badge { background: var(--gradient-brand); color: #fff; font-size: 24rpx; padding: 4rpx 16rpx; border-radius: 16rpx; }
 }
 
 /* 缘分值进度条 */
 .fate-row { display: flex; align-items: center; gap: 16rpx; margin-top: 24rpx;
-  .fate-label { font-size: 24rpx; color: #767676; flex-shrink: 0; }
-  .fate-bar { flex: 1; height: 16rpx; background: #f0f0f0; border-radius: 8rpx; overflow: hidden; }
-  .fate-fill { height: 100%; background: linear-gradient(90deg, var(--color-primary-deep), var(--color-primary)); border-radius: 8rpx; transition: width 0.6s ease-out; }
-  .fate-score { font-size: 30rpx; font-weight: bold; color: #ff5e9c; flex-shrink: 0; min-width: 48rpx; text-align: right; }
+  .fate-label { font-size: 24rpx; color: var(--text-hint); flex-shrink: 0; }
+  .fate-bar { flex: 1; height: 16rpx; background: var(--bg-sub); border-radius: 8rpx; overflow: hidden; }
+  .fate-fill { height: 100%; background: var(--gradient-brand-h); border-radius: 8rpx; transition: width 0.6s ease-out; }
+  .fate-score { font-size: 30rpx; font-weight: bold; color: var(--color-primary); flex-shrink: 0; min-width: 48rpx; text-align: right; }
 }
 
 .meta-grid { display: flex; flex-wrap: wrap; gap: 20rpx; margin-top: 28rpx;
-  .meta-item { flex: 1; min-width: calc(33.33% - 14rpx); background: #fafafa; border-radius: 16rpx; padding: 16rpx 20rpx;
-    .label { font-size: 22rpx; color: #767676; display: block; }
-    .value { font-size: 28rpx; color: #333; margin-top: 6rpx; display: block; font-weight: 500; }
+  .meta-item { flex: 1; min-width: calc(33.33% - 14rpx); background: var(--bg-sub); border-radius: 16rpx; padding: 16rpx 20rpx;
+    .label { font-size: 22rpx; color: var(--text-hint); display: block; }
+    .value { font-size: 28rpx; color: var(--text-primary); margin-top: 6rpx; display: block; font-weight: 500; }
   }
 }
 
 /* 个人标签 */
 .tags-section { margin-top: 28rpx;
   .tags-wrap { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 16rpx; }
-  .tag { background: #ffeff5; color: #ff5e9c; font-size: 24rpx; padding: 8rpx 20rpx; border-radius: 20rpx; border: 1rpx solid #ffd6e4; }
+  .tag { background: var(--bg-icon-soft); color: var(--color-primary); font-size: 24rpx; padding: 8rpx 20rpx; border-radius: 20rpx; border: 1rpx solid var(--color-primary-mist); }
 }
 
 .question-section { margin-top: 32rpx;
-  .question-item { display: flex; align-items: flex-start; gap: 16rpx; padding: 18rpx 0; border-bottom: 1rpx solid #f5f5f5;
+  .question-item { display: flex; align-items: flex-start; gap: 16rpx; padding: 18rpx 0; border-bottom: 1rpx solid var(--border-faint);
     &:last-child { border-bottom: none; }
-    .q-index { width: 36rpx; height: 36rpx; border-radius: 50%; background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary)); color: #fff; font-size: 22rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2rpx; }
+    .q-index { width: 36rpx; height: 36rpx; border-radius: 50%; background: var(--gradient-brand); color: #fff; font-size: 22rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2rpx; }
     .question { font-size: 26rpx; color: #555; line-height: 1.5; }
   }
 }
@@ -398,29 +398,28 @@ onLoad(async (options: any) => {
 .section-title { font-size: 30rpx; font-weight: bold; display: block; margin-bottom: 12rpx; color: #222; }
 
 /* ===== TA的动态 ===== */
-.movements-card { margin: 24rpx 24rpx 0; background: #fff; border-radius: 32rpx; padding: 32rpx; }
+.movements-card { margin: 24rpx 24rpx 0; background: var(--bg-card); border-radius: 32rpx; padding: 32rpx; }
 
-.movement-item { display: flex; gap: 20rpx; padding: 20rpx 0; border-bottom: 1rpx solid #f5f5f5;
+.movement-item { display: flex; gap: 20rpx; padding: 20rpx 0; border-bottom: 1rpx solid var(--border-faint);
   &:last-child { border-bottom: none; }
-  .m-cover { width: 160rpx; height: 160rpx; border-radius: 16rpx; background: #f0f0f0; flex-shrink: 0; }
+  .m-cover { width: 160rpx; height: 160rpx; border-radius: 16rpx; background: var(--bg-sub); flex-shrink: 0; }
   .m-body { flex: 1; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
-  .m-text { font-size: 26rpx; color: #333; line-height: 1.5; }
+  .m-text { font-size: 26rpx; color: var(--text-primary); line-height: 1.5; }
   .m-stats { display: flex; gap: 24rpx;
-    text { font-size: 22rpx; color: #767676; }
+    text { font-size: 22rpx; color: var(--text-hint); }
   }
 }
 
 /* ===== 底部操作栏 ===== */
-.action-bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; align-items: center; gap: 36rpx; padding: 24rpx 0; background: #fff; box-shadow: 0 -4rpx 24rpx rgba(0, 0, 0, 0.06); }
+.action-bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; align-items: center; gap: 36rpx; padding: 24rpx 0; background: var(--bg-card); box-shadow: 0 -4rpx 24rpx rgba(0, 0, 0, 0.06); }
 
 .action { border-radius: 50%; display: flex; align-items: center; justify-content: center;
   /* 次按钮：不喜欢 / 打招呼 */
   &.small { width: 88rpx; height: 88rpx; font-size: 36rpx;
-    &.dislike { background: #fff; color: #ff3b30; border: 4rpx solid #ff3b30; }
+    &.dislike { background: var(--bg-card); color: #ff3b30; border: 4rpx solid #ff3b30; }
     &.chat { background: linear-gradient(135deg, #4a90d9, #6bb0f5); color: #fff; box-shadow: 0 6rpx 18rpx rgba(74, 144, 217, 0.35); }
   }
   /* 主按钮：超级喜欢 / 喜欢 */
-  &.super-like { width: 100rpx; height: 100rpx; font-size: 46rpx; background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary)); color: #fff; box-shadow: 0 8rpx 22rpx rgba(177, 59, 255, 0.4); }
-  &.like { width: 110rpx; height: 110rpx; font-size: 52rpx; background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary)); color: #fff; box-shadow: 0 8rpx 24rpx rgba(255, 94, 142, 0.4); }
+  &.super-like { width: 100rpx; height: 100rpx; font-size: 46rpx; background: var(--gradient-brand); color: #fff; box-shadow: 0 8rpx 22rpx rgba(177, 59, 255, 0.4); }
+  &.like { width: 110rpx; height: 110rpx; font-size: 52rpx; background: var(--gradient-brand); color: #fff; box-shadow: 0 8rpx 24rpx rgba(255, 94, 142, 0.4); }
 }
-</style>

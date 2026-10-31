@@ -128,10 +128,10 @@ async function handleRemove(userId: string): Promise<void> {
 }
 </script>
 
-<style lang="scss" scoped>
+
 .blacklist-page {
   height: 100vh;
-  background: #f5f5f5;
+  background: var(--bg-sub);
 }
 
 .list-scroll {
@@ -147,7 +147,7 @@ async function handleRemove(userId: string): Promise<void> {
     flex: 1;
     display: flex;
     align-items: center;
-    background: #fff;
+    background: var(--bg-card);
     border-radius: 20rpx;
     padding: 24rpx;
 
@@ -155,7 +155,7 @@ async function handleRemove(userId: string): Promise<void> {
     width: 96rpx;
     height: 96rpx;
     border-radius: 50%;
-    background: #f0f0f0;
+    background: var(--bg-sub);
   }
 
   .user-info {
@@ -164,7 +164,7 @@ async function handleRemove(userId: string): Promise<void> {
 
     .user-nickname {
       font-size: 30rpx;
-      color: #333;
+      color: var(--text-primary);
       font-weight: bold;
       display: block;
     }
@@ -172,7 +172,7 @@ async function handleRemove(userId: string): Promise<void> {
     /* #999 → #767676 */
     .user-meta {
       font-size: 24rpx;
-      color: #767676;
+      color: var(--text-hint);
       margin-top: 8rpx;
       display: block;
     }
@@ -186,8 +186,8 @@ async function handleRemove(userId: string): Promise<void> {
   min-height: 48rpx;
   border-radius: 28rpx;
   /* #ff5e9c on #ffeff5 ≈2.6:1 不达标 → 提深至 #c2185b（≈5.4:1） */
-  color: #c2185b;
-  background: #ffeff5;
+  color: var(--color-primary-text);
+  background: var(--bg-icon-soft);
   font-weight: 500;
   flex-shrink: 0;
 }
@@ -200,7 +200,6 @@ async function handleRemove(userId: string): Promise<void> {
   /* #ccc → #767676 */
   text {
     font-size: 24rpx;
-    color: #767676;
+    color: var(--text-hint);
   }
 }
-</style>
