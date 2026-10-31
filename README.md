@@ -14,12 +14,14 @@
 ![MongoDB](https://img.shields.io/badge/MongoDB-8.0-47A248)
 ![Redis](https://img.shields.io/badge/Redis-7.x-DC382D)
 ![RocketMQ](https://img.shields.io/badge/RocketMQ-5.x-D773A2)
-![Qdrant](https://img.shields.io/badge/Qdrant-向量检索-DC382D)
-![Neo4j](https://img.shields.io/badge/Neo4j-图推荐-008CC1)
-![PyTorch](https://img.shields.io/badge/PyTorch-双塔模型-EE4C2C)
+![WuKongIM](https://img.shields.io/badge/WuKongIM-长连接-ff6b35)
+![LiveKit](https://img.shields.io/badge/LiveKit-音视频-563dff)
 ![Vue](https://img.shields.io/badge/Vue-3.5-42b883)
 ![Element Plus](https://img.shields.io/badge/Element%20Plus-2.14-blue)
 ![uni-app](https://img.shields.io/badge/uni--app-Vue3-purple)
+![Qdrant](https://img.shields.io/badge/Qdrant-向量检索-4285F4)
+![Neo4j](https://img.shields.io/badge/Neo4j-图推荐-008CC1)
+![PyTorch](https://img.shields.io/badge/PyTorch-双塔模型-EE4C2C)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 </div>
@@ -48,8 +50,8 @@
 - **T5 冷启动**：新用户无行为数据时，地理召回（500km）+ 画像相似度（标签 Jaccard + 年龄 + 同城）兜底
 - **混合评分**：ALS 分数 × 地理距离衰减 × 画像相似度 × 互惠匹配分，权重可配置，缺失维度自动降级
 - **T4 互惠精排**：基于双塔 embedding 的 cosine² 双向匹配分，放大"双向高相似"候选
-- **向量召回**：Qdrant 纯 REST 接入，point id = userId 免映射，不可用时自动降级
-- **图推荐**：Neo4j 二度好友（共同喜欢数排序），喜欢关系实时同步
+- **向量召回**：Qdrant point id = userId 免映射，互惠匹配补充加分，不可用时自动降级空召回
+- **图推荐**：Neo4j Bolt 协议二度好友（共同喜欢数排序），喜欢关系实时同步，不可用时自动降级空召回
 - **双塔训练**：Python + PyTorch 权重共享对称双塔，BPR loss，`--mock` 模式无需中间件验证管线
 
 ---
@@ -72,11 +74,13 @@
 | 消息队列 | rocketmq-spring-boot-starter | 2.3.6 |
 | 服务间通信 | HTTP Service Clients（@HttpExchange + RestClient） | — |
 | 对象存储 | MinIO（S3 兼容） | 8.5.17 |
-| 即时通讯 | WuKongIM（开源 Apache-2.0，自托管长连接） | — |
-| 向量检索 | Qdrant（纯 REST 接入） | — |
-| 图数据库 | Neo4j（纯 HTTP Cypher 接入） | 5.x |
+| 即时通讯 | WuKongIM（开源 Apache-2.0，自托管长连接） + LiveKit SFU（WebRTC 1v1 音视频） | — |
+| 向量检索 | Qdrant（纯 REST 接入，64 维 Cosine） | — |
+| 图数据库 | Neo4j 5.x（Bolt 协议，二度好友推荐） | — |
+| 密码编码 | spring-security-crypto（BCrypt） | SB4 托管 |
+| 服务发现 | @LoadBalanced RestClient.Builder（SC LoadBalancer） | — |
 | 运行监控 | Spring Boot Actuator | health/info/metrics |
-| 工具 | Lombok / commons-io / commons-codec | — |
+| 工具 | Lombok / commons-io / commons-codec / spring-security-crypto | — |
 
 ### AI 训练工程
 
@@ -105,71 +109,82 @@ flowchart TB
         A2[用户端 xfjy-app<br/>uni-app 多端]
     end
     subgraph 入口与认证
-        B[网关 Gateway · 8090<br/>路由/限流/跨域]
+        B[网关 Gateway · 8090<br/>路由/限流/跨域 + InternalToken透传]
         C[SSO 认证 · 18080<br/>验证码登录 Sa-Token + Redis]
     end
     subgraph 主业务
-        D[主聚合服务 xfjy-server · 18081<br/>业务 + 管理后台 + 推荐评分]
+        D[主聚合服务 xfjy-server · 18081<br/>业务 + 管理后台 + 推荐评分<br/>QdrantClient + Neo4jClient]
     end
-    subgraph 拆分服务
+    subgraph 拆分服务（8 个，X-Internal-Token 鉴权）
         E1[用户关系 · 18090]
         E2[圈子动态 · 18084]
         E3[小视频 · 18085]
         E4[探花匹配 · 18082]
-        E5[消息/IM · 18086]
-        E6[推荐评分消费者<br/>xfjy-recommend]
+        E5[消息/IM · 18086<br/>WuKongIM + LiveKit]
+        E6[支付/VIP · 18089]
+    end
+    subgraph 辅助服务（消费者 / 检索接口）
+        H1[推荐评分消费者 xfjy-recommend<br/>RocketMQ → MongoDB]
+        H2[ES Geo 检索 xfjy-elasticsearch<br/>附近的人 HTTP 接口]
     end
     subgraph 数据层
-        F1[(MySQL)]
-        F2[(Redis)]
-        F3[(MongoDB)]
-        F4[(Elasticsearch)]
-        F5[(RocketMQ)]
-        F7[(Qdrant 向量库)]
-        F8[(Neo4j 图库)]
+        F1[(MySQL 8.0<br/>事务数据)]
+        F2[(Redis 7.x<br/>缓存/会话/限流)]
+        F3[(MongoDB 8.0<br/>文档数据)]
+        F4[(Elasticsearch 9.x<br/>Geo 检索)]
+        F5[(RocketMQ 5.x<br/>行为消息)]
+        F6[(MinIO<br/>对象存储)]
+        F7[(Qdrant<br/>向量 embedding)]
+        F8[(Neo4j 5.x<br/>好友关系图)]
     end
     A1 --> B
     A2 --> B
     B --> C
     B --> D
-    D -- @HttpExchange --> E1
-    D --> E2
-    D --> E3
-    D --> E4
-    D --> E5
-    D --> F7
-    D --> F8
-    E6 --> F3
-    F5 --> E6
+    D -- @HttpExchange + X-Internal-Token --> E1
+    D -- @HttpExchange + X-Internal-Token --> E2
+    D -- @HttpExchange + X-Internal-Token --> E3
+    D -- @HttpExchange + X-Internal-Token --> E4
+    D -- @HttpExchange + X-Internal-Token --> E5
+    D -- @HttpExchange + X-Internal-Token --> E6
+    D -- QdrantClient HTTP --> F7
+    D -- Neo4jClient Bolt --> F8
+    B -- InternalTokenFilter 透传 --> D
     D --> F5
-    G1 --> F7
+    F5 --> H1
+    H1 --> F3
+    H2 --> F4
     E1 --> F3
     E2 --> F3
     E3 --> F3
     E4 --> F4
     D --> F1
     D --> F2
+    D --> F6
 ```
 
 ### 服务端口
 
-| 服务 | 端口 | 职责 |
-|------|------|------|
-| xfjy-gateway | 8090 | 统一入口网关（路由/限流/跨域） |
-| xfjy-sso | 18080 | 单点登录（手机号+验证码，Sa-Token + Redis） |
-| xfjy-server | 18081 | 主业务聚合 + 管理后台 |
-| xfjy-match-service | 18082 | 探花匹配（推荐用户/地理位置） |
-| xfjy-circle-service | 18084 | 圈子动态 |
-| xfjy-video-service | 18085 | 小视频 |
-| xfjy-message-service | 18086 | 消息/IM（WuKongIM + LiveKit） |
-| xfjy-user-service | 18090 | 用户关系（好友/喜欢/访客） |
-| xfjy-recommend | — | RocketMQ 评分消费者 |
-| xfjy-elasticsearch | — | ES Geo 附近的人 |
-| xfjy-pay-service | 18089 | 支付/VIP 权益 |
+| 服务 | 端口 | 映射宿主 | 职责 |
+|------|------|----------|------|
+| xfjy-gateway | 8090 | ✅ 唯一对外 | 统一入口（路由/限流/跨域） |
+| xfjy-sso | 18080 | ❌ 仅内网 | 单点登录（Sa-Token + Redis） |
+| xfjy-server | 18081 | ❌ 仅内网 | 主业务聚合 + 管理后台 |
+| xfjy-user-service | 18090 | ❌ 仅内网 | 用户关系 |
+| xfjy-match-service | 18082 | ❌ 仅内网 | 探花匹配 |
+| xfjy-circle-service | 18084 | ❌ 仅内网 | 圈子动态 |
+| xfjy-video-service | 18085 | ❌ 仅内网 | 小视频 |
+| xfjy-message-service | 18086 | ❌ 仅内网 | WuKongIM + LiveKit |
+| xfjy-pay-service | 18089 | ❌ 仅内网 | 支付/VIP |
+| xfjy-recommend | — | — | MQ 消费者 |
+| xfjy-elasticsearch | — | — | ES Geo 检索接口 |
 
-**数据链路**：用户行为 → xfjy-server → RocketMQ → xfjy-recommend → MongoDB 评分 → 推荐接口混合评分 → 前端消费。
+> **安全设计**：仅网关 8090 端口对外映射，18081~18090 全部为 Docker 内部端口，外部不可直接访问。
+> 域服务启用 `X-Internal-Token` 请求头鉴权，调用方（server/gateway）自动透传 Token。
 
-**网关路由**：仅做边缘路由（sso + xfjy-server）。拆分服务由 xfjy-server 经 @HttpExchange 内部直连，不经网关。
+**数据链路**：用户行为 → xfjy-server → RocketMQ → xfjy-recommend → MongoDB → 推荐接口混合评分 → 前端消费。
+
+**网关路由**：仅做边缘路由（sso + xfjy-server）。域服务由 xfjy-server 经 @HttpExchange + LoadBalancer 内部直连，不经网关。
 
 ---
 
@@ -269,8 +284,13 @@ cd xfjy-app && npm install && npm run dev:h5
 | SMS_ACCESS_KEY_ID / SECRET | 阿里云短信 |
 | MINIO_ENDPOINT / ACCESS_KEY_ID / ACCESS_KEY_SECRET / BUCKET / URL_PREFIX | MinIO 对象存储（minio.properties） |
 | BAIDU_FACE_API_KEY / SECRET_KEY | 百度 AI 人脸 |
-| WUKONGIM_WS_URL | WuKongIM WebSocket 地址（自托管，替代环信） |
-| NEO4J_PASSWORD | Neo4j 密码 |
+| WUKONGIM_WS_URL / LIVEKIT_URL | WuKongIM WebSocket + LiveKit WebRTC | 自托管 IM/音视频 |
+| QDRANT_HOST / QDRANT_PORT / COLLECTION | Qdrant 向量检索 | 互惠匹配增强 |
+| QDRANT_ENABLED | Qdrant 开关（默认 false） | 降级控制 |
+| NEO4J_BOLT_URI / NEO4J_USERNAME / NEO4J_PASSWORD | Neo4j 图数据库 | 二度好友推荐 |
+| NEO4J_ENABLED | Neo4j 开关（默认 false） | 降级控制 |
+| INTERNAL_AUTH_TOKENS | 域服务鉴权 Token（逗号分隔） | X-Internal-Token |
+| IMAGE_TAG | 镜像语义标签（如 v1.2.3、master-a1b2c3d） | CI 精确回滚 |
 
 > 未配置的第三方服务走占位/模拟模式，开发环境可用。
 
@@ -294,28 +314,62 @@ curl http://127.0.0.1:18081/actuator/health
 # 预期: {"status":"UP"}
 ```
 
-### CI 流水线
+### CI / CD 流水线
 
-[.github/workflows/ci.yml](.github/workflows/ci.yml) 定义三条并行 Job：
+[.gitea/workflows/deploy.yml](.gitea/workflows/deploy.yml) 定义 Gitea Actions 部署流水线，支持 7 种动作：
 
-| Job | 内容 | 环境 |
-|-----|------|------|
-| backend | `mvn compile` 全量编译 | JDK 25 |
-| admin | 管理后台 `npm run build` | Node 22 |
-| app | 用户端 `npm run build:h5` | Node 22 |
+| 动作 | 用途 |
+|------|------|
+| `deploy` | 增量编译 + 构建镜像 + 部署（默认） |
+| `build` | 仅编译打包，不部署 |
+| `start / stop / restart` | 容器生命周期管理 |
+| `status` | 查看容器运行状态 |
+| `logs` | 查看容器日志 |
 
-触发条件：push / PR 到 master 分支。
+**镜像版本管理**：
+- 推送 git tag `v*` → 镜像自动打对应标签（如 `xfjy/xfjy-server:v1.2.3`），可精确回滚
+- 推送分支 → 镜像打 `分支名-commitHash`（如 `xfjy/xfjy-server:main-a1b2c3d`）
+- 本地 `./manage.sh deploy` → 自动从 git 获取标签/commit，无需手动配置
+- 变量 `IMAGE_TAG` 覆盖此行为（CI 手动触发时指定）
+
+**输入参数**（手动触发时）：
+
+| 参数 | 说明 |
+|------|------|
+| `image_tag` | 镜像标签（覆盖自动解析） |
+| `services` | 指定服务（空格分隔，留空自动推断变更范围） |
+| `skip_ci` | 跳过编译，仅启停容器 |
+| `full_build` | 强制全量重建 |
+
+触发条件：push 到 master 手动运行。
 
 ---
 
-## 八、文档
+## 八、架构亮点（v2.2 更新）
+
+| 维度 | 实现 |
+|------|------|
+| **服务发现** | `@LoadBalanced RestClient.Builder` 替代 `instances.get(0)` 硬编码，自动负载均衡 |
+| **数据所有权** | 8 域服务各司其表，跨表操作通过 PayApi 契约调用，无跨服务双写 |
+| **域服务鉴权** | `X-Internal-Token` 请求头鉴权，Gateway → Server → 域服务三级透传 |
+| **全局异常** | `@RestControllerAdvice` + `Result<T>` 统一响应体，`BusinessException` 业务错误码 |
+| **密码安全** | BCrypt 替代 MD5（含管理员全链路） |
+| **端口暴露** | 仅网关 8090 对外，18081~18090 全部内网 Docker 端口 |
+| **镜像版本** | Git Tag 语义版本支持精确回滚，分支+commit hash 自动标签 |
+| **向量召回** | Qdrant embedding 互惠匹配加分，不可用自动降级空召回 |
+| **图推荐** | Neo4j Bolt 协议二度好友查询，不可用自动降级空召回 |
+| **配置外置** | 中间件密码/env 全部 `.env` 注入，`.env.example` 模板化 |
+
+---
+
+## 九、文档
 
 - 📄 [需求文档](docs/需求文档.md)
 - 🗄️ 数据库脚本：本地 `scripts/xfjy.sql`（全量表结构 + 初始数据，一键导入，不入库）
 
 ---
 
-## 九、贡献指南
+## 十、贡献指南
 
 1. Fork 本仓库
 2. 创建特性分支：`git checkout -b feat/your-feature`
@@ -328,10 +382,13 @@ curl http://127.0.0.1:18081/actuator/health
 - commit message 格式：`type: 简述`（feat / fix / refactor / docs / test / chore / perf）
 - 密钥/凭证禁止入库，统一环境变量外置（`.env.example` 为模板）
 - 改动 `xfjy-api` 后须 `mvn -am` 连带构建
+- 新增域服务接口时，同步补充 `X-Internal-Token` 透传（参考 `HttpServiceProxyConfig` `defaultHeader`）
+- 数据库表变更优先走专属域服务，禁止跨服务直接写其他域的表
+- Qdrant / Neo4j 调用必须有 `enabled: false` 降级开关
 
 ---
 
-## 十、License
+## 十一、License
 
 [MIT](LICENSE)
 
