@@ -40,7 +40,7 @@
             </linearGradient>
             <linearGradient id="moonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" style="stop-color: var(--xfjy-primary-soft)" />
-              <stop offset="100%" style="stop-color: var(--el-color-primary-light-7)" />
+              <stop offset="100%" style="stop-color: var(--xfjy-primary-200)" />
             </linearGradient>
           </defs>
         </svg>
@@ -99,7 +99,7 @@ function starStyle(n: number) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(160deg, #f5f7ff 0%, #f0f2f5 60%, var(--el-color-primary-light-9) 100%);
+  background: linear-gradient(160deg, #f5f7ff 0%, #f0f2f5 60%, var(--xfjy-primary-50) 100%);
   position: relative;
   overflow: hidden;
 }

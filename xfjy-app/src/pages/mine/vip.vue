@@ -61,7 +61,7 @@
     </a11y-radio-group>
 
     <!-- 支付按钮 -->
-    <button class="pay-btn safe-area-bottom btn-feedback" :disabled="paying" @click="handlePay">
+    <button class="pay-btn btn-feedback" :disabled="paying" @click="handlePay">
       {{ paying ? "支付中..." : `立即开通 ¥${currentPlan?.priceYuan || 0}` }}
     </button>
   </view>
@@ -312,7 +312,7 @@ onLoad(() => {
 }
 
 /* ===== 支付按钮 ===== */
-.pay-btn { position: fixed; left: 32rpx; right: 32rpx; bottom: 40rpx; height: 96rpx; line-height: 96rpx;
+.pay-btn { position: fixed; left: 32rpx; right: 32rpx; bottom: calc(40rpx + env(safe-area-inset-bottom, 0px)); height: 96rpx; line-height: 96rpx;
   background: linear-gradient(90deg, #ffd700, #ffb347); color: #1a1a2e;
   font-size: 34rpx; font-weight: 900; border-radius: 48rpx; border: none;
   box-shadow: 0 8rpx 28rpx rgba(255, 179, 71, 0.4);

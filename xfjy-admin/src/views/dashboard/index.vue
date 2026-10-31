@@ -121,8 +121,8 @@ const overviewCards = computed(() => [
   { label: '动态总数', value: overview.totalPosts, icon: 'Document', bg: 'var(--xfjy-primary-50)', color: 'var(--xfjy-primary-deep)' },
   { label: '今日DAU', value: overview.dau, icon: 'DataLine', bg: 'var(--xfjy-primary-50)', color: 'var(--xfjy-primary)' },
   { label: '今日新增', value: overview.newUsers, icon: 'CirclePlus', bg: 'var(--xfjy-primary-50)', color: 'var(--xfjy-primary-deep)' },
-  { label: '待审核', value: overview.pendingReviews, icon: 'Warning', bg: '#fff5f0', color: 'var(--el-color-warning)' },
-  { label: '待举报', value: overview.totalReports, icon: 'WarningFilled', bg: '#fff5f0', color: 'var(--el-color-danger)' },
+  { label: '待审核', value: overview.pendingReviews, icon: 'Warning', bg: '#fff5f0', color: 'var(--xfjy-warning)' },
+  { label: '待举报', value: overview.totalReports, icon: 'WarningFilled', bg: '#fff5f0', color: 'var(--xfjy-danger)' },
 ])
 
 const todoList = ref([

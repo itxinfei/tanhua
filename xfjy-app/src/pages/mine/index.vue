@@ -209,9 +209,9 @@ onShow(() => {
 
 <style lang="scss" scoped>
 .mine-page {
-  min-height: calc(100vh - var(--window-bottom, 0px));
+  min-height: 100vh;
   background: #f5f5f5;
-  padding-bottom: calc(var(--window-bottom, 0px) + 40rpx);
+  padding-bottom: 40rpx;
 }
 
 .header {

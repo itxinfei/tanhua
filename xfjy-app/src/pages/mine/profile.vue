@@ -73,7 +73,7 @@
     </view>
 
     <!-- 保存 -->
-    <button class="save-btn btn-gradient safe-area-bottom" :disabled="submitting" @click="handleSave">保存</button>
+    <button class="save-btn btn-gradient" :disabled="submitting" @click="handleSave">保存</button>
   </view>
 </template>
 
@@ -278,5 +278,5 @@ onShow(async () => {
 }
 
 /* ===== 保存按钮 ===== */
-.save-btn { position: fixed; left: 32rpx; right: 32rpx; bottom: 40rpx; height: 88rpx; line-height: 88rpx; color: #fff; font-size: 32rpx; font-weight: bold; border-radius: 44rpx; border: none; }
+.save-btn { position: fixed; left: 32rpx; right: 32rpx; bottom: calc(40rpx + env(safe-area-inset-bottom, 0px)); height: 88rpx; line-height: 88rpx; color: #fff; font-size: 32rpx; font-weight: bold; border-radius: 44rpx; border: none; }
 </style>

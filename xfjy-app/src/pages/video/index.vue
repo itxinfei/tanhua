@@ -2,8 +2,10 @@
   <view class="video-page">
     <!-- 顶部 关注 / 推荐 Tab（role=tablist 语义 + 可键盘操作） -->
     <view class="top-tabs" role="tablist" aria-label="视频频道">
-      <a11y-button class="tab" role="tab" :checked="activeTab === 'follow'" label="关注" @tap="switchTab('follow')">关注</a11y-button>
-      <a11y-button class="tab" role="tab" :checked="activeTab === 'recommend'" label="推荐" @tap="switchTab('recommend')">推荐</a11y-button>
+      <view class="tab-group">
+        <a11y-button class="tab" role="tab" :checked="activeTab === 'follow'" label="关注" @tap="switchTab('follow')">关注</a11y-button>
+        <a11y-button class="tab" role="tab" :checked="activeTab === 'recommend'" label="推荐" @tap="switchTab('recommend')">推荐</a11y-button>
+      </view>
       <a11y-button class="publish-btn btn-feedback" label="发布视频" @tap="chooseAndPublish">＋ 发布</a11y-button>
     </view>
 
@@ -560,7 +562,7 @@ onShareAppMessage(() => ({
 
 <style lang="scss" scoped>
 .video-page {
-  height: calc(100vh - var(--window-bottom, 0px));
+  height: 100vh;
   background: #000;
   position: relative;
 }
@@ -572,16 +574,21 @@ onShareAppMessage(() => ({
   left: 0;
   right: 0;
   display: flex;
-  justify-content: center;
   align-items: center;
-  gap: 48rpx;
+  padding: 0 24rpx;
   z-index: 30;
 
+  .tab-group {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 48rpx;
+  }
+
   .publish-btn {
-    position: absolute;
-    right: 24rpx;
-    top: 50%;
-    transform: translateY(-50%);
+    flex-shrink: 0;
+    margin-left: 16rpx;
     font-size: 26rpx;
     color: #fff;
     background: linear-gradient(90deg, var(--color-primary-deep), var(--color-primary));
@@ -616,7 +623,7 @@ onShareAppMessage(() => ({
 }
 
 .video-swiper {
-  height: calc(100vh - var(--window-bottom, 0px));
+  height: 100vh;
 }
 
 .video-item {

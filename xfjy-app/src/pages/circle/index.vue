@@ -226,7 +226,7 @@ onShareAppMessage(() => ({
 
 <style lang="scss" scoped>
 .circle-page {
-  height: calc(100vh - var(--window-bottom, 0px));
+  height: 100vh;
   display: flex;
   flex-direction: column;
   background: #f5f5f5;

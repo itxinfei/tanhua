@@ -377,7 +377,7 @@ onUnmounted(() => {
   .user-avatar {
     width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; object-fit: cover;
     &.placeholder {
-      background: var(--el-color-primary); color: #fff; font-size: 13px;
+      background: var(--xfjy-primary); color: #fff; font-size: 13px;
       display: flex; align-items: center; justify-content: center;
     }
   }
@@ -397,7 +397,7 @@ onUnmounted(() => {
     max-width: 180px;
   }
   .unread-badge {
-    background: var(--el-color-danger); color: #fff;
+    background: var(--xfjy-danger); color: #fff;
     font-size: 11px; min-width: 18px; height: 18px; line-height: 18px;
     border-radius: 9px; text-align: center; padding: 0 5px;
   }
@@ -434,7 +434,7 @@ onUnmounted(() => {
     color: var(--xfjy-text-primary);
   }
   &.mine .bubble {
-    background: var(--el-color-primary);
+    background: var(--xfjy-primary);
     color: #fff;
   }
 }
@@ -464,7 +464,7 @@ onUnmounted(() => {
 }
 
 .msg-status-read {
-  color: var(--el-color-success);
+  color: var(--xfjy-success);
 }
 .input-bar {
   padding: 12px 20px;

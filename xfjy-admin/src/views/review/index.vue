@@ -513,7 +513,7 @@ onUnmounted(() => {
   background: var(--xfjy-primary-50);
   border: 1px solid var(--xfjy-primary-100);
   border-radius: 8px;
-  color: var(--el-color-primary);
+  color: var(--xfjy-primary);
   font-size: 13px;
 }
 
@@ -598,7 +598,7 @@ kbd {
 
 .queue-item.active {
   background: var(--xfjy-primary-50);
-  border-left-color: var(--el-color-primary);
+  border-left-color: var(--xfjy-primary);
 }
 
 .queue-item.processed {

@@ -256,3 +256,41 @@ a {
   color: var(--xfjy-text-secondary);
   margin-top: var(--xfjy-space-1);
 }
+
+/* ==================== 微交互（全局） ==================== */
+
+/* 表格行 hover：玫红淡背景 + 平滑过渡（提升行可读性与点击感） */
+.el-table__body tr.el-table__row:hover > td.el-table__cell {
+  background-color: var(--xfjy-primary-50) !important;
+  transition: background-color 0.2s ease;
+}
+
+/* 按钮按下反馈：轻微缩放，增强点击感 */
+.el-button:active {
+  transform: scale(0.98);
+  transition: transform 0.08s ease;
+}
+
+/* 卡片 hover 阴影抬升（统一卡片类，覆盖向后兼容容器） */
+.search-bar,
+.table-container,
+.stat-card,
+.page-header + .search-bar {
+  transition: box-shadow 0.25s ease;
+}
+.search-bar:hover,
+.table-container:hover {
+  box-shadow: var(--xfjy-shadow-hover);
+}
+
+/* 链接型按钮 hover：玫红加深 + 轻微位移，强化可点感 */
+.el-button.is-link {
+  transition: color 0.2s ease, transform 0.15s ease;
+}
+.el-button.is-link:hover {
+  color: var(--xfjy-primary);
+  transform: translateX(2px);
+}
+.el-button.is-link:active {
+  transform: translateX(0) scale(0.98);
+}

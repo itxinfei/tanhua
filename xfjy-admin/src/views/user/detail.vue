@@ -621,7 +621,7 @@ watch(activeTab, async (tab) => {
 }
 
 .freeze-reason {
-  color: var(--el-color-danger);
+  color: var(--xfjy-danger);
   font-size: 13px;
   margin-top: 4px;
 }
@@ -713,7 +713,7 @@ watch(activeTab, async (tab) => {
 }
 
 .session-item.active {
-  background: var(--el-color-primary);
+  background: var(--xfjy-primary);
   color: #fff;
 }
 
@@ -823,7 +823,7 @@ watch(activeTab, async (tab) => {
 }
 
 .message-item.mine .bubble {
-  background: var(--el-color-primary);
+  background: var(--xfjy-primary);
   color: #fff;
 }
 

@@ -459,7 +459,7 @@ onShareAppMessage(() => ({
 
 <style lang="scss" scoped>
 .match-page {
-  height: calc(100vh - var(--window-bottom, 0px));
+  height: 100vh;
   background: #f0f0f5;
   display: flex;
   flex-direction: column;

@@ -224,7 +224,7 @@ async function handleCommand(command: string) {
 }
 
 .collapse-btn:hover {
-  color: var(--el-color-primary);
+  color: var(--xfjy-primary);
   background: var(--xfjy-primary-50);
 }
 
@@ -241,7 +241,7 @@ async function handleCommand(command: string) {
 }
 
 .header-icon:hover {
-  color: var(--el-color-primary);
+  color: var(--xfjy-primary);
 }
 
 .user-info {

@@ -469,7 +469,7 @@ onMounted(() => {
 }
 
 .text-muted {
-  color: var(--el-text-color-placeholder);
+  color: var(--xfjy-text-disabled);
 }
 
 /* 批量处理栏 */
@@ -479,14 +479,14 @@ onMounted(() => {
   gap: 10px;
   margin-bottom: 10px;
   padding: 8px 12px;
-  background: var(--el-color-warning-light-9);
-  border: 1px solid var(--el-color-warning-light-7);
+  background: var(--xfjy-primary-50);
+  border: 1px solid var(--xfjy-primary-100);
   border-radius: 8px;
 }
 
 .batch-count {
   font-size: 13px;
-  color: var(--el-color-warning-dark-2);
+  color: var(--xfjy-warning);
   margin-right: auto;
 }
 
@@ -502,10 +502,10 @@ onMounted(() => {
 .detail-section-title {
   font-size: 14px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--xfjy-text-primary);
   margin-bottom: 10px;
   padding-left: 8px;
-  border-left: 3px solid var(--el-color-primary);
+  border-left: 3px solid var(--xfjy-primary);
   line-height: 1.2;
 }
 
@@ -524,12 +524,12 @@ onMounted(() => {
 .reporter-name {
   font-size: 14px;
   font-weight: 500;
-  color: var(--el-text-color-primary);
+  color: var(--xfjy-text-primary);
 }
 
 .reporter-id {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--xfjy-text-secondary);
 }
 
 .jump-btn {
@@ -539,12 +539,12 @@ onMounted(() => {
 .detail-field {
   font-size: 13px;
   line-height: 1.8;
-  color: var(--el-text-color-regular);
+  color: var(--xfjy-text-regular);
   word-break: break-all;
 }
 
 .field-label {
-  color: var(--el-text-color-secondary);
+  color: var(--xfjy-text-secondary);
 }
 
 .handle-result-text {
@@ -564,7 +564,7 @@ onMounted(() => {
   width: 96px;
   height: 96px;
   border-radius: 8px;
-  border: 1px solid var(--el-border-color-light);
+  border: 1px solid var(--xfjy-border-light);
   cursor: pointer;
 }
 
