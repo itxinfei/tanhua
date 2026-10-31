@@ -33,6 +33,20 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${REPO_ROOT}"
 
+# 镜像标签：显式 IMAGE_TAG 环境变量优先；否则自动 git describe --tags（回退到 commit hash / latest）
+if [ -z "${IMAGE_TAG:-}" ]; then
+  if command -v git >/dev/null 2>&1 && git rev-parse --git-dir >/dev/null 2>&1; then
+    if git describe --tags --exact-match >/dev/null 2>&1; then
+      IMAGE_TAG="$(git describe --tags --exact-match)"
+    else
+      IMAGE_TAG="$(git rev-parse --short HEAD)"
+    fi
+  else
+    IMAGE_TAG="latest"
+  fi
+fi
+export IMAGE_TAG
+
 APP_COMPOSE="deploy/docker-compose.app.yml"
 WEB_COMPOSE="deploy/docker-compose.web.yml"
 APP_PROJECT="xfjy-app"

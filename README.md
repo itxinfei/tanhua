@@ -38,7 +38,7 @@
 | 🤝 探花匹配 | 卡片滑动（喜欢/不喜欢/超级喜欢）+ 陌生人问题破冰 |
 | 📰 圈子动态 | 图文动态发布、点赞、评论、时间线 |
 | 🎬 小视频 | 视频上传、推荐流、关注作者 |
-| 💬 实时聊天 | 集成环信 IM，互相喜欢自动成为联系人 |
+| 💬 实时聊天 | 集成 WuKongIM（开源自建 IM）+ LiveKit 1v1 音视频，互相喜欢自动成为联系人 |
 | 🤖 智能推荐 | 冷启动兜底 + ALS 协同过滤 + 地理衰减 + 画像相似度 + 互惠精排 |
 | 💎 VIP 权益 | 权益矩阵驱动：超级喜欢 / 谁喜欢我 / 无限滑动 / 隐身访问 |
 | 🛡️ 管理后台 | 内容审核、敏感词过滤、用户管理、数据看板 |
@@ -72,7 +72,7 @@
 | 消息队列 | rocketmq-spring-boot-starter | 2.3.6 |
 | 服务间通信 | HTTP Service Clients（@HttpExchange + RestClient） | — |
 | 对象存储 | MinIO（S3 兼容） | 8.5.17 |
-| 即时通讯 | 环信 IM | — |
+| 即时通讯 | WuKongIM（开源 Apache-2.0，自托管长连接） | — |
 | 向量检索 | Qdrant（纯 REST 接入） | — |
 | 图数据库 | Neo4j（纯 HTTP Cypher 接入） | 5.x |
 | 运行监控 | Spring Boot Actuator | health/info/metrics |
@@ -161,7 +161,7 @@ flowchart TB
 | xfjy-match-service | 18082 | 探花匹配（推荐用户/地理位置） |
 | xfjy-circle-service | 18084 | 圈子动态 |
 | xfjy-video-service | 18085 | 小视频 |
-| xfjy-message-service | 18086 | 消息/IM（环信集成） |
+| xfjy-message-service | 18086 | 消息/IM（WuKongIM + LiveKit） |
 | xfjy-user-service | 18090 | 用户关系（好友/喜欢/访客） |
 | xfjy-recommend | — | RocketMQ 评分消费者 |
 | xfjy-elasticsearch | — | ES Geo 附近的人 |
@@ -185,7 +185,7 @@ xfjy/
 ├── xfjy-match-service/         # 探花匹配服务（18082，推荐用户/地理位置）
 ├── xfjy-circle-service/        # 圈子动态服务（18084，动态/评论/时间线）
 ├── xfjy-video-service/         # 小视频服务（18085，视频/关注作者）
-├── xfjy-message-service/       # 消息/IM 服务（18086，环信集成）
+├── xfjy-message-service/       # 消息/IM 服务（18086，WuKongIM 长连接 + LiveKit SFU 音视频）
 ├── xfjy-pay-service/           # 支付/VIP 权益服务（18089）
 ├── xfjy-recommend/             # 推荐评分消费者（RocketMQ → MongoDB）
 ├── xfjy-elasticsearch/         # ES Geo 地理位置：附近的人
@@ -269,7 +269,7 @@ cd xfjy-app && npm install && npm run dev:h5
 | SMS_ACCESS_KEY_ID / SECRET | 阿里云短信 |
 | MINIO_ENDPOINT / ACCESS_KEY_ID / ACCESS_KEY_SECRET / BUCKET / URL_PREFIX | MinIO 对象存储（minio.properties） |
 | BAIDU_FACE_API_KEY / SECRET_KEY | 百度 AI 人脸 |
-| EASEMOB_CLIENT_ID / SECRET | 环信 IM |
+| WUKONGIM_WS_URL | WuKongIM WebSocket 地址（自托管，替代环信） |
 | NEO4J_PASSWORD | Neo4j 密码 |
 
 > 未配置的第三方服务走占位/模拟模式，开发环境可用。

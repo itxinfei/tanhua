@@ -20,7 +20,7 @@ services:
       context: build/xfjy-admin
       dockerfile: Dockerfile
     pull_policy: never
-    image: xfjy/admin:latest
+    image: xfjy/admin:${IMAGE_TAG:-latest}
     container_name: xfjy-admin
     restart: unless-stopped
     ports:
@@ -33,7 +33,7 @@ services:
       context: build/xfjy-h5
       dockerfile: Dockerfile
     pull_policy: never
-    image: xfjy/h5:latest
+    image: xfjy/h5:${IMAGE_TAG:-latest}
     container_name: xfjy-h5
     restart: unless-stopped
     ports:

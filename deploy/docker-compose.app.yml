@@ -7,7 +7,7 @@
 #
 # 设计要点：
 #   - 所有服务接入同一个 bridge 网络 xfjy-app-net，服务之间用容器名互访；
-#     对外端口用 ports 显式映射到宿主机（网关 8090，其余 18081~18090）。
+#     仅网关 8090 端口对外映射（18081~18090 均不外曝，仅内部调用）。
 #   - 中间件（MySQL/Redis/Nacos/RocketMQ/Mongo/ES/Neo4j）跑在 xfjy-net，
 #     容器通过宿主机 LAN IP 192.168.20.133 访问其映射端口（见 application-local.ci.yml）。
 #   - 镜像由 deploy/docker/Dockerfile.java 基于 maven 已打好的 jar 构建。
@@ -48,22 +48,19 @@ x-common-env: &common-env
   MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-}
   MINIO_BUCKET: ${MINIO_BUCKET:-test-media}
   MINIO_URL_PREFIX: ${MINIO_URL_PREFIX:-http://192.168.20.133:9000/test-media/}
-  # 环信 IM（huanxin 通道时启用，凭证留空则 IM 接口报错，真实值由 deploy/.env 注入）
-  HANXIN_CLIENT_ID: ${HANXIN_CLIENT_ID:-}
-  HANXIN_CLIENT_SECRET: ${HANXIN_CLIENT_SECRET:-}
-  # WuKongIM 开源 IM（wukongim 通道默认启用，REST API 仅内网调用）
+  # WuKongIM 开源 IM（自托管长连接，替代已下线的环信 Easemob）
   WUKONGIM_API_HOST: ${WUKONGIM_API_HOST:-http://192.168.20.133:5001}
+  # 域服务内部鉴权 Token（生产须替换为高强度随机值）
+  INTERNAL_AUTH_TOKENS: ${INTERNAL_AUTH_TOKENS:-xfjy-internal-dev-token-change-in-prod}
 
 services:
 
   xfjy-gateway:
     build:
-      # 最小构建上下文：只含该服务的一个 jar（deploy/build/xfjy-gateway/app.jar）
-      # 由 deploy/ci/stage-artifacts.sh 生成，避免每次传输整个仓库（~10GB）
       context: build/xfjy-gateway
       dockerfile: Dockerfile
     pull_policy: never
-    image: xfjy/xfjy-gateway:latest
+    image: xfjy/xfjy-gateway:${IMAGE_TAG:-latest}
     container_name: xfjy-gateway
     ports:
       - "8090:8090"
@@ -79,15 +76,11 @@ services:
 
   xfjy-sso:
     build:
-      # 最小构建上下文：只含该服务的一个 jar（deploy/build/xfjy-sso/app.jar）
-      # 由 deploy/ci/stage-artifacts.sh 生成，避免每次传输整个仓库（~10GB）
       context: build/xfjy-sso
       dockerfile: Dockerfile
     pull_policy: never
-    image: xfjy/xfjy-sso:latest
+    image: xfjy/xfjy-sso:${IMAGE_TAG:-latest}
     container_name: xfjy-sso
-    ports:
-      - "18080:18080"
     networks:
       - xfjy-app-net
     restart: unless-stopped
@@ -100,15 +93,11 @@ services:
 
   xfjy-user-service:
     build:
-      # 最小构建上下文：只含该服务的一个 jar（deploy/build/xfjy-user-service/app.jar）
-      # 由 deploy/ci/stage-artifacts.sh 生成，避免每次传输整个仓库（~10GB）
       context: build/xfjy-user-service
       dockerfile: Dockerfile
     pull_policy: never
     image: xfjy/xfjy-user-service:latest
     container_name: xfjy-user-service
-    ports:
-      - "18090:18090"
     networks:
       - xfjy-app-net
     restart: unless-stopped
@@ -121,15 +110,11 @@ services:
 
   xfjy-circle-service:
     build:
-      # 最小构建上下文：只含该服务的一个 jar（deploy/build/xfjy-circle-service/app.jar）
-      # 由 deploy/ci/stage-artifacts.sh 生成，避免每次传输整个仓库（~10GB）
       context: build/xfjy-circle-service
       dockerfile: Dockerfile
     pull_policy: never
     image: xfjy/xfjy-circle-service:latest
     container_name: xfjy-circle-service
-    ports:
-      - "18084:18084"
     networks:
       - xfjy-app-net
     restart: unless-stopped
@@ -142,15 +127,11 @@ services:
 
   xfjy-video-service:
     build:
-      # 最小构建上下文：只含该服务的一个 jar（deploy/build/xfjy-video-service/app.jar）
-      # 由 deploy/ci/stage-artifacts.sh 生成，避免每次传输整个仓库（~10GB）
       context: build/xfjy-video-service
       dockerfile: Dockerfile
     pull_policy: never
     image: xfjy/xfjy-video-service:latest
     container_name: xfjy-video-service
-    ports:
-      - "18085:18085"
     networks:
       - xfjy-app-net
     restart: unless-stopped
@@ -163,15 +144,11 @@ services:
 
   xfjy-match-service:
     build:
-      # 最小构建上下文：只含该服务的一个 jar（deploy/build/xfjy-match-service/app.jar）
-      # 由 deploy/ci/stage-artifacts.sh 生成，避免每次传输整个仓库（~10GB）
       context: build/xfjy-match-service
       dockerfile: Dockerfile
     pull_policy: never
     image: xfjy/xfjy-match-service:latest
     container_name: xfjy-match-service
-    ports:
-      - "18082:18082"
     networks:
       - xfjy-app-net
     restart: unless-stopped
@@ -184,15 +161,11 @@ services:
 
   xfjy-message-service:
     build:
-      # 最小构建上下文：只含该服务的一个 jar（deploy/build/xfjy-message-service/app.jar）
-      # 由 deploy/ci/stage-artifacts.sh 生成，避免每次传输整个仓库（~10GB）
       context: build/xfjy-message-service
       dockerfile: Dockerfile
     pull_policy: never
     image: xfjy/xfjy-message-service:latest
     container_name: xfjy-message-service
-    ports:
-      - "18086:18086"
     networks:
       - xfjy-app-net
     restart: unless-stopped
@@ -205,15 +178,11 @@ services:
 
   xfjy-server:
     build:
-      # 最小构建上下文：只含该服务的一个 jar（deploy/build/xfjy-server/app.jar）
-      # 由 deploy/ci/stage-artifacts.sh 生成，避免每次传输整个仓库（~10GB）
       context: build/xfjy-server
       dockerfile: Dockerfile
     pull_policy: never
-    image: xfjy/xfjy-server:latest
+    image: xfjy/xfjy-server:${IMAGE_TAG:-latest}
     container_name: xfjy-server
-    ports:
-      - "18081:18081"
     networks:
       - xfjy-app-net
     restart: unless-stopped
@@ -226,15 +195,11 @@ services:
 
   xfjy-recommend:
     build:
-      # 最小构建上下文：只含该服务的一个 jar（deploy/build/xfjy-recommend/app.jar）
-      # 由 deploy/ci/stage-artifacts.sh 生成，避免每次传输整个仓库（~10GB）
       context: build/xfjy-recommend
       dockerfile: Dockerfile
     pull_policy: never
-    image: xfjy/xfjy-recommend:latest
+    image: xfjy/xfjy-recommend:${IMAGE_TAG:-latest}
     container_name: xfjy-recommend
-    ports:
-      - "18087:18087"
     networks:
       - xfjy-app-net
     restart: unless-stopped
@@ -247,15 +212,11 @@ services:
 
   xfjy-elasticsearch:
     build:
-      # 最小构建上下文：只含该服务的一个 jar（deploy/build/xfjy-elasticsearch/app.jar）
-      # 由 deploy/ci/stage-artifacts.sh 生成，避免每次传输整个仓库（~10GB）
       context: build/xfjy-elasticsearch
       dockerfile: Dockerfile
     pull_policy: never
-    image: xfjy/xfjy-elasticsearch:latest
+    image: xfjy/xfjy-elasticsearch:${IMAGE_TAG:-latest}
     container_name: xfjy-elasticsearch
-    ports:
-      - "18088:18088"
     networks:
       - xfjy-app-net
     restart: unless-stopped
@@ -268,15 +229,11 @@ services:
 
   xfjy-pay-service:
     build:
-      # 最小构建上下文：只含该服务的一个 jar（deploy/build/xfjy-pay-service/app.jar）
-      # 由 deploy/ci/stage-artifacts.sh 生成，避免每次传输整个仓库（~10GB）
       context: build/xfjy-pay-service
       dockerfile: Dockerfile
     pull_policy: never
     image: xfjy/xfjy-pay-service:latest
     container_name: xfjy-pay-service
-    ports:
-      - "18089:18089"
     networks:
       - xfjy-app-net
     restart: unless-stopped

@@ -61,12 +61,18 @@ inputs:
     description: 'true = 强制全量重建，忽略增量判定'
     required: false
     default: 'false'
+  image_tag:
+    description: '镜像标签（语义版本 v* 或分支名）；留空 = 从 git 自动获取'
+    required: false
+    default: ''
 
 env:
   ACTION: ${{ github.event.inputs.action || 'deploy' }}
   TARGET_SERVICES: ${{ github.event.inputs.services || '' }}
   SKIP_CI: ${{ github.event.inputs.skip_ci || 'false' }}
   FULL_BUILD: ${{ github.event.inputs.full_build || 'false' }}
+  # 镜像标签：手动输入优先，未填则从 git describe --tags 获取（回退到 latest）
+  IMAGE_TAG: ${{ github.event.inputs.image_tag || '' }}
   # 11 个可部署 Spring Boot 应用（xfjy-api 仅为接口库，不打包）
   SERVICES: "xfjy-gateway xfjy-sso xfjy-user-service xfjy-circle-service xfjy-video-service xfjy-match-service xfjy-message-service xfjy-server xfjy-recommend xfjy-elasticsearch xfjy-pay-service"
   # 持久化状态目录（宿主挂载）：存指纹基线 + jar 产物缓存
@@ -156,7 +162,26 @@ jobs:
           echo "---- 暂存结果 ----"
           du -sh deploy/build/* 2>/dev/null || true
 
-      - name: 准备部署参数（注入中间件密码）
+      - name: 解析镜像标签（Git Tag 语义版本 / 分支名）
+        if: ${{ env.ACTION == 'deploy' || env.ACTION == 'build' }}
+        id: tag
+        run: |
+          set -e
+          TAG="${IMAGE_TAG}"
+          if [ -z "${TAG}" ]; then
+            # 优先从 git tag 获取（v* 格式），否则用分支名 + 短 commit hash
+            if git describe --tags --exact-match >/dev/null 2>&1; then
+              TAG="$(git describe --tags --exact-match)"
+            elif [ "${GITHUB_REF_NAME:-}" != "" ]; then
+              TAG="${GITHUB_REF_NAME}-$(git rev-parse --short HEAD)"
+            else
+              TAG="latest"
+            fi
+          fi
+          echo "IMAGE_TAG=${TAG}" >> "${GITHUB_OUTPUT:-/dev/stdout}"
+          echo "[tag] 镜像标签: ${TAG}"
+
+      - name: 准备部署参数（注入中间件密码 + 镜像标签）
         # deploy 动作无论是否跳过编译（SKIP_CI）都需要密码文件：
         # SKIP_CI=true + deploy = 用已有产物重建镜像部署，同样要连数据库
         if: ${{ env.ACTION == 'deploy' }}
@@ -167,8 +192,8 @@ jobs:
           NEO4J_PASSWORD: ${{ secrets.NEO4J_PASSWORD }}
           MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
           MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
-          HANXIN_CLIENT_ID: ${{ secrets.HANXIN_CLIENT_ID }}
-          HANXIN_CLIENT_SECRET: ${{ secrets.HANXIN_CLIENT_SECRET }}
+          # 镜像标签：从上游步骤的输出或预填的 IMAGE_TAG 获取
+          IMAGE_TAG: ${{ steps.tag.outputs.IMAGE_TAG || env.IMAGE_TAG || 'latest' }}
         run: |
           set -e
           if [ -z "${MYSQL_PASSWORD}" ]; then
@@ -176,9 +201,8 @@ jobs:
             echo "       请在 Gitea 仓库 → Settings → Actions → Secrets 添加 MYSQL_PASSWORD"
             exit 1
           fi
-          # MinIO / 环信凭证为可选功能：未配置时打 WARN 降级，不阻断部署
+          # MinIO 凭证为可选功能：未配置时打 WARN 降级，不阻断部署
           [ -z "${MINIO_ACCESS_KEY}" ] && echo "[WARN] 未配置 Secrets.MINIO_ACCESS_KEY，视频/图片上传将不可用"
-          [ -z "${HANXIN_CLIENT_ID}" ] && echo "[WARN] 未配置 Secrets.HANXIN_CLIENT_ID，IM 功能将不可用"
           # deploy/.env 被 .gitignore 排除，仓库里没有；密码从 Secrets 注入到临时 env 文件
           umask 077
           {
@@ -187,9 +211,9 @@ jobs:
             printf 'NEO4J_PASSWORD=%s\n' "${NEO4J_PASSWORD}"
             printf 'MINIO_ACCESS_KEY=%s\n' "${MINIO_ACCESS_KEY}"
             printf 'MINIO_SECRET_KEY=%s\n' "${MINIO_SECRET_KEY}"
-            printf 'HANXIN_CLIENT_ID=%s\n' "${HANXIN_CLIENT_ID}"
-            printf 'HANXIN_CLIENT_SECRET=%s\n' "${HANXIN_CLIENT_SECRET}"
+            printf 'IMAGE_TAG=%s\n' "${IMAGE_TAG}"
           } > deploy/.env
+          echo "[env] 已生成 deploy/.env，镜像标签: ${IMAGE_TAG}"
 
       - name: 执行部署动作
         # deploy 依赖「准备部署参数」成功（密码缺失则中断）；

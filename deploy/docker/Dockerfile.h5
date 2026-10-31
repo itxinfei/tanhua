@@ -30,7 +30,7 @@ RUN if [ -f package-lock.json ]; then \
     else \
       npm install --legacy-peer-deps --no-audit --no-fund; \
     fi
-COPY ./
+COPY . ./
 RUN npm run build:h5
 
 FROM docker.m.daocloud.io/library/nginx:alpine
