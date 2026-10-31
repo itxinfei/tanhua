@@ -128,19 +128,20 @@
     <!-- 骨架屏（首屏加载中） -->
     <!-- 骨架屏（首屏加载中）：占位元素，对读屏隐藏 -->
     <view v-if="displayList.length === 0 && loading" class="skeleton-video" aria-hidden="true">
-      <view class="skeleton skel-full" />
-      <view class="skeleton skel-author" />
-      <view class="skeleton skel-desc" />
+      <view class="skeleton skeleton--dark skel-full" />
+      <view class="skeleton skeleton--dark skel-author" />
+      <view class="skeleton skeleton--dark skel-desc" />
     </view>
 
     <!-- 空状态 -->
-    <view v-if="displayList.length === 0 && !loading" class="empty-overlay">
-      <view class="empty-state">
-        <view class="empty-icon"><uni-icons v-if="activeTab === 'follow'" type="eye" size="48" color="#cccccc"></uni-icons><text v-else>🎬</text></view>
-        <text class="empty-title">{{ activeTab === 'follow' ? '还没有关注的作者' : '暂无视频' }}</text>
-        <text class="empty-desc">{{ activeTab === 'follow' ? '去推荐页关注喜欢的人吧' : '精彩内容即将上线' }}</text>
-      </view>
-    </view>
+    <empty-state
+      v-if="displayList.length === 0 && !loading"
+      overlay
+      dark
+      icon="eye"
+      :title="activeTab === 'follow' ? '还没有关注的作者' : '暂无视频'"
+      :desc="activeTab === 'follow' ? '去推荐页关注喜欢的人吧' : '精彩内容即将上线'"
+    />
 
     <!-- 评论抽屉 -->
     <video-comment-drawer
@@ -191,6 +192,7 @@ import {
 } from "@/api/video";
 import VideoCommentDrawer from "@/components/video-comment-drawer.vue";
 import A11yButton from "@/components/a11y-button.vue";
+import EmptyState from "@/components/empty-state.vue";
 import A11yDialog from "@/components/a11y-dialog.vue";
 
 /** 分页大小 */
@@ -586,7 +588,7 @@ onShareAppMessage(() => ({
     transform: translateY(-50%);
     font-size: 26rpx;
     color: #fff;
-    background: linear-gradient(90deg, #b13bff, #ff5e9c);
+    background: linear-gradient(90deg, var(--color-primary-deep), var(--color-primary));
     padding: 8rpx 24rpx;
     border-radius: 28rpx;
   }
@@ -869,38 +871,11 @@ onShareAppMessage(() => ({
   }
 }
 
-/* 空状态遮罩 */
-.empty-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 20;
-
-  .empty-state {
-    .empty-icon {
-      background: rgba(255, 255, 255, 0.1);
-    }
-    .empty-title {
-      color: rgba(255, 255, 255, 0.9);
-    }
-    .empty-desc {
-      color: rgba(255, 255, 255, 0.5);
-    }
-  }
-}
-
 /* 骨架屏 */
 .skeleton-video {
   position: absolute;
   inset: 0;
   z-index: 20;
-
-  .skeleton {
-    background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
-    background-size: 800rpx 100%;
-  }
 
   .skel-full {
     position: absolute;

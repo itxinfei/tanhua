@@ -213,7 +213,7 @@ onShow(() => {
 }
 
 .header {
-  background: linear-gradient(180deg, #b13bff 0%, #ff5e9c 100%);
+  background: linear-gradient(180deg, var(--color-primary-deep) 0%, var(--color-primary) 100%);
   padding: 0 32rpx 32rpx;
   border-radius: 0 0 40rpx 40rpx;
   position: relative;

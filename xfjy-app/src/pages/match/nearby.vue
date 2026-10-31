@@ -12,44 +12,13 @@
     </view>
 
     <!-- 用户列表 -->
-    <view class="user-list">
-      <!-- 空状态 -->
-      <view v-if="userList.length === 0 && !loading" class="empty-state">
-        <view class="empty-icon"><uni-icons type="location" size="48" color="#cccccc"></uni-icons></view>
-        <text class="empty-title">附近暂无用户</text>
-        <text class="empty-desc">扩大搜索范围或稍后再来看看</text>
-      </view>
-
-      <!-- 用户卡片 -->
-      <!-- 用户卡片（行容器分离：避免可聚焦控件嵌套） -->
-      <view v-for="user in userList" :key="user.userId" class="user-row">
-        <a11y-button class="user-item shadow-card btn-feedback" :label="`查看 ${user.nickname || '未设置昵称'} 的个人主页`" @tap="goDetail(user.userId)">
-          <view class="avatar-wrap">
-            <image class="avatar" :src="user.avatar || '/static/logo/logo-icon-transparent.png'" mode="aspectFill" lazy-load aria-hidden="true" />
-          </view>
-          <view class="info">
-            <view class="name-row">
-              <text class="nickname">{{ user.nickname || '未设置昵称' }}</text>
-              <view class="age-badge"><text>{{ user.age || '—' }}</text></view>
-            </view>
-            <view class="distance-tag">
-              <text><uni-icons type="location" size="12" color="#767676"></uni-icons> {{ user.city || '同范围' }}</text>
-            </view>
-          </view>
-        </a11y-button>
-        <a11y-button class="like-btn btn-feedback" :label="`喜欢 ${user.nickname || '该用户'}`" @tap="handleQuickLike(user.userId)">
-          <uni-icons type="heart-filled" size="16" color="#c2185b"></uni-icons>
-        </a11y-button>
-      </view>
-
-      <!-- 加载中 -->
-      <view v-if="loading" class="loading-tip"><text>加载中...</text></view>
-    </view>
+    <empty-state icon="location" title="附近暂无用户" desc="扩大搜索范围或稍后再来看看" />
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import EmptyState from "@/components/empty-state.vue";
 import { onShow, onPullDownRefresh } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
 import { getNearby, loveUser, type NearUser } from "@/api/match";
@@ -123,8 +92,8 @@ onPullDownRefresh(async () => {
 .filter-bar { display: flex; gap: 12rpx; padding: 20rpx 24rpx; background: #fff; position: sticky; top: 0; z-index: 10; box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
   /* 触摸目标 ≥24px：10rpx 26rpx padding + 24rpx 字号偏小 */
   .filter-item { padding: 16rpx 26rpx; min-height: 48rpx; border-radius: 28rpx; font-size: 24rpx; color: #595959; background: #f5f5f5; transition: all 0.2s;
-    &.active { background: linear-gradient(135deg, #b13bff, #ff5e9c); color: #fff; box-shadow: 0 4rpx 12rpx rgba(255, 94, 142, 0.3); }
-    &.gender.active { background: linear-gradient(135deg, #b13bff, #ff5e9c); }
+    &.active { background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary)); color: #fff; box-shadow: 0 4rpx 12rpx rgba(255, 94, 142, 0.3); }
+    &.gender.active { background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary)); }
   }
 }
 
@@ -141,7 +110,7 @@ onPullDownRefresh(async () => {
   .info { flex: 1; margin-left: 24rpx;
     .name-row { display: flex; align-items: center; gap: 12rpx;
       .nickname { font-size: 30rpx; font-weight: bold; color: #333; }
-      .age-badge { background: linear-gradient(135deg, #b13bff, #ff5e9c); color: #fff; font-size: 20rpx; padding: 2rpx 12rpx; border-radius: 12rpx; }
+      .age-badge { background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary)); color: #fff; font-size: 20rpx; padding: 2rpx 12rpx; border-radius: 12rpx; }
     }
     .distance-tag { margin-top: 10rpx; display: inline-flex; background: #ffeff5; border-radius: 16rpx; padding: 4rpx 16rpx;
       /* #ff5e9c on #ffeff5 ≈2.6:1 不达标 → #c2185b */

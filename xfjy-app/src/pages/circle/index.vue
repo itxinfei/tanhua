@@ -44,13 +44,7 @@
         </view>
       </view>
       <!-- 空状态 -->
-      <view v-if="feedList.length === 0 && !loading" class="empty-state">
-        <view class="empty-icon">
-          <uni-icons type="camera" size="48" color="#cccccc"></uni-icons>
-        </view>
-        <text class="empty-title">暂无动态</text>
-        <text class="empty-desc">快来发布第一条，分享你的生活</text>
-      </view>
+      <empty-state icon="camera" title="暂无动态" desc="快来发布第一条，分享你的生活" />
       <view v-for="item in feedList" :key="item.id" class="post-card">
         <!-- 头部 -->
         <view class="post-header">
@@ -104,6 +98,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import EmptyState from "@/components/empty-state.vue";
 import { onShow, onShareAppMessage } from "@dcloudio/uni-app";
 import MatchPopup from "@/components/match-popup.vue";
 import A11yButton from "@/components/a11y-button.vue";
@@ -287,7 +282,7 @@ onShareAppMessage(() => ({
     right: 32rpx;
     width: 64rpx;
     height: 64rpx;
-    background: linear-gradient(135deg, #b13bff, #ff5e9c);
+    background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary));
     color: #fff;
     font-size: 40rpx;
     display: flex;

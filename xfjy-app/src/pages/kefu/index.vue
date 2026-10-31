@@ -17,11 +17,7 @@
     </view>
 
     <scroll-view class="faq-scroll" scroll-y>
-      <view v-if="groupedList.length === 0 && !loading" class="empty-state">
-        <view class="empty-icon"><uni-icons type="chatbubble" size="48" color="#cccccc"></uni-icons></view>
-        <text class="empty-title">{{ keyword ? '未找到相关问题' : '暂无常见问题' }}</text>
-        <text class="empty-desc">{{ keyword ? '换个关键词，或直接咨询在线客服' : '可直接提交意见反馈联系我们' }}</text>
-      </view>
+      <empty-state icon="chatbubble" :title="keyword ? '未找到相关问题' : '暂无常见问题'" :desc="keyword ? '换个关键词，或直接咨询在线客服' : '可直接提交意见反馈联系我们'" />
 
       <view v-for="group in groupedList" :key="group.category" class="faq-group">
         <view class="group-title">
@@ -63,6 +59,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import EmptyState from "@/components/empty-state.vue";
 import A11yButton from "@/components/a11y-button.vue";
 import { getFaqListApi, type FaqItem } from "@/api/kefu";
 
@@ -236,36 +233,6 @@ function goFeedback(): void {
     border-top: 1rpx solid #f0f0f0;
 
     text {
-      font-size: 26rpx;
-      color: #666;
-      line-height: 1.7;
-    }
-  }
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 160rpx 0;
-
-  .empty-icon {
-    font-size: 80rpx;
-  }
-
-  .empty-title {
-    font-size: 32rpx;
-    color: #333;
-    font-weight: bold;
-    margin-top: 24rpx;
-  }
-
-  .empty-desc {
-    font-size: 26rpx;
-    color: #767676;
-    margin-top: 12rpx;
-  }
-}
 
 .loading-tip {
   display: flex;

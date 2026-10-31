@@ -64,6 +64,11 @@ page {
   --text-hint-strong: #595959;
   --border-color: #f0f0f0;
 
+  /* 骨架屏：统一占位块样式令牌（灰底闪光 + 暗色变体），全站复用 */
+  --skel-bg: linear-gradient(90deg, #efefef 25%, #f5f5f5 50%, #efefef 75%);
+  --skel-bg-dark: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+  --skel-radius: 12rpx;
+
   background-color: var(--bg-page);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
@@ -86,6 +91,7 @@ page {
     --text-hint: #8c8c8c;
     --text-hint-strong: #a6a6a6;
     --border-color: #3a3a3a;
+    --skel-bg: var(--skel-bg-dark);
   }
 }
 
@@ -151,7 +157,7 @@ page {
 
 /* 渐变文字 */
 .gradient-text {
-  background: linear-gradient(90deg, #b13bff, #ff5e9c);
+  background: linear-gradient(90deg, var(--color-primary-deep), var(--color-primary));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -169,39 +175,6 @@ page {
   .glass {
     background: Canvas;
     border-color: CanvasText;
-  }
-}
-
-/* 空状态容器 */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80rpx 40rpx;
-
-  .empty-icon {
-    width: 160rpx;
-    height: 160rpx;
-    border-radius: 50%;
-    background: var(--bg-icon-soft);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 64rpx;
-    margin-bottom: 24rpx;
-  }
-
-  .empty-title {
-    font-size: 30rpx;
-    font-weight: bold;
-    color: var(--text-secondary);
-    margin-bottom: 8rpx;
-  }
-
-  .empty-desc {
-    font-size: 24rpx;
-    color: var(--text-hint);
   }
 }
 
@@ -290,7 +263,7 @@ page {
 
 /* 渐变主按钮 */
 .btn-gradient {
-  background: linear-gradient(90deg, #b13bff, #ff5e9c);
+  background: linear-gradient(90deg, var(--color-primary-deep), var(--color-primary));
   color: #fff;
   border: none;
   box-shadow: 0 8rpx 24rpx rgba(177, 59, 255, 0.35);
@@ -314,19 +287,17 @@ page {
   }
 }
 
-/* 骨架占位块（灰底 + 横向闪光扫过） */
+/* 骨架占位块（统一灰底闪光，令牌化以支持暗色/系统主题） */
 .skeleton {
-  background: linear-gradient(90deg, #efefef 25%, #f5f5f5 50%, #efefef 75%);
+  background: var(--skel-bg);
   background-size: 800rpx 100%;
   animation: shimmer 1.4s ease-in-out infinite;
-  border-radius: 12rpx;
+  border-radius: var(--skel-radius);
 }
 
-@media (prefers-color-scheme: dark) {
-  .skeleton {
-    background: linear-gradient(90deg, #2c2c2c 25%, #3a3a3a 50%, #2c2c2c 75%);
-    background-size: 800rpx 100%;
-  }
+/* 暗色背景占位（如视频页）：始终使用暗色渐变，不随系统主题切换 */
+.skeleton--dark {
+  background-image: var(--skel-bg-dark);
 }
 
 /* ===== 无障碍：尊重系统「减弱动态效果」偏好（WCAG 2.3.3 / 2.2.2） =====

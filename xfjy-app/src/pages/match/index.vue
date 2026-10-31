@@ -28,13 +28,7 @@
       </view>
 
       <!-- 空状态 -->
-      <view v-if="cardList.length === 0 && !loading" class="empty-state">
-        <view class="empty-icon">
-          <text>💭</text>
-        </view>
-        <text class="empty-title">暂无推荐</text>
-        <text class="empty-desc">稍后再来看看，缘分不期而至</text>
-      </view>
+      <empty-state title="暂无推荐" desc="稍后再来看看，缘分不期而至" />
 
       <!-- 卡片堆叠（从后往前渲染） -->
       <view
@@ -121,6 +115,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
+import EmptyState from "@/components/empty-state.vue";
 import { onShow, onShareAppMessage } from "@dcloudio/uni-app";
 import { useMatchStore } from "@/store/match";
 import { getCards, type TodayBest } from "@/api/match";
@@ -606,7 +601,7 @@ onShareAppMessage(() => ({
 
       .fate-fill {
         height: 100%;
-        background: linear-gradient(90deg, #b13bff, #ff5e9c);
+        background: linear-gradient(90deg, var(--color-primary-deep), var(--color-primary));
         border-radius: 6rpx;
         transition: width 0.4s ease-out;
       }
@@ -682,7 +677,7 @@ onShareAppMessage(() => ({
     &.rewind {
       width: 88rpx;
       height: 88rpx;
-      background: linear-gradient(135deg, #b13bff, #ff5e9c);
+      background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary));
       color: #fff;
       box-shadow: 0 6rpx 20rpx rgba(255, 179, 71, 0.4);
     }

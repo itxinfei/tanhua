@@ -9,11 +9,7 @@
     </view>
 
     <!-- 空状态 -->
-    <view v-else-if="list.length === 0" class="empty-state">
-      <view class="empty-icon"><uni-icons type="notification" size="28" color="#767676"></uni-icons></view>
-      <text class="empty-title">暂无通知</text>
-      <text class="empty-desc">有人喜欢你时会在这里提醒你</text>
-    </view>
+    <empty-state icon="notification" title="暂无通知" desc="有人喜欢你时会在这里提醒你" />
 
     <!-- 通知列表 -->
     <template v-else>
@@ -35,6 +31,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import EmptyState from "@/components/empty-state.vue";
 import { onLoad, onShow, onPullDownRefresh } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
 import { useChatStore, type NoticeType } from "@/store/chat";
@@ -217,16 +214,7 @@ onPullDownRefresh(async () => {
     .desc { font-size: 24rpx; color: #767676; margin-top: 6rpx; display: block; }
   }
   /* #ccc → #767676 */
-  .time { font-size: 22rpx; color: #767676; flex-shrink: 0; }
-}
-
-/* 空状态 */
-.empty-state { display: flex; flex-direction: column; align-items: center; padding: 160rpx 0 80rpx;
-  .empty-icon { width: 120rpx; height: 120rpx; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 56rpx; margin-bottom: 24rpx; }
-  .empty-title { font-size: 30rpx; color: #595959; font-weight: bold; }
-  /* #aaa → #767676 */
-  .empty-desc { font-size: 24rpx; color: #767676; margin-top: 12rpx; }
-}
+  .time {
 
 /* VIP 权益锁定状态 */
 .locked-state { display: flex; flex-direction: column; align-items: center; padding: 160rpx 48rpx 80rpx;

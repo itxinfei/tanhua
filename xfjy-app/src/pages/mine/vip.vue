@@ -305,7 +305,7 @@ onLoad(() => {
 .plan-card { flex: 1; background: rgba(255, 255, 255, 0.08); border-radius: 20rpx; padding: 36rpx 16rpx 32rpx; text-align: center; position: relative; border: 2rpx solid transparent; transition: all 0.25s ease;
   &.selected { border-color: #ffd700; background: rgba(255, 215, 0, 0.12); box-shadow: 0 0 24rpx rgba(255, 215, 0, 0.25); transform: translateY(-8rpx); }
   /* 18rpx≈9px 低于最小可读字号，放大至 22rpx */
-  .plan-tag { position: absolute; top: -16rpx; left: 50%; transform: translateX(-50%); background: linear-gradient(90deg, #b13bff, #ff5e9c); color: #fff; font-size: 22rpx; padding: 4rpx 18rpx; border-radius: 16rpx; white-space: nowrap; }
+  .plan-tag { position: absolute; top: -16rpx; left: 50%; transform: translateX(-50%); background: linear-gradient(90deg, var(--color-primary-deep), var(--color-primary)); color: #fff; font-size: 22rpx; padding: 4rpx 18rpx; border-radius: 16rpx; white-space: nowrap; }
   .plan-name { font-size: 28rpx; color: #fff; display: block; }
   .plan-price { font-size: 48rpx; font-weight: 900; color: #ffd700; display: block; margin: 12rpx 0 4rpx; }
   .plan-unit { font-size: 20rpx; color: rgba(255, 255, 255, 0.78); display: block; }

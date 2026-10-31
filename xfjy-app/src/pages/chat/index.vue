@@ -15,44 +15,12 @@
     </view>
 
     <!-- 聊天列表 -->
-    <view class="chat-list">
-      <view v-if="chatList.length === 0" class="empty-state">
-        <view class="empty-icon">
-          <text>💌</text>
-        </view>
-        <text class="empty-title">还没有聊天</text>
-        <text class="empty-desc">去匹配页滑动，遇见新朋友吧</text>
-      </view>
-      <a11y-button
-        v-for="contact in chatList"
-        :key="contact.userId"
-        class="chat-item"
-        :label="chatItemLabel(contact)"
-        @tap="goChatDetail(contact)"
-      >
-        <view class="avatar-wrap">
-          <image class="avatar" :src="contact.avatar" mode="aspectFill" lazy-load aria-hidden="true" />
-          <view v-if="contact.online" class="online-dot" aria-hidden="true" />
-        </view>
-        <view class="chat-info">
-          <view class="top-row">
-            <text class="nickname">{{ contact.nickname }}</text>
-            <text v-if="contact.age" class="time">{{ contact.age }}岁</text>
-          </view>
-          <view class="bottom-row">
-            <text class="last-msg ellipsis">{{ contact.lastMessage || contact.city || '打个招呼吧' }}</text>
-            <view v-if="contact.unreadCount > 0" class="unread-badge" aria-hidden="true">{{ contact.unreadCount > 99 ? '99+' : contact.unreadCount }}</view>
-          </view>
-        </view>
-      </a11y-button>
-    </view>
-    <!-- 匹配成功弹窗（全局，由 match store 驱动） -->
-    <MatchPopup />
-  </view>
+    <empty-state title="还没有聊天" desc="去匹配页滑动，遇见新朋友吧" />
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import EmptyState from "@/components/empty-state.vue";
 import { onShow, onPullDownRefresh } from "@dcloudio/uni-app";
 import MatchPopup from "@/components/match-popup.vue";
 import A11yButton from "@/components/a11y-button.vue";
@@ -258,7 +226,7 @@ onPullDownRefresh(async () => {
         text-align: center;
         font-size: 20rpx;
         color: #fff;
-        background: linear-gradient(135deg, #b13bff, #ff5e9c);
+        background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary));
         border-radius: 16rpx;
         padding: 0 8rpx;
         border: 2rpx solid #fff;
@@ -346,7 +314,7 @@ onPullDownRefresh(async () => {
           text-align: center;
           font-size: 20rpx;
           color: #fff;
-          background: linear-gradient(135deg, #b13bff, #ff5e9c);
+          background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary));
           border-radius: 16rpx;
           padding: 0 8rpx;
           margin-left: 16rpx;

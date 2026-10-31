@@ -82,7 +82,7 @@
       <text class="section-title">TA的动态</text>
       <!-- 动态项：改为可聚焦按钮；不设 aria-label 以保留内部正文朗读 -->
       <a11y-button v-for="m in movements" :key="m.id" class="movement-item" @tap="goMovementDetail(m.id)">
-        <image lazy-load v-if="m.imageContent && m.imageContent.length > 0" class="m-cover" :src="m.imageContent[0]" mode="aspectFill" lazy-load aria-label="动态封面图片" />
+        <image lazy-load v-if="m.imageContent && m.imageContent.length > 0" class="m-cover" :src="m.imageContent[0]" mode="aspectFill" aria-label="动态封面图片" />
         <view class="m-body">
           <text class="m-text ellipsis-2">{{ m.textContent }}</text>
           <view class="m-stats">
@@ -363,14 +363,14 @@ onLoad(async (options: any) => {
 
 .name-row { display: flex; align-items: center; gap: 16rpx;
   .nickname { font-size: 42rpx; font-weight: bold; color: #222; }
-  .age-badge { background: linear-gradient(135deg, #b13bff, #ff5e9c); color: #fff; font-size: 24rpx; padding: 4rpx 16rpx; border-radius: 16rpx; }
+  .age-badge { background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary)); color: #fff; font-size: 24rpx; padding: 4rpx 16rpx; border-radius: 16rpx; }
 }
 
 /* 缘分值进度条 */
 .fate-row { display: flex; align-items: center; gap: 16rpx; margin-top: 24rpx;
   .fate-label { font-size: 24rpx; color: #767676; flex-shrink: 0; }
   .fate-bar { flex: 1; height: 16rpx; background: #f0f0f0; border-radius: 8rpx; overflow: hidden; }
-  .fate-fill { height: 100%; background: linear-gradient(90deg, #b13bff, #ff5e9c); border-radius: 8rpx; transition: width 0.6s ease-out; }
+  .fate-fill { height: 100%; background: linear-gradient(90deg, var(--color-primary-deep), var(--color-primary)); border-radius: 8rpx; transition: width 0.6s ease-out; }
   .fate-score { font-size: 30rpx; font-weight: bold; color: #ff5e9c; flex-shrink: 0; min-width: 48rpx; text-align: right; }
 }
 
@@ -390,7 +390,7 @@ onLoad(async (options: any) => {
 .question-section { margin-top: 32rpx;
   .question-item { display: flex; align-items: flex-start; gap: 16rpx; padding: 18rpx 0; border-bottom: 1rpx solid #f5f5f5;
     &:last-child { border-bottom: none; }
-    .q-index { width: 36rpx; height: 36rpx; border-radius: 50%; background: linear-gradient(135deg, #b13bff, #ff5e9c); color: #fff; font-size: 22rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2rpx; }
+    .q-index { width: 36rpx; height: 36rpx; border-radius: 50%; background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary)); color: #fff; font-size: 22rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2rpx; }
     .question { font-size: 26rpx; color: #555; line-height: 1.5; }
   }
 }
@@ -420,7 +420,7 @@ onLoad(async (options: any) => {
     &.chat { background: linear-gradient(135deg, #4a90d9, #6bb0f5); color: #fff; box-shadow: 0 6rpx 18rpx rgba(74, 144, 217, 0.35); }
   }
   /* 主按钮：超级喜欢 / 喜欢 */
-  &.super-like { width: 100rpx; height: 100rpx; font-size: 46rpx; background: linear-gradient(135deg, #b13bff, #ff5e9c); color: #fff; box-shadow: 0 8rpx 22rpx rgba(177, 59, 255, 0.4); }
-  &.like { width: 110rpx; height: 110rpx; font-size: 52rpx; background: linear-gradient(135deg, #b13bff, #ff5e9c); color: #fff; box-shadow: 0 8rpx 24rpx rgba(255, 94, 142, 0.4); }
+  &.super-like { width: 100rpx; height: 100rpx; font-size: 46rpx; background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary)); color: #fff; box-shadow: 0 8rpx 22rpx rgba(177, 59, 255, 0.4); }
+  &.like { width: 110rpx; height: 110rpx; font-size: 52rpx; background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary)); color: #fff; box-shadow: 0 8rpx 24rpx rgba(255, 94, 142, 0.4); }
 }
 </style>

@@ -36,11 +36,7 @@
       @refresherrefresh="onRefresh"
       @scrolltolower="loadMore"
     >
-      <view v-if="userList.length === 0 && !loading" class="empty-state">
-        <view class="empty-icon"><uni-icons type="person" size="28" color="#767676"></uni-icons></view>
-        <text class="empty-title">暂无数据</text>
-        <text class="empty-desc">去探花频道发现更多有缘人</text>
-      </view>
+      <empty-state icon="person" title="暂无数据" desc="去探花频道发现更多有缘人" />
 
       <!-- 每行 = 一个可聚焦的列表项 + 独立操作按钮（避免可聚焦元素嵌套） -->
       <view v-for="user in userList" :key="user.id" class="user-row">
@@ -95,6 +91,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import EmptyState from "@/components/empty-state.vue";
 import { onLoad } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
 import {
@@ -345,7 +342,7 @@ function goDetail(userId: string): void {
 
   &.follow {
     color: #fff;
-    background: linear-gradient(135deg, #b13bff, #ff5e9c);
+    background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary));
     box-shadow: 0 4rpx 14rpx rgba(255, 94, 142, 0.3);
   }
 }

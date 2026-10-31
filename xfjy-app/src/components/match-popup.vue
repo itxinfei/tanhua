@@ -55,7 +55,7 @@ function goChat(): void {
     .match-title {
       font-size: 64rpx;
       font-weight: 900;
-      background: linear-gradient(90deg, #b13bff, #ff5e9c);
+      background: linear-gradient(90deg, var(--color-primary-deep), var(--color-primary));
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -92,7 +92,7 @@ function goChat(): void {
       gap: 32rpx;
 
       .send-msg {
-        background: linear-gradient(90deg, #b13bff, #ff5e9c);
+        background: linear-gradient(90deg, var(--color-primary-deep), var(--color-primary));
         color: #fff;
         font-size: 30rpx;
         padding: 0 48rpx;

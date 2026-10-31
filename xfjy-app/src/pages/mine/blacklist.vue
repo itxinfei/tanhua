@@ -9,11 +9,7 @@
       @refresherrefresh="onRefresh"
       @scrolltolower="loadMore"
     >
-      <view v-if="userList.length === 0 && !loading" class="empty-state">
-        <view class="empty-icon"><text>🛡</text></view>
-        <text class="empty-title">黑名单为空</text>
-        <text class="empty-desc">被拉黑的用户将无法与你互动</text>
-      </view>
+      <empty-state title="黑名单为空" desc="被拉黑的用户将无法与你互动" />
 
       <!-- 行容器：信息区与操作按钮分离，避免可聚焦控件嵌套 -->
       <view v-for="user in userList" :key="user.id" class="user-row">
@@ -49,6 +45,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import EmptyState from "@/components/empty-state.vue";
 import A11yButton from "@/components/a11y-button.vue";
 import {
   getBlacklist,

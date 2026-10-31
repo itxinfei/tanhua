@@ -5,11 +5,11 @@
       <text class="tag-name">{{ tag }}</text>
     </view>
 
-    <view v-if="loading && list.length === 0" class="state-tip">加载中...</view>
-    <view v-if="!loading && list.length === 0" class="empty-state">
-      <text class="empty-title">暂无相关动态</text>
-      <text class="empty-desc">换个话题看看吧</text>
-    </view>
+    <empty-state
+      v-if="!loading && list.length === 0"
+      title="暂无相关动态"
+      desc="换个话题看看吧"
+    />
 
     <view
       v-for="item in list"
@@ -43,6 +43,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import EmptyState from "@/components/empty-state.vue";
 import { onLoad } from "@dcloudio/uni-app";
 import { searchMovementsByTag } from "@/api/circle";
 import type { Movement } from "@/api/circle";
@@ -110,27 +111,6 @@ onLoad((options: any) => {
     font-size: 32rpx;
     font-weight: bold;
     color: #333;
-  }
-}
-
-.state-tip,
-.empty-state {
-  text-align: center;
-  padding: 80rpx 0;
-  color: #767676;
-  font-size: 26rpx;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  gap: 12rpx;
-  .empty-title {
-    font-size: 28rpx;
-    color: #595959;
-  }
-  .empty-desc {
-    font-size: 24rpx;
   }
 }
 
