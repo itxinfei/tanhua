@@ -65,7 +65,7 @@ export const useUserStore = defineStore("user", () => {
       gender: profile.gender || userInfo.value?.gender || "",
       age: Number(profile.age) || userInfo.value?.age || 0,
       city: profile.city || userInfo.value?.city || "",
-      signature: userInfo.value?.signature || "",
+      signature: profile.signature || userInfo.value?.signature || "",
       verified: userInfo.value?.verified || false,
       vip: userInfo.value?.vip || false,
       photoAlbum: userInfo.value?.photoAlbum || [],

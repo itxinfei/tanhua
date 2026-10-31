@@ -27,3 +27,5 @@
 2026-10-31 | xfjy-app 前端 | 抽离公共骨架屏组件 components/skeleton.vue（variant: feed/video）：circle 首页与 video 页改用 <skeleton variant=... />，删除两页各自的 .skeleton-card/.skeleton-video 内联骨架样式与死 CSS；match 页保持页内堆叠骨架（依赖 VISIBLE_CARD_COUNT 等域常量，不强抽）| 开发者：itxinfei
 
 2026-10-31 | xfjy-app 前端 | 骨架屏组件 components/skeleton.vue 新增 match 变体（卡片堆叠占位）：match 首页改用 <skeleton variant="match" />，堆叠参数 stack-count/stack-scale-step/stack-offset-step/stack-base-z 由页面域常量透传（默认值与页面一致），删除页内 .skeleton-cards 死 CSS；全站三种骨架（feed/video/match）现已统一收敛到同一组件 | 开发者：itxinfei
+
+2026-10-31 | xfjy-app 前端 | 修复「我的」页头部头像/昵称未与后端打通：mine/index.vue onShow 新增 userStore.fetchUserInfo() 调用（此前仅加载关系统计，用户信息仅登录时写入，恢复登录态或编辑资料后头部恒显「未设置昵称」+默认头像）；同步修正 store/user.ts fetchUserInfo 忽略 profile.signature 的映射 bug | 开发者：itxinfei

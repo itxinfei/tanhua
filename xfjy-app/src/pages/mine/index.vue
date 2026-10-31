@@ -201,6 +201,8 @@ onShow(() => {
   const sysInfo = uni.getSystemInfoSync();
   statusBarHeight.value =
     sysInfo.statusBarHeight || DEFAULT_STATUS_BAR_HEIGHT_PX;
+  // 同步最新用户资料（头像/昵称等），避免登录态恢复或编辑资料后头部显示陈旧默认值
+  userStore.fetchUserInfo().catch(() => {});
   loadCounts();
 });
 </script>
