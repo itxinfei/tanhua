@@ -4,13 +4,18 @@ server:
 spring:
   application:
     name: xfjy-server
+  web:
+    resources:
+      add-mappings: false   # 禁用静态资源映射（关闭默认资源处理）
+  mvc:
+    throw-exception-if-no-handler-found: true
   cloud:
     nacos:
       discovery:
-        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
-        username: ${NACOS_USERNAME:nacos}
-        password: ${NACOS_PASSWORD:}
-        namespace: ${NACOS_NAMESPACE:}
+        server-addr: 192.168.20.133:8848
+        username: nacos
+        password: nacos
+        namespace:
   profiles:
     active: local
   servlet:
@@ -33,21 +38,21 @@ mybatis-plus:
 xfjy:
   match:
     service:
-      url: http://${SERVICE_HOST:127.0.0.1}:18082  # 探花匹配服务（推荐用户/地理位置/附近的人）
+      url: http://127.0.0.1:18082  # 探花匹配服务（推荐用户/地理位置/附近的人）
   user:
     service:
-      url: http://${SERVICE_HOST:127.0.0.1}:18090  # 用户关系服务（好友/喜欢/访客）
+      url: http://127.0.0.1:18090  # 用户关系服务（好友/喜欢/访客）
   circle:
     service:
-      url: http://${SERVICE_HOST:127.0.0.1}:18084  # 圈子动态服务（动态/评论/时间线）
+      url: http://127.0.0.1:18084  # 圈子动态服务（动态/评论/时间线）
   video:
     service:
-      url: http://${SERVICE_HOST:127.0.0.1}:18085  # 小视频服务（视频/关注作者）
+      url: http://127.0.0.1:18085  # 小视频服务（视频/关注作者）
   message:
     service:
-      url: http://${SERVICE_HOST:127.0.0.1}:18086  # 消息/IM服务（环信集成：好友注册/消息下发）
+      url: http://127.0.0.1:18086  # 消息/IM服务（环信集成：好友注册/消息下发）
   sso:
-    url: http://${SERVICE_HOST:127.0.0.1}:18080
+    url: http://127.0.0.1:18080
     default:
       user: 2
       recommend:
@@ -65,21 +70,24 @@ xfjy:
     cold-start:
       enabled: true       # T5 冷启动开关，false 时回退默认推荐用户
       fallback-size: 20   # 冷启动召回数量
-  # Qdrant 向量检索（T3-1，中间件后期部署，不可用时自动降级空召回）
+  # Qdrant 向量检索（T3-1 互惠匹配增强，不可用时自动降级空召回）
   qdrant:
-    host: 127.0.0.1
+    enabled: false  # 内网开发环境默认关闭，接入核心链路后改 true
+    host: 192.168.20.133
     port: 6333
     collection: user_embedding
     vector-size: 64
-  # Neo4j 图数据库（P2 二度好友推荐，中间件后期部署，不可用时自动降级空召回）
+  # Neo4j 图数据库（P2 二度好友推荐，不可用时自动降级空召回）
   neo4j:
-    uri: ${NEO4J_URI:http://127.0.0.1:7474}
+    enabled: false
+    # bolt 协议 Neo4j Java Driver 配置（原有 uri 仅 HTTP 管理台）
+    bolt-uri: bolt://192.168.20.133:7687
     username: neo4j
-    password: ${NEO4J_PASSWORD:}
+    password: itxinfei123456
   # 极光推送 JPush（凭证环境变量外置，留空走 mock 模式仅打日志不实际推送）
   jpush:
-    app-key: ${JPUSH_APP_KEY:}
-    master-secret: ${JPUSH_MASTER_SECRET:}
+    app-key: 
+    master-secret: 
     enabled: true
 
 # Sa-Token 认证鉴权（管理后台）
@@ -92,6 +100,11 @@ sa-token:
   is-share: false
   token-style: uuid
   is-log: false
+
+# 内部服务鉴权 Token（与域服务保持一致，调用域服务时自动注入 X-Internal-Token 头）
+internal:
+  auth:
+    tokens: -xfjy-internal-dev-token-change-in-prod
 
 # Spring Boot Actuator 运行状态监控
 management:

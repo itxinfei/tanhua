@@ -4,17 +4,22 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
-        username: ${NACOS_USERNAME:nacos}
-        password: ${NACOS_PASSWORD:}
-        namespace: ${NACOS_NAMESPACE:}
+        server-addr: 192.168.20.133:8848
+        username: nacos
+        password: nacos
+        namespace:
   elasticsearch:
-    uris: ${ELASTICSEARCH_URIS:http://127.0.0.1:9200}
+    uris: http://192.168.20.133:9200
     connection-timeout: 5s
     socket-timeout: 30s
 
 server:
   port: 18088
+
+# 内部服务鉴权 Token（可选逗号分隔，生产环境建议通过 INTERNAL_AUTH_TOKENS 环境变量注入覆盖）
+internal:
+  auth:
+    tokens: -xfjy-internal-dev-token-change-in-prod
 
 logging:
   level:

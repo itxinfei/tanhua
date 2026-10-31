@@ -6,13 +6,18 @@ import com.xfjy.service.pojo.ValueAddedService;
 import com.xfjy.service.pojo.VipPackage;
 import com.xfjy.service.vo.BenefitCheckVo;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.HttpExchange;
 import org.springframework.web.service.annotation.PostExchange;
+import org.springframework.web.service.annotation.PutExchange;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 支付服务契约（@HttpExchange 由 server 编排层代理调用）
@@ -109,4 +114,115 @@ public interface PayApi {
     @PostMapping("/benefit/usage")
     Boolean recordBenefitUsage(@RequestParam("userId") Long userId,
                                @RequestParam("serviceCode") String serviceCode);
+
+    // ==================== 后台管理接口 ====================
+
+    /**
+     * 后台只读：支付订单分页查询
+     */
+    @GetExchange("/admin/orders")
+    @GetMapping("/admin/orders")
+    Map<String, Object> queryOrderPage(@RequestParam("page") Integer page,
+                                       @RequestParam("pageSize") Integer pageSize,
+                                       @RequestParam(value = "orderNo", required = false) String orderNo,
+                                       @RequestParam(value = "status", required = false) String status,
+                                       @RequestParam(value = "userId", required = false) Long userId);
+
+    /**
+     * 后台只读：订单汇总统计
+     */
+    @GetExchange("/admin/orders/summary")
+    @GetMapping("/admin/orders/summary")
+    Map<String, Object> queryOrderSummary(@RequestParam(value = "status", required = false) String status,
+                                          @RequestParam(value = "startDate", required = false) String startDate,
+                                          @RequestParam(value = "endDate", required = false) String endDate);
+
+    /**
+     * 后台管理：新增 VIP 套餐
+     */
+    @PostExchange("/admin/packages")
+    @PostMapping("/admin/packages")
+    Boolean createPackage(@RequestParam("name") String name,
+                          @RequestParam("level") Integer level,
+                          @RequestParam("price") Long price,
+                          @RequestParam(value = "originalPrice", required = false) Long originalPrice,
+                          @RequestParam("durationDays") Integer durationDays,
+                          @RequestParam(value = "description", required = false) String description,
+                          @RequestParam(value = "sort", required = false) Integer sort);
+
+    /**
+     * 后台管理：编辑 VIP 套餐
+     */
+    @PutExchange("/admin/packages/{id}")
+    @PutMapping("/admin/packages/{id}")
+    Boolean updatePackage(@PathVariable("id") Long id, @RequestBody Map<String, Object> body);
+
+    /**
+     * 后台管理：套餐上架/下架
+     */
+    @PostExchange("/admin/packages/{id}/status")
+    @PostMapping("/admin/packages/{id}/status")
+    Boolean togglePackage(@PathVariable("id") Long id, @RequestParam("status") Integer status);
+
+    /**
+     * 后台管理：编辑增值权益
+     */
+    @PutExchange("/admin/benefits/{id}")
+    @PutMapping("/admin/benefits/{id}")
+    Boolean updateBenefit(@PathVariable("id") Long id, @RequestBody Map<String, Object> body);
+
+    /**
+     * 后台管理：权益启用/停用
+     */
+    @PostExchange("/admin/benefits/{id}/status")
+    @PostMapping("/admin/benefits/{id}/status")
+    Boolean toggleBenefit(@PathVariable("id") Long id, @RequestParam("status") Integer status);
+
+    /**
+     * 后台分页查询 VIP 套餐
+     */
+    @GetExchange("/admin/packages/page")
+    @GetMapping("/admin/packages/page")
+    Map<String, Object> queryPackagePage(@RequestParam("page") Integer page,
+                                         @RequestParam("pageSize") Integer pageSize,
+                                         @RequestParam(value = "name", required = false) String name,
+                                         @RequestParam(value = "status", required = false) Integer status);
+
+    /**
+     * 后台分页查询增值权益
+     */
+    @GetExchange("/admin/benefits/page")
+    @GetMapping("/admin/benefits/page")
+    Map<String, Object> queryBenefitPage(@RequestParam("page") Integer page,
+                                         @RequestParam("pageSize") Integer pageSize,
+                                         @RequestParam(value = "name", required = false) String name,
+                                         @RequestParam(value = "status", required = false) Integer status);
+
+    /**
+     * 后台看板：支付订单趋势（近N天已支付订单数）
+     */
+    @GetExchange("/admin/orders/trend")
+    @GetMapping("/admin/orders/trend")
+    Map<String, Object> payTrend(@RequestParam("days") Integer days);
+
+    /**
+     * 后台看板：支付方式分布（已支付订单按支付方式分组）
+     */
+    @GetExchange("/admin/orders/pay-type-distribution")
+    @GetMapping("/admin/orders/pay-type-distribution")
+    Map<String, Object> payTypeDistribution();
+
+    /**
+     * 后台查询全部套餐（含下架）
+     */
+    @GetExchange("/admin/packages/all")
+    @GetMapping("/admin/packages/all")
+    List<VipPackage> queryAllPackages();
+
+    /**
+     * 后台查询全部权益（含停用）
+     */
+    @GetExchange("/admin/benefits/all")
+    @GetMapping("/admin/benefits/all")
+    List<ValueAddedService> queryAllBenefits();
 }

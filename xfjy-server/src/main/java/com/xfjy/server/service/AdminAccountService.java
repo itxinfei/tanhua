@@ -6,11 +6,11 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xfjy.server.mapper.AdminMapper;
 import com.xfjy.server.pojo.Admin;
 import com.xfjy.server.utils.AdminThreadLocal;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -31,6 +31,8 @@ public class AdminAccountService {
 
     @Autowired
     private AdminMapper adminMapper;
+
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     /**
      * 分页查询管理员列表
@@ -71,7 +73,7 @@ public class AdminAccountService {
 
         Admin admin = new Admin();
         admin.setUsername(username);
-        admin.setPassword(DigestUtils.md5Hex(password));
+        admin.setPassword(passwordEncoder.encode(password));
         admin.setNickname(StringUtils.isNotBlank(nickname) ? nickname : username);
         admin.setRole(role);
         admin.setStatus("NORMAL");
@@ -142,7 +144,7 @@ public class AdminAccountService {
         if (admin == null) {
             return false;
         }
-        admin.setPassword(DigestUtils.md5Hex(newPassword));
+        admin.setPassword(passwordEncoder.encode(newPassword));
         admin.setUpdated(new Date());
         return this.adminMapper.updateById(admin) > 0;
     }

@@ -17,6 +17,7 @@ import com.xfjy.server.service.SysConfigService;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.context.annotation.Bean;
@@ -34,12 +35,14 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.io.IOException;
 import java.net.URI;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * HTTP Service Client 代理配置
  * 替代原 Dubbo @Reference 远程调用，服务地址解析策略：
- * 1. Nacos 服务发现优先：注入 DiscoveryClient，每次请求从注册中心解析目标实例 host/port
- * 2. 静态 URL 兜底：注册中心无可用实例时回退 @Value 配置的本地地址（单服务调试场景）
+ * 1. Spring Cloud LoadBalancer 优先：注入 @LoadBalanced RestClient.Builder，通过 lb:// 协议自动服务发现与负载均衡
+ * 2. DiscoveryClient 轮询兜底：LoadBalancer 不可用时回退 DiscoveryClient + AtomicInteger 简单轮询
+ *
  * - 探花匹配服务（xfjy-match-service，18082）：推荐用户/地理位置/附近的人
  * - 用户关系服务（xfjy-user-service，18090）：好友/喜欢/访客 + 用户资料
  * - 圈子动态服务（xfjy-circle-service，18084）：动态/评论/时间线
@@ -50,87 +53,98 @@ import java.util.List;
 @Configuration
 public class HttpServiceProxyConfig {
 
-    /** 服务发现客户端（Nacos），未接入注册中心时为 null，走静态 URL 兜底 */
+    /** LoadBalancer 增强的 RestClient.Builder，通过 lb:// 协议自动服务发现与负载均衡；不可用时为 null */
+    private final RestClient.Builder loadBalancedBuilder;
+
+    /** 服务发现客户端（Nacos），LoadBalancer 不可用时的轮询兜底 */
     private final DiscoveryClient discoveryClient;
 
-    @Value("${xfjy.match.service.url:http://127.0.0.1:18082}")
-    private String matchServiceUrl;
+    /** 内部鉴权 Token，用于调用域服务时注入 X-Internal-Token 头 */
+    private final String internalAuthToken;
 
-    @Value("${xfjy.user.service.url:http://127.0.0.1:18090}")
-    private String userServiceUrl;
-
-    @Value("${xfjy.circle.service.url:http://127.0.0.1:18084}")
-    private String circleServiceUrl;
-
-    @Value("${xfjy.video.service.url:http://127.0.0.1:18085}")
-    private String videoServiceUrl;
-
-    @Value("${xfjy.message.service.url:http://127.0.0.1:18086}")
-    private String messageServiceUrl;
-
-    @Value("${xfjy.pay.service.url:http://127.0.0.1:18089}")
-    private String payServiceUrl;
-
-    public HttpServiceProxyConfig(ObjectProvider<DiscoveryClient> discoveryClientProvider) {
+    public HttpServiceProxyConfig(@LoadBalanced ObjectProvider<RestClient.Builder> loadBalancedBuilderProvider,
+                                  ObjectProvider<DiscoveryClient> discoveryClientProvider,
+                                  @Value("${internal.auth.tokens:}") String internalAuthTokens) {
+        this.loadBalancedBuilder = loadBalancedBuilderProvider.getIfAvailable();
         this.discoveryClient = discoveryClientProvider.getIfAvailable();
+        // 取第一个 token（逗号分隔时取 primary）
+        this.internalAuthToken = internalAuthTokens != null && !internalAuthTokens.isBlank()
+                ? internalAuthTokens.split(",")[0].trim() : "";
     }
 
     @Bean
     public HttpServiceProxyFactory matchServiceProxyFactory() {
-        return buildFactory("xfjy-match-service", matchServiceUrl);
+        return buildFactory("xfjy-match-service");
     }
 
     @Bean
     public HttpServiceProxyFactory userServiceProxyFactory() {
-        return buildFactory("xfjy-user-service", userServiceUrl);
+        return buildFactory("xfjy-user-service");
     }
 
     @Bean
     public HttpServiceProxyFactory circleServiceProxyFactory() {
-        return buildFactory("xfjy-circle-service", circleServiceUrl);
+        return buildFactory("xfjy-circle-service");
     }
 
     @Bean
     public HttpServiceProxyFactory videoServiceProxyFactory() {
-        return buildFactory("xfjy-video-service", videoServiceUrl);
+        return buildFactory("xfjy-video-service");
     }
 
     @Bean
     public HttpServiceProxyFactory messageServiceProxyFactory() {
-        return buildFactory("xfjy-message-service", messageServiceUrl);
+        return buildFactory("xfjy-message-service");
     }
 
     @Bean
     public HttpServiceProxyFactory payServiceProxyFactory() {
-        return buildFactory("xfjy-pay-service", payServiceUrl);
+        return buildFactory("xfjy-pay-service");
     }
 
     /**
-     * 构建代理工厂：baseUrl 为静态兜底地址，注册中心可用时由拦截器动态替换为实例地址。
+     * 构建代理工厂。
+     * 优先使用 @LoadBalanced RestClient.Builder 通过 lb:// 协议实现服务发现与负载均衡；
+     * LoadBalancer 不可用时回退 DiscoveryClient + AtomicInteger 轮询；
+     * 两者均不可用则抛出异常提示配置缺失。
      *
-     * @param serviceId   Nacos 服务名（须与各服务 spring.application.name 一致）
-     * @param fallbackUrl 静态兜底地址（本地调试，注册中心无实例时使用）
+     * @param serviceId Nacos 服务名（须与各服务 spring.application.name 一致）
      */
-    private HttpServiceProxyFactory buildFactory(String serviceId, String fallbackUrl) {
-        RestClient.Builder builder = RestClient.builder().baseUrl(fallbackUrl);
-        if (this.discoveryClient != null) {
-            builder.requestInterceptor(new ServiceInstanceInterceptor(serviceId, this.discoveryClient));
+    private HttpServiceProxyFactory buildFactory(String serviceId) {
+        if (this.loadBalancedBuilder != null) {
+            var builder = this.loadBalancedBuilder.clone()
+                    .baseUrl("lb://" + serviceId);
+            if (!this.internalAuthToken.isEmpty()) {
+                builder.defaultHeader("X-Internal-Token", this.internalAuthToken);
+            }
+            RestClient restClient = builder.build();
+            return HttpServiceProxyFactory
+                    .builderFor(RestClientAdapter.create(restClient))
+                    .build();
         }
-        RestClient restClient = builder.build();
-        return HttpServiceProxyFactory
-                .builderFor(RestClientAdapter.create(restClient))
-                .build();
+        if (this.discoveryClient != null) {
+            RestClient restClient = RestClient.builder()
+                    .requestInterceptor(new ServiceInstanceInterceptor(serviceId, this.discoveryClient))
+                    .build();
+            return HttpServiceProxyFactory
+                    .builderFor(RestClientAdapter.create(restClient))
+                    .build();
+        }
+        throw new IllegalStateException(
+                "Neither @LoadBalanced RestClient.Builder nor DiscoveryClient is available for service: " + serviceId
+                + ". Please ensure spring-cloud-starter-loadbalancer is on the classpath or a DiscoveryClient bean is configured.");
     }
 
     /**
-     * 服务发现拦截器：每次请求从注册中心解析目标实例并替换请求 host/port，
-     * 注册中心无可用实例时回退 baseUrl 静态地址。
-     * 单实例部署取第一个实例；多实例时由 DiscoveryClient 缓存列表轮询扩展。
+     * 服务发现拦截器（LoadBalancer 不可用时的轮询兜底方案）。
+     * 每次请求从注册中心解析目标实例，使用 AtomicInteger 实现简单轮询并替换请求 host/port，
+     * 注册中心无可用实例时回退 RestClient 默认 baseUrl。
      */
     private static final class ServiceInstanceInterceptor implements ClientHttpRequestInterceptor {
 
         private final String serviceId;
         private final DiscoveryClient discoveryClient;
+        private final AtomicInteger counter = new AtomicInteger(0);
 
         ServiceInstanceInterceptor(String serviceId, DiscoveryClient discoveryClient) {
             this.serviceId = serviceId;
@@ -142,7 +156,8 @@ public class HttpServiceProxyConfig {
                 throws IOException {
             List<ServiceInstance> instances = this.discoveryClient.getInstances(this.serviceId);
             if (instances != null && !instances.isEmpty()) {
-                ServiceInstance instance = instances.get(0);
+                int index = Math.abs(this.counter.getAndIncrement()) % instances.size();
+                ServiceInstance instance = instances.get(index);
                 URI resolved = UriComponentsBuilder.fromUri(request.getURI())
                         .scheme(Boolean.TRUE.equals(instance.isSecure()) ? "https" : "http")
                         .host(instance.getHost())

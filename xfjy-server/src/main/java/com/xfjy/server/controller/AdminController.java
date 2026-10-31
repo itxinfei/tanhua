@@ -3,11 +3,11 @@ package com.xfjy.server.controller;
 import com.xfjy.server.pojo.Admin;
 import com.xfjy.server.service.AdminService;
 import com.xfjy.server.utils.AdminThreadLocal;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -59,6 +59,8 @@ public class AdminController {
     /**
      * 修改密码
      */
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
     @PutMapping("password")
     public ResponseEntity<Void> changePassword(@RequestBody Map<String, String> param) {
         Admin admin = AdminThreadLocal.get();
@@ -72,14 +74,14 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
 
-        // 校验旧密码
+        // 校验旧密码（BCrypt）
         Admin dbAdmin = this.adminService.queryAdminById(admin.getId());
-        if (dbAdmin == null || !DigestUtils.md5Hex(oldPassword).equals(dbAdmin.getPassword())) {
+        if (dbAdmin == null || !passwordEncoder.matches(oldPassword, dbAdmin.getPassword())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
 
-        // 更新新密码
-        dbAdmin.setPassword(DigestUtils.md5Hex(newPassword));
+        // 更新新密码（BCrypt）
+        dbAdmin.setPassword(passwordEncoder.encode(newPassword));
         this.adminService.updateAdmin(dbAdmin);
         return ResponseEntity.ok().build();
     }

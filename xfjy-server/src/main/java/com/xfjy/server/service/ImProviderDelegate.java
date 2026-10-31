@@ -89,4 +89,12 @@ public class ImProviderDelegate implements HuanXinApi {
         }
         return huanXinApiClient.getChatMessages(fromUserId, toUserId, limit, cursor);
     }
+
+    @Override
+    public Long getTodayMessageCount() {
+        if (useWuKongIm()) {
+            return wuKongImApiClient.getTodayMessageCount();
+        }
+        return huanXinApiClient.getTodayMessageCount();
+    }
 }

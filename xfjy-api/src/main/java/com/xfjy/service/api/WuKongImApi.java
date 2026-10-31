@@ -1,8 +1,10 @@
 package com.xfjy.service.api;
 
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.HttpExchange;
 import org.springframework.web.service.annotation.PostExchange;
 
@@ -107,4 +109,16 @@ public interface WuKongImApi {
                                          @RequestParam("toUserId") String toUserId,
                                          @RequestParam("limit") Integer limit,
                                          @RequestParam(value = "cursor", required = false) String cursor);
+
+    /**
+     * 今日消息数统计（后台看板使用）
+     *
+     * 通过 WuKongIM /message/statistics 获取今日消息总量
+     * WuKongIM 不支持该端点时返回 null，前端显示「待接入」
+     *
+     * @return 今日消息数；获取失败返回 null
+     */
+    @GetExchange("/message-stats")
+    @GetMapping("/message-stats")
+    Long getTodayMessageCount();
 }

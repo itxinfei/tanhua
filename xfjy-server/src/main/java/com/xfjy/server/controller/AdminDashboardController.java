@@ -101,4 +101,56 @@ public class AdminDashboardController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+    /**
+     * 实时统计：今日消息数、动态发布数、视频发布数
+     */
+    @GetMapping("realtime-stats")
+    public ResponseEntity<Map<String, Object>> realtimeStats() {
+        try {
+            return ResponseEntity.ok(this.adminDashboardService.realtimeStats());
+        } catch (Exception e) {
+            LOGGER.error("接口处理异常", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * 在线用户统计：当前在线数、今日峰值
+     */
+    @GetMapping("online-stats")
+    public ResponseEntity<Map<String, Object>> onlineStats() {
+        try {
+            return ResponseEntity.ok(this.adminDashboardService.onlineStats());
+        } catch (Exception e) {
+            LOGGER.error("接口处理异常", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * 热门内容 TOP5：动态 + 视频
+     */
+    @GetMapping("hot-content")
+    public ResponseEntity<Map<String, Object>> hotContent() {
+        try {
+            return ResponseEntity.ok(this.adminDashboardService.hotContent());
+        } catch (Exception e) {
+            LOGGER.error("接口处理异常", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * 按维度趋势：动态发布趋势 + 视频发布趋势（近N天）
+     */
+    @GetMapping("trend-by-dimension")
+    public ResponseEntity<Map<String, Object>> trendByDimension(@RequestParam(defaultValue = "7") Integer days) {
+        try {
+            return ResponseEntity.ok(this.adminDashboardService.trendByDimension(days));
+        } catch (Exception e) {
+            LOGGER.error("接口处理异常", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 }

@@ -6,17 +6,17 @@ spring:
     name: xfjy-gateway
   data:
     redis:
-      host: ${REDIS_HOST:127.0.0.1}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
+      host: 192.168.20.133
+      port: 6379
+      password: 123456
       timeout: 3s
   cloud:
     nacos:
       discovery:
-        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
-        username: ${NACOS_USERNAME:nacos}
-        password: ${NACOS_PASSWORD:}
-        namespace: ${NACOS_NAMESPACE:}
+        server-addr: 192.168.20.133:8848
+        username: nacos
+        password: nacos
+        namespace:
     loadbalancer:
       nacos:
         enabled: true
@@ -44,3 +44,8 @@ spring:
           # 调用各域服务(user 18090 / match 18082 / circle 18084 / video 18085 / message 18086)，
           # gateway 不直连各域服务，避免跨域聚合逻辑散落到前端。路由已切换 lb://xfjy-server 服务发现。
           # 辅助服务：recommend 18087(评分计算) / elasticsearch 18088(附近的人ES查询)，仅内部调用不走网关。
+
+# 内部服务鉴权 Token（与域服务保持一致，网关转发时自动注入 X-Internal-Token 头）
+internal:
+  auth:
+    tokens: -xfjy-internal-dev-token-change-in-prod

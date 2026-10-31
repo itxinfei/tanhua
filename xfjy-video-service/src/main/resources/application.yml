@@ -7,20 +7,25 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
-        username: ${NACOS_USERNAME:nacos}
-        password: ${NACOS_PASSWORD:}
-        namespace: ${NACOS_NAMESPACE:}
+        server-addr: 192.168.20.133:8848
+        username: nacos
+        password: nacos
+        namespace:
   mongodb:
-    uri: ${MONGODB_URI:mongodb://127.0.0.1:27017/xfjy}
+    uri: mongodb://192.168.20.133:27017/xfjy
   data:
     redis:
-      host: ${REDIS_HOST:127.0.0.1}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
+      host: 192.168.20.133
+      port: 6379
+      password: 123456
       database: 0
 
+# 内部服务鉴权 Token（可选逗号分隔，生产环境建议通过 INTERNAL_AUTH_TOKENS 环境变量注入覆盖）
+internal:
+  auth:
+    tokens: -xfjy-internal-dev-token-change-in-prod
+
 rocketmq:
-  name-server: ${ROCKETMQ_NAME_SERVER:127.0.0.1:9876}
+  name-server: 192.168.20.133:9876
   producer:
     group: xfjy-video

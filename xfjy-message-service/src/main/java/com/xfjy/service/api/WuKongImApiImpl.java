@@ -6,6 +6,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,6 +17,9 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
@@ -299,6 +303,40 @@ public class WuKongImApiImpl implements WuKongImApi {
             result.put("messages", Collections.emptyList());
             result.put("cursor", "");
             return result;
+        }
+    }
+
+    /**
+     * 今日消息数统计
+     *
+     * 通过 WuKongIM /message/statistics 获取今日消息总量
+     * WuKongIM 不支持该端点时返回 null，前端显示「待接入」
+     */
+    @Override
+    @GetMapping("/message-stats")
+    public Long getTodayMessageCount() {
+        try {
+            Map<String, Object> body = new HashMap<>();
+            // WuKongIM /message/statistics 需要 start_time/end_time 参数（毫秒时间戳）
+            LocalDate today = LocalDate.now();
+            LocalDateTime startOfDay = today.atStartOfDay();
+            LocalDateTime endOfDay = today.atTime(23, 59, 59);
+            body.put("start_time", startOfDay.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+            body.put("end_time", endOfDay.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+
+            ResponseEntity<String> resp = post("/message/statistics", body);
+            if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
+                log.warn("[WuKongIM] 消息统计失败: status={}", resp.getStatusCode());
+                return null;
+            }
+
+            JsonNode node = MAPPER.readTree(resp.getBody());
+            long count = node.path("count").asLong(0L);
+            log.info("[WuKongIM] 今日消息统计: {}", count);
+            return count;
+        } catch (Exception e) {
+            log.error("[WuKongIM] 消息统计异常", e);
+            return null;
         }
     }
 

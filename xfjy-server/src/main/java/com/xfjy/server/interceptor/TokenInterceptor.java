@@ -24,6 +24,12 @@ public class TokenInterceptor implements HandlerInterceptor {
     /** 设备指纹 Redis key 前缀，value 为该用户使用过的 deviceId 集合 */
     private static final String DEVICE_KEY_PREFIX = "XFJY_USER_DEVICE_";
 
+    /** 在线用户 Redis ZSET key，score=最后活跃时间戳(ms)，member=userId */
+    private static final String ONLINE_KEY = "XFJY_ONLINE_USERS";
+
+    /** 在线用户心跳有效期：5 分钟无请求视为离线 */
+    private static final long ONLINE_TTL_MS = 5 * 60 * 1000L;
+
     @Autowired
     private UserService userService;
 
@@ -58,6 +64,9 @@ public class TokenInterceptor implements HandlerInterceptor {
 
         // 设备指纹记录：header 携带 deviceId 时写入用户设备集合（本期仅记录，用于风控分析，不阻断）
         recordDeviceId(user.getId(), request.getHeader("deviceId"));
+
+        // 在线用户心跳：更新 ZSET 中该用户的最后活跃时间戳（用于看板在线统计）
+        recordOnlineHeartbeat(user.getId());
         return true;
     }
 
@@ -72,6 +81,21 @@ public class TokenInterceptor implements HandlerInterceptor {
             this.redisTemplate.opsForSet().add(DEVICE_KEY_PREFIX + userId, deviceId);
         } catch (Exception e) {
             LOGGER.warn("设备指纹记录失败 userId={} deviceId={}", userId, deviceId, e);
+        }
+    }
+
+    /**
+     * 在线用户心跳：将用户ID写入 ZSET（score=当前时间戳），
+     * 5 分钟无请求的用户在看板统计时被过滤掉，视为离线
+     */
+    private void recordOnlineHeartbeat(Long userId) {
+        if (userId == null) {
+            return;
+        }
+        try {
+            this.redisTemplate.opsForZSet().add(ONLINE_KEY, String.valueOf(userId), System.currentTimeMillis());
+        } catch (Exception e) {
+            LOGGER.warn("在线心跳记录失败 userId={}", userId, e);
         }
     }
 

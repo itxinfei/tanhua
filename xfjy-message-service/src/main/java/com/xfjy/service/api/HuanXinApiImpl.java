@@ -7,6 +7,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -452,5 +453,20 @@ public class HuanXinApiImpl implements HuanXinApi {
         } else {
             return "[" + type + "]";
         }
+    }
+
+    /**
+     * 今日消息数统计
+     *
+     * 环信 REST API 没有提供按日期统计消息数的端点，
+     * 此处返回 null，前端显示「待接入」
+     */
+    @Override
+    @GetMapping("/message-stats")
+    public Long getTodayMessageCount() {
+        // 环信 REST API 无 message-stats 端点，暂返回 null
+        // 如需统计可后续接入环信数据报表 API
+        log.info("[环信] 今日消息统计: 环信REST API暂不支持，返回null");
+        return null;
     }
 }

@@ -6,6 +6,7 @@ import com.xfjy.server.mapper.AdminMapper;
 import com.xfjy.server.pojo.Admin;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -19,6 +20,8 @@ public class AdminService {
 
     @Autowired
     private AdminMapper adminMapper;
+
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     /**
      * 管理员登录
@@ -46,9 +49,8 @@ public class AdminService {
             return null;
         }
 
-        // 校验密码（MD5）
-        String md5Password = org.apache.commons.codec.digest.DigestUtils.md5Hex(password);
-        if (!md5Password.equals(admin.getPassword())) {
+        // 校验密码（BCrypt）
+        if (!passwordEncoder.matches(password, admin.getPassword())) {
             return null;
         }
 
