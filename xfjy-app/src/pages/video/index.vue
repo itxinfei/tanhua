@@ -107,16 +107,6 @@
                 </view>
               </a11y-button>
             </view>
-
-            <!-- 旋转音乐唱片（抖音式，置于栏底） -->
-            <view
-              class="side-btn music-disc"
-              :class="{ 'disc-paused': !isPlaying && currentId === video.id }"
-              aria-hidden="true"
-            >
-              <image lazy-load class="disc-img" :src="video.cover" mode="aspectFill" />
-              <text class="disc-note">♪</text>
-            </view>
           </view>
 
           <!-- 底部信息 + 滚动音乐条 -->
@@ -124,7 +114,14 @@
             <text class="author">@{{ video.nickname }}</text>
             <text class="desc ellipsis-2">{{ video.signature }}</text>
             <view class="music-row">
-              <text class="music-ico">♪</text>
+              <!-- 旋转音乐唱片（抖音位：左下角音乐条旁，替代静态音符图标） -->
+              <view
+                class="music-disc"
+                :class="{ 'disc-paused': !isPlaying && currentId === video.id }"
+                aria-hidden="true"
+              >
+                <image lazy-load class="disc-img" :src="video.cover" mode="aspectFill" />
+              </view>
               <view class="music-track">
                 <text class="music-text">{{ video.nickname }} 创作的原声 · {{ video.signature || '小视频' }}</text>
               </view>
@@ -202,6 +199,9 @@ import MatchPopup from "@/components/match-popup.vue";
 import {
   getVideoList,
   getFollowVideoList,
+  getHotVideoList,
+  getFriendVideoList,
+  getLocationVideoList,
   likeVideo,
   dislikeVideo,
   focusVideoUser,
@@ -218,11 +218,25 @@ import { formatCount } from "@/utils/format";
 /** 分页大小 */
 const PAGE_SIZE = 10;
 
-/** 推荐流与关注流各自独立的列表与分页 */
-const recommendVideos = ref<Video[]>([]);
-const recommendPage = ref(1);
-const followVideos = ref<Video[]>([]);
-const followPage = ref(1);
+/** 5 个频道各自独立的列表与分页 */
+const channels = {
+  recommend: { list: ref<Video[]>([]), page: ref(1), hasMore: ref(true) },
+  follow: { list: ref<Video[]>([]), page: ref(1), hasMore: ref(true) },
+  hot: { list: ref<Video[]>([]), page: ref(1), hasMore: ref(true) },
+  friend: { list: ref<Video[]>([]), page: ref(1), hasMore: ref(true) },
+  location: { list: ref<Video[]>([]), page: ref(1), hasMore: ref(true) },
+} as const;
+
+/** 按频道 key 获取对应的 API 请求函数 */
+function getChannelApi(key: ChannelKey) {
+  switch (key) {
+    case "recommend": return getVideoList;
+    case "follow": return getFollowVideoList;
+    case "hot": return getHotVideoList;
+    case "friend": return getFriendVideoList;
+    case "location": return getLocationVideoList;
+  }
+}
 
 const swiperIndex = ref(0);
 type ChannelKey = "hot" | "friend" | "follow" | "location" | "recommend";
@@ -234,20 +248,9 @@ const CHANNELS = [
   { key: "recommend", label: "推荐" },
 ] as const;
 const activeChannel = ref<ChannelKey>("recommend");
-/** 暂未接入后端的频道：展示占位空状态 */
-const PLACEHOLDER_CHANNELS: ChannelKey[] = ["hot", "friend", "location"];
 
-/** 当前 Tab 展示的列表：关注 = 关注流接口返回，推荐 = 推荐流接口返回 */
-const displayList = computed<Video[]>(() => {
-  switch (activeChannel.value) {
-    case "follow":
-      return followVideos.value;
-    case "recommend":
-      return recommendVideos.value;
-    default:
-      return [];
-  }
-});
+/** 当前 Tab 展示的列表 */
+const displayList = computed<Video[]>(() => channels[activeChannel.value].list.value);
 
 /** 评论抽屉状态 */
 const commentVisible = ref(false);
@@ -255,8 +258,6 @@ const activeCommentVideoId = ref("");
 
 /** 分页加载守卫：防止快速滑动触发重复请求；到底后不再重发 */
 const loadingMore = ref(false);
-const recommendHasMore = ref(true);
-const followHasMore = ref(true);
 
 /** 请求代际令牌：切频道/重载后，旧请求的响应直接丢弃 */
 let loadToken = 0;
@@ -305,7 +306,11 @@ function pauseAt(index: number) {
 
 /** H5 首次用户手势后解除静音（浏览器自动播放策略要求首次必须 muted 起播） */
 function unlockAudio() {
-  if (isH5 && isMuted.value) isMuted.value = false;
+  if (isH5 && isMuted.value) {
+    isMuted.value = false;
+    // uni-h5 的 video 组件 :muted 动态绑定不生效，直接改 DOM 保证取消静音
+    document.querySelectorAll("video").forEach((v) => (v.muted = false));
+  }
 }
 
 // 位置变化时退出残留的点击判定与待触发的单击计时（滑切自带"播放新视频"语义）
@@ -350,19 +355,23 @@ function onVideoError() {
 
 /** 空状态文案随频道变化 */
 const emptyStateTitle = computed(() => {
-  if (PLACEHOLDER_CHANNELS.includes(activeChannel.value)) {
-    const label = CHANNELS.find((c) => c.key === activeChannel.value)?.label ?? "";
-    return `「${label}」频道即将上线`;
+  switch (activeChannel.value) {
+    case "follow": return "还没有关注的作者";
+    case "friend": return "还没有好友";
+    case "hot": return "暂无热门视频";
+    case "location": return "暂无附近的视频";
+    default: return "暂无视频";
   }
-  return activeChannel.value === "follow" ? "还没有关注的作者" : "暂无视频";
 });
-const emptyStateDesc = computed(() =>
-  PLACEHOLDER_CHANNELS.includes(activeChannel.value)
-    ? "更多精彩内容正在筹备中，先看看推荐吧"
-    : activeChannel.value === "follow"
-    ? "去推荐页关注喜欢的人吧"
-    : "精彩内容即将上线"
-);
+const emptyStateDesc = computed(() => {
+  switch (activeChannel.value) {
+    case "follow": return "去推荐页关注喜欢的人吧";
+    case "friend": return "去推荐页关注喜欢的人吧";
+    case "hot": return "精彩内容正在路上";
+    case "location": return "开启定位后看看附近的人吧";
+    default: return "精彩内容即将上线";
+  }
+});
 
 /** 双击飞心 */
 const floatHearts = ref<{ id: number; x: number; y: number }[]>([]);
@@ -385,9 +394,8 @@ async function switchChannel(ch: ChannelKey) {
   swiperIndex.value = 0;
   isPlaying.value = true;
   progress.value = 0;
-  if (ch === "follow" && followVideos.value.length === 0) {
-    await loadVideos();
-  } else if (ch === "recommend" && recommendVideos.value.length === 0) {
+  const chState = channels[ch];
+  if (chState.list.value.length === 0) {
     await loadVideos();
   }
 }
@@ -400,6 +408,8 @@ const TAP_GAP = 280;
  * 280ms 内第二次点击视为双击点赞，并撤销待执行的单击
  */
 function onVideoTap(video: Video, e: any) {
+  // 任何点击都是有效的用户手势：立即尝试解锁声音（H5 自动播放策略允许在手势中 unmute）
+  unlockAudio();
   const now = Date.now();
   // 双击冷却期内的残留事件直接忽略，避免其误触发暂停
   if (now < doubleTapCooldownUntil) return;
@@ -507,12 +517,13 @@ async function handleFocus(video: Video) {
       await unfocusVideoUser(video.userId);
       // 关注流中取关：移除该作者的全部视频（同作者可能有多条），并修正播放位置
       if (activeChannel.value === "follow") {
-        followVideos.value = followVideos.value.filter((v) => v.userId !== video.userId);
-        const safeIdx = Math.min(swiperIndex.value, Math.max(0, followVideos.value.length - 1));
+        const chState = channels["follow"];
+        chState.list.value = chState.list.value.filter((v) => v.userId !== video.userId);
+        const safeIdx = Math.min(swiperIndex.value, Math.max(0, chState.list.value.length - 1));
         // 先归 -1 再赋值，保证即使索引数值不变 watch 也能感知"切换到了新的第 safeIdx 条"
         swiperIndex.value = -1;
         swiperIndex.value = safeIdx;
-        if (followVideos.value.length > 0) playAt(safeIdx);
+        if (chState.list.value.length > 0) playAt(safeIdx);
       }
     } else {
       video.hasFocus = 1;
@@ -552,22 +563,18 @@ function doShare(channel: "wechat" | "moments" | "copy") {
  */
 async function loadVideos() {
   const token = ++loadToken;
+  const ch = activeChannel.value;
+  const chState = channels[ch];
+  const apiFn = getChannelApi(ch);
+
   swiperIndex.value = 0;
   loading.value = true;
   try {
-    if (activeChannel.value === "follow") {
-      followPage.value = 1;
-      followHasMore.value = true;
-      const res = await getFollowVideoList({ page: 1, pagesize: PAGE_SIZE });
-      if (token !== loadToken || activeChannel.value !== "follow") return;
-      followVideos.value = res.items || [];
-    } else {
-      recommendPage.value = 1;
-      recommendHasMore.value = true;
-      const res = await getVideoList({ page: 1, pagesize: PAGE_SIZE });
-      if (token !== loadToken || activeChannel.value !== "recommend") return;
-      recommendVideos.value = res.items || [];
-    }
+    chState.page.value = 1;
+    chState.hasMore.value = true;
+    const res = await apiFn({ page: 1, pagesize: PAGE_SIZE });
+    if (token !== loadToken || activeChannel.value !== ch) return;
+    chState.list.value = res.items || [];
     if (displayList.value.length > 0) {
       isPlaying.value = true;
       playAt(0);
@@ -590,31 +597,22 @@ function appendUnique(target: Video[], items: Video[]): Video[] {
  */
 async function loadMoreVideos() {
   if (loadingMore.value) return;
-  if (activeChannel.value === "follow" ? !followHasMore.value : !recommendHasMore.value) return;
-  const token = loadToken;
   const channel = activeChannel.value;
+  const chState = channels[channel];
+  if (!chState.hasMore.value) return;
+  const token = loadToken;
+  const apiFn = getChannelApi(channel);
+
   loadingMore.value = true;
   try {
-    if (channel === "follow") {
-      const nextPage = followPage.value + 1;
-      const res = await getFollowVideoList({ page: nextPage, pagesize: PAGE_SIZE });
-      if (token !== loadToken || activeChannel.value !== "follow") return;
-      if (res.items && res.items.length > 0) {
-        followVideos.value = appendUnique(followVideos.value, res.items);
-        followPage.value = nextPage;
-      } else {
-        followHasMore.value = false;
-      }
+    const nextPage = chState.page.value + 1;
+    const res = await apiFn({ page: nextPage, pagesize: PAGE_SIZE });
+    if (token !== loadToken || activeChannel.value !== channel) return;
+    if (res.items && res.items.length > 0) {
+      chState.list.value = appendUnique(chState.list.value, res.items);
+      chState.page.value = nextPage;
     } else {
-      const nextPage = recommendPage.value + 1;
-      const res = await getVideoList({ page: nextPage, pagesize: PAGE_SIZE });
-      if (token !== loadToken || activeChannel.value !== "recommend") return;
-      if (res.items && res.items.length > 0) {
-        recommendVideos.value = appendUnique(recommendVideos.value, res.items);
-        recommendPage.value = nextPage;
-      } else {
-        recommendHasMore.value = false;
-      }
+      chState.hasMore.value = false;
     }
   } catch {
     // 请求失败由 request 层统一 toast
@@ -643,10 +641,7 @@ watch(
 let wasPlayingBeforeHide = false;
 
 onShow(() => {
-  if (
-    (activeChannel.value === "follow" || activeChannel.value === "recommend") &&
-    displayList.value.length === 0
-  ) {
+  if (displayList.value.length === 0) {
     loadVideos();
   } else if (wasPlayingBeforeHide) {
     wasPlayingBeforeHide = false;
@@ -678,7 +673,9 @@ onShareAppMessage(() => ({
 
 <style lang="scss" scoped>
 .video-page {
-  height: calc(100vh - var(--window-bottom, 0px));
+  /* tab 页可用高度 = 视口 - 原生 tabbar；禁用 var(--window-bottom)（页面 body 上为 0px，
+     会让页面铺满整屏、底部信息区被 tabbar 遮挡，见需求文档附录 B2.2） */
+  height: calc(100vh - var(--tab-bar-height, 0px));
   background: #000;
   position: relative;
 }
@@ -739,7 +736,7 @@ onShareAppMessage(() => ({
 }
 
 .video-swiper {
-  height: calc(100vh - var(--window-bottom, 0px));
+  height: calc(100vh - var(--tab-bar-height, 0px));
 }
 
 .video-item {
@@ -833,7 +830,8 @@ onShareAppMessage(() => ({
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 40rpx;
+    /* 探探/抖音按钮排：紧凑间距（40rpx 偏松） */
+    gap: 24rpx;
   }
 
   .side-btn {
@@ -892,38 +890,6 @@ onShareAppMessage(() => ({
       box-shadow: 0 4rpx 12rpx rgba(255, 94, 156, 0.5);
     }
   }
-
-  /* 旋转音乐唱片 */
-  .music-disc {
-    position: relative;
-    width: 96rpx;
-    height: 96rpx;
-    border-radius: 50%;
-    background: #111;
-    border: 6rpx solid rgba(255, 255, 255, 0.9);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-
-    .disc-img {
-      width: 64rpx;
-      height: 64rpx;
-      border-radius: 50%;
-      animation: spin 5s linear infinite;
-    }
-
-    &.disc-paused .disc-img {
-      animation-play-state: paused;
-    }
-
-    .disc-note {
-      position: absolute;
-      font-size: 30rpx;
-      color: #fff;
-      text-shadow: 0 1rpx 4rpx rgba(0,0,0,0.6);
-    }
-  }
 }
 
 @keyframes spin {
@@ -961,10 +927,30 @@ onShareAppMessage(() => ({
     align-items: center;
     margin-top: 14rpx;
 
-    .music-ico {
-      font-size: 26rpx;
-      color: #fff;
-      margin-right: 10rpx;
+    /* 旋转音乐唱片（抖音位：左下角音乐条旁） */
+    .music-disc {
+      flex-shrink: 0;
+      width: 56rpx;
+      height: 56rpx;
+      border-radius: 50%;
+      background: #111;
+      border: 4rpx solid rgba(255, 255, 255, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      margin-right: 12rpx;
+
+      .disc-img {
+        width: 36rpx;
+        height: 36rpx;
+        border-radius: 50%;
+        animation: spin 5s linear infinite;
+      }
+
+      &.disc-paused .disc-img {
+        animation-play-state: paused;
+      }
     }
 
     .music-track {

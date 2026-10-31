@@ -120,6 +120,66 @@ public class VideoController {
     }
 
     /**
+     * 查询「热点」流：按点赞数排序的热门视频（分页）
+     */
+    @GetMapping("/hot")
+    public ResponseEntity<PageResult> queryHotVideoList(@RequestParam(value = "page", defaultValue = "1") Integer page,
+                                                       @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize) {
+        try {
+            if (page <= 0) {
+                page = 1;
+            }
+            PageResult pageResult = this.videoService.queryHotVideoList(page, pageSize);
+            if (null != pageResult) {
+                return ResponseEntity.ok(pageResult);
+            }
+        } catch (Exception e) {
+            LOGGER.error("接口处理异常", e);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+
+    /**
+     * 查询「朋友」流：当前用户关注的作者发布的视频（分页）
+     */
+    @GetMapping("/friend")
+    public ResponseEntity<PageResult> queryFriendVideoList(@RequestParam(value = "page", defaultValue = "1") Integer page,
+                                                           @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize) {
+        try {
+            if (page <= 0) {
+                page = 1;
+            }
+            PageResult pageResult = this.videoService.queryFriendVideoList(page, pageSize);
+            if (null != pageResult) {
+                return ResponseEntity.ok(pageResult);
+            }
+        } catch (Exception e) {
+            LOGGER.error("接口处理异常", e);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+
+    /**
+     * 查询「定位」流：有地理位置信息的视频（分页）
+     */
+    @GetMapping("/location")
+    public ResponseEntity<PageResult> queryLocationVideoList(@RequestParam(value = "page", defaultValue = "1") Integer page,
+                                                             @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize) {
+        try {
+            if (page <= 0) {
+                page = 1;
+            }
+            PageResult pageResult = this.videoService.queryLocationVideoList(page, pageSize);
+            if (null != pageResult) {
+                return ResponseEntity.ok(pageResult);
+            }
+        } catch (Exception e) {
+            LOGGER.error("接口处理异常", e);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+
+    /**
      * 视频点赞
      *
      * @param videoId 视频id

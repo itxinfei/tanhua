@@ -111,6 +111,30 @@ export function getFollowVideoList(params: PageParam): Promise<PageResult<Video>
 }
 
 /**
+ * 查询「热点」流视频（按点赞数排序）
+ * 对接后端: GET /smallVideos/hot
+ */
+export function getHotVideoList(params: PageParam): Promise<PageResult<Video>> {
+  return get<PageResult<Video>>("/smallVideos/hot", params as any);
+}
+
+/**
+ * 查询「朋友」流视频（当前用户关注的作者发布的视频）
+ * 对接后端: GET /smallVideos/friend
+ */
+export function getFriendVideoList(params: PageParam): Promise<PageResult<Video>> {
+  return get<PageResult<Video>>("/smallVideos/friend", params as any);
+}
+
+/**
+ * 查询「定位」流视频（有地理位置信息的视频）
+ * 对接后端: GET /smallVideos/location
+ */
+export function getLocationVideoList(params: PageParam): Promise<PageResult<Video>> {
+  return get<PageResult<Video>>("/smallVideos/location", params as any);
+}
+
+/**
  * 视频点赞
  * 对接后端: POST /smallVideos/{id}/like
  *

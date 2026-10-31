@@ -256,6 +256,89 @@ public class VideoService {
     }
 
     /**
+     * 查询「热点」流：按点赞数排序的热门视频（分页）
+     *
+     * 实现：取最新 100 条视频，从 Redis 读取点赞数排序后截取当前页。
+     * 数据量增大后可改为 MongoDB 存 likeCount 字段 + 索引排序。
+     */
+    public PageResult queryHotVideoList(Integer page, Integer pageSize) {
+        User user = UserThreadLocal.get();
+
+        PageResult pageResult = new PageResult();
+        pageResult.setPage(page);
+        pageResult.setPagesize(pageSize);
+        pageResult.setPages(0);
+        pageResult.setCounts(0);
+
+        // 取最新 100 条视频作为候选池
+        PageInfo<Video> allPage = this.videoApi.queryVideoList(1, 100);
+        List<Video> records = allPage.getRecords();
+        if (records == null || records.isEmpty()) {
+            pageResult.setItems(new ArrayList<>());
+            return pageResult;
+        }
+
+        // 按点赞数降序排序（Redis key: QUANZI_COMMENT_LIKE_{videoId}）
+        records.sort((a, b) -> {
+            String keyA = "QUANZI_COMMENT_LIKE_" + a.getId().toHexString();
+            String keyB = "QUANZI_COMMENT_LIKE_" + b.getId().toHexString();
+            String valA = this.redisTemplate.opsForValue().get(keyA);
+            String valB = this.redisTemplate.opsForValue().get(keyB);
+            long likeA = valA != null ? Long.parseLong(valA) : 0;
+            long likeB = valB != null ? Long.parseLong(valB) : 0;
+            return Long.compare(likeB, likeA);
+        });
+
+        // 分页截取
+        int startIndex = (page - 1) * pageSize;
+        if (startIndex >= records.size()) {
+            pageResult.setItems(new ArrayList<>());
+            return pageResult;
+        }
+        int endIndex = Math.min(startIndex + pageSize, records.size());
+        List<Video> pageRecords = records.subList(startIndex, endIndex);
+
+        List<VideoVo> videoVoList = this.assembleVideoVoList(pageRecords, user.getId());
+        pageResult.setItems(videoVoList);
+
+        return pageResult;
+    }
+
+    /**
+     * 查询「朋友」流：当前用户关注的作者发布的视频（分页）
+     *
+     * 与「关注」流逻辑一致，保留独立接口便于后续扩展
+     * （如加入互相关注的好友、互动好友等更丰富的社交关系）。
+     */
+    public PageResult queryFriendVideoList(Integer page, Integer pageSize) {
+        return this.queryFollowVideoList(page, pageSize);
+    }
+
+    /**
+     * 查询「定位」流：有地理位置信息的视频（分页）
+     */
+    public PageResult queryLocationVideoList(Integer page, Integer pageSize) {
+        User user = UserThreadLocal.get();
+
+        PageResult pageResult = new PageResult();
+        pageResult.setPage(page);
+        pageResult.setPagesize(pageSize);
+        pageResult.setPages(0);
+        pageResult.setCounts(0);
+
+        PageInfo<Video> pageInfo = this.videoApi.queryLocationVideoList(page, pageSize);
+        List<Video> records = pageInfo.getRecords();
+        if (records == null || records.isEmpty()) {
+            pageResult.setItems(new ArrayList<>());
+            return pageResult;
+        }
+        List<VideoVo> videoVoList = this.assembleVideoVoList(records, user.getId());
+        pageResult.setItems(videoVoList);
+
+        return pageResult;
+    }
+
+    /**
      * 关注用户
      *
      * @param userId

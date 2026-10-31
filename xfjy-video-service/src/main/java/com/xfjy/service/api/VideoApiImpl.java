@@ -272,4 +272,19 @@ public class VideoApiImpl implements VideoApi {
         LOGGER.info("批量删除视频完成: success={}, failed={}", success, failed);
         return result;
     }
+
+    @Override
+    @GetMapping("/queryLocationVideoList")
+    public PageInfo<Video> queryLocationVideoList(@RequestParam("page") Integer page,
+                                                   @RequestParam("pageSize") Integer pageSize) {
+        Pageable pageable = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Order.desc("created")));
+        Query query = Query.query(Criteria.where("locationName").ne(null)).with(pageable);
+        List<Video> videos = this.mongoTemplate.find(query, Video.class);
+        PageInfo<Video> pageInfo = new PageInfo<>();
+        pageInfo.setRecords(videos);
+        pageInfo.setPageNum(page);
+        pageInfo.setPageSize(pageSize);
+        pageInfo.setTotal(0);
+        return pageInfo;
+    }
 }

@@ -119,4 +119,13 @@ public interface VideoApi {
     @PostExchange("/batchRemoveVideo")
     @PostMapping("/batchRemoveVideo")
     Map<String, Object> batchRemoveVideo(@RequestBody List<String> videoIds);
+
+    /**
+     * 查询带地理位置的视频列表（定位频道）
+     * 仅返回有经纬度数据的视频，按创建时间倒序
+     */
+    @GetExchange("/queryLocationVideoList")
+    @GetMapping("/queryLocationVideoList")
+    PageInfo<Video> queryLocationVideoList(@RequestParam("page") Integer page,
+                                           @RequestParam("pageSize") Integer pageSize);
 }
