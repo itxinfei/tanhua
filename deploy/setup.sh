@@ -9,7 +9,7 @@ cd "$(dirname "$0")"
 
 COMPOSE_FILE="docker-compose.middleware.yml"
 MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-123456}"
-SQL_FILE="../scripts/mytanhua.sql"
+SQL_FILE="../scripts/xfjy.sql"
 
 log()  { echo -e "\033[32m[setup]\033[0m $*"; }
 warn() { echo -e "\033[33m[warn]\033[0m $*" >&2; }
@@ -64,7 +64,7 @@ if [ -f "$SQL_FILE" ]; then
   fi
 else
   warn "未找到 $SQL_FILE（被 .gitignore 忽略需单独上传），请手动导入："
-  warn "  docker exec -i xfjy-mysql mysql -uroot -p$MYSQL_ROOT_PASSWORD --default-character-set=utf8mb4 xfjy < scripts/mytanhua.sql"
+  warn "  docker exec -i xfjy-mysql mysql -uroot -p$MYSQL_ROOT_PASSWORD --default-character-set=utf8mb4 xfjy < scripts/xfjy.sql"
 fi
 
 # 5. 等待容器稳定

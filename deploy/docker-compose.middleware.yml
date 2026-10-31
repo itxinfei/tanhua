@@ -15,11 +15,13 @@ volumes:
   redis-data:
   mongo-data:
   es-data:
+  es-data9:
   nacos-data:
   rocketmq-namesrv-logs:
   rocketmq-broker-store:
   qdrant-data:
   neo4j-data:
+  minio-data:
 
 services:
 
@@ -85,7 +87,7 @@ services:
       - xfjy-net
 
   elasticsearch:
-    image: docker.m.daocloud.io/docker.elastic.co/elasticsearch/elasticsearch:8.17.0
+    image: docker.m.daocloud.io/docker.elastic.co/elasticsearch/elasticsearch:9.4.5
     container_name: xfjy-es
     restart: unless-stopped
     environment:
@@ -97,7 +99,7 @@ services:
     ports:
       - "9200:9200"
     volumes:
-      - es-data:/usr/share/elasticsearch/data
+      - es-data9:/usr/share/elasticsearch/data
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://127.0.0.1:9200/_cluster/health || exit 1"]
       interval: 15s
@@ -202,6 +204,53 @@ services:
       timeout: 5s
       retries: 10
       start_period: 40s
+    networks:
+      - xfjy-net
+
+  minio:
+    # 对象存储（替代阿里云 OSS）：S3 API 9000，管理控制台 9001
+    image: docker.m.daocloud.io/minio/minio:latest
+    container_name: xfjy-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      TZ: Asia/Shanghai
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:9000/minio/health/live || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - xfjy-net
+
+  minio-init:
+    # 一次性任务：创建业务桶 test-media 并设为公开下载（匿名可读），与 server minio.bucketName 对齐
+    image: docker.m.daocloud.io/minio/mc:latest
+    container_name: xfjy-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    restart: "no"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      BUCKET_NAME: test-media
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD};
+      mc mb --ignore-existing local/$${BUCKET_NAME};
+      mc anonymous set download local/$${BUCKET_NAME};
+      echo 'minio bucket ready:';
+      mc ls local;
+      "
     networks:
       - xfjy-net
 

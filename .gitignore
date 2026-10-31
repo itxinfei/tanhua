@@ -36,6 +36,9 @@ hs_err_pid*
 **/.env
 **/.env.*
 !**/.env.example
+# 后台前端构建用的公开配置（不含密钥），需要随代码提交
+!xfjy-admin/.env.development
+!xfjy-admin/.env.production
 
 # 密钥/证书文件
 **/*.pem

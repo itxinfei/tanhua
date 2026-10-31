@@ -4,7 +4,7 @@
 # 构建上下文：deploy/build/xfjy-admin/（由 deploy/ci/stage-artifacts.sh 暂存）
 #   目录内含：前端源码、nginx.conf、本 Dockerfile
 #   不用仓库根目录作 context，避免每次构建传输整个仓库（~10GB）。
-# VITE_API_BASE_URL 决定前端打包后调用的后端网关地址（默认 192.168.20.133:8090）。
+# VITE_API_BASE_URL 决定前端打包后调用的后端地址（默认 /api，由 nginx 同源反代到网关）。
 #
 # 构建阶段复用 CI 镜像（xfjy/ci:latest）作为基底：
 #   服务器访问 Docker Hub 极慢，node:22-bookworm 拉不动；
@@ -14,7 +14,7 @@
 # ============================================================
 FROM xfjy/ci:latest AS build
 
-ARG VITE_API_BASE_URL=http://192.168.20.133:8090
+ARG VITE_API_BASE_URL=/api
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 # npm 走国内镜像（npmmirror），避免直连 registry.npmjs.org 极慢
 ENV npm_config_registry=https://registry.npmmirror.com
