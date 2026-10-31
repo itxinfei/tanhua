@@ -1,0 +1,22 @@
+# ============================================================
+# LiveKit SFU 生产配置（单节点，无需 Redis；集群多节点才需 redis）
+# 官方配置参考：https://github.com/livekit/livekit/blob/master/config-sample.yaml
+# 注意：上线前请把 keys 的密钥改为随机长字符串，并与后端 livekit.api.* 保持一致
+# ============================================================
+
+port: 7880
+log_level: info
+
+rtc:
+  # 云服务器/有公网映射时通过 STUN 自动发现公网 IP
+  use_external_ip: true
+  # UDP 不通时的 WebRTC over TCP 回退端口（必须直接暴露，不能放 TLS/负载均衡后面）
+  tcp_port: 7881
+  # WebRTC 媒体 UDP 端口范围（防火墙需放行，每个参与者约占 2 个端口）
+  port_range_start: 50000
+  port_range_end: 60000
+
+# API key / secret 对：后端用它签发客户端 JWT；可配多对
+# 格式：<key>: <secret>
+keys:
+  xfjykey: CHANGE_ME_TO_RANDOM_SECRET_32_CHARS_MIN

@@ -22,6 +22,7 @@ volumes:
   qdrant-data:
   neo4j-data:
   minio-data:
+  wukongim-data:
 
 services:
 
@@ -255,3 +256,45 @@ services:
       - xfjy-net
 
   # CI/CD 已迁移到 Gitea：见 deploy/docker-compose.gitea.yml（xfjy-gitea + xfjy-act-runner）
+
+  wukongim:
+    # 即时消息/信令通道（替代环信）：HTTP API 5001、TCP 5100、WebSocket 5200、管理台 5300
+    image: docker.m.daocloud.io/wukongim/wukongim:latest
+    container_name: xfjy-wukongim
+    restart: unless-stopped
+    environment:
+      WK_MODE: release
+      WK_EXTERNAL_IP: ${WUKONGIM_EXTERNAL_IP:-192.168.20.133}
+      TZ: Asia/Shanghai
+    ports:
+      - "5001:5001"
+      - "5100:5100"
+      - "5200:5200"
+      - "5300:5300"
+    volumes:
+      - wukongim-data:/root/wukongim
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:5001/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - xfjy-net
+
+  livekit:
+    # 音视频 SFU 媒体服务器（替代环信音视频）：信令 7880、TCP 回退 7881、UDP 媒体 50000-60000
+    image: docker.m.daocloud.io/livekit/livekit-server:latest
+    container_name: xfjy-livekit
+    restart: unless-stopped
+    command: --config /etc/livekit/config.yaml
+    environment:
+      TZ: Asia/Shanghai
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "50000-60000:50000-60000/udp"
+    volumes:
+      - ./livekit/config.yaml:/etc/livekit/config.yaml:ro
+    networks:
+      - xfjy-net
