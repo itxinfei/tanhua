@@ -1,5 +1,11 @@
 <template>
   <view class="publish-page">
+    <!-- 顶部栏：自定义导航（取消返回），使发布成为明确的全屏流程 -->
+    <view class="pub-header" :style="{ paddingTop: statusBarHeight + 'px' }">
+      <a11y-button class="pub-cancel" label="取消发布" @tap="handleCancel">取消</a11y-button>
+      <text class="pub-title">发布动态</text>
+      <view class="pub-spacer" aria-hidden="true"></view>
+    </view>
     <!-- 文字输入 -->
     <textarea
       v-model="content"
@@ -63,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import A11yButton from "@/components/a11y-button.vue";
 import { publishMovement } from "@/api/circle";
 
@@ -83,6 +89,13 @@ const latitude = ref("");
 const selectedTopics = ref<string[]>([]);
 const isInputFocus = ref(false);
 const submitting = ref(false);
+
+/** 状态栏高度（自定义导航适配） */
+const statusBarHeight = ref(0);
+/** 取消发布：返回上一页（圈子 tab 恢复） */
+function handleCancel(): void {
+  uni.navigateBack();
+}
 
 /** 是否可发布（内容或图片至少一项） */
 const canPublish = computed(() => content.value.trim().length > 0 || images.value.length > 0);
@@ -159,10 +172,20 @@ async function handlePublish(): Promise<void> {
     if (!published) submitting.value = false;
   }
 }
+
+onMounted(() => {
+  const sys = uni.getSystemInfoSync();
+  statusBarHeight.value = sys.statusBarHeight || 20;
+});
 </script>
 
 <style lang="scss" scoped>
 .publish-page { min-height: 100vh; background: #fff; padding: 32rpx; }
+
+.pub-header { position: sticky; top: 0; margin: -32rpx -32rpx 24rpx; padding: 0 24rpx; height: 88rpx; display: flex; align-items: center; justify-content: space-between; background: #fff; border-bottom: 1rpx solid #f5f5f5; z-index: 10; }
+.pub-cancel { font-size: 30rpx; color: #767676; }
+.pub-title { font-size: 32rpx; font-weight: 600; color: #333; }
+.pub-spacer { width: 60rpx; }
 
 /* ===== 文字输入 ===== */
 .content-input { width: 100%; height: 280rpx; font-size: 30rpx; line-height: 1.6; padding: 20rpx; border-radius: 16rpx; background: #fafafa; transition: all 0.2s;

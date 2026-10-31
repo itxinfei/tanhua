@@ -13,6 +13,9 @@
           @tap="switchChannel(ch.key)"
         >{{ ch.label }}</a11y-button>
       </view>
+      <a11y-button class="search-btn" label="搜索" @tap="onSearch">
+        <uni-icons type="search" size="28" color="#fff"></uni-icons>
+      </a11y-button>
     </view>
 
     <swiper
@@ -330,6 +333,11 @@ function toggleMute() {
   isMuted.value = !isMuted.value;
 }
 
+/** 搜索（暂未上线） */
+function onSearch(): void {
+  uni.showToast({ title: "搜索功能即将上线", icon: "none" });
+}
+
 /**
  * 切换顶部 Tab，重置到首条
  */
@@ -639,6 +647,15 @@ onShareAppMessage(() => ({
   }
 }
 
+.search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56rpx;
+  height: 56rpx;
+  flex-shrink: 0;
+}
+
 .video-swiper {
   height: calc(100vh - var(--window-bottom, 0px));
 }
@@ -708,10 +725,13 @@ onShareAppMessage(() => ({
 .side-bar {
   position: absolute;
   right: 24rpx;
-  bottom: 220rpx;
+  top: 0;
+  bottom: 0;
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
   gap: 40rpx;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24rpx);
   z-index: 10;
 
   .side-btn {

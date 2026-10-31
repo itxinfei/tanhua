@@ -50,3 +50,7 @@
 
 2026-10-31 | xfjy-app 前端 | 原生 tabBar 与圈子/消息合并重构：①pages.json tabBar 由 5 项合并为 4 项（匹配/圈子/视频/我的），新增 midButton 居中发布键（uni.onTabBarMidButtonTap 跳 /pages/circle/publish），生成 src/static/tabbar/publish.png 白底加号图标；②circle/index.vue 改为「圈子|消息」合并页：顶部分段切换，圈子=原好友/推荐动态流，消息=原 chat/index 通知栏+聊天列表（补上此前漏渲染的聊天列表与未读角标），并修复原圈子空状态常驻问题（改为仅无数据时显示）；③删除已无引用的 chat/index.vue（会话页 chat/chat、通知页 chat/notifications 保留）；④移除圈子页原内部发布 + 按钮（由 midButton 承担） | 开发者：itxinfei
 2026-10-31 | xfjy-app 前端 | 修正合并提交中 pages.json 根对象缺少闭合花括号导致的 JSON 解析失败（影响整个应用编译）；已补全根 } 并通过 JSON.parse 校验，tabBar 4 项 + midButton 配置完整，已 amend 至合并提交 | 开发者：itxinfei
+2026-10-31 | xfjy-app 前端 | 匹配页移除「超级喜欢」「撤销上一个滑动」按钮（含对应逻辑/handler/import/样式），底部操作栏仅保留不喜欢/喜欢/曝光提升；卡片保持前进队列语义（左右滑动推进 currentCardIndex，后端按喜欢/不喜欢上报） | 开发者：itxinfei
+2026-10-31 | xfjy-app 前端 | 发布图标更新：src/static/tabbar/publish.png 由「白底透明加号」改为「品牌渐变粉圆（#FF8CBE→#FF2D78）+ 白色加号」，修复在白色 tabBar 背景上几乎不可见的问题，贴近抖音发布键风格 | 开发者：itxinfei
+2026-10-31 | xfjy-app 前端 | 发布页全屏化：pages.json 将 pages/circle/publish 改为 navigationStyle:custom，新增顶部「取消」栏（含状态栏高度适配），使点按中间发布键进入的全屏发布流程意图明确（返回后圈子 tab 恢复） | 开发者：itxinfei
+2026-10-31 | xfjy-app 前端 | 视频页对齐抖音布局：①右侧操作栏由 bottom:220rpx 改为 top:0;bottom:0 且 justify-content:flex-end，占满菜单栏上方整列（头像约屏幕中部、音乐唱片贴近 tabBar）；②顶部频道栏右侧新增搜索图标（点击提示即将上线） | 开发者：itxinfei

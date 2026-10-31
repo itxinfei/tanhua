@@ -85,16 +85,10 @@
       </view>
     </view>
 
-    <!-- 底部操作栏 -->
+    <!-- 底部操作栏（不喜欢 / 喜欢 / 曝光提升 三个动作，卡片为前进队列：左右滑动即移动到下一张） -->
     <view class="action-bar safe-area-bottom">
-      <a11y-button class="action-btn rewind btn-feedback" label="撤销上一个滑动" @tap="handleRewind">
-        <text aria-hidden="true">↩</text>
-      </a11y-button>
       <a11y-button class="action-btn dislike btn-feedback" label="不喜欢" @tap="handleDislike">
         <uni-icons type="close" size="24" color="#ff5e9c"></uni-icons>
-      </a11y-button>
-      <a11y-button class="action-btn superlike btn-feedback" label="超级喜欢" @tap="handleSuperlike">
-        <uni-icons type="star-filled" size="24" color="#4dabf7"></uni-icons>
       </a11y-button>
       <a11y-button class="action-btn like btn-feedback" label="喜欢" @tap="handleLike">
         <uni-icons type="heart-filled" size="24" color="#ff5e9c"></uni-icons>
@@ -116,7 +110,6 @@ import Skeleton from "@/components/skeleton.vue";
 import { onShow, onShareAppMessage } from "@dcloudio/uni-app";
 import { useMatchStore } from "@/store/match";
 import { getCards, type TodayBest } from "@/api/match";
-import { checkBenefit, recordBenefitUsage } from "@/api/mine";
 import { useUserStore } from "@/store/user";
 import MatchPopup from "@/components/match-popup.vue";
 import A11yButton from "@/components/a11y-button.vue";
@@ -181,12 +174,6 @@ const touchStartX = ref(0);
 const touchStartY = ref(0);
 const currentCardIndex = ref(0); // 当前顶部卡片在 cardList 中的索引
 
-/** 上一张卡片的滑动记录（用于撤销回滚后端操作） */
-interface SwipeRecord {
-  card: TodayBest;
-  action: "like" | "dislike" | "superlike";
-}
-const lastSwipe = ref<SwipeRecord | null>(null);
 
 /** 可见卡片（最多显示 VISIBLE_CARD_COUNT 张，从后往前堆叠渲染） */
 const visibleCards = computed(() => {
@@ -291,8 +278,6 @@ async function swipeOut(action: "like" | "dislike" | "superlike") {
   // 上报滑动，互相喜欢时弹出匹配成功窗
   try {
     const matched = await matchStore.doSwipe(card.id, action);
-    // 记录本次滑动，供撤销回滚使用
-    lastSwipe.value = { card, action };
     if (matched) {
       matchStore.showMatchPopup({
         userId: card.id,
@@ -331,65 +316,6 @@ function handleLike() {
 function handleDislike() {
   dragX.value = 0;
   swipeOut("dislike");
-}
-/** 超级喜欢权益校验中（防连点） */
-const superlikeChecking = ref(false);
-async function handleSuperlike() {
-  if (superlikeChecking.value) return;
-  superlikeChecking.value = true;
-  try {
-    // P2 权益拦截：超级喜欢需 super_like 权益（VIP1，5次/天）
-    const benefit = await checkBenefit("super_like");
-    if (!benefit.hasBenefit) {
-      uni.showToast({ title: "超级喜欢需开通VIP", icon: "none" });
-      setTimeout(() => uni.navigateTo({ url: "/pages/mine/vip" }), 600);
-      return;
-    }
-    if (benefit.remainingToday === 0) {
-      uni.showToast({ title: "今日超级喜欢次数已用完", icon: "none" });
-      return;
-    }
-    // 扣减每日次数（不限次权益返回 true）
-    const ok = await recordBenefitUsage("super_like");
-    if (!ok) {
-      uni.showToast({ title: "今日超级喜欢次数已用完", icon: "none" });
-      return;
-    }
-    dragX.value = 0;
-    dragY.value = 0;
-    swipeOut("superlike");
-  } catch {
-    uni.showToast({ title: "网络异常，请重试", icon: "none" });
-  } finally {
-    superlikeChecking.value = false;
-  }
-}
-/** 撤销进行中标记（防连点） */
-const rewinding = ref(false);
-async function handleRewind() {
-  if (rewinding.value) return;
-  if (!lastSwipe.value) {
-    uni.showToast({ title: "暂无可撤销的操作", icon: "none" });
-    return;
-  }
-  if (!matchStore.canRewind()) {
-    uni.showToast({ title: "今日撤销次数已用完（3次/天）", icon: "none" });
-    return;
-  }
-  const { card, action } = lastSwipe.value;
-  rewinding.value = true;
-  try {
-    // 回滚后端操作（like/superlike→unlove）并返还滑动次数
-    await matchStore.undoSwipe(card.id, action);
-    currentCardIndex.value--;
-    matchStore.useRewind();
-    lastSwipe.value = null;
-    uni.showToast({ title: "已撤销", icon: "none" });
-  } catch {
-    uni.showToast({ title: "撤销失败，请重试", icon: "none" });
-  } finally {
-    rewinding.value = false;
-  }
 }
 function handleBoost() {
   uni.showToast({ title: "曝光提升（VIP专属）", icon: "none" });
@@ -656,14 +582,6 @@ onShareAppMessage(() => ({
     border-radius: 50%;
     font-size: 44rpx;
 
-    &.rewind {
-      width: 88rpx;
-      height: 88rpx;
-      background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary));
-      color: #fff;
-      box-shadow: 0 6rpx 20rpx rgba(255, 179, 71, 0.4);
-    }
-
     &.dislike {
       width: 100rpx;
       height: 100rpx;
@@ -671,14 +589,6 @@ onShareAppMessage(() => ({
       color: #ff3b30;
       border: 4rpx solid #ff3b30;
       box-shadow: 0 6rpx 20rpx rgba(255, 59, 48, 0.25);
-    }
-
-    &.superlike {
-      width: 88rpx;
-      height: 88rpx;
-      background: linear-gradient(135deg, #4cd964, #2ecc71);
-      color: #fff;
-      box-shadow: 0 6rpx 20rpx rgba(76, 217, 100, 0.4);
     }
 
     &.like {
