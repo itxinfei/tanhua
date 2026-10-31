@@ -10,14 +10,14 @@ import java.sql.DriverManager;
 import java.sql.Statement;
 
 /**
- * 一次性工具：向 192.168.20.130 导入 docs/xfjy.sql（建库 xfjy + 建表 + 初始数据）
+ * 一次性工具：向 192.168.20.133 导入 docs/xfjy.sql（建库 xfjy + 建表 + 初始数据）
  * 内网开发虚拟机，凭证 xfjy/123456
  */
 public class SqlImportTool {
 
     @Test
     public void importSql() throws Exception {
-        String host = "192.168.20.130";
+        String host = "192.168.20.133";
         int port = 3306;
         String user = "xfjy";
         String pass = "123456";

@@ -2,8 +2,10 @@ package com.xfjy.server.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xfjy.service.api.UserInfoApi;
+import com.xfjy.service.pojo.PayOrder;
 import com.xfjy.service.pojo.UserInfo;
 import com.xfjy.service.vo.UserInfoQueryParam;
+import com.xfjy.server.mapper.PayOrderMapper;
 import com.xfjy.server.mapper.ReportMapper;
 import com.xfjy.server.mapper.ReviewMapper;
 import com.xfjy.server.mapper.UserMapper;
@@ -32,6 +34,9 @@ public class AdminDashboardService {
 
     @Autowired
     private ReportMapper reportMapper;
+
+    @Autowired
+    private PayOrderMapper payOrderMapper;
 
     /**
      * 看板概览统计
@@ -164,6 +169,71 @@ public class AdminDashboardService {
         Map<String, Object> result = new HashMap<>();
         result.put("ranges", ranges);
         result.put("counts", counts);
+        return result;
+    }
+
+    /**
+     * 支付订单趋势（近N天已支付订单数）
+     */
+    public Map<String, Object> payTrend(Integer days) {
+        if (days == null || days <= 0) {
+            days = 7;
+        }
+
+        List<String> dates = new ArrayList<>();
+        List<Long> orderList = new ArrayList<>();
+
+        SimpleDateFormat sdf = new SimpleDateFormat("MM-dd");
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DAY_OF_MONTH, -(days - 1));
+
+        for (int i = 0; i < days; i++) {
+            Date dayStart = cal.getTime();
+            Calendar endCal = (Calendar) cal.clone();
+            endCal.add(Calendar.DAY_OF_MONTH, 1);
+            Date dayEnd = endCal.getTime();
+
+            dates.add(sdf.format(dayStart));
+
+            // 当日已支付订单数：按实际支付时间 paidTime 统计（created 是下单时间，30 分钟未付会过期，两者可能跨天）
+            QueryWrapper<PayOrder> dayWrapper = new QueryWrapper<>();
+            dayWrapper.eq("status", "PAID");
+            dayWrapper.ge("paidTime", dayStart).lt("paidTime", dayEnd);
+            orderList.add(this.payOrderMapper.selectCount(dayWrapper));
+
+            cal.add(Calendar.DAY_OF_MONTH, 1);
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("dates", dates);
+        result.put("orderList", orderList);
+        return result;
+    }
+
+    /**
+     * 支付方式分布（已支付订单按支付方式分组）
+     */
+    public Map<String, Object> payTypeDistribution() {
+        QueryWrapper<PayOrder> wrapper = new QueryWrapper<>();
+        wrapper.eq("status", "PAID");
+        List<PayOrder> orders = this.payOrderMapper.selectList(wrapper);
+
+        long alipay = 0, wechat = 0, sandbox = 0;
+        for (PayOrder order : orders) {
+            String type = order.getPayType();
+            if ("ALIPAY".equals(type)) {
+                alipay++;
+            } else if ("WECHAT".equals(type)) {
+                wechat++;
+            } else {
+                sandbox++;
+            }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("alipay", alipay);
+        result.put("wechat", wechat);
+        result.put("sandbox", sandbox);
         return result;
     }
 }

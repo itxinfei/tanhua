@@ -75,4 +75,30 @@ public class AdminDashboardController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+    /**
+     * 支付订单趋势（近N天已支付订单数）
+     */
+    @GetMapping("pay-trend")
+    public ResponseEntity<Map<String, Object>> payTrend(@RequestParam(defaultValue = "7") Integer days) {
+        try {
+            return ResponseEntity.ok(this.adminDashboardService.payTrend(days));
+        } catch (Exception e) {
+            LOGGER.error("接口处理异常", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * 支付方式分布
+     */
+    @GetMapping("pay-type")
+    public ResponseEntity<Map<String, Object>> payType() {
+        try {
+            return ResponseEntity.ok(this.adminDashboardService.payTypeDistribution());
+        } catch (Exception e) {
+            LOGGER.error("接口处理异常", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 }

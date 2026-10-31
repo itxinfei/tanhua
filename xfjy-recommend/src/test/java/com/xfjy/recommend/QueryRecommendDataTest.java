@@ -19,7 +19,7 @@ class QueryRecommendDataTest {
     @Test
     void queryRecommendQuanZi() {
         String today = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        try (MongoClient client = MongoClients.create("mongodb://192.168.20.130:27017")) {
+        try (MongoClient client = MongoClients.create("mongodb://192.168.20.133:27017")) {
             MongoDatabase db = client.getDatabase("xfjy");
             for (String name : new String[]{"recommend_quanzi_" + today, "recommend_video_" + today}) {
                 MongoCollection<Document> col = db.getCollection(name);

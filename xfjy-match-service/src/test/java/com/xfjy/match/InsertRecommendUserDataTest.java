@@ -16,7 +16,7 @@ import java.util.List;
  */
 class InsertRecommendUserDataTest {
 
-    private static final String MONGO_URI = "mongodb://192.168.20.130:27017";
+    private static final String MONGO_URI = "mongodb://192.168.20.133:27017";
 
     @Test
     void insertRecommendUserData() {

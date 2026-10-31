@@ -7,6 +7,8 @@ import com.xfjy.service.pojo.UserInfo;
 import com.xfjy.service.vo.PageInfo;
 import com.xfjy.service.vo.UserInfoQueryParam;
 import com.xfjy.server.pojo.User;
+import com.xfjy.server.service.RecommendFilterService;
+import com.xfjy.server.service.RecommendScoringService;
 import com.xfjy.server.service.RecommendUserService;
 import com.xfjy.server.service.TodayBestService;
 import com.xfjy.server.utils.UserThreadLocal;
@@ -37,6 +39,12 @@ public class TestTodayBest {
 
     @Mock
     private RecommendUserService recommendUserService;
+
+    @Mock
+    private RecommendFilterService recommendFilterService;
+
+    @Mock
+    private RecommendScoringService recommendScoringService;
 
     @Mock
     private UserInfoApi userInfoApi;
@@ -105,6 +113,10 @@ public class TestTodayBest {
         userInfo.setAge(25);
         userInfo.setTags("运动");
         when(userInfoApi.queryUserInfoList(any(UserInfoQueryParam.class))).thenReturn(List.of(userInfo));
+
+        // 过滤与排序：原样返回传入列表，仅验证 queryRecommendUserList 流程不 NPE
+        when(recommendFilterService.filter(any(), any())).thenAnswer(inv -> inv.getArgument(1));
+        when(recommendScoringService.scoreAndSort(any(), any())).thenAnswer(inv -> inv.getArgument(1));
 
         PageResult pageResult = todayBestService.queryRecommendUserList(new RecommendUserQueryParam());
 
