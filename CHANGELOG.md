@@ -47,3 +47,6 @@
 2026-10-31 | xfjy-app 前端 | 视频页视觉整体升级（参照抖音完整模板比例与遮挡结构）：①新增顶部/底部暗角渐变层(top-scrim/bottom-scrim，z-index 低于内容、pointer-events:none 不拦截点击)，保证白字在任意视频上都清晰、增加画面层次；②顶部「关注/推荐」Tab 重做：选中项放大加粗(36rpx/700)+白色药丸下划线(44rpx)，更贴近抖音；③底部居中新增「上滑看更多」微动效提示(hintBounce)，并加 prefers-reduced-motion 媒体查询自动静止，兼顾无障碍；④分享箭头字号由 44rpx 调至 52rpx，与其余 26px 图标视觉一致。交互/无障碍语义不变 | 开发者：itxinfei
 
 2026-10-31 | xfjy-app 前端 | 视频页顶部改为抖音式 5 频道（热点/朋友/关注/定位/推荐），移除视频页发布按钮（改由 tabBar 中间键承担）；关注/推荐接真实接口，热点/朋友/定位展示「即将上线」占位空状态，空状态文案随频道动态变化 | 开发者：itxinfei
+
+2026-10-31 | xfjy-app 前端 | 原生 tabBar 与圈子/消息合并重构：①pages.json tabBar 由 5 项合并为 4 项（匹配/圈子/视频/我的），新增 midButton 居中发布键（uni.onTabBarMidButtonTap 跳 /pages/circle/publish），生成 src/static/tabbar/publish.png 白底加号图标；②circle/index.vue 改为「圈子|消息」合并页：顶部分段切换，圈子=原好友/推荐动态流，消息=原 chat/index 通知栏+聊天列表（补上此前漏渲染的聊天列表与未读角标），并修复原圈子空状态常驻问题（改为仅无数据时显示）；③删除已无引用的 chat/index.vue（会话页 chat/chat、通知页 chat/notifications 保留）；④移除圈子页原内部发布 + 按钮（由 midButton 承担） | 开发者：itxinfei
+2026-10-31 | xfjy-app 前端 | 修正合并提交中 pages.json 根对象缺少闭合花括号导致的 JSON 解析失败（影响整个应用编译）；已补全根 } 并通过 JSON.parse 校验，tabBar 4 项 + midButton 配置完整，已 amend 至合并提交 | 开发者：itxinfei

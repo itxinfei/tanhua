@@ -1,84 +1,136 @@
 <template>
-  <view class="circle-page">
-    <!-- 顶部 Tab（role=tablist 语义 + 可键盘操作） -->
-    <view class="tab-bar" role="tablist" aria-label="圈子频道">
+  <view class="social-page">
+    <!-- 顶级分区：圈子 / 消息 -->
+    <view class="seg-bar" role="tablist" aria-label="社区分区">
       <a11y-button
-        v-for="tab in tabs"
-        :key="tab.key"
-        class="tab-item"
+        class="seg"
+        :class="{ active: topTab === 'circle' }"
         role="tab"
-        :checked="activeTab === tab.key"
-        :label="tab.label"
-        @tap="switchTab(tab.key)"
+        :checked="topTab === 'circle'"
+        label="圈子"
+        @tap="topTab = 'circle'"
+      >圈子</a11y-button>
+      <a11y-button
+        class="seg"
+        :class="{ active: topTab === 'message' }"
+        role="tab"
+        :checked="topTab === 'message'"
+        label="消息"
+        @tap="topTab = 'message'"
       >
-        <text>{{ tab.label }}</text>
-      </a11y-button>
-      <!-- 发布按钮（原为无标签的 + 符号） -->
-      <a11y-button class="publish-btn btn-feedback" label="发布动态" @tap="goPublish">
-        <text aria-hidden="true">+</text>
+        消息
+        <view v-if="totalUnread > 0" class="seg-badge" aria-hidden="true">{{ totalUnread > 99 ? '99+' : totalUnread }}</view>
       </a11y-button>
     </view>
 
-    <!-- 动态列表 -->
-    <scroll-view
-      scroll-y
-      class="feed-list"
-      refresher-enabled
-      :refresher-triggered="refreshing"
-      @refresherrefresh="onRefresh"
-      @scrolltolower="loadMore"
-    >
-      <!-- 骨架屏（首屏加载中）：占位元素，对读屏隐藏 -->
-      <skeleton v-if="feedList.length === 0 && loading" variant="feed" :count="SKELETON_CARD_COUNT" :grid-cols="GRID_COLUMN_COUNT" />
-      <!-- 空状态 -->
-      <empty-state icon="camera" title="暂无动态" desc="快来发布第一条，分享你的生活" />
-      <view v-for="item in feedList" :key="item.id" class="post-card">
-        <!-- 头部 -->
-        <view class="post-header">
-          <image class="avatar" :src="item.avatar" mode="aspectFill" lazy-load :aria-label="`${item.nickname} 的头像`" />
-          <view class="user-info">
-            <text class="nickname">{{ item.nickname }}</text>
-            <text class="meta">{{ item.createDate }} · {{ item.location || '未知位置' }}</text>
+    <!-- 圈子视图 -->
+    <template v-if="topTab === 'circle'">
+      <view class="tab-bar" role="tablist" aria-label="圈子频道">
+        <a11y-button
+          v-for="tab in tabs"
+          :key="tab.key"
+          class="tab-item"
+          role="tab"
+          :checked="activeTab === tab.key"
+          :label="tab.label"
+          @tap="switchTab(tab.key)"
+        >
+          <text>{{ tab.label }}</text>
+        </a11y-button>
+      </view>
+
+      <scroll-view
+        scroll-y
+        class="feed-list"
+        refresher-enabled
+        :refresher-triggered="refreshing"
+        @refresherrefresh="onRefresh"
+        @scrolltolower="loadMore"
+      >
+        <skeleton v-if="feedList.length === 0 && loading" variant="feed" :count="SKELETON_CARD_COUNT" :grid-cols="GRID_COLUMN_COUNT" />
+        <empty-state v-if="feedList.length === 0 && !loading" icon="camera" title="暂无动态" desc="快来发布第一条，分享你的生活" />
+        <view v-for="item in feedList" :key="item.id" class="post-card">
+          <view class="post-header">
+            <image class="avatar" :src="item.avatar" mode="aspectFill" lazy-load :aria-label="item.nickname + ' 的头像'" />
+            <view class="user-info">
+              <text class="nickname">{{ item.nickname }}</text>
+              <text class="meta">{{ item.createDate }} · {{ item.location || '未知位置' }}</text>
+            </view>
+          </view>
+          <view v-if="item.textContent" class="post-content ellipsis-2">{{ item.textContent }}</view>
+          <view v-if="item.tags && item.tags.length" class="tag-row">
+            <view v-for="(tag, i) in item.tags" :key="i" class="tag-chip" @tap="goTag(tag)"># {{ tag }}</view>
+          </view>
+          <view v-if="item.imageContent && item.imageContent.length" class="image-grid" :class="'grid-' + Math.min(item.imageContent.length, GRID_COLUMN_COUNT)">
+            <image
+              v-for="(img, i) in item.imageContent.slice(0, MAX_GRID_IMAGE_COUNT)"
+              :key="i"
+              class="grid-image"
+              :src="img"
+              mode="aspectFill"
+              lazy-load
+              :aria-label="'动态图片 ' + (i + 1) + '，点击查看大图'"
+              @click="previewImage(item.imageContent, i)"
+            />
+          </view>
+          <view class="action-row">
+            <a11y-button class="action btn-feedback" :label="item.hasLiked ? '取消点赞，当前 ' + (item.likeCount || 0) + ' 赞' : '点赞，当前 ' + (item.likeCount || 0) + ' 赞'" @tap="handleLike(item)">
+              <uni-icons class="action-icon" :class="{ liked: item.hasLiked, 'heart-beat': item.hasLiked }" :type="item.hasLiked ? 'heart-filled' : 'heart'" :color="item.hasLiked ? '#c2185b' : '#767676'" size="18"></uni-icons>
+              <text class="count">{{ item.likeCount || '' }}</text>
+            </a11y-button>
+            <a11y-button class="action btn-feedback" :label="'查看评论，共 ' + (item.commentCount || 0) + ' 条'" @tap="goDetail(item)">
+              <uni-icons class="action-icon" type="chatbubble" color="#767676" size="18"></uni-icons>
+              <text class="count">{{ item.commentCount || '' }}</text>
+            </a11y-button>
+            <a11y-button class="action btn-feedback" :label="item.hasLoved ? '取消心动' : '心动'" @tap="handleLove(item)">
+              <uni-icons class="action-icon" :class="{ loved: item.hasLoved }" :type="item.hasLoved ? 'star-filled' : 'star'" :color="item.hasLoved ? '#c2185b' : '#767676'" size="18"></uni-icons>
+            </a11y-button>
           </view>
         </view>
-        <!-- 文字内容 -->
-        <view v-if="item.textContent" class="post-content ellipsis-2">{{ item.textContent }}</view>
-        <!-- 话题标签（点击进入话题筛选） -->
-        <view v-if="item.tags && item.tags.length" class="tag-row">
-          <view v-for="(tag, i) in item.tags" :key="i" class="tag-chip" @tap="goTag(tag)"># {{ tag }}</view>
-        </view>
-        <!-- 九宫格图片 -->
-        <view v-if="item.imageContent && item.imageContent.length" class="image-grid" :class="`grid-${Math.min(item.imageContent.length, GRID_COLUMN_COUNT)}`">
-          <image
-            v-for="(img, i) in item.imageContent.slice(0, MAX_GRID_IMAGE_COUNT)"
-            :key="i"
-            class="grid-image"
-            :src="img"
-            mode="aspectFill"
-            lazy-load
-            :aria-label="`动态图片 ${i + 1}，点击查看大图`"
-            @click="previewImage(item.imageContent, i)"
-          />
-        </view>
-        <!-- 互动栏 -->
-        <view class="action-row">
-          <a11y-button class="action btn-feedback" :label="item.hasLiked ? `取消点赞，当前 ${item.likeCount || 0} 赞` : `点赞，当前 ${item.likeCount || 0} 赞`" @tap="handleLike(item)">
-            <uni-icons class="action-icon" :class="{ liked: item.hasLiked, 'heart-beat': item.hasLiked }" :type="item.hasLiked ? 'heart-filled' : 'heart'" :color="item.hasLiked ? '#c2185b' : '#767676'" size="18"></uni-icons>
-            <text class="count">{{ item.likeCount || '' }}</text>
-          </a11y-button>
-          <a11y-button class="action btn-feedback" :label="`查看评论，共 ${item.commentCount || 0} 条`" @tap="goDetail(item)">
-            <uni-icons class="action-icon" type="chatbubble" color="#767676" size="18"></uni-icons>
-            <text class="count">{{ item.commentCount || '' }}</text>
-          </a11y-button>
-          <a11y-button class="action btn-feedback" :label="item.hasLoved ? '取消心动' : '心动'" @tap="handleLove(item)">
-            <uni-icons class="action-icon" :class="{ loved: item.hasLoved }" :type="item.hasLoved ? 'star-filled' : 'star'" :color="item.hasLoved ? '#c2185b' : '#767676'" size="18"></uni-icons>
-          </a11y-button>
-        </view>
+        <view v-if="loading" class="loading">加载中...</view>
+      </scroll-view>
+    </template>
+
+    <!-- 消息视图（原 chat/index 内容） -->
+    <template v-else>
+      <view class="notice-bar">
+        <a11y-button class="notice-item btn-feedback" v-for="item in noticeItems" :key="item.type" :label="item.unread > 0 ? item.label + '，' + item.unread + ' 条未读' : item.label" @tap="goNotifications(item.type)">
+          <view class="notice-icon-wrap">
+            <view class="notice-icon-bg" :style="{ background: item.color }">
+              <uni-icons class="notice-icon" :type="item.uniIcon" size="22" color="#fff"></uni-icons>
+            </view>
+            <view v-if="item.unread > 0" class="badge pulse" aria-hidden="true">{{ item.unread > 99 ? '99+' : item.unread }}</view>
+          </view>
+          <text class="notice-label">{{ item.label }}</text>
+        </a11y-button>
       </view>
-      <!-- 加载更多 -->
-      <view v-if="loading" class="loading">加载中...</view>
-    </scroll-view>
-    <!-- 匹配成功弹窗（全局，由 match store 驱动） -->
+
+      <scroll-view scroll-y class="msg-list">
+        <empty-state v-if="chatList.length === 0" title="还没有聊天" desc="去匹配页滑动，遇见新朋友吧" />
+        <a11y-button
+          v-for="item in chatList"
+          :key="item.userId"
+          class="chat-item btn-feedback"
+          :label="chatItemLabel(item)"
+          @tap="goChatDetail(item)"
+        >
+          <view class="avatar-wrap">
+            <image class="avatar" :src="item.avatar" mode="aspectFill" lazy-load :aria-label="item.nickname + ' 的头像'" />
+            <view v-if="item.online" class="online-dot" aria-hidden="true"></view>
+          </view>
+          <view class="chat-info">
+            <view class="top-row">
+              <text class="nickname">{{ item.nickname }}</text>
+            </view>
+            <view class="bottom-row">
+              <text class="last-msg">{{ item.lastMessage || item.city || '暂无消息' }}</text>
+              <view v-if="item.unreadCount > 0" class="unread-badge" aria-hidden="true">{{ item.unreadCount > 99 ? '99+' : item.unreadCount }}</view>
+            </view>
+          </view>
+        </a11y-button>
+      </scroll-view>
+    </template>
+
     <MatchPopup />
   </view>
 </template>
@@ -92,14 +144,19 @@ import MatchPopup from "@/components/match-popup.vue";
 import A11yButton from "@/components/a11y-button.vue";
 import { useCircleStore } from "@/store/circle";
 import type { Movement } from "@/api/circle";
+import { getContacts, type Contact } from "@/api/chat";
+import { useChatStore, type NoticeType } from "@/store/chat";
+import { loginEasemob, getConversations } from "@/utils/easemob";
 
 const circleStore = useCircleStore();
+const chatStore = useChatStore();
 
-/** 九宫格图片最大展示数量 */
+/** 顶级分区：圈子 / 消息 */
+const topTab = ref<"circle" | "message">("circle");
+
+/* ---------------- 圈子（原有逻辑） ---------------- */
 const MAX_GRID_IMAGE_COUNT = 9;
-/** 九宫格列数 */
 const GRID_COLUMN_COUNT = 3;
-/** 骨架屏占位卡片数量 */
 const SKELETON_CARD_COUNT = 3;
 
 const tabs = [
@@ -107,22 +164,15 @@ const tabs = [
   { key: "recommend", label: "推荐" },
 ] as const;
 
-/** 当前 Tab */
 const activeTab = computed(() => circleStore.activeTab);
-/** 当前 Tab 的动态列表 */
 const feedList = computed<Movement[]>(() =>
   circleStore.activeTab === "friend"
     ? circleStore.friendMovements
     : circleStore.recommendMovements
 );
-/** 加载状态 */
 const loading = computed(() => circleStore.loading);
-/** 下拉刷新中状态（驱动 scroll-view refresher） */
 const refreshing = ref(false);
 
-/**
- * 切换 Tab（目标 Tab 无数据时才加载）
- */
 function switchTab(key: "friend" | "recommend") {
   if (circleStore.activeTab === key) return;
   circleStore.switchTab(key);
@@ -132,15 +182,10 @@ function switchTab(key: "friend" | "recommend") {
   }
 }
 
-function goPublish() {
-  uni.navigateTo({ url: "/pages/circle/publish" });
-}
-
 function goDetail(item: Movement) {
-  uni.navigateTo({ url: `/pages/circle/detail?id=${item.id}` });
+  uni.navigateTo({ url: "/pages/circle/detail?id=" + item.id });
 }
 
-/** 点击话题标签：跳转话题筛选页 */
 function goTag(tag: string) {
   uni.navigateTo({ url: "/pages/circle/tag?tag=" + encodeURIComponent(tag) });
 }
@@ -149,9 +194,6 @@ function previewImage(images: string[], index: number) {
   uni.previewImage({ urls: images, current: images[index] });
 }
 
-/**
- * 点赞/取消点赞（乐观更新由 store 处理）
- */
 async function handleLike(item: Movement) {
   try {
     await circleStore.toggleLike(item.id);
@@ -160,9 +202,6 @@ async function handleLike(item: Movement) {
   }
 }
 
-/**
- * 喜欢/取消喜欢（乐观更新由 store 处理）
- */
 async function handleLove(item: Movement) {
   try {
     await circleStore.toggleLove(item.id);
@@ -171,9 +210,6 @@ async function handleLove(item: Movement) {
   }
 }
 
-/**
- * 加载当前 Tab 首页动态
- */
 async function loadFeed() {
   try {
     if (circleStore.activeTab === "friend") {
@@ -186,9 +222,6 @@ async function loadFeed() {
   }
 }
 
-/**
- * 下拉刷新：重新加载当前 Tab 首页动态
- */
 async function onRefresh(): Promise<void> {
   refreshing.value = true;
   try {
@@ -198,9 +231,6 @@ async function onRefresh(): Promise<void> {
   }
 }
 
-/**
- * 上拉加载更多
- */
 async function loadMore() {
   try {
     if (circleStore.activeTab === "friend") {
@@ -213,11 +243,108 @@ async function loadMore() {
   }
 }
 
+/* ---------------- 消息（原 chat/index 逻辑） ---------------- */
+/** 原生 tabBar 合并后「圈子」页索引（见 pages.json） */
+const TAB_BAR_INDEX = 1;
+const BADGE_MAX_COUNT = 99;
+
+interface ChatListItem extends Contact {
+  lastMessage: string;
+  unreadCount: number;
+}
+
+const NOTICE_META: Record<NoticeType, { uniIcon: string; label: string; color: string }> = {
+  like: { uniIcon: "heart-filled", label: "喜欢", color: "#ff5e9c" },
+  comment: { uniIcon: "chatbubble", label: "评论", color: "#4a90d9" },
+  love: { uniIcon: "star-filled", label: "心动", color: "#ff5e9c" },
+  announcement: { uniIcon: "notification", label: "公告", color: "#4cd964" },
+};
+
+const chatList = ref<ChatListItem[]>([]);
+
+const noticeItems = computed(() =>
+  (Object.keys(NOTICE_META) as NoticeType[]).map((type) => ({
+    type,
+    uniIcon: NOTICE_META[type].uniIcon,
+    label: NOTICE_META[type].label,
+    color: NOTICE_META[type].color,
+    unread: chatStore.noticeUnreads[type],
+  }))
+);
+
+const totalUnread = computed(() =>
+  chatList.value.reduce((sum, item) => sum + (item.unreadCount || 0), 0)
+);
+
+async function initEasemobAndMerge(): Promise<void> {
+  try {
+    const credential = await chatStore.loadHuanXinUser();
+    const ok = await loginEasemob(credential.username, credential.token);
+    if (!ok) return;
+    const sessions = await getConversations();
+    const sessionMap = new Map(sessions.map((s) => [s.conversationId, s]));
+    chatList.value = chatList.value.map((item) => {
+      const session = sessionMap.get(item.userId);
+      return session
+        ? { ...item, lastMessage: session.lastMessage, unreadCount: session.unreadCount }
+        : item;
+    });
+  } catch {
+    // 环信不可用，静默降级为纯联系人展示
+  }
+}
+
+function updateTabBarBadge(): void {
+  const total = totalUnread.value;
+  if (total > 0) {
+    uni.setTabBarBadge({ index: TAB_BAR_INDEX, text: total > BADGE_MAX_COUNT ? "99+" : String(total) });
+  } else {
+    uni.removeTabBarBadge({ index: TAB_BAR_INDEX });
+  }
+}
+
+async function loadMessages(): Promise<void> {
+  try {
+    const res = await getContacts({ page: 1, pagesize: 50 });
+    chatList.value = (res.items || []).map((c) => ({ ...c, lastMessage: "", unreadCount: 0 }));
+    await initEasemobAndMerge();
+    updateTabBarBadge();
+  } catch {
+    // 请求失败由 request 层统一 toast
+  }
+}
+
+function goNotifications(type: string): void {
+  uni.navigateTo({ url: "/pages/chat/notifications?type=" + type });
+}
+
+function goChatDetail(contact: ChatListItem): void {
+  uni.navigateTo({
+    url: "/pages/chat/chat?userId=" + contact.userId + "&nickname=" + encodeURIComponent(contact.nickname),
+  });
+}
+
+function chatItemLabel(contact: ChatListItem): string {
+  const parts = [contact.nickname];
+  if (contact.age) parts.push(contact.age + "岁");
+  parts.push(contact.lastMessage || contact.city || "暂无消息");
+  if (contact.unreadCount > 0) {
+    parts.push((contact.unreadCount > BADGE_MAX_COUNT ? "99+" : contact.unreadCount) + " 条未读");
+  }
+  if (contact.online) parts.push("在线");
+  return parts.join("，");
+}
+
+/* ---------------- 生命周期 ---------------- */
 onShow(() => {
-  if (feedList.value.length === 0) loadFeed();
+  if (topTab.value === "circle") {
+    if (feedList.value.length === 0) loadFeed();
+  } else {
+    loadMessages();
+    chatStore.loadNoticeCounts();
+  }
 });
 
-/** 小程序端分享配置（H5 端静默忽略） */
 onShareAppMessage(() => ({
   title: "心飞交友 · 遇见心动的人",
   path: "/pages/match/index",
@@ -225,13 +352,66 @@ onShareAppMessage(() => ({
 </script>
 
 <style lang="scss" scoped>
-.circle-page {
+.social-page {
   height: calc(100vh - var(--window-bottom, 0px));
   display: flex;
   flex-direction: column;
   background: #f5f5f5;
 }
 
+/* 顶级分区：圈子 / 消息 */
+.seg-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 56rpx;
+  height: 88rpx;
+  background: #fff;
+  position: relative;
+  border-bottom: 1rpx solid #f0f0f0;
+
+  .seg {
+    position: relative;
+    font-size: 32rpx;
+    color: #767676;
+    padding: 6rpx 4rpx;
+
+    &.active {
+      color: #333;
+      font-weight: 700;
+
+      &::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: -6rpx;
+        transform: translateX(-50%);
+        width: 44rpx;
+        height: 6rpx;
+        background: #ff5e9c;
+        border-radius: 3rpx;
+      }
+    }
+  }
+
+  .seg-badge {
+    position: absolute;
+    top: -4rpx;
+    right: -28rpx;
+    min-width: 30rpx;
+    height: 30rpx;
+    line-height: 30rpx;
+    text-align: center;
+    font-size: 20rpx;
+    color: #fff;
+    background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary));
+    border-radius: 15rpx;
+    padding: 0 8rpx;
+    border: 2rpx solid #fff;
+  }
+}
+
+/* 圈子子标签 */
 .tab-bar {
   display: flex;
   align-items: center;
@@ -243,7 +423,6 @@ onShareAppMessage(() => ({
   .tab-item {
     padding: 0 32rpx;
     font-size: 30rpx;
-    /* 未选中态 #999（≈2.85:1）→ #767676 */
     color: #767676;
     position: relative;
 
@@ -252,7 +431,7 @@ onShareAppMessage(() => ({
       font-weight: bold;
 
       &::after {
-        content: '';
+        content: "";
         position: absolute;
         bottom: -16rpx;
         left: 50%;
@@ -264,25 +443,11 @@ onShareAppMessage(() => ({
       }
     }
   }
-
-  .publish-btn {
-    position: absolute;
-    right: 32rpx;
-    width: 64rpx;
-    height: 64rpx;
-    background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary));
-    color: #fff;
-    font-size: 40rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    box-shadow: 0 8rpx 24rpx rgba(255, 94, 142, 0.4);
-  }
 }
 
 .feed-list {
   flex: 1;
+  min-height: 0;
   padding: 16rpx;
 }
 
@@ -312,7 +477,6 @@ onShareAppMessage(() => ({
         display: block;
       }
 
-      /* #ccc ≈1.6:1 → #767676 */
       .meta {
         font-size: 22rpx;
         color: #767676;
@@ -329,7 +493,6 @@ onShareAppMessage(() => ({
     color: #333;
   }
 
-  /* 话题标签（发布页勾选，落库 Movement.tags） */
   .tag-row {
     display: flex;
     flex-wrap: wrap;
@@ -368,22 +531,15 @@ onShareAppMessage(() => ({
       display: flex;
       align-items: center;
       gap: 8rpx;
-      /* 触摸目标 ≥24px */
       min-height: 48rpx;
 
-      /* #999 → #767676 */
       .action-icon {
         font-size: 36rpx;
         color: #767676;
         line-height: 1;
 
-        &.liked {
-          color: #c2185b;
-        }
-
-        &.loved {
-          color: #c2185b;
-        }
+        &.liked { color: #c2185b; }
+        &.loved { color: #c2185b; }
       }
 
       .count {
@@ -401,4 +557,139 @@ onShareAppMessage(() => ({
   font-size: 24rpx;
 }
 
+/* 消息：通知入口 */
+.notice-bar {
+  display: flex;
+  justify-content: space-around;
+  padding: 24rpx 0;
+  background: #fff;
+  margin-bottom: 16rpx;
+
+  .notice-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8rpx;
+
+    .notice-icon-wrap {
+      position: relative;
+
+      .notice-icon-bg {
+        width: 80rpx;
+        height: 80rpx;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .notice-icon {
+        font-size: 36rpx;
+        color: #fff;
+        line-height: 1;
+      }
+
+      .badge {
+        position: absolute;
+        top: -4rpx;
+        right: -8rpx;
+        min-width: 32rpx;
+        height: 32rpx;
+        line-height: 32rpx;
+        text-align: center;
+        font-size: 20rpx;
+        color: #fff;
+        background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary));
+        border-radius: 16rpx;
+        padding: 0 8rpx;
+        border: 2rpx solid #fff;
+      }
+    }
+
+    .notice-label {
+      font-size: 24rpx;
+      color: #666;
+    }
+  }
+}
+
+/* 消息：聊天列表 */
+.msg-list {
+  flex: 1;
+  min-height: 0;
+  background: #fff;
+
+  .chat-item {
+    display: flex;
+    align-items: center;
+    padding: 24rpx 32rpx;
+    border-bottom: 1rpx solid #f0f0f0;
+
+    .avatar-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .avatar {
+      width: 96rpx;
+      height: 96rpx;
+      border-radius: 50%;
+    }
+
+    .online-dot {
+      position: absolute;
+      bottom: 2rpx;
+      right: 2rpx;
+      width: 24rpx;
+      height: 24rpx;
+      background: #4cd964;
+      border-radius: 50%;
+      border: 4rpx solid #fff;
+    }
+
+    .chat-info {
+      flex: 1;
+      margin-left: 24rpx;
+      overflow: hidden;
+
+      .top-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .nickname {
+          font-size: 30rpx;
+          font-weight: 500;
+          color: #333;
+        }
+      }
+
+      .bottom-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 8rpx;
+
+        .last-msg {
+          font-size: 26rpx;
+          color: #767676;
+          flex: 1;
+        }
+
+        .unread-badge {
+          min-width: 32rpx;
+          height: 32rpx;
+          line-height: 32rpx;
+          text-align: center;
+          font-size: 20rpx;
+          color: #fff;
+          background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary));
+          border-radius: 16rpx;
+          padding: 0 8rpx;
+          margin-left: 16rpx;
+        }
+      }
+    }
+  }
+}
 </style>

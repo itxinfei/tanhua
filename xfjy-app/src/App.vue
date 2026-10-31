@@ -41,6 +41,11 @@ onShow(() => {
       // 登录失败静默降级：聊天相关功能按原有页面级逻辑兜底
     });
 });
+
+// 原生 tabBar 居中发布键（抖音式发布入口）：跳转发布动态页
+uni.onTabBarMidButtonTap(() => {
+  uni.navigateTo({ url: "/pages/circle/publish" });
+});
 </script>
 
 <style lang="scss">
