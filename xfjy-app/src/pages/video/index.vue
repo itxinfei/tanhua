@@ -562,7 +562,7 @@ onShareAppMessage(() => ({
 
 <style lang="scss" scoped>
 .video-page {
-  height: 100vh;
+  height: calc(100vh - var(--window-bottom, 0px));
   background: #000;
   position: relative;
 }
@@ -623,7 +623,7 @@ onShareAppMessage(() => ({
 }
 
 .video-swiper {
-  height: 100vh;
+  height: calc(100vh - var(--window-bottom, 0px));
 }
 
 .video-item {
