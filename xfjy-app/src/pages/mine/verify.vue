@@ -27,6 +27,7 @@
 import { ref } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import { submitVerify, getVerifyStatus } from "@/api/mine";
+import { info, success } from "@/utils/ux";
 
 /** 表单字段唯一 id：用于 aria-labelledby 建立程序化标签关联（WCAG 1.3.1 / 3.3.2） */
 const realNameLabelId = "verify-realname-label";
@@ -55,17 +56,17 @@ async function submit() {
   const name = realName.value.trim();
   const card = idCard.value.trim();
   if (name.length < 2) {
-    uni.showToast({ title: '请输入真实姓名', icon: 'none' });
+    info('请输入真实姓名');
     return;
   }
   if (!/^\d{17}[\dXx]$/.test(card)) {
-    uni.showToast({ title: '身份证号格式不正确', icon: 'none' });
+    info('身份证号格式不正确');
     return;
   }
   submitting.value = true;
   try {
     await submitVerify(name, card);
-    uni.showToast({ title: '认证成功', icon: 'success' });
+    success('认证成功');
     verified.value = true;
   } catch {
     // request 层统一 toast

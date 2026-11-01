@@ -285,15 +285,18 @@ public class PayService {
             LOGGER.warn("订单状态不允许取消, orderNo = {}, status = {}", orderNo, order.getStatus());
             return false;
         }
-        PayOrder cancelled = new PayOrder();
-        cancelled.setId(order.getId());
-        cancelled.setStatus("CANCELLED");
-        cancelled.setUpdated(new Date());
-        int rows = this.payOrderMapper.updateById(cancelled);
+        // CAS 条件更新：WHERE id=? AND status='PENDING'，防止并发取消已支付订单
+        LambdaUpdateWrapper<PayOrder> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(PayOrder::getId, order.getId())
+               .eq(PayOrder::getStatus, "PENDING")
+               .set(PayOrder::getStatus, "CANCELLED")
+               .set(PayOrder::getUpdated, new Date());
+        int rows = this.payOrderMapper.update(null, wrapper);
         if (rows > 0) {
             LOGGER.info("订单已取消, orderNo = {}, userId = {}", orderNo, userId);
             return true;
         }
+        LOGGER.warn("订单取消失败（可能状态已变更）, orderNo = {}", orderNo);
         return false;
     }
 

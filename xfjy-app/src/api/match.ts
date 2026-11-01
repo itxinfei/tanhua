@@ -95,12 +95,13 @@ export function getCards(): Promise<TodayBest[]> {
 
 /**
  * 喜欢（右滑/超级喜欢）
- * 对接后端: GET /xfjy/{id}/love
+ * 对接后端: GET /xfjy/{id}/love?action=like|superlike
  * @param userId 对方用户ID
+ * @param action 动作类型：like | superlike（默认 like）；superlike 时后端校验 super_like 权益并扣减次数
  * @returns true=互相喜欢（匹配成功）；false=单方面喜欢
  */
-export function loveUser(userId: number | string): Promise<boolean> {
-  return get<boolean>(`/xfjy/${userId}/love`);
+export function loveUser(userId: number | string, action: "like" | "superlike" = "like"): Promise<boolean> {
+  return get<boolean>(`/xfjy/${userId}/love`, { action });
 }
 
 /**

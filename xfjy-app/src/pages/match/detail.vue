@@ -116,6 +116,7 @@ import { submitReport, REPORT_TARGET_TYPE, checkBenefit, recordBenefitUsage } fr
 import { getPersonalInfo, getStrangerQuestion, loveUser, unloveUser, type TodayBest } from "@/api/match";
 import { getUserMovements, type Movement } from "@/api/circle";
 import { safeGoBack } from "@/utils/nav";
+import { success, info, fail, loading, hideLoading } from "@/utils/ux";
 
 /** 缘分值满分 */
 const FATE_SCORE_MAX = 100;
@@ -225,7 +226,7 @@ async function handleLike(): Promise<void> {
         avatar: user.value?.avatar || "",
       });
     }
-    uni.showToast({ title: matched ? "互相喜欢，已匹配！" : "已喜欢", icon: "success" });
+    success(matched ? "互相喜欢，已匹配！" : "已喜欢");
     // 匹配成功时留在本页展示匹配弹窗，由弹窗承接后续；未匹配才自动返回
     if (!matched) setTimeout(goBack, 800);
   } catch {
@@ -242,12 +243,12 @@ async function handleSuperLike(): Promise<void> {
   try {
     const benefit = await checkBenefit("super_like");
     if (!benefit.hasBenefit) {
-      uni.showToast({ title: "超级喜欢需开通VIP", icon: "none" });
+      info("超级喜欢需开通VIP");
       setTimeout(() => uni.navigateTo({ url: "/pages/mine/vip" }), 600);
       return;
     }
     if (benefit.remainingToday === 0) {
-      uni.showToast({ title: "今日超级喜欢次数已用完", icon: "none" });
+      info("今日超级喜欢次数已用完");
       return;
     }
     // 先上报喜欢，成功后再扣权益：后端无权益回滚接口，先扣后爱会导致请求失败白扣一次
@@ -255,7 +256,7 @@ async function handleSuperLike(): Promise<void> {
     const ok = await recordBenefitUsage("super_like");
     if (!ok) {
       // 并发下名额可能已被用尽：喜欢已生效，仅提示
-      uni.showToast({ title: "今日超级喜欢次数已用完", icon: "none" });
+      info("今日超级喜欢次数已用完");
     }
     if (matched) {
       matchStore.showMatchPopup({
@@ -264,7 +265,7 @@ async function handleSuperLike(): Promise<void> {
         avatar: user.value?.avatar || "",
       });
     }
-    uni.showToast({ title: matched ? "超级喜欢，已匹配！" : "已超级喜欢", icon: "success" });
+    success(matched ? "超级喜欢，已匹配！" : "已超级喜欢");
     if (!matched) setTimeout(goBack, 800);
   } catch {
     // 请求失败由 request 层统一 toast
@@ -319,18 +320,18 @@ function chooseReportReason(): void {
     success: async (res) => {
       const reason = REPORT_REASONS[res.tapIndex];
       if (!reason || !userId.value) return;
-      uni.showLoading({ title: "提交中..." });
+      loading("提交中...");
       try {
         await submitReport({
           targetUserId: userId.value,
           targetType: REPORT_TARGET_TYPE.USER,
           reason,
         });
-        uni.hideLoading();
-        uni.showToast({ title: "举报已提交", icon: "success" });
+        hideLoading();
+        success("举报已提交");
       } catch (e) {
-        uni.hideLoading();
-        uni.showToast({ title: "提交失败，请重试", icon: "none" });
+        hideLoading();
+        fail("提交失败，请重试");
       }
     },
   });

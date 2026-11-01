@@ -67,6 +67,7 @@ import { useUserStore } from "@/store/user";
 import A11yButton from "@/components/a11y-button.vue";
 import { getUserSettings, deleteAccount, getVerifyStatus, updateNotificationSetting } from "@/api/mine";
 import { sendSmsCode } from "@/api/auth";
+import { success, fail, info, loading, hideLoading } from "@/utils/ux";
 
 const userStore = useUserStore();
 const phoneMasked = ref('');
@@ -89,7 +90,7 @@ async function toggleNotification(key: string, e: any) {
   if (!settingsLoaded.value) {
     // 配置尚未从服务端加载，提交会把其余未加载项的默认值一并覆盖——拒绝并回弹
     if (s) s.value = !e.detail.value;
-    uni.showToast({ title: "配置加载中，请稍候", icon: "none" });
+    fail("配置加载中，请稍候");
     return;
   }
   if (s) s.value = e.detail.value;
@@ -205,7 +206,7 @@ function clearCache() {
         uni.clearStorageSync();
         for (const [k, v] of Object.entries(keep)) uni.setStorageSync(k, v);
         cacheSize.value = '0MB';
-        uni.showToast({ title: '清除成功', icon: 'success' });
+        success('清除成功');
       }
     },
   });
@@ -245,20 +246,20 @@ function handleDeleteAccount() {
 
 /** 向当前账号手机号发送验证码 */
 async function sendDeleteCode() {
-  uni.showLoading({ title: '发送验证码...' });
+  loading('发送验证码...');
   try {
     const settings = await getUserSettings();
     if (!settings?.phone) {
-      uni.showToast({ title: '未绑定手机号，无法注销', icon: 'none' });
+      fail('未绑定手机号，无法注销');
       return;
     }
     await sendSmsCode(settings.phone);
-    uni.hideLoading();
-    uni.showToast({ title: '验证码已发送', icon: 'none' });
+    hideLoading();
+    info('验证码已发送');
     inputDeleteCode();
   } catch (e) {
     // 失败提示由 request 层统一 toast，此处仅关 loading，避免双 toast 叠显
-    uni.hideLoading();
+    hideLoading();
   }
 }
 
@@ -275,18 +276,18 @@ function inputDeleteCode() {
       if (!res.confirm) return;
       const code = (res.content || '').trim();
       if (!/^\d{6}$/.test(code)) {
-        uni.showToast({ title: '请输入6位数字验证码', icon: 'none' });
+        info('请输入6位数字验证码');
         return;
       }
-      uni.showLoading({ title: '注销中...' });
+      loading('注销中...');
       try {
         await deleteAccount(code);
-        uni.hideLoading();
-        uni.showToast({ title: '账号已注销', icon: 'success' });
+        hideLoading();
+        success('账号已注销');
         userStore.signOutAll();
       } catch (e) {
         // 失败提示由 request 层统一 toast（验证码错误也是 400，文案由请求层给出）
-        uni.hideLoading();
+        hideLoading();
       }
     },
   });

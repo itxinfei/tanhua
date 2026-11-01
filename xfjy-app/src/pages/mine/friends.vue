@@ -101,6 +101,7 @@ import {
   FRIEND_TYPE,
   type UserProfile,
 } from "@/api/mine";
+import { info, success } from "@/utils/ux";
 
 /** Tab 配置 */
 const TAB_LIST = [
@@ -206,7 +207,7 @@ async function handleCancelLike(userId: string): Promise<void> {
   try {
     await cancelLike(userId);
     userList.value = userList.value.filter((user) => user.id !== userId);
-    uni.showToast({ title: "已取消喜欢", icon: "none" });
+    info("已取消喜欢");
   } catch {
     // 错误提示由 request 封装统一处理
   }
@@ -216,7 +217,7 @@ async function handleCancelLike(userId: string): Promise<void> {
 async function handleFollowFan(userId: string): Promise<void> {
   try {
     await followFan(userId);
-    uni.showToast({ title: "已喜欢", icon: "success" });
+    success("已喜欢");
   } catch {
     // 错误提示由 request 封装统一处理
   }

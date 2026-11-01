@@ -34,6 +34,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class IMService {
@@ -96,6 +97,23 @@ public class IMService {
         credential.setProvider(this.sysConfigService.getImProvider());
         credential.setWsUrl(this.imWsUrl);
         return credential;
+    }
+
+    /**
+     * 获取当前用户与某用户的单聊历史消息（IM 通道漫游，token 不出服务端）
+     *
+     * <p>FR-IM-03：由服务端用 IM 凭证拉取，避免前端持有 IM 管理员 token；
+     * 单聊频道对称，login_uid 取当前用户即可看到双方消息。</p>
+     *
+     * @param peerUid 对方用户ID（字符串）
+     * @param cursor  翻页游标（首次传 null 或空串）
+     * @param limit   返回条数上限
+     * @return {messages:[{from,content,time,type,extra}], cursor:"..."}
+     */
+    public Map<String, Object> getChatHistory(String peerUid, String cursor, Integer limit) {
+        User user = UserThreadLocal.get();
+        String fromUid = String.valueOf(user.getId());
+        return this.huanXinApi.getChatMessages(fromUid, peerUid, limit, cursor);
     }
 
     public Boolean contactUser(Long userId) {

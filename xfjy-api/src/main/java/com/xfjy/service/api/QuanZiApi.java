@@ -60,13 +60,20 @@ public interface QuanZiApi {
 
     /**
      * 保存评论
+     *
+     * @param mediaType 媒体类型：null/1-文字 2-语音
+     * @param audioUrl  语音文件地址（mediaType=2 时必填）
+     * @param duration  语音时长（秒，mediaType=2 时必填）
      */
     @PostExchange("/saveComment")
     @PostMapping("/saveComment")
     boolean saveComment(@RequestParam(value = "userId", required = false) Long userId,
                         @RequestParam(value = "publishId", required = false) String publishId,
                         @RequestParam(value = "type", required = false) Integer type,
-                        @RequestParam(value = "content", required = false) String content);
+                        @RequestParam(value = "content", required = false) String content,
+                        @RequestParam(value = "mediaType", required = false) Integer mediaType,
+                        @RequestParam(value = "audioUrl", required = false) String audioUrl,
+                        @RequestParam(value = "duration", required = false) Integer duration);
 
     /**
      * 保存回复评论（挂到父评论下，isParent=false）

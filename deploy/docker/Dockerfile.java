@@ -15,7 +15,8 @@
 # ============================================================
 FROM docker.m.daocloud.io/library/eclipse-temurin:25-jre-jammy
 
-ENV JAVA_OPTS="-Xms128m -Xmx320m"
+# 开发单机环境：-Xmx256m；生产按需调大（-Xmx512m）
+ENV JAVA_OPTS="-Xms128m -Xmx256m"
 
 WORKDIR /app
 

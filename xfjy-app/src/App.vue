@@ -132,10 +132,38 @@ page {
 
 /* #ifdef H5 */
 /* ===== 底部 tabBar（仅 H5；小程序端为原生 tabBar，由 theme.json 控制） =====
-   白色系：毛玻璃白底 + 黑色图标/文字（theme.json 已配 #00000080 / #000000）+ 品牌色发丝线 */
+   统一视觉规格（与 global-tabbar.ts / custom-tabbar.vue 共用 config/tab-config.ts）：
+   实色白底 · 图标 28px · 文字 10px · 品牌色 1px 发丝线 · 抖音式中央发布键 */
+
+/* 隐藏原生 tabBar：注入底栏（global-tabbar.ts）接管所有页面（含 tab 页），避免双栏。
+   原生 H5 midButton 渲染不可靠，统一由注入底栏提供发布加号 */
+.uni-tabbar,
+.uni-tabbar-border {
+  display: none !important;
+}
+
 .uni-tabbar {
   background: #ffffff !important;
   box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  /* 与运行时 --tab-bar-height: 50px 的占位高度对齐，消除页面底部与底栏之间的空隙 */
+  min-height: 50px;
+}
+
+/* 图标尺寸锁定 28px：框架默认不约束 .uni-tabbar__icon 尺寸，img 的 100% 会解析成
+   PNG 原始尺寸（81px），把整个 tabbar 撑到 100px —— “顶部分割线看起来太高”的根因 */
+.uni-tabbar__icon {
+  width: 28px;
+  height: 28px;
+}
+
+/* tabbar 顶部分割线：对标抖音发丝线，高度锁定 1px。
+   --color-primary 只定义在 uni-page-body 内，到不了 tabbar（其兄弟元素），
+   此处必须显式写颜色，否则该线透明不可见 */
+.uni-tabbar-border {
+  height: 1px !important;
+  background-color: #ff5e9c !important;
 }
 
 /* 中间发布键：对标抖音，无方块底色，仅绘制深色粗体实心“+”（圆润端点）。
@@ -177,6 +205,10 @@ page {
   .uni-tabbar {
     background: rgba(26, 26, 26, 0.82) !important;
     box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.35);
+  }
+
+  .uni-tabbar-border {
+    background-color: #ff8eb9 !important;
   }
 
   .uni-tabbar__mid {
@@ -424,42 +456,4 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
-/* ===== H5 原生 tabBar 视觉优化（仅 H5 运行时类名，小程序端不生效）===== */
-/* 毛玻璃半透明底栏，融入沉浸式视频页，消除白色硬切割感 */
-.uni-tabbar {
-  /* 实色白底：半透明毛玻璃在浅色页面上发透，底栏内容与页面混在一起 */
-  background-color: #ffffff !important;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  /* 与运行时 --tab-bar-height: 50px 的占位高度对齐，消除页面底部与底栏之间的空隙 */
-  min-height: 50px;
-}
-
-/* 图标尺寸锁定 28px：框架默认不约束 .uni-tabbar__icon 尺寸，img 的 100% 会解析成
-   PNG 原始尺寸（81px），把整个 tabbar 撑到 100px —— “顶部分割线看起来太高”的根因 */
-.uni-tabbar__icon {
-  width: 28px;
-  height: 28px;
-}
-
-/* tabbar 顶部分割线：对标抖音发丝线，高度锁定 1px。
-   --color-primary 只定义在 uni-page-body 内，到不了 tabbar（其兄弟元素），
-   此处必须显式写颜色，否则该线透明不可见 */
-.uni-tabbar-border {
-  height: 1px !important;
-  background-color: #ff5e9c !important;
-}
-
-/* 发布键兜底：保持透明、无圆角方块，加号由前面的 ::before/::after 绘制 */
-.uni-tabbar__mid {
-  background-color: transparent !important;
-  border-radius: 0 !important;
-}
-
-/* 深色模式：分割线用亮一档的品牌色（同上，变量不可达，写显式色值） */
-@media (prefers-color-scheme: dark) {
-  .uni-tabbar-border {
-    background-color: #ff8eb9 !important;
-  }
-}
 </style>

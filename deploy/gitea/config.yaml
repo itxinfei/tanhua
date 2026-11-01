@@ -41,11 +41,10 @@ container:
     - "/home/itxinfei/.cache/npm"
     - "/home/itxinfei/.cache/ci-state"
   # 关键项说明：
-  # 1) --add-host gitea:172.19.0.2
-  #    act_runner 给每个 job 自建独立网络，该网络内没有 gitea 服务名，
-  #    导致 checkout 时 "Could not resolve host: gitea"。这里用 --add-host 兜底，
-  #    172.19.0.2 是 gitea 容器在 xfjy-gitea_gitea-net 上的地址。
+  # 1) --add-host 已删除：container.network 使用 gitea-net 后 Docker 内嵌 DNS 能正确解析 gitea 服务名，
+  #    无需额外的 /etc/hosts 注入。旧配置 --add-host gitea:172.19.0.2 的 IP 现已失效（Gitea 容器 IP 变动），
+  #    保留反而让 job 容器把 gitea 解析到错误地址。
   #
   # 2) 资源限制：4 核 / 4G，够跑 Maven 并行构建
-  options: "--cpus=4 --memory=4g --add-host gitea:172.19.0.2"
+  options: "--cpus=4 --memory=4g"
 

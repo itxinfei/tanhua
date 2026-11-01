@@ -283,11 +283,50 @@ public class WuKongImApiImpl implements WuKongImApi {
             long lastSeq = 0;
             if (messagesNode.isArray()) {
                 for (JsonNode msg : messagesNode) {
+                    // 解码 payload（业务侧结构化消息均封装为 JSON 文本，WuKongIM 以 text 类型存储）
+                    JsonNode payload = decodePayload(msg.path("payload").asString(""));
                     Map<String, Object> m = new HashMap<>();
                     m.put("from", msg.path("from_uid").asString(""));
-                    m.put("content", extractMessageText(msg.path("payload").asString("")));
                     m.put("time", msg.path("timestamp").asLong(0L) * 1000L);
-                    m.put("type", extractMessageType(msg.path("payload").asString("")));
+                    if (payload != null) {
+                        String customType = payload.path("type").asString("");
+                        switch (customType) {
+                            case "image":
+                                m.put("type", "image");
+                                m.put("content", payload.path("url").asString(""));
+                                break;
+                            case "voice":
+                                m.put("type", "voice");
+                                m.put("content", payload.path("url").asString(""));
+                                Map<String, Object> voiceExtra = new HashMap<>();
+                                voiceExtra.put("duration", payload.path("duration").asInt(0));
+                                m.put("extra", voiceExtra);
+                                break;
+                            case "location":
+                                m.put("type", "location");
+                                m.put("content", payload.path("address").asString(""));
+                                Map<String, Object> locExtra = new HashMap<>();
+                                locExtra.put("latitude", payload.path("latitude").asDouble(0));
+                                locExtra.put("longitude", payload.path("longitude").asDouble(0));
+                                m.put("extra", locExtra);
+                                break;
+                            case "card":
+                                m.put("type", "card");
+                                m.put("content", payload.path("nickname").asString(""));
+                                Map<String, Object> cardExtra = new HashMap<>();
+                                cardExtra.put("userId", payload.path("userId").asString(""));
+                                cardExtra.put("avatar", payload.path("avatar").asString(""));
+                                m.put("extra", cardExtra);
+                                break;
+                            default:
+                                // 普通文本（WuKongIM type=1）或未知类型：content 取纯文本
+                                m.put("type", "text");
+                                m.put("content", payload.path("content").asString(""));
+                        }
+                    } else {
+                        m.put("type", "text");
+                        m.put("content", "");
+                    }
                     messages.add(m);
                     lastSeq = msg.path("message_seq").asLong(lastSeq);
                 }

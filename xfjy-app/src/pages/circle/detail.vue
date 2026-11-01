@@ -51,6 +51,7 @@ import { onLoad } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
 import { getMovementById, getComments, publishComment } from "@/api/circle";
 import type { Movement, Comment } from "@/api/circle";
+import { success } from "@/utils/ux";
 
 const PAGE_SIZE = 20;
 const postId = ref("");
@@ -92,7 +93,7 @@ async function sendComment() {
   try {
     await publishComment(postId.value, text);
     commentText.value = "";
-    uni.showToast({ title: "评论成功", icon: "success" });
+    success("评论成功");
     await loadComments();
   } catch {
     // request 层统一 toast

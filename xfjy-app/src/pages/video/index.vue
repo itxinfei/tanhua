@@ -229,6 +229,7 @@ import EmptyState from "@/components/empty-state.vue";
 import Skeleton from "@/components/skeleton.vue";
 import A11yDialog from "@/components/a11y-dialog.vue";
 import { formatCount } from "@/utils/format";
+import { info } from "@/utils/ux";
 
 /** 分页大小 */
 const PAGE_SIZE = 10;
@@ -413,7 +414,7 @@ const shareVideo = ref<Video | null>(null);
 
 /** 搜索（暂未上线） */
 function onSearch(): void {
-  uni.showToast({ title: "搜索功能即将上线", icon: "none" });
+  info("搜索功能即将上线");
 }
 
 /**
@@ -604,11 +605,11 @@ function doShare(channel: "wechat" | "moments" | "copy") {
   if (channel === "copy") {
     uni.setClipboardData({
       data: shareVideo.value?.videoUrl || "",
-      success: () => uni.showToast({ title: "链接已复制", icon: "none" }),
+      success: () => info("链接已复制"),
     });
   } else {
     // 未接入真实微信分享，不再谎报"已分享"
-    uni.showToast({ title: "该分享方式即将上线", icon: "none" });
+    info("该分享方式即将上线");
   }
 }
 

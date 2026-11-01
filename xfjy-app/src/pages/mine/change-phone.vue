@@ -25,6 +25,7 @@ const phoneLabelId = "change-phone-label";
 const codeLabelId = "change-code-label";
 import { sendSmsCode, changePhone } from "@/api/auth";
 import { safeGoBack } from "@/utils/nav";
+import { info, success } from "@/utils/ux";
 
 const phone = ref('');
 const code = ref('');
@@ -38,12 +39,12 @@ onUnmounted(() => { if (timer) clearInterval(timer); });
 async function sendCode() {
   if (countdown.value > 0) return;
   if (!/^1[3-9]\d{9}$/.test(phone.value)) {
-    uni.showToast({ title: '请输入正确的手机号', icon: 'none' });
+    info('请输入正确的手机号');
     return;
   }
   try {
     await sendSmsCode(phone.value);
-    uni.showToast({ title: '验证码已发送', icon: 'none' });
+    info('验证码已发送');
     countdown.value = 60;
     timer = setInterval(() => {
       countdown.value--;
@@ -58,17 +59,17 @@ async function sendCode() {
 async function submit() {
   if (submitting.value) return;
   if (!/^1[3-9]\d{9}$/.test(phone.value)) {
-    uni.showToast({ title: '请输入正确的手机号', icon: 'none' });
+    info('请输入正确的手机号');
     return;
   }
   if (!/^\d{6}$/.test(code.value)) {
-    uni.showToast({ title: '请输入6位验证码', icon: 'none' });
+    info('请输入6位验证码');
     return;
   }
   submitting.value = true;
   try {
     await changePhone(phone.value, code.value);
-    uni.showToast({ title: '换绑成功', icon: 'success' });
+    success('换绑成功');
     setTimeout(() => safeGoBack("/pages/mine/index"), 800);
   } catch {
     // 403/409 由 request 层统一 toast

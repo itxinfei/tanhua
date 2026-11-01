@@ -5,6 +5,7 @@ import tools.jackson.databind.json.JsonMapper;
 import com.xfjy.service.api.ESUserLocationApi;
 import com.xfjy.service.api.HuanXinApi;
 import com.xfjy.service.api.PayApi;
+import com.xfjy.service.api.SwipeLogApi;
 import com.xfjy.service.api.UserInfoApi;
 import com.xfjy.service.api.UserLikeApi;
 import com.xfjy.service.api.VisitorsApi;
@@ -12,6 +13,8 @@ import com.xfjy.service.enums.SexEnum;
 import com.xfjy.service.pojo.RecommendUser;
 import com.xfjy.service.pojo.UserInfo;
 import com.xfjy.service.pojo.Visitors;
+import com.xfjy.server.exception.BenefitLimitException;
+import com.xfjy.server.exception.SwipeLimitException;
 import com.xfjy.service.vo.BenefitCheckVo;
 import com.xfjy.service.vo.PageInfo;
 import com.xfjy.service.vo.UserInfoQueryParam;
@@ -79,6 +82,15 @@ public class TodayBestService {
 
     @Autowired //访客记录写入
     private VisitorsApi visitorsApi;
+
+    @Autowired //滑动日志记录 + 次数计数（后端兜底拦截用）
+    private SwipeLogApi swipeLogApi;
+
+    /** 每日免费滑动上限（与前端 match.ts 的 MAX_FREE_SWIPE=50 一致；最终应迁 Nacos） */
+    private static final int MAX_FREE_SWIPE = 50;
+
+    /** 滑动限制拦截时前端跳转页 */
+    private static final String SWIPE_LIMIT_UPGRADE_URL = "/pages/mine/vip?source=swipe_out";
 
     @Autowired //推荐混合评分（阶段1保底：ALS+距离+画像加权）
     private RecommendScoringService recommendScoringService;
@@ -393,14 +405,102 @@ public class TodayBestService {
     }
 
     /**
+     * 今日滑动次数校验（兜底层，防前端绕过）
+     *
+     * <p>逻辑：先检查是否持有 unlimited_swipe 权益；无权益则查询 tb_swipe_log 当日实际次数。</p>
+     * <p>注意：dislike（左滑）不计入次数，只有右滑（like/superlike）才计次。</p>
+     *
+     * @param action 动作类型（用于区分计次策略）
+     * @throws SwipeLimitException 次数用尽且无权益
+     */
+    private void checkSwipeLimit(String action) {
+        User user = UserThreadLocal.get();
+        // dislike 不占用滑动额度
+        if ("dislike".equals(action)) {
+            return;
+        }
+        try {
+            BenefitCheckVo benefit = this.payApi.checkBenefit(user.getId(), "unlimited_swipe");
+            if (benefit != null && Boolean.TRUE.equals(benefit.getHasBenefit())) {
+                return; // VIP 无限滑动 → 放行
+            }
+        } catch (Exception e) {
+            LOGGER.warn("权益校验失败，降级使用计数兜底：userId={}, err={}", user.getId(), e.getMessage());
+        }
+        // 无权益兜底：以 tb_swipe_log 当日实际写入次数为准
+        Long todayCount = this.swipeLogApi.countTodaySwipes(user.getId());
+        if (todayCount >= MAX_FREE_SWIPE) {
+            throw new SwipeLimitException("swipe_daily_limit", todayCount.intValue(), MAX_FREE_SWIPE, SWIPE_LIMIT_UPGRADE_URL);
+        }
+    }
+
+    /**
+     * 超级喜欢权益校验（后端兜底，防前端绕过 recordBenefitUsage）
+     *
+     * <p>逻辑：action=superlike 时，检查用户 super_like 权益剩余次数；未开通或次数耗尽 → 抛 BenefitLimitException。</p>
+     *
+     * @param userId 用户 ID
+     * @param action 动作类型
+     * @throws BenefitLimitException 权益未开通或今日次数耗尽
+     */
+    private void checkSuperLikeBenefit(Long userId, String action) {
+        if (!"superlike".equals(action)) {
+            return; // 普通 like 不校验 super_like
+        }
+        try {
+            BenefitCheckVo benefit = this.payApi.checkBenefit(userId, "super_like");
+            if (benefit == null) {
+                throw new BenefitLimitException("super_like", "超级喜欢", SWIPE_LIMIT_UPGRADE_URL);
+            }
+            // 基础权益门槛：VIP lv1 起才能用 super_like
+            if (!Boolean.TRUE.equals(benefit.getHasBenefit())) {
+                throw new BenefitLimitException("super_like", "超级喜欢", SWIPE_LIMIT_UPGRADE_URL);
+            }
+            // 每日限次判定（dailyLimit=NULL 表示不限次，仅 VIP 顶级才有）
+            if (benefit.getDailyLimit() != null && benefit.getRemainingToday() != null
+                    && benefit.getRemainingToday() <= 0) {
+                throw new BenefitLimitException("super_like", "超级喜欢", SWIPE_LIMIT_UPGRADE_URL);
+            }
+            // 后端也扣减一次权益（与前端 recordBenefitUsage 双重兜底；幂等：recordBenefitUsage 内部已防重）
+            try {
+                this.payApi.recordBenefitUsage(userId, "super_like");
+            } catch (Exception e) {
+                LOGGER.warn("后端扣减 super_like 权益失败（旁路）：userId={}", userId, e);
+            }
+        } catch (BenefitLimitException e) {
+            throw e; // 直接向上传递，不包装
+        } catch (Exception e) {
+            LOGGER.warn("super_like 权益校验失败，降级拦截：userId={}, err={}", userId, e.getMessage());
+            // 权益服务异常 → 安全降级：拦截 super_like（不允许绕过）
+            throw new BenefitLimitException("super_like", "超级喜欢", SWIPE_LIMIT_UPGRADE_URL);
+        }
+    }
+
+    /**
+     * 记录一次滑动动作（旁路：失败不阻断主链路）
+     */
+    private void recordSwipeLog(Long targetId, String action, boolean matched) {
+        try {
+            this.swipeLogApi.recordSwipe(UserThreadLocal.get().getId(), targetId, action, matched ? 1 : 0);
+        } catch (Exception e) {
+            LOGGER.warn("滑动日志写入异常（旁路不阻断）：targetId={}, action={}", targetId, action, e);
+        }
+    }
+
+    /**
      * 喜欢用户（探花右滑/超级喜欢）
      * 保存喜欢关系，若互相喜欢则自动注册为环信好友
      *
      * @param likeUserId 被喜欢的用户ID
+     * @param action 动作类型：like | superlike
      * @return null=保存失败；true=互相喜欢（匹配成功）；false=单方面喜欢
      */
-    public Boolean likeUser(Long likeUserId) {
+    public Boolean likeUser(Long likeUserId, String action) {
         User user = UserThreadLocal.get();
+        // ★ 次数校验兜底（防前端绕过；先验后写）
+        checkSwipeLimit(action);
+        // ★ super_like 权益校验（仅当 action=superlike 时生效）
+        checkSuperLikeBenefit(user.getId(), action);
         String id = this.userLikeApi.saveUserLike(user.getId(), likeUserId);
         if (StringUtils.isEmpty(id)) {
             return null;
@@ -409,7 +509,9 @@ public class TodayBestService {
         // P2 同步喜欢关系到 Neo4j（异步语义：失败仅打日志，不阻断主链路）
         this.graphRecommendService.syncLikeRelation(user.getId(), likeUserId);
 
+        // ★ 滑动日志记录（用于后端兜底计数；互喜时 matched=1；action 区分 like/superlike）
         boolean mutualLike = this.userLikeApi.isMutualLike(user.getId(), likeUserId);
+        recordSwipeLog(likeUserId, action, mutualLike);
         if (mutualLike) {
             // 相互喜欢成为好友（注册环信联系人）
             this.imService.contactUser(likeUserId);
@@ -433,6 +535,8 @@ public class TodayBestService {
 
     public Boolean disLikeUser(Long likeUserId) {
         User user = UserThreadLocal.get();
+        // ★ 次数校验兜底（dislike 不占额度，checkSwipeLimit 内部自动跳过）
+        checkSwipeLimit("dislike");
         Boolean deleted = this.userLikeApi.deleteUserLike(user.getId(), likeUserId);
 
         // P2 同步取消喜欢到 Neo4j（异步语义：失败仅打日志）

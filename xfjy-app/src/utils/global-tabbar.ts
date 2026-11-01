@@ -4,69 +4,30 @@
  * 背景：uni-app 的原生 tabBar 只在 pages.json tabBar.list 的 4 个 tab 页渲染，
  * navigateTo 进入的二级页（vip / nearby / chat 等）天生没有底栏，逐页补丁必然遗漏。
  * 本模块在应用启动时注入一个与原生 tabbar 视觉一致的固定底栏：
- *   - tab 页：隐藏自身（原生 tabbar 已存在，避免双栏）
+ *   - tab 页：显示注入底栏（接管所有页面，原生 tabBar 由 App.vue 隐藏避免双栏）
  *   - 非 tab 页：显示，并按路径前缀高亮所属 tab（如 /pages/mine/vip → 高亮「我的」）
  *   - 登录等全屏页（/pages/auth/*）：不显示
  *
  * 规则文档：docs/H5-tabbar机制与全局底栏.md
  */
 // #ifdef H5
-interface TabDef {
-  /** 页面路径（pages.json 中的 pagePath） */
-  pagePath: string;
-  /** 底栏文字 */
-  text: string;
-  /** 未选中图标 */
-  icon: string;
-  /** 选中图标 */
-  iconActive: string;
-  /** 该 tab 管辖的页面路径前缀（用于二级页高亮归属） */
-  prefixes: string[];
-}
-
-const TABS: TabDef[] = [
-  {
-    pagePath: "pages/match/index",
-    text: "匹配",
-    icon: "/static/tabbar/match.png",
-    iconActive: "/static/tabbar/match-active.png",
-    prefixes: ["pages/match"],
-  },
-  {
-    pagePath: "pages/circle/index",
-    text: "圈子",
-    icon: "/static/tabbar/circle.png",
-    iconActive: "/static/tabbar/circle-active.png",
-    prefixes: ["pages/circle"],
-  },
-  {
-    pagePath: "pages/video/index",
-    text: "视频",
-    icon: "/static/tabbar/video.png",
-    iconActive: "/static/tabbar/video-active.png",
-    prefixes: ["pages/video"],
-  },
-  {
-    pagePath: "pages/mine/index",
-    text: "我的",
-    icon: "/static/tabbar/mine.png",
-    iconActive: "/static/tabbar/mine-active.png",
-    prefixes: ["pages/mine"],
-  },
-];
-
-/** 中央发布键目标页（与 App.vue 原生 midButton 行为一致） */
-const PUBLISH_PAGE = "pages/circle/publish";
-
-/** 全屏页不显示底栏（登录/协议等） */
-const EXCLUDED_PREFIXES = ["pages/auth"];
+import {
+  TABS,
+  PUBLISH_PAGE,
+  EXCLUDED_PREFIXES,
+  TAB_BAR_HEIGHT_PX,
+  TAB_ICON_SIZE_PX,
+  TAB_FONT_SIZE_PX,
+} from "@/config/tab-config";
 
 /** 底栏内容高度（px），与原生 tabbar（--tab-bar-height）一致 */
-const BAR_HEIGHT_PX = 50;
+const BAR_HEIGHT_PX = TAB_BAR_HEIGHT_PX;
 
 const STYLE_ID = "xfjy-global-tabbar-style";
 const BAR_ID = "xfjy-global-tabbar";
 
+/* 视觉规格统一来源：config/tab-config.ts（图标 28px / 文字 10px / 实色白底 / 品牌色 1px 发丝线），
+   与 App.vue 原生 .uni-tabbar 样式完全对齐，消除"切页后底栏样式跳变" */
 const CSS = `
 #${BAR_ID} {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 998;
@@ -79,15 +40,15 @@ const CSS = `
 }
 #${BAR_ID}::before {
   content: ""; position: absolute; left: 0; top: 0; width: 100%; height: 1px;
-  background: #ff5e9c; transform: scaleY(0.5);
+  background: #ff5e9c;
 }
 #${BAR_ID} .gtab-item {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
   cursor: pointer; -webkit-tap-highlight-color: rgba(0, 0, 0, 0); box-sizing: border-box;
 }
-#${BAR_ID} .gtab-item img { width: 24px; height: 24px; }
+#${BAR_ID} .gtab-item img { width: ${TAB_ICON_SIZE_PX}px; height: ${TAB_ICON_SIZE_PX}px; }
 #${BAR_ID} .gtab-item .gtab-label {
-  font-size: 10px; line-height: normal; margin-top: 3px; color: #000000;
+  font-size: ${TAB_FONT_SIZE_PX}px; line-height: normal; margin-top: 3px; color: #000000;
 }
 #${BAR_ID} .gtab-item.active .gtab-label { color: #ff5e9c; }
 /* 中央发布键：黑灰实心加号（与原生 uni-tabbar__mid 视觉一致） */
@@ -98,6 +59,14 @@ const CSS = `
 }
 #${BAR_ID} .gtab-mid::before { width: 28px; height: 5px; }
 #${BAR_ID} .gtab-mid::after { width: 5px; height: 28px; }
+/* 暗色模式：与 App.vue 原生 tabbar 暗色变体一致 */
+@media (prefers-color-scheme: dark) {
+  #${BAR_ID} { background: rgba(26, 26, 26, 0.82); box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.35); }
+  #${BAR_ID}::before { background: #ff8eb9; }
+  #${BAR_ID} .gtab-item .gtab-label { color: #999999; }
+  #${BAR_ID} .gtab-item.active .gtab-label { color: #ff5e9c; }
+  #${BAR_ID} .gtab-mid::before, #${BAR_ID} .gtab-mid::after { background: #ffffff; }
+}
 `;
 
 /** 当前路由（去掉 #/ 前缀与查询串），如 pages/mine/vip */
@@ -113,10 +82,6 @@ function currentRoute(): string {
   } catch (_) { /* 非 H5 或不支持时忽略，走 hash 兜底 */ }
   const hash = location.hash.replace(/^#/, "");
   return hash.split("?")[0].replace(/^\//, "");
-}
-
-function isTabRoute(route: string): boolean {
-  return TABS.some((t) => route === t.pagePath);
 }
 
 function isExcluded(route: string): boolean {
@@ -137,7 +102,9 @@ function applyWindowBottom(value: string): void {
 
 function refresh(bar: HTMLElement): void {
   const route = currentRoute();
-  const show = !!route && !isTabRoute(route) && !isExcluded(route);
+  // 注入底栏接管所有页面（含 tab 页）：tab 页原生 tabBar 已由 App.vue 隐藏，
+  // 避免依赖 uni-app H5 原生 midButton（渲染不可靠）导致加号不显示
+  const show = !!route && !isExcluded(route);
   bar.style.display = show ? "flex" : "none";
   applyWindowBottom(show ? `${BAR_HEIGHT_PX}px` : "0px");
   if (!show) return;

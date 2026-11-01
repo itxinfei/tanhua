@@ -1,7 +1,7 @@
 package com.xfjy.recommend.msg;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xfjy.service.pojo.Publish;
 import com.xfjy.recommend.pojo.RecommendQuanZi;
 import com.xfjy.recommend.pojo.UserBehavior;
@@ -33,7 +33,7 @@ public class QuanZiMsgConsumer implements RocketMQListener<String> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(QuanZiMsgConsumer.class);
 
-    private static final JsonMapper MAPPER = new JsonMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Autowired
     private MongoTemplate mongoTemplate;

@@ -55,6 +55,7 @@ import { ref, reactive } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
 import { submitFeedbackApi, getMyFeedbackApi, type FeedbackItem } from "@/api/kefu";
+import { info, success } from "@/utils/ux";
 
 const form = reactive({
   content: "",
@@ -82,14 +83,14 @@ async function loadMyList(): Promise<void> {
 
 async function handleSubmit(): Promise<void> {
   if (!form.content.trim()) {
-    uni.showToast({ title: "请填写反馈内容", icon: "none" });
+    info("请填写反馈内容");
     return;
   }
   if (submitting.value) return;
   submitting.value = true;
   try {
     await submitFeedbackApi(form.content.trim(), form.contact.trim() || undefined);
-    uni.showToast({ title: "提交成功", icon: "success" });
+    success("提交成功");
     form.content = "";
     form.contact = "";
     await loadMyList();

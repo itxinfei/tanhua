@@ -3,10 +3,10 @@
 # 用法：cd deploy && docker compose -f docker-compose.middleware.yml up -d
 # 或使用 setup.sh 一键启动 + 初始化数据
 #
-# 内存限制：12 个常驻服务合计 6.4g（宿主机 15Gi 内存，留余量给 app 层与系统）
+# 内存限制：12 个常驻服务合计 6.4g（宿主机 32Gi 内存，留余量给 app 层与系统）
 #   mysql 768m / redis 384m / mongo 512m / es 768m / nacos 512m
 #   namesrv 384m / broker 768m / qdrant 384m / neo4j 768m
-#   minio 384m / wukongim 384m / livekit 384m
+#   minio 384m / wukongim 384m / livekit 384m（network host 模式，无端口映射）
 #   minio-init 为一次性任务，不加 mem_limit
 # ============================================================
 
@@ -302,7 +302,10 @@ services:
       - xfjy-net
 
   livekit:
-    # 音视频 SFU 媒体服务器（替代环信音视频）：信令 7880、TCP 回退 7881、UDP 媒体 50000-60000（万级端口支持高并发通话）
+    # 音视频 SFU 媒体服务器（替代环信音视频）：信令 7880、TCP 回退 7881、UDP 媒体 50000-51000
+    # 开发单机环境：1000 端口支持 500 并发通话
+    # 注意：--network host 模式下不映射端口，省掉 dockerd iptables 表（万级端口会让 dockerd 卡死）
+    # 生产部署改为 bridge + 端口映射，按需调大到 5000-10000
     image: docker.m.daocloud.io/livekit/livekit-server:latest
     container_name: xfjy-livekit
     restart: unless-stopped
@@ -315,11 +318,8 @@ services:
       # 内网部署固定节点 IP、关闭 STUN 公网探测（环境变量优先级高于 config.yaml）
       LIVEKIT_RTC_USE_EXTERNAL_IP: "${LIVEKIT_USE_EXTERNAL_IP:-false}"
       LIVEKIT_RTC_NODE_IP: "${LIVEKIT_NODE_IP:-192.168.20.133}"
-    ports:
-      - "7880:7880"
-      - "7881:7881"
-      - "50000-60000:50000-60000/udp"
+    # network host 模式：不发布端口，直用宿主机网络栈
+    # ports 全部省略；如需 bridge 模式需恢复 ports 并注释 network
     volumes:
       - ./livekit/config.yaml:/etc/livekit/config.yaml:ro
-    networks:
-      - xfjy-net
+    network_mode: host

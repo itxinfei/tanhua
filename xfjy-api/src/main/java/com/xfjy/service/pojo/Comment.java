@@ -32,4 +32,11 @@ public class Comment implements java.io.Serializable{
 
     private Long created; //发表时间
 
+    /** 媒体类型：1-文字（默认）2-语音；与 commentType（1点赞/2评论/3喜欢）语义不同 */
+    private Integer mediaType;
+    /** 语音评论的音频文件地址（mediaType=2 时有值） */
+    private String audioUrl;
+    /** 语音时长（秒，mediaType=2 时有值） */
+    private Integer duration;
+
 }

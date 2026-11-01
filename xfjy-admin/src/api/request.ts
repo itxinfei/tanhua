@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import router from '@/router'
+import { log, error } from '@/utils/logger'
 
 // 生产默认同源 /api（由 nginx 反代到网关），开发走 vite proxy
 const request = axios.create({
@@ -15,6 +16,9 @@ request.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    // 记录请求起始时间（挂在 config 上，响应拦截器读取算耗时）
+    ;(config as any).__startAt = Date.now()
+    log(`${config.method?.toUpperCase() || 'GET'} ${config.url}`, config.params || config.data || '')
     return config
   },
   (error) => Promise.reject(error)
@@ -23,6 +27,8 @@ request.interceptors.request.use(
 // 响应拦截器
 request.interceptors.response.use(
   (response) => {
+    const startAt = (response.config as any).__startAt as number | undefined
+    log(`${response.config?.method?.toUpperCase() || 'GET'} ${response.config?.url} → ${response.status} (${startAt ? Date.now() - startAt : 0}ms)`)
     const res = response.data
     if (res.code !== undefined && res.code !== 200) {
       ElMessage.error(res.message || '请求失败')
@@ -37,6 +43,8 @@ request.interceptors.response.use(
     return res
   },
   (error) => {
+    const startAt = (error.config as any).__startAt as number | undefined
+    error(`${error.config?.method?.toUpperCase() || 'GET'} ${error.config?.url} ✗ (${startAt ? Date.now() - startAt : 0}ms)`, error.message)
     if (error.response) {
       const { status } = error.response
       if (status === 401) {

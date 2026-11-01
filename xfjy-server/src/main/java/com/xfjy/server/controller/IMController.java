@@ -39,6 +39,24 @@ public class IMController {
     }
 
     /**
+     * 查询当前用户与某用户的单聊历史消息（IM 漫游）
+     *
+     * <p>FR-IM-03：token 不出服务端，由服务端用 IM 凭证拉取。返回
+     * {messages:[{from,content,time,type,extra}], cursor:"..."}。</p>
+     */
+    @GetMapping("history")
+    public ResponseEntity<Map<String, Object>> getChatHistory(
+            @RequestParam("peer") String peer,
+            @RequestParam(value = "cursor", required = false) String cursor,
+            @RequestParam(value = "limit", defaultValue = "20") Integer limit) {
+        Map<String, Object> history = this.imService.getChatHistory(peer, cursor, limit);
+        if (history == null) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
+        }
+        return ResponseEntity.ok(history);
+    }
+
+    /**
      * 添加联系人
      *
      * @param param

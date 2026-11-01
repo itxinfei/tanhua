@@ -117,3 +117,10 @@ deploy/manage.sh.bak*
 
 # 本地 npm 配置（无敏感信息但属个人环境）
 .npmrc
+
+# CatPaw AI 工具临时文件
+_bt_test.txt
+_fix_wukongim.js
+_fix_wukongim.py
+_nl_test.txt
+.qoder/

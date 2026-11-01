@@ -593,13 +593,43 @@ CREATE TABLE IF NOT EXISTS `tb_value_added_service` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='增值服务权益定义';
 
 -- 权益矩阵初始化（幂等：已存在则跳过）
+-- ★ 限制规则唯一真源：docs/用户限制矩阵.md（修改前必须同步更新文档）
+-- VIP 升级逻辑：后端取 userVipLevel >= vip_level_required 且 daily_limit 最大的那条
+-- 例：VIP季卡 userVipLevel=2，匹配 super_like(5次) 与 super_like_v2(10次)，取 10 次
 INSERT INTO `tb_value_added_service` (`service_code`, `name`, `vip_level_required`, `daily_limit`, `description`, `sort`) VALUES
-  ('super_like',       '超级喜欢',     1, 5,    '每日5次优先曝光喜欢，对方优先收到通知', 10),
-  ('see_who_likes',    '查看谁喜欢我', 1, NULL, '无限制查看喜欢我的人',                   20),
-  ('unlimited_swipe',  '无限滑动',     2, NULL, '每日推荐滑动次数不限（普通用户50次/天）', 30),
-  ('stealth_visit',    '隐身访问',     2, NULL, '访问他人主页不留访客记录',               40),
-  ('exclusive_service','专属客服',     3, NULL, 'VIP 专属客服通道，优先响应',             50)
-ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `updated` = CURRENT_TIMESTAMP;
+  -- ---- 既有权益 ----
+  ('super_like',              '超级喜欢',         1, 5,    '每日5次优先曝光喜欢，对方优先收到通知',                     10),
+  ('see_who_likes',           '查看谁喜欢我',     1, NULL, '无限制查看喜欢我的人',                                    20),
+  ('unlimited_swipe',         '无限滑动',         2, NULL, '每日推荐滑动次数不限（普通用户50次/天）',                  30),
+  ('stealth_visit',           '隐身访问',         2, NULL, '访问他人主页不留访客记录',                                40),
+  ('exclusive_service',       '专属客服',         3, NULL, 'VIP 专属客服通道，优先响应',                              50),
+  -- ★ v1.0 新增 7 项权益（PRD 定义，原 DB 种子缺失）
+  ('super_like_v2',           '超级喜欢提升',     2, 10,   'VIP季卡每日10次超级喜欢',                                  60),
+  ('super_like_v3',           '超级喜欢顶级',     3, 15,   'VIP年卡每日15次超级喜欢',                                  70),
+  ('rewind_unlimited',        '无限撤销',         2, NULL, '每日撤销次数不限（普通用户3次/天）',                       80),
+  ('advanced_filter',         '高级筛选体验',     1, 1,    'VIP月卡每日1次体验学历/收入/身高筛选',                     90),
+  ('advanced_filter_unlimited','高级筛选无限',    2, NULL, '学历/收入/身高筛选无限使用',                             100),
+  ('boost_discount',          'Boost折扣',        1, NULL, 'Boost 30min 曝光加倍，享受VIP折扣价（月卡¥3.99/季卡¥2.99）', 110),
+  ('score_multiplier',        '积分倍率',         1, NULL, '每日任务/签到积分倍率提升（月卡1.1x/季卡1.3x/年卡1.5x）',   120)
+ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `vip_level_required` = VALUES(`vip_level_required`), `daily_limit` = VALUES(`daily_limit`), `description` = VALUES(`description`), `sort` = VALUES(`sort`), `updated` = CURRENT_TIMESTAMP;
+
+-- =============================================
+-- 滑动日志（后端次数校验用，防前端绕过）
+-- =============================================
+-- 每次用户执行 like/dislike/superlove 时由 BFF 写入；用于统计当日已滑动次数。
+-- 计数策略：以 user_id + DATE(created) GROUP BY 计数；每日 00:00 不清零（由 WHERE DATE(created)=CURDATE() 过滤）。
+-- 索引设计：idx_user_date 覆盖高频查询（WHERE user_id=? AND DATE(created)=CURDATE()），按日期分片可后续扩展。
+CREATE TABLE IF NOT EXISTS `tb_swipe_log` (
+  `id`           BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `user_id`      BIGINT       NOT NULL COMMENT '发起滑动用户ID',
+  `target_id`    BIGINT       NOT NULL COMMENT '被滑动用户ID',
+  `action`       VARCHAR(16)  NOT NULL COMMENT '动作：like|superlike|dislike',
+  `matched`      TINYINT      DEFAULT 0 COMMENT '是否匹配成功（互喜=1）',
+  `created`      DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '滑动时间（UTC+8）',
+  PRIMARY KEY (`id`),
+  KEY `idx_user_date` (`user_id`, `created`),
+  KEY `idx_target` (`target_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户滑动日志（后端次数校验 + 推荐反哺）';
 
 -- ----------------------------
 -- Table structure for tb_faq
