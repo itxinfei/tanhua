@@ -296,10 +296,14 @@ main() {
       ;;
     deploy)
       # 重新构建并启动（CI 部署入口）
+      # --force-recreate：强制重建目标容器，即使配置未变。
+      #   根因教训（2026-11-01）：up -d 只重建配置变化的容器，镜像内容变了
+      #   但配置没变时不重建 → 旧容器残留跑旧 jar（如 /small-videos 404 事件）。
+      #   force-recreate 配合 IMAGE_TAG 注入，确保每次部署都用新镜像。
       resolve_targets "$@"
       stage_contexts
-      run_compose "up -d --build" app
-      run_compose "up -d --build" web
+      run_compose "up -d --build --force-recreate" app
+      run_compose "up -d --build --force-recreate" web
       ok "部署完成：${APP_TARGETS[*]} ${WEB_TARGETS[*]}"
       ;;
     status|ps)
