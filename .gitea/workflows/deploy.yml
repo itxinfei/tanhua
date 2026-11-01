@@ -76,8 +76,8 @@ jobs:
       - name: Checkout
         run: |
           set -e
-          cd "${GITHUB_WORKSPACE:-/workspace}"
-          rm -rf .git
+          mkdir -p /workspace
+          cd /workspace
           git clone --depth 1 http://gitea:3000/admin/xfjy.git .
           git log -1 --oneline
 
