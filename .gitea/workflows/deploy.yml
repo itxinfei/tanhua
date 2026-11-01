@@ -107,8 +107,10 @@ jobs:
           done
           PL_LIST="$(echo ${BUILD_LIST} | tr ' ' ',')"
           echo "[增量] 打包模块: ${PL_LIST}"
-          mvn ${MVN_ARGS} package -DskipTests -Dmaven.test.skip=true \
-              -pl "${PL_LIST}" -am -T 1C
+          # -T 2 而非 -T 1C：宿主机同时跑全套中间件与线上容器，全核并行会把
+          # CPU 打满导致面板/线上服务一起卡；限 2 线程用时间换整机流畅
+          MAVEN_OPTS="-Xmx1g" mvn ${MVN_ARGS} package -DskipTests -Dmaven.test.skip=true \
+              -pl "${PL_LIST}" -am -T 2
           for m in ${BUILD_LIST}; do
             if [ ! -f "$m/target/$m-1.0-SNAPSHOT.jar" ]; then
               echo "ERROR: 未生成 $m/target/$m-1.0-SNAPSHOT.jar"; exit 1

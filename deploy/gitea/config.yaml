@@ -12,7 +12,10 @@ log:
 
 runner:
   file: .runner
-  capacity: 1
+  # 并发 2：ci.yml 的 backend/admin/app 三个 job 可两两并行（缩短门禁墙钟时间）；
+  # deploy 与 ci 同时触发时也只排一个，不再长时间串行等待。
+  # 宿主机同时跑全套中间件+11个Java容器，不建议再调高，避免构建抢垮线上服务。
+  capacity: 2
   timeout: 3h
   # 标签映射：ubuntu-latest 指向本项目自建的 CI 镜像
   labels:

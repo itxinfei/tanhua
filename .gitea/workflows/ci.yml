@@ -35,7 +35,8 @@ jobs:
 
       - name: 编译所有模块（test-compile，跳过测试执行）
         run: |
-          mvn ${MVN_ARGS} test-compile -DskipTests -T 1C
+          # -T 2：限制并行度，避免构建期 CPU 打满拖卡宿主机上的线上服务
+          MAVEN_OPTS="-Xmx1g" mvn ${MVN_ARGS} test-compile -DskipTests -T 2
           echo "[OK] 全部 12 个 Maven 模块编译通过"
 
   # ── 前端 admin 类型检查 ───────────────────────────────────
