@@ -228,6 +228,21 @@ do_clean() {
   docker container prune -f 2>/dev/null || true
   # 2. 删除悬空镜像（旧版本构建留下的 <none>）
   docker image prune -f 2>/dev/null || true
+  # 2.5 删除旧 tag 镜像（保留每仓库最新 2 个 tag、latest、运行中容器镜像）
+  local running_tags repo idx tag created
+  running_tags="$(docker ps --format '{{.Image}}' 2>/dev/null | sort -u || true)"
+  for repo in $(docker images --format '{{.Repository}}' 2>/dev/null | grep '^xfjy/' | sort -u || true); do
+    idx=0
+    while IFS=$'\t' read -r tag created; do
+      if [ -z "${tag}" ] || [ "${tag}" = "<none>" ]; then continue; fi
+      idx=$((idx + 1))
+      # 保留：最新 2 个 / latest / 运行中
+      if [ "${idx}" -le 2 ] || [ "${tag}" = "latest" ]; then continue; fi
+      if printf '%s\n' "${running_tags}" | grep -qFx "${repo}:${tag}"; then continue; fi
+      log "  删除旧 tag ${repo}:${tag}"
+      docker rmi "${repo}:${tag}" >/dev/null 2>&1 || true
+    done < <(docker images "${repo}" --format '{{.Tag}}\t{{.CreatedAt}}' 2>/dev/null | sort -t$'\t' -k2 -r)
+  done
   # 3. 清理构建缓存（保留正在使用的）
   docker builder prune -f 2>/dev/null || true
   # 4. 删除未使用网络

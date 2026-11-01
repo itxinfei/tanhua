@@ -293,3 +293,9 @@ jobs:
       - name: 清理临时文件
         if: ${{ always() }}
         run: rm -f deploy/.env
+
+      # ── 部署成功后清理构建垃圾 ────────────────────────────
+      # 悬空镜像/旧 tag 镜像/构建缓存/退出容器；失败时保留现场便于排查
+      - name: 清理构建垃圾
+        if: ${{ env.ACTION == 'deploy' && success() }}
+        run: bash deploy/manage.sh clean
