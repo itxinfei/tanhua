@@ -2,6 +2,12 @@
 # 心飞交友中间件一键编排（Linux 服务器）
 # 用法：cd deploy && docker compose -f docker-compose.middleware.yml up -d
 # 或使用 setup.sh 一键启动 + 初始化数据
+#
+# 内存限制：12 个常驻服务合计 6.4g（宿主机 15Gi 内存，留余量给 app 层与系统）
+#   mysql 768m / redis 384m / mongo 512m / es 768m / nacos 512m
+#   namesrv 384m / broker 768m / qdrant 384m / neo4j 768m
+#   minio 384m / wukongim 384m / livekit 384m
+#   minio-init 为一次性任务，不加 mem_limit
 # ============================================================
 
 name: xfjy-middleware
@@ -30,6 +36,7 @@ services:
     image: docker.m.daocloud.io/library/mysql:8.0
     container_name: xfjy-mysql
     restart: unless-stopped
+    mem_limit: 768m
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
       TZ: Asia/Shanghai
@@ -54,6 +61,7 @@ services:
     image: docker.m.daocloud.io/library/redis:7-alpine
     container_name: xfjy-redis
     restart: unless-stopped
+    mem_limit: 384m
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly yes
     ports:
       - "6379:6379"
@@ -71,6 +79,7 @@ services:
     image: docker.m.daocloud.io/library/mongo:7
     container_name: xfjy-mongo
     restart: unless-stopped
+    mem_limit: 512m
     environment:
       TZ: Asia/Shanghai
     command: mongod --wiredTigerCacheSizeGB 0.25
@@ -91,6 +100,7 @@ services:
     image: docker.m.daocloud.io/docker.elastic.co/elasticsearch/elasticsearch:9.4.5
     container_name: xfjy-es
     restart: unless-stopped
+    mem_limit: 768m
     environment:
       discovery.type: single-node
       xpack.security.enabled: "false"
@@ -114,6 +124,7 @@ services:
     image: docker.m.daocloud.io/nacos/nacos-server:v3.0.0
     container_name: xfjy-nacos
     restart: unless-stopped
+    mem_limit: 512m
     environment:
       MODE: standalone
       NACOS_AUTH_ENABLE: "false"
@@ -128,11 +139,12 @@ services:
     ports:
       - "8848:8848"
       - "9848:9848"
+      - "8080:8080"
     volumes:
       - nacos-data:/home/nacos/data
     healthcheck:
-      # Nacos 3.x 无 /v1/console/health/readiness 端点，用首页 302 判断存活
-      test: ["CMD-SHELL", "curl -sf -o /dev/null http://127.0.0.1:8848/nacos || exit 1"]
+      # Nacos 3.0 Console 在 8080/，用控制台首页判断存活（比 8848/nacos 更稳定）
+      test: ["CMD-SHELL", "curl -sf -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/ | grep -qE '200|302' || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 12
@@ -144,6 +156,7 @@ services:
     image: docker.m.daocloud.io/apache/rocketmq:5.3.1
     container_name: xfjy-rocketmq-namesrv
     restart: unless-stopped
+    mem_limit: 384m
     command: sh mqnamesrv
     environment:
       JAVA_OPT_EXT: "-Xms128m -Xmx256m"
@@ -158,6 +171,7 @@ services:
     image: docker.m.daocloud.io/apache/rocketmq:5.3.1
     container_name: xfjy-rocketmq-broker
     restart: unless-stopped
+    mem_limit: 768m
     depends_on:
       - rocketmq-namesrv
     command: sh mqbroker -n rocketmq-namesrv:9876 -c /home/rocketmq/rocketmq-5.3.1/conf/broker.conf
@@ -177,6 +191,7 @@ services:
     image: docker.m.daocloud.io/qdrant/qdrant:v1.12.0
     container_name: xfjy-qdrant
     restart: unless-stopped
+    mem_limit: 384m
     ports:
       - "6333:6333"
     volumes:
@@ -188,6 +203,7 @@ services:
     image: docker.m.daocloud.io/library/neo4j:5
     container_name: xfjy-neo4j
     restart: unless-stopped
+    mem_limit: 768m
     environment:
       NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-itxinfei123456}
       NEO4J_server_memory_heap_initial__size: 256m
@@ -213,6 +229,7 @@ services:
     image: docker.m.daocloud.io/minio/minio:latest
     container_name: xfjy-minio
     restart: unless-stopped
+    mem_limit: 384m
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
@@ -262,6 +279,7 @@ services:
     image: docker.m.daocloud.io/wukongim/wukongim:latest
     container_name: xfjy-wukongim
     restart: unless-stopped
+    mem_limit: 384m
     environment:
       WK_MODE: release
       WK_EXTERNAL_IP: ${WUKONGIM_EXTERNAL_IP:-192.168.20.133}
@@ -284,22 +302,23 @@ services:
       - xfjy-net
 
   livekit:
-    # 音视频 SFU 媒体服务器（替代环信音视频）：信令 7880、TCP 回退 7881、UDP 媒体 50000-60000
+    # 音视频 SFU 媒体服务器（替代环信音视频）：信令 7880、TCP 回退 7881、UDP 媒体 50000-60000（万级端口支持高并发通话）
     image: docker.m.daocloud.io/livekit/livekit-server:latest
     container_name: xfjy-livekit
     restart: unless-stopped
+    mem_limit: 384m
     command: --config /etc/livekit/config.yaml
     environment:
       TZ: Asia/Shanghai
       # 密钥单一事实源在 deploy/.env：经 LIVEKIT_KEYS 注入，格式 "<key>: <secret>"
-      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:-xfjykey}: ${LIVEKIT_API_SECRET:-CHANGE_ME_TO_RANDOM_SECRET_32_CHARS_MIN}"
+      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:-xfjykey}: ${LIVEKIT_API_SECRET:-c4a65eeed784f1bba346783a344a246666cc753ce179dece}"
       # 内网部署固定节点 IP、关闭 STUN 公网探测（环境变量优先级高于 config.yaml）
       LIVEKIT_RTC_USE_EXTERNAL_IP: "${LIVEKIT_USE_EXTERNAL_IP:-false}"
       LIVEKIT_RTC_NODE_IP: "${LIVEKIT_NODE_IP:-192.168.20.133}"
     ports:
       - "7880:7880"
       - "7881:7881"
-      - "50000-50100:50000-50100/udp"
+      - "50000-60000:50000-60000/udp"
     volumes:
       - ./livekit/config.yaml:/etc/livekit/config.yaml:ro
     networks:

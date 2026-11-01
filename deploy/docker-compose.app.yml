@@ -6,13 +6,18 @@
 # （deploy/.env 存放真实密码，已被 .gitignore 排除；模板见 deploy/.env.example）
 #
 # 设计要点：
-#   - 所有服务接入同一个 bridge 网络 xfjy-app-net，服务之间用容器名互访；
-#     仅网关 8090 端口对外映射（18081~18090 均不外曝，仅内部调用）。
+#   - 所有服务接入同一个 bridge 网络 xfjy-app-net，服务之间用容器名互访。
+#   - 内网虚拟机开发/测试环境，不做安全隔离：所有容器端口直接映射到宿主机并放行防火墙（见 docs/开发测试环境端口开放规范.md）。
 #   - 中间件（MySQL/Redis/Nacos/RocketMQ/Mongo/ES/Neo4j）跑在 xfjy-net，
 #     容器通过宿主机 LAN IP 192.168.20.133 访问其映射端口（见 application-local.ci.yml）。
 #   - 镜像由 deploy/docker/Dockerfile.java 基于 maven 已打好的 jar 构建。
 #   - 共用环境变量（见 x-common-env）覆盖 CI 模板里的空默认值（如 MySQL 密码）。
 #   - -p xfjy-app 保证每次 CI 复用同一 compose 工程名，up -d 只重建变化的容器，不会重复创建。
+#
+# 内存限制：11 个服务合计 4.9g（宿主机 15Gi，middleware 占 6.4g，系统留 ~2.5g）
+#   gateway 384m(Xmx256m) / sso 384m(Xmx256m) / server 512m(Xmx384m)
+#   其余 8 个各 448m(默认 Xmx320m，见 Dockerfile.java)
+#   mem_limit = Xmx + ~128m 堆外余量（metaspace/线程栈/direct memory）
 # ============================================================
 name: xfjy-app
 
@@ -67,7 +72,10 @@ services:
     networks:
       - xfjy-app-net
     restart: unless-stopped
-    environment: *common-env
+    mem_limit: 384m
+    environment:
+      <<: *common-env
+      JAVA_OPTS: "-Xms128m -Xmx256m"
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'xfjy-gateway-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
       interval: 30s
@@ -81,10 +89,15 @@ services:
     pull_policy: never
     image: xfjy/xfjy-sso:${IMAGE_TAG:-latest}
     container_name: xfjy-sso
+    ports:
+      - "18080:18080"
     networks:
       - xfjy-app-net
     restart: unless-stopped
-    environment: *common-env
+    mem_limit: 384m
+    environment:
+      <<: *common-env
+      JAVA_OPTS: "-Xms128m -Xmx256m"
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'xfjy-sso-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
       interval: 30s
@@ -98,9 +111,12 @@ services:
     pull_policy: never
     image: xfjy/xfjy-user-service:${IMAGE_TAG:-latest}
     container_name: xfjy-user-service
+    ports:
+      - "18090:18090"
     networks:
       - xfjy-app-net
     restart: unless-stopped
+    mem_limit: 448m
     environment: *common-env
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'xfjy-user-service-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
@@ -115,9 +131,12 @@ services:
     pull_policy: never
     image: xfjy/xfjy-circle-service:${IMAGE_TAG:-latest}
     container_name: xfjy-circle-service
+    ports:
+      - "18084:18084"
     networks:
       - xfjy-app-net
     restart: unless-stopped
+    mem_limit: 448m
     environment: *common-env
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'xfjy-circle-service-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
@@ -132,9 +151,12 @@ services:
     pull_policy: never
     image: xfjy/xfjy-video-service:${IMAGE_TAG:-latest}
     container_name: xfjy-video-service
+    ports:
+      - "18085:18085"
     networks:
       - xfjy-app-net
     restart: unless-stopped
+    mem_limit: 448m
     environment: *common-env
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'xfjy-video-service-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
@@ -149,9 +171,12 @@ services:
     pull_policy: never
     image: xfjy/xfjy-match-service:${IMAGE_TAG:-latest}
     container_name: xfjy-match-service
+    ports:
+      - "18082:18082"
     networks:
       - xfjy-app-net
     restart: unless-stopped
+    mem_limit: 448m
     environment: *common-env
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'xfjy-match-service-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
@@ -166,9 +191,12 @@ services:
     pull_policy: never
     image: xfjy/xfjy-message-service:${IMAGE_TAG:-latest}
     container_name: xfjy-message-service
+    ports:
+      - "18086:18086"
     networks:
       - xfjy-app-net
     restart: unless-stopped
+    mem_limit: 448m
     environment: *common-env
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'xfjy-message-service-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
@@ -183,10 +211,15 @@ services:
     pull_policy: never
     image: xfjy/xfjy-server:${IMAGE_TAG:-latest}
     container_name: xfjy-server
+    ports:
+      - "18081:18081"
     networks:
       - xfjy-app-net
     restart: unless-stopped
-    environment: *common-env
+    mem_limit: 512m
+    environment:
+      <<: *common-env
+      JAVA_OPTS: "-Xms128m -Xmx384m"
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'xfjy-server-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
       interval: 30s
@@ -200,9 +233,12 @@ services:
     pull_policy: never
     image: xfjy/xfjy-recommend:${IMAGE_TAG:-latest}
     container_name: xfjy-recommend
+    ports:
+      - "18087:18087"
     networks:
       - xfjy-app-net
     restart: unless-stopped
+    mem_limit: 448m
     environment: *common-env
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'xfjy-recommend-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
@@ -217,9 +253,12 @@ services:
     pull_policy: never
     image: xfjy/xfjy-elasticsearch:${IMAGE_TAG:-latest}
     container_name: xfjy-elasticsearch
+    ports:
+      - "18088:18088"
     networks:
       - xfjy-app-net
     restart: unless-stopped
+    mem_limit: 448m
     environment: *common-env
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'xfjy-elasticsearch-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
@@ -234,9 +273,12 @@ services:
     pull_policy: never
     image: xfjy/xfjy-pay-service:${IMAGE_TAG:-latest}
     container_name: xfjy-pay-service
+    ports:
+      - "18089:18089"
     networks:
       - xfjy-app-net
     restart: unless-stopped
+    mem_limit: 448m
     environment: *common-env
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'xfjy-pay-service-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
