@@ -32,42 +32,16 @@ jobs:
     steps:
       - name: Checkout
         run: |
-          echo "=== DEBUG START ==="
-          echo "HOSTNAME=$(hostname)"
-          echo "PWD=$(pwd)"
-          echo "GITHUB_WORKSPACE=${GITHUB_WORKSPACE:-NOT_SET}"
-          echo "GITHUB_REF=${GITHUB_REF:-NOT_SET}"
-          echo "GITHUB_SHA=${GITHUB_SHA:-NOT_SET}"
-          echo "GITHUB_ACTOR=${GITHUB_ACTOR:-NOT_SET}"
-          echo "RUNNER_OS=${RUNNER_OS:-NOT_SET}"
-          echo "=== DIR before ==="
-          ls -la 2>&1 || true
-          echo "=== Checking /workspace ==="
-          ls -la /workspace 2>&1 || echo "does not exist"
-          echo "=== test write to /workspace ==="
-          mkdir -p /workspace 2>&1 || echo "mkdir FAILED"
-          cd /workspace 2>&1 || echo "cd FAILED"
-          echo "PWD after cd=$(pwd)"
-          rm -rf .git 2>/dev/null || true
-          echo "=== git clone ==="
-          git clone --depth 1 http://gitea:3000/admin/xfjy.git . 2>&1 || echo "CLONE FAILED with exit $?"
-          echo "=== git log ==="
-          git log -1 --oneline 2>&1 || echo "LOG FAILED"
-          echo "=== DEBUG END ==="
+          mkdir -p /workspace
+          cd /workspace
+          git clone --depth 1 http://gitea:3000/admin/xfjy.git .
+          git log -1 --oneline
 
       - name: 编译所有模块（test-compile，跳过测试执行）
         run: |
-          echo "=== COMPILE STEP START ==="
-          echo "PWD=$(pwd)"
-          echo "Files in workspace:"
-          ls -la
-          echo "=== Git info ==="
-          git log -1 --oneline 2>&1 || true
-          echo "=== Checking m2 cache ==="
-          ls -la /root/.m2/repository 2>/dev/null | head -5
-          # -T 2：限制并行度，避免构建期 CPU 打满拖卡宿主机上的线上服务
-          MAVEN_OPTS="-Xmx1g" mvn ${MVN_ARGS} test-compile -DskipTests -T 2 2>&1 || echo "MVN FAILED with exit $?"
-          echo "=== COMPILE STEP END ==="
+          cd /workspace
+          MAVEN_OPTS="-Xmx1g" mvn ${MVN_ARGS} test-compile -DskipTests -T 2
+          echo "[OK] 全部 12 个 Maven 模块编译通过"
 
   # ── 前端 admin 类型检查 ───────────────────────────────────
   frontend-admin:
@@ -79,41 +53,15 @@ jobs:
     steps:
       - name: Checkout
         run: |
-          echo "=== DEBUG START ==="
-          echo "HOSTNAME=$(hostname)"
-          echo "PWD=$(pwd)"
-          echo "=== DIR before ==="
-          ls -la 2>&1 || true
-          echo "=== Checking /workspace ==="
-          ls -la /workspace 2>&1 || echo "does not exist"
-          mkdir -p /workspace 2>&1 || echo "mkdir FAILED"
-          cd /workspace 2>&1 || echo "cd FAILED"
-          echo "PWD after cd=$(pwd)"
-          rm -rf .git 2>/dev/null || true
-          echo "=== git clone ==="
-          git clone --depth 1 http://gitea:3000/admin/xfjy.git . 2>&1 || echo "CLONE FAILED with exit $?"
-          echo "=== git log ==="
-          git log -1 --oneline 2>&1 || echo "LOG FAILED"
-          echo "=== DEBUG END ==="
+          mkdir -p /workspace
+          cd /workspace
+          git clone --depth 1 http://gitea:3000/admin/xfjy.git .
+          git log -1 --oneline
 
-      - name: 安装依赖
+      - name: 安装依赖并类型检查
         run: |
-          echo "=== NPM INSTALL admin ==="
-          echo "PWD=$(pwd)"
-          ls -la
-          cd xfjy-admin
-          echo "Node: $(node --version)"
-          echo "NPM: $(npm --version)"
-          echo "--- package.json deps ---"
-          head -30 package.json
-          echo "--- npm config ---"
-          npm config get registry
-          npm install --legacy-peer-deps --prefer-offline --no-audit --no-fund 2>&1 || echo "NPM INSTALL FAILED $?"
-          echo "=== NPM INSTALL END ==="
-
-      - name: 类型检查（vue-tsc）
-        run: |
-          cd xfjy-admin
+          cd /workspace/xfjy-admin
+          npm install --legacy-peer-deps --prefer-offline --no-audit --no-fund --ignore-scripts
           npx vue-tsc --noEmit
           echo "[OK] xfjy-admin 类型检查通过"
 
@@ -127,40 +75,14 @@ jobs:
     steps:
       - name: Checkout
         run: |
-          echo "=== DEBUG START ==="
-          echo "HOSTNAME=$(hostname)"
-          echo "PWD=$(pwd)"
-          echo "=== DIR before ==="
-          ls -la 2>&1 || true
-          echo "=== Checking /workspace ==="
-          ls -la /workspace 2>&1 || echo "does not exist"
-          mkdir -p /workspace 2>&1 || echo "mkdir FAILED"
-          cd /workspace 2>&1 || echo "cd FAILED"
-          echo "PWD after cd=$(pwd)"
-          rm -rf .git 2>/dev/null || true
-          echo "=== git clone ==="
-          git clone --depth 1 http://gitea:3000/admin/xfjy.git . 2>&1 || echo "CLONE FAILED with exit $?"
-          echo "=== git log ==="
-          git log -1 --oneline 2>&1 || echo "LOG FAILED"
-          echo "=== DEBUG END ==="
+          mkdir -p /workspace
+          cd /workspace
+          git clone --depth 1 http://gitea:3000/admin/xfjy.git .
+          git log -1 --oneline
 
-      - name: 安装依赖
+      - name: 安装依赖并类型检查
         run: |
-          echo "=== NPM INSTALL app ==="
-          echo "PWD=$(pwd)"
-          ls -la
-          cd xfjy-app
-          echo "Node: $(node --version)"
-          echo "NPM: $(npm --version)"
-          echo "--- package.json deps ---"
-          head -30 package.json
-          echo "--- npm config ---"
-          npm config get registry
-          npm install --legacy-peer-deps --prefer-offline --no-audit --no-fund 2>&1 || echo "NPM INSTALL FAILED $?"
-          echo "=== NPM INSTALL END ==="
-
-      - name: 类型检查（vue-tsc）
-        run: |
-          cd xfjy-app
+          cd /workspace/xfjy-app
+          npm install --legacy-peer-deps --prefer-offline --no-audit --no-fund --ignore-scripts
           npm run type-check
           echo "[OK] xfjy-app 类型检查通过"
