@@ -52,6 +52,8 @@ xfjy:
     service:
       url: http://127.0.0.1:18086  # 消息/IM服务（WuKongIM双通道：凭证签发/联系人/会话 + LiveKit 通话Token）
   sso:
+    # 本地裸跑用 127.0.0.1；Docker 部署由 deploy/application-local.ci.yml 覆盖为容器名
+    # http://xfjy-sso:18080（18080 未发布到宿主机，LAN IP 在容器内不可达，改错会导致全部需登录态接口 500）
     url: http://127.0.0.1:18080
     default:
       user: 2

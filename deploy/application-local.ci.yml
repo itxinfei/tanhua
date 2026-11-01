@@ -50,6 +50,9 @@ xfjy:
     # 覆盖 base application.yml 的空默认值，直连运行中 Neo4j 的真实密码
     password: ${NEO4J_PASSWORD:itxinfei123456}
   sso:
-    url: http://192.168.20.133:18080
+    # Docker 部署必须用容器名：sso 的 18080 端口自 v2.4 起不对外发布（仅网关 8090 暴露），
+    # 用宿主机 LAN IP 容器内连不上 → TokenInterceptor 解析用户必失败 → 所有需登录态接口 500。
+    # server 与 sso 同在 xfjy-app-net 网络，容器名可直接解析。
+    url: http://xfjy-sso:18080
     default:
       user: 2
