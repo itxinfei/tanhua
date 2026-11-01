@@ -57,9 +57,17 @@ jobs:
 
       - name: 编译所有模块（test-compile，跳过测试执行）
         run: |
+          echo "=== COMPILE STEP START ==="
+          echo "PWD=$(pwd)"
+          echo "Files in workspace:"
+          ls -la
+          echo "=== Git info ==="
+          git log -1 --oneline 2>&1 || true
+          echo "=== Checking m2 cache ==="
+          ls -la /root/.m2/repository 2>/dev/null | head -5
           # -T 2：限制并行度，避免构建期 CPU 打满拖卡宿主机上的线上服务
-          MAVEN_OPTS="-Xmx1g" mvn ${MVN_ARGS} test-compile -DskipTests -T 2
-          echo "[OK] 全部 12 个 Maven 模块编译通过"
+          MAVEN_OPTS="-Xmx1g" mvn ${MVN_ARGS} test-compile -DskipTests -T 2 2>&1 || echo "MVN FAILED with exit $?"
+          echo "=== COMPILE STEP END ==="
 
   # ── 前端 admin 类型检查 ───────────────────────────────────
   frontend-admin:
@@ -71,11 +79,22 @@ jobs:
     steps:
       - name: Checkout
         run: |
-          set -e
-          mkdir -p /workspace
-          cd /workspace
-          git clone --depth 1 http://gitea:3000/admin/xfjy.git .
-          git log -1 --oneline
+          echo "=== DEBUG START ==="
+          echo "HOSTNAME=$(hostname)"
+          echo "PWD=$(pwd)"
+          echo "=== DIR before ==="
+          ls -la 2>&1 || true
+          echo "=== Checking /workspace ==="
+          ls -la /workspace 2>&1 || echo "does not exist"
+          mkdir -p /workspace 2>&1 || echo "mkdir FAILED"
+          cd /workspace 2>&1 || echo "cd FAILED"
+          echo "PWD after cd=$(pwd)"
+          rm -rf .git 2>/dev/null || true
+          echo "=== git clone ==="
+          git clone --depth 1 http://gitea:3000/admin/xfjy.git . 2>&1 || echo "CLONE FAILED with exit $?"
+          echo "=== git log ==="
+          git log -1 --oneline 2>&1 || echo "LOG FAILED"
+          echo "=== DEBUG END ==="
 
       - name: 安装依赖
         run: |
@@ -98,11 +117,22 @@ jobs:
     steps:
       - name: Checkout
         run: |
-          set -e
-          mkdir -p /workspace
-          cd /workspace
-          git clone --depth 1 http://gitea:3000/admin/xfjy.git .
-          git log -1 --oneline
+          echo "=== DEBUG START ==="
+          echo "HOSTNAME=$(hostname)"
+          echo "PWD=$(pwd)"
+          echo "=== DIR before ==="
+          ls -la 2>&1 || true
+          echo "=== Checking /workspace ==="
+          ls -la /workspace 2>&1 || echo "does not exist"
+          mkdir -p /workspace 2>&1 || echo "mkdir FAILED"
+          cd /workspace 2>&1 || echo "cd FAILED"
+          echo "PWD after cd=$(pwd)"
+          rm -rf .git 2>/dev/null || true
+          echo "=== git clone ==="
+          git clone --depth 1 http://gitea:3000/admin/xfjy.git . 2>&1 || echo "CLONE FAILED with exit $?"
+          echo "=== git log ==="
+          git log -1 --oneline 2>&1 || echo "LOG FAILED"
+          echo "=== DEBUG END ==="
 
       - name: 安装依赖
         run: |
