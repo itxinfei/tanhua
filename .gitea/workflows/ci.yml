@@ -32,16 +32,28 @@ jobs:
     steps:
       - name: Checkout
         run: |
-          set -e
-          echo "DEBUG: GITHUB_WORKSPACE=${GITHUB_WORKSPACE:-NOT_SET}"
-          echo "DEBUG: GITHUB_REF=${GITHUB_REF:-NOT_SET}"
-          echo "DEBUG: GITHUB_SHA=${GITHUB_SHA:-NOT_SET}"
-          pwd
-          ls -la
-          mkdir -p /workspace
-          cd /workspace
-          git clone --depth 1 http://gitea:3000/admin/xfjy.git .
-          git log -1 --oneline
+          echo "=== DEBUG START ==="
+          echo "HOSTNAME=$(hostname)"
+          echo "PWD=$(pwd)"
+          echo "GITHUB_WORKSPACE=${GITHUB_WORKSPACE:-NOT_SET}"
+          echo "GITHUB_REF=${GITHUB_REF:-NOT_SET}"
+          echo "GITHUB_SHA=${GITHUB_SHA:-NOT_SET}"
+          echo "GITHUB_ACTOR=${GITHUB_ACTOR:-NOT_SET}"
+          echo "RUNNER_OS=${RUNNER_OS:-NOT_SET}"
+          echo "=== DIR before ==="
+          ls -la 2>&1 || true
+          echo "=== Checking /workspace ==="
+          ls -la /workspace 2>&1 || echo "does not exist"
+          echo "=== test write to /workspace ==="
+          mkdir -p /workspace 2>&1 || echo "mkdir FAILED"
+          cd /workspace 2>&1 || echo "cd FAILED"
+          echo "PWD after cd=$(pwd)"
+          rm -rf .git 2>/dev/null || true
+          echo "=== git clone ==="
+          git clone --depth 1 http://gitea:3000/admin/xfjy.git . 2>&1 || echo "CLONE FAILED with exit $?"
+          echo "=== git log ==="
+          git log -1 --oneline 2>&1 || echo "LOG FAILED"
+          echo "=== DEBUG END ==="
 
       - name: 编译所有模块（test-compile，跳过测试执行）
         run: |
