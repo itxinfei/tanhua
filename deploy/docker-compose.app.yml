@@ -14,10 +14,11 @@
 #   - 共用环境变量（见 x-common-env）覆盖 CI 模板里的空默认值（如 MySQL 密码）。
 #   - -p xfjy-app 保证每次 CI 复用同一 compose 工程名，up -d 只重建变化的容器，不会重复创建。
 #
-# 内存限制：11 个服务合计 4.9g（宿主机 15Gi，middleware 占 6.4g，系统留 ~2.5g）
-#   gateway 384m(Xmx256m) / sso 384m(Xmx256m) / server 512m(Xmx384m)
-#   其余 8 个各 448m(默认 Xmx320m，见 Dockerfile.java)
+# 内存限制：11 个服务合计 ~4.0g（开发单机 32Gi，middleware 占 6.4g，留 ~20g 给 IDE/系统/峰値）
+#   gateway 384m(Xmx256m) / sso 384m(Xmx256m) / server 512m(Xmx384m，核心服务留余量防 OOM)
+#   其余 8 个各 384m(默认 Xmx256m，见 Dockerfile.java)
 #   mem_limit = Xmx + ~128m 堆外余量（metaspace/线程栈/direct memory）
+#   生产环境建议调高 Xmx 至 512m、mem_limit 至 672m
 # ============================================================
 name: xfjy-app
 
@@ -116,7 +117,7 @@ services:
     networks:
       - xfjy-app-net
     restart: unless-stopped
-    mem_limit: 448m
+    mem_limit: 384m
     environment: *common-env
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'xfjy-user-service-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
@@ -136,7 +137,7 @@ services:
     networks:
       - xfjy-app-net
     restart: unless-stopped
-    mem_limit: 448m
+    mem_limit: 384m
     environment: *common-env
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'xfjy-circle-service-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
@@ -156,7 +157,7 @@ services:
     networks:
       - xfjy-app-net
     restart: unless-stopped
-    mem_limit: 448m
+    mem_limit: 384m
     environment: *common-env
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'xfjy-video-service-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
@@ -176,7 +177,7 @@ services:
     networks:
       - xfjy-app-net
     restart: unless-stopped
-    mem_limit: 448m
+    mem_limit: 384m
     environment: *common-env
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'xfjy-match-service-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
@@ -196,7 +197,7 @@ services:
     networks:
       - xfjy-app-net
     restart: unless-stopped
-    mem_limit: 448m
+    mem_limit: 384m
     environment: *common-env
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'xfjy-message-service-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
@@ -238,7 +239,7 @@ services:
     networks:
       - xfjy-app-net
     restart: unless-stopped
-    mem_limit: 448m
+    mem_limit: 384m
     environment: *common-env
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'xfjy-recommend-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
@@ -258,7 +259,7 @@ services:
     networks:
       - xfjy-app-net
     restart: unless-stopped
-    mem_limit: 448m
+    mem_limit: 384m
     environment: *common-env
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'xfjy-elasticsearch-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
@@ -278,7 +279,7 @@ services:
     networks:
       - xfjy-app-net
     restart: unless-stopped
-    mem_limit: 448m
+    mem_limit: 384m
     environment: *common-env
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'xfjy-pay-service-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]

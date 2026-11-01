@@ -255,6 +255,20 @@ do_clean() {
     docker volume prune -f 2>/dev/null || true
   fi
 
+  # 6. CI 镜像保护：xfjy/ci:latest 是 act_runner 拉起 job 容器的必需镜像，缺失则 CI 全挂
+  if ! docker image inspect xfjy/ci:latest >/dev/null 2>&1; then
+    warn "xfjy/ci:latest 镜像缺失，自动重建中..."
+    if [ -f "${SCRIPT_DIR}/gitea/Dockerfile.ci" ]; then
+      if docker build -f "${SCRIPT_DIR}/gitea/Dockerfile.ci" -t xfjy/ci:latest "${SCRIPT_DIR}/gitea"; then
+        ok "xfjy/ci:latest 重建完成"
+      else
+        warn "xfjy/ci:latest 重建失败，请手动执行：docker build -f deploy/gitea/Dockerfile.ci -t xfjy/ci:latest deploy/gitea"
+      fi
+    else
+      warn "Dockerfile.ci 不存在（${SCRIPT_DIR}/gitea/Dockerfile.ci），请手动重建 xfjy/ci:latest"
+    fi
+  fi
+
   ok "清理完成"
   log "清理后 Docker 占用："
   docker system df 2>/dev/null || true
