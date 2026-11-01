@@ -136,6 +136,15 @@ jobs:
             echo "[增量] 无前端变更，跳过前端构建"
             exit 0
           fi
+          # runner 容器自带 Node 22.11.0，不满足 rolldown/sass-embedded 原生二进制包的
+          # engines >=22.12.0 要求，npm ci 会静默跳过这些 optionalDependencies，导致构建报
+          # "Cannot find module '@rolldown/binding-linux-x64-gnu'"。
+          # 用 n 升级到 22.14.0 LTS（npmmirror 镜像加速，约 10-20s）。
+          export N_NODE_MIRROR=https://npmmirror.com/mirrors/node
+          npm install -g n --no-audit --no-fund --prefer-offline
+          n 22.14.0
+          hash -r
+          echo "[前端] Node 版本: $(node --version)"
           echo "[前端] 受影响工程: ${FRONTEND_AFFECTED}"
           PIDS=""
           # admin / h5 互不依赖，并行构建
