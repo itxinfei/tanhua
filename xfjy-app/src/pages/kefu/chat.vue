@@ -216,7 +216,7 @@ onLoad(async () => {
   } catch {}
 
   try {
-    // 1. 获取客服环信账号
+    // 1. 获取客服 IM 账号
     const agent = await getAgentApi();
     agentId.value = agent.agentId;
 
@@ -273,7 +273,7 @@ onLoad(async () => {
     historyLoaded = true;
     scrollToBottom();
   } catch {
-    // 环信登录失败静默降级
+    // IM（WuKongIM）登录失败静默降级
   }
 });
 

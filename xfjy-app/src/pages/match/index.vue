@@ -97,7 +97,7 @@
       </a11y-button>
     </view>
 
-    <!-- 匹配成功弹窗（全局组件，由 match store 驱动；同步匹配与环信匹配消息共用） -->
+    <!-- 匹配成功弹窗（全局组件，由 match store 驱动；同步匹配与 IM 匹配消息共用） -->
     <MatchPopup />
   </view>
 </template>

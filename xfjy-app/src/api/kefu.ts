@@ -50,12 +50,12 @@ export function getMyFeedbackApi(): Promise<FeedbackItem[]> {
 
 /** 人工客服账号 */
 export interface KefuAgent {
-  /** 客服环信账号 ID（用于建立单聊会话） */
+  /** 客服 IM 账号 ID（用于建立单聊会话，WuKongIM） */
   agentId: string;
 }
 
 /**
- * 获取人工客服环信账号
+ * 获取人工客服 IM 账号
  * 对接后端: GET /kefu/agent
  */
 export function getAgentApi(): Promise<KefuAgent> {

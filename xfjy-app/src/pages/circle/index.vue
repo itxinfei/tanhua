@@ -146,7 +146,6 @@ import { useCircleStore, CIRCLE_NEED_REFRESH_KEY } from "@/store/circle";
 import type { Movement } from "@/api/circle";
 import { getContacts, type Contact } from "@/api/chat";
 import { useChatStore, type NoticeType } from "@/store/chat";
-import { loginIM, getConversations } from "@/utils/wukongim";
 
 const circleStore = useCircleStore();
 const chatStore = useChatStore();
@@ -276,23 +275,6 @@ const totalUnread = computed(() =>
   chatList.value.reduce((sum, item) => sum + (item.unreadCount || 0), 0)
 );
 
-async function initEasemobAndMerge(): Promise<void> {
-  try {
-    const credential = await chatStore.loadHuanXinUser();
-    const ok = await loginIM(credential.username, credential.token, credential.wsUrl);
-    if (!ok) return;
-    const sessions = await getConversations();
-    const sessionMap = new Map(sessions.map((s) => [s.conversationId, s]));
-    chatList.value = chatList.value.map((item) => {
-      const session = sessionMap.get(item.userId);
-      return session
-        ? { ...item, lastMessage: session.lastMessage, unreadCount: session.unreadCount }
-        : item;
-    });
-  } catch {
-    // 环信不可用，静默降级为纯联系人展示
-  }
-}
 
 function updateTabBarBadge(): void {
   const total = totalUnread.value;
@@ -307,7 +289,6 @@ async function loadMessages(): Promise<void> {
   try {
     const res = await getContacts({ page: 1, pagesize: 50 });
     chatList.value = (res.items || []).map((c) => ({ ...c, lastMessage: "", unreadCount: 0 }));
-    await initEasemobAndMerge();
     updateTabBarBadge();
   } catch {
     // 请求失败由 request 层统一 toast

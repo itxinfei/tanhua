@@ -67,16 +67,13 @@ export interface NotificationSettingParam {
  * 查询用户资料
  * 对接后端: GET /users
  *
- * @param userId   用户 ID（可选，不传则查当前登录用户）
- * @param huanxinId 环信 ID（可选，按环信 ID 查询）
+ * @param userId 用户 ID（可选，不传则查当前登录用户）
  */
 export function getUserProfile(
-  userId?: string,
-  huanxinId?: string
+  userId?: string
 ): Promise<UserProfile> {
   return get<UserProfile>("/users", {
     userID: userId,
-    huanxinID: huanxinId,
   });
 }
 

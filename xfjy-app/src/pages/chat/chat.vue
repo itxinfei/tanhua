@@ -269,7 +269,7 @@ let localMsgSeq = 0;
 let recvMsgSeq = 0;
 
 /**
- * 追加消息并通过环信 SDK 发送
+ * 追加消息并通过 IM（WuKongIM）发送
  * 图片/语音：先本地预览，OSS 上传成功后发 URL，成功后把气泡替换为远程地址
  * 任何失败（上传 reject、发送失败）都标记为 failed，可点击气泡重发
  */
@@ -294,7 +294,7 @@ async function pushMessage(
 }
 
 /**
- * 投递单条消息（上传媒体 → 环信发送），统一处理失败标记
+ * 投递单条消息（上传媒体 → IM 发送），统一处理失败标记
  * @param msg 待发送消息（发送中/失败均可重入）
  */
 async function deliverMessage(msg: Message): Promise<void> {
@@ -468,7 +468,7 @@ let unregisterMessage: (() => void) | null = null;
 /** 历史消息是否已填充（填充前的实时消息进 pending 缓冲，填充后实时追加） */
 const historyLoaded = ref(false);
 
-/** 环信实时消息 → 本地消息结构 */
+/** IM 实时消息 → 本地消息结构 */
 function toReceivedItem(msg: ReceivedMessage): Message {
   return {
     id: `recv-${msg.time}-${++recvMsgSeq}`,
@@ -553,7 +553,7 @@ onLoad(async (options: any) => {
         scrollToBottom();
       }
   } catch {
-    // 环信登录失败静默降级（可发但不达，列表为空）
+    // IM（WuKongIM）登录失败静默降级（可发但不达，列表为空）
   }
 });
 

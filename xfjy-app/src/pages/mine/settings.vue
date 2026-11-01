@@ -221,7 +221,7 @@ function handleLogout() {
     content: '确定要退出登录吗？',
     success: (res) => {
       if (res.confirm) {
-        // 全量清理：业务 store + 环信 SDK + token，避免换账号登录后残留上一账号状态
+        // 全量清理：业务 store + IM（WuKongIM） + token，避免换账号登录后残留上一账号状态
         userStore.signOutAll();
       }
     },

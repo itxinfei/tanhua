@@ -7,7 +7,6 @@ import {
   getCommentMessages,
   getLoveMessages,
   getAnnouncementMessages,
-  type HuanXinUser,
   type Contact,
 } from "@/api/chat";
 
@@ -43,8 +42,6 @@ function setSeenCount(type: NoticeType, count: number): void {
  * 注：消息收发由 WuKongIM SDK 直连管理，此 store 仅负责后端数据
  */
 export const useChatStore = defineStore("chat", () => {
-  /** WuKongIM 账号凭证（登录 IM SDK 用，由 App.vue onShow 直连初始化） */
-  const huanXinUser = ref<HuanXinUser | null>(null);
 
   /** 联系人列表 */
   const contacts = ref<Contact[]>([]);
@@ -62,18 +59,6 @@ export const useChatStore = defineStore("chat", () => {
 
   /** 加载状态 */
   const loading = ref(false);
-
-  /**
-   * 获取 WuKongIM 账号凭证（首次调用后缓存）
-   * 前端用此凭证登录 WuKongIM SDK
-   * ⚠️ 已废弃：App.vue onShow 中改为直连 WuKongIM，此方法保留仅为向后兼容
-   */
-  async function loadHuanXinUser(): Promise<HuanXinUser | null> {
-    if (huanXinUser.value) {
-      return huanXinUser.value;
-    }
-    return null;
-  }
 
   /**
    * 加载联系人列表（首页/下拉刷新）
@@ -182,7 +167,6 @@ export const useChatStore = defineStore("chat", () => {
 
   /** 清除状态（登出时调用） */
   function clear(): void {
-    huanXinUser.value = null;
     contacts.value = [];
     contactPage.value = 1;
     contactHasMore.value = true;
@@ -190,12 +174,11 @@ export const useChatStore = defineStore("chat", () => {
   }
 
   return {
-    huanXinUser,
     contacts,
+    contactPage,
     contactHasMore,
     loading,
     noticeUnreads,
-    loadHuanXinUser,
     loadContacts,
     searchContacts,
     loadMoreContacts,
