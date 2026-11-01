@@ -4,6 +4,7 @@ import com.xfjy.service.api.ESUserLocationApi;
 import com.xfjy.service.api.HuanXinApi;
 import com.xfjy.service.api.PayApi;
 import com.xfjy.service.api.QuanZiApi;
+import com.xfjy.service.api.SwipeLogApi;
 import com.xfjy.service.api.RecommendUserApi;
 import com.xfjy.service.api.UserInfoApi;
 import com.xfjy.service.api.UserLikeApi;
@@ -219,6 +220,12 @@ public class HttpServiceProxyConfig {
     @Bean
     public UserInfoApi userInfoApi(@Qualifier("userServiceProxyFactory") HttpServiceProxyFactory factory) {
         return factory.createClient(UserInfoApi.class);
+    }
+
+    // SwipeLogApi：滑动日志（今日滑动次数计数 + 记录），实现位于 xfjy-user-service（18090）
+    @Bean
+    public SwipeLogApi swipeLogApi(@Qualifier("userServiceProxyFactory") HttpServiceProxyFactory factory) {
+        return factory.createClient(SwipeLogApi.class);
     }
 
     // ---- 圈子动态服务（18084）----
