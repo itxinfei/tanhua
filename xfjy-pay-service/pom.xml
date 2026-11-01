@@ -43,6 +43,12 @@
             <artifactId>mybatis-plus-spring-boot4-starter</artifactId>
         </dependency>
 
+        <!-- MyBatis-Plus 分页插件（3.5.x 拆分到 jsqlparser 模块，PaginationInnerInterceptor 所在构件） -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser</artifactId>
+        </dependency>
+
         <!-- Redis：订单号生成（分布式自增） -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
