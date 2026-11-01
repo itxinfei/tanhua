@@ -14,9 +14,9 @@
   "navTxtStyle": "white",
   "bgColor": "#1a1a1a",
   "bgTxtStyle": "light",
-  "tabColor": "#000000",
+  "tabColor": "#999999",
   "tabSelectedColor": "#FF5E9C",
-  "tabBgColor": "#FFFFFF",
-  "tabBorderStyle": "white"
+  "tabBgColor": "#1a1a1a",
+  "tabBorderStyle": "black"
  }
 }

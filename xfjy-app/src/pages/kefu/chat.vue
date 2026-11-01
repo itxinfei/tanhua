@@ -89,6 +89,7 @@ import {
   logoutIM,
   type ReceivedMessage,
 } from "@/utils/wukongim";
+import { fail } from "@/utils/ux";
 
 /** 默认头像 */
 const DEFAULT_AVATAR = "/static/logo/logo-icon-transparent.png";
@@ -198,7 +199,7 @@ async function deliver(msg: Message): Promise<void> {
   const ok = await sendTextMessage(agentId.value, msg.content);
   msg.status = ok ? "sent" : "failed";
   if (!ok) {
-    uni.showToast({ title: "发送失败，点击气泡旁的 ! 重发", icon: "none" });
+    fail("发送失败，点击气泡旁的 ! 重发");
   }
   sending.value = false;
 }

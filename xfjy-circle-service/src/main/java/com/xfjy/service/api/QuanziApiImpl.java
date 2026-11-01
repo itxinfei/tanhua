@@ -215,7 +215,7 @@ public class QuanziApiImpl implements QuanZiApi {
             return false;
         }
 
-        boolean result = this.saveComment(userId, publishId, 1, null);
+        boolean result = this.saveComment(userId, publishId, 1, null, null, null, null);
         if (result) {
             // 评分事件：点赞（type=3）
             Publish publish = this.mongoTemplate.findById(new ObjectId(publishId), Publish.class);
@@ -262,7 +262,7 @@ public class QuanziApiImpl implements QuanZiApi {
             return false;
         }
 
-        boolean result = this.saveComment(userId, publishId, 3, null);
+        boolean result = this.saveComment(userId, publishId, 3, null, null, null, null);
         if (result) {
             // 评分事件：喜欢（type=4）
             Publish publish = this.mongoTemplate.findById(new ObjectId(publishId), Publish.class);
@@ -276,7 +276,10 @@ public class QuanziApiImpl implements QuanZiApi {
     public boolean saveComment(@RequestParam(value = "userId", required = false) Long userId,
                                @RequestParam(value = "publishId", required = false) String publishId,
                                @RequestParam(value = "type", required = false) Integer type,
-                               @RequestParam(value = "content", required = false) String content) {
+                               @RequestParam(value = "content", required = false) String content,
+                               @RequestParam(value = "mediaType", required = false) Integer mediaType,
+                               @RequestParam(value = "audioUrl", required = false) String audioUrl,
+                               @RequestParam(value = "duration", required = false) Integer duration) {
 
         try {
             Comment comment = new Comment();
@@ -287,6 +290,10 @@ public class QuanziApiImpl implements QuanZiApi {
             comment.setUserId(userId);
             comment.setId(ObjectId.get());
             comment.setCreated(System.currentTimeMillis());
+            // 语音评论扩展字段（mediaType=2 时 audioUrl/duration 有值；文字评论保持 null，Mongo 兼容旧数据）
+            comment.setMediaType(mediaType);
+            comment.setAudioUrl(audioUrl);
+            comment.setDuration(duration);
 
             // 设置发布人的id
             Publish publish = this.mongoTemplate.findById(comment.getPublishId(), Publish.class);

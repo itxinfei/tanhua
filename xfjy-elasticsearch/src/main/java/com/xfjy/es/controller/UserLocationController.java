@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("es/user/location")
+@RequestMapping("/api/es-user-location")
 public class UserLocationController {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UserLocationController.class);
@@ -25,13 +25,16 @@ public class UserLocationController {
     /**
      * 更新用户的地理位置
      */
-    @PostMapping
+    @PostMapping("/updateUserLocation")
     public ResponseEntity<Void> updateUserLocation(@RequestBody Map<String, Object> param) {
         try {
-            Long userId = Long.valueOf(param.get("userId").toString());
-            Double longitude = Double.valueOf(param.get("longitude").toString());
-            Double latitude = Double.valueOf(param.get("latitude").toString());
-            String address = param.get("address").toString();
+            Long userId = param.get("userId") == null ? null : Long.valueOf(param.get("userId").toString());
+            Double longitude = param.get("longitude") == null ? null : Double.valueOf(param.get("longitude").toString());
+            Double latitude = param.get("latitude") == null ? null : Double.valueOf(param.get("latitude").toString());
+            String address = param.get("address") == null ? null : param.get("address").toString();
+            if (userId == null || longitude == null || latitude == null) {
+                return ResponseEntity.badRequest().build();
+            }
             boolean result = this.userLocationService.updateUserLocation(userId, longitude, latitude, address);
             if (result) {
                 return ResponseEntity.ok().build();
@@ -45,8 +48,8 @@ public class UserLocationController {
     /**
      * 查询用户的地理位置
      */
-    @GetMapping("{userId}")
-    public ResponseEntity<UserLocationES> queryUserLocation(@PathVariable("userId") Long userId) {
+    @GetMapping("/queryByUserId")
+    public ResponseEntity<UserLocationES> queryByUserId(@RequestParam("userId") Long userId) {
         try {
             UserLocationES userLocationES = this.userLocationService.queryByUserId(userId);
             if (null == userLocationES) {
@@ -62,18 +65,16 @@ public class UserLocationController {
     /**
      * 搜索附近的人
      */
-    @PostMapping("list")
-    public ResponseEntity<List<UserLocationES>> queryUserFromLocation(@RequestBody Map<String, Object> param) {
+    @GetMapping("/queryUserFromLocation")
+    public ResponseEntity<List<UserLocationES>> queryUserFromLocation(@RequestParam("longitude") Double longitude,
+                                                                       @RequestParam("latitude") Double latitude,
+                                                                       @RequestParam(value = "range", defaultValue = "2000") Integer range) {
         try {
-            Double longitude = Double.valueOf(param.get("longitude").toString());
-            Double latitude = Double.valueOf(param.get("latitude").toString());
-            Double distance = Double.valueOf(param.get("distance").toString());
-            Integer page = param.get("page") == null ? 1 : Integer.valueOf(param.get("page").toString());
-            Integer pageSize = param.get("pageSize") == null ? 100 : Integer.valueOf(param.get("pageSize").toString());
-
-            Page<UserLocationES> userLocationES = this.userLocationService.queryUserFromLocation(longitude, latitude, distance, page, pageSize);
+            int page = 1;
+            int pageSize = 100;
+            Page<UserLocationES> userLocationES = this.userLocationService.queryUserFromLocation(longitude, latitude, range, page, pageSize);
             return ResponseEntity.ok(userLocationES.getContent());
-        } catch (NumberFormatException e) {
+        } catch (NumberFormatException | NullPointerException e) {
             LOGGER.error("ES地理位置接口异常", e);
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

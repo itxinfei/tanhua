@@ -20,5 +20,7 @@ rtc:
   # UDP 不通时的 WebRTC over TCP 回退端口（必须直接暴露，不能放 TLS/负载均衡后面）
   tcp_port: 7881
   # WebRTC 媒体 UDP 端口范围（防火墙需放行，每个参与者约占 2 个端口）
+  # network host 模式下无需 docker publish，端口范围直接给 LiveKit 进程内部使用
+  # 单机开发 500 端口足够 ~250 并发通话；生产按实际 SFU 规格放大到 1000-5000
   port_range_start: 50000
-  port_range_end: 50100
+  port_range_end: 50500

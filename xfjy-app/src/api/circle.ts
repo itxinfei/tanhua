@@ -67,6 +67,12 @@ export interface Comment {
   parentId?: string;
   /** 被回复人昵称（仅回复可见） */
   replyNickname?: string;
+  /** 媒体类型：1-文字（默认）2-语音（历史数据缺省按文字处理） */
+  type?: number;
+  /** 语音地址（type=2 时有值） */
+  audioUrl?: string;
+  /** 语音时长秒（type=2 时有值） */
+  duration?: number;
 }
 
 /** 发布动态参数 */

@@ -67,6 +67,7 @@ import EmptyState from "@/components/empty-state.vue";
 import { onShow, onPullDownRefresh } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
 import { getNearby, loveUser, type NearUser } from "@/api/match";
+import { success } from "@/utils/ux";
 
 /** 距离筛选选项（km，0 表示全部） */
 const DISTANCE_OPTIONS = [0, 1, 3, 5, 10];
@@ -88,7 +89,7 @@ function goDetail(id: number): void {
 async function handleQuickLike(id: number): Promise<void> {
   try {
     const matched = await loveUser(id);
-    uni.showToast({ title: matched ? "互相喜欢，匹配成功！" : "已喜欢", icon: "success" });
+    success(matched ? "互相喜欢，匹配成功！" : "已喜欢");
   } catch {
     // 请求失败由 request 层统一 toast
   }

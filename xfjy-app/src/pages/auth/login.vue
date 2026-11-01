@@ -87,6 +87,7 @@
 import { ref, computed, onUnmounted } from "vue";
 import { useUserStore } from "@/store/user";
 import A11yButton from "@/components/a11y-button.vue";
+import { success, info } from "@/utils/ux";
 
 /** 表单标签 id：供 input 的 aria-labelledby 关联，保证读屏能读出字段名 */
 const PHONE_LABEL_ID = "login-phone-label";
@@ -123,12 +124,12 @@ const canLogin = computed(
 // 发送验证码
 async function handleSendCode() {
   if (!phoneValid.value) {
-    uni.showToast({ title: "请输入正确的手机号", icon: "none" });
+    info("请输入正确的手机号");
     return;
   }
   try {
     await userStore.sendCode(phone.value);
-    uni.showToast({ title: "验证码已发送", icon: "success" });
+    success("验证码已发送");
     startCountdown();
   } catch {
     // 错误已在 request 层提示
@@ -166,7 +167,7 @@ async function handleLogin() {
   logging.value = true;
   try {
     await userStore.doLogin(phone.value, code.value);
-    uni.showToast({ title: "登录成功", icon: "success" });
+    success("登录成功");
     // 跳转主页
     uni.switchTab({ url: "/pages/match/index" });
   } catch {

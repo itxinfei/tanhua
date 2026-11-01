@@ -63,4 +63,4 @@ REGISTERED=$(docker compose -p "${APP_PROJECT}" -f "${APP_COMPOSE}" \
 echo "运行中的服务:"
 echo "$REGISTERED"
 echo ""
-echo "[提示] 如需检查 Nacos 注册详情，访问 http://192.168.20.133:8848/nacos"
+echo "[提示] 如需检查 Nacos 注册详情，访问 http://192.168.20.133:8080/"

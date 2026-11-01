@@ -100,6 +100,7 @@ import { ref, computed } from "vue";
 import A11yButton from "@/components/a11y-button.vue";
 import A11yRadioGroup from "@/components/a11y-radio-group.vue";
 import { updateUserProfile } from "@/api/mine";
+import { success, info } from "@/utils/ux";
 
 /** 表单字段唯一 id：用于 aria-labelledby 建立程序化标签关联（WCAG 1.3.1 / 3.3.2） */
 const nicknameLabelId = "guide-nickname-label";
@@ -156,11 +157,11 @@ function onEducationChange(e: any): void {
 /** 提交资料 */
 async function handleSubmit(): Promise<void> {
   if (!form.value.nickname) {
-    uni.showToast({ title: "请输入昵称", icon: "none" });
+    info("请输入昵称");
     return;
   }
   if (!form.value.gender) {
-    uni.showToast({ title: "请选择性别", icon: "none" });
+    info("请选择性别");
     return;
   }
 
@@ -173,7 +174,7 @@ async function handleSubmit(): Promise<void> {
       city: form.value.city || undefined,
       education: form.value.education || undefined,
     });
-    uni.showToast({ title: "保存成功", icon: "success" });
+    success("保存成功");
     setTimeout(() => {
       uni.switchTab({ url: "/pages/match/index" });
     }, 1000);

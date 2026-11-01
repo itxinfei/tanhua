@@ -3,6 +3,8 @@
  * 基于 uni.request，统一处理 Token 注入、错误码映射、Loading
  */
 
+import { log, error } from "@/utils/logger";
+
 // 后端服务地址：优先读环境变量 VITE_API_BASE_URL，未配置则按构建模式回退
 // 开发联调可在 xfjy-app/.env.development 配置 VITE_API_BASE_URL=http://192.168.x.x:8090
 export const BASE_URL: string =
@@ -92,6 +94,9 @@ function request<T = any>(options: RequestOptions): Promise<T> {
     }
   }
 
+  const startAt = Date.now();
+  log(`${method} ${url}`, data || "");
+
   return new Promise<T>((resolve, reject) => {
     uni.request({
       url: BASE_URL + url,
@@ -102,12 +107,24 @@ function request<T = any>(options: RequestOptions): Promise<T> {
         ...header,
       },
       success: (res: any) => {
+        log(`${method} ${url} → ${res.statusCode} (${Date.now() - startAt}ms)`);
         if (loading) uni.hideLoading();
 
         // HTTP 状态码处理
         if (res.statusCode === 401) {
           handleUnauthorized();
           reject(new Error("登录已过期，请重新登录"));
+          return;
+        }
+
+        // 402 付费墙拦截（滑动次数耗尽等 → 跳 VIP 引导页）
+        if (res.statusCode === 402) {
+          const msg = (res.data as any)?.message || "升级 VIP 解锁更多权益";
+          uni.showToast({ title: msg, icon: "none", duration: 2000 });
+          setTimeout(() => {
+            uni.navigateTo({ url: "/pages/mine/vip?source=swipe_out" });
+          }, 1500);
+          reject(new Error(msg));
           return;
         }
 
@@ -151,6 +168,7 @@ function request<T = any>(options: RequestOptions): Promise<T> {
         resolve(body.data !== undefined ? body.data : (body as unknown as T));
       },
       fail: (err: any) => {
+        error(`${method} ${url} ✗ (${Date.now() - startAt}ms)`, err);
         if (loading) uni.hideLoading();
         uni.showToast({ title: "网络异常，请检查网络", icon: "none" });
         reject(err);
@@ -191,6 +209,9 @@ export function upload<T = any>(
   fileField: string,
   formData?: Record<string, any>
 ): Promise<T> {
+  const startAt = Date.now();
+  log(`UPLOAD ${url}`, filePaths);
+
   return new Promise<T>((resolve, reject) => {
     const token = getToken();
     const header: Record<string, string> = {};
@@ -207,10 +228,21 @@ export function upload<T = any>(
       formData,
       header,
       success: (res: any) => {
+        log(`UPLOAD ${url} → ${res.statusCode} (${Date.now() - startAt}ms)`);
         // 401 登录过期：统一走 handleUnauthorized（与 request 函数对齐）
         if (res.statusCode === 401) {
           handleUnauthorized();
           reject(new Error("登录已过期，请重新登录"));
+          return;
+        }
+        // 402 付费墙拦截
+        if (res.statusCode === 402) {
+          const msg = (res.data as any)?.message || "升级 VIP 解锁更多权益";
+          uni.showToast({ title: msg, icon: "none", duration: 2000 });
+          setTimeout(() => {
+            uni.navigateTo({ url: "/pages/mine/vip?source=swipe_out" });
+          }, 1500);
+          reject(new Error(msg));
           return;
         }
         // 429 风控限流
@@ -253,6 +285,7 @@ export function upload<T = any>(
         resolve(body.data !== undefined ? body.data : (body as unknown as T));
       },
       fail: (err: any) => {
+        error(`UPLOAD ${url} ✗ (${Date.now() - startAt}ms)`, err);
         uni.showToast({ title: "网络异常，请检查网络", icon: "none" });
         reject(err);
       },

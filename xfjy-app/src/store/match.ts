@@ -108,7 +108,8 @@ export const useMatchStore = defineStore("match", () => {
     if (action === "dislike") {
       await unloveUser(userId);
     } else {
-      matched = await loveUser(userId);
+      // superlove 单独传 action 参数，供后端校验 super_like 权益
+      matched = await loveUser(userId, action === "superlike" ? "superlike" : "like");
     }
     swipeCount.value++;
     persistDailyCount(SWIPE_COUNT_STORAGE_KEY, swipeCount.value);

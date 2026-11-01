@@ -162,7 +162,8 @@
 		"navigationBarTextStyle": "@navTxtStyle",
 		"navigationBarTitleText": "心飞交友",
 		"navigationBarBackgroundColor": "@navBgColor",
-		"backgroundColor": "@bgColor"
+		"backgroundColor": "@bgColor",
+		"backgroundTextStyle": "@bgTxtStyle"
 	},
 	"tabBar": {
 		"color": "@tabColor",

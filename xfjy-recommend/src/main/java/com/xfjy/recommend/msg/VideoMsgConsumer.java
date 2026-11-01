@@ -1,7 +1,7 @@
 package com.xfjy.recommend.msg;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xfjy.recommend.pojo.RecommendVideo;
 import com.xfjy.recommend.pojo.UserBehavior;
 import com.xfjy.recommend.service.UserFeatureService;
@@ -27,7 +27,7 @@ import java.time.Duration;
         consumerGroup = "xfjy-video-consumer")
 public class VideoMsgConsumer implements RocketMQListener<String> {
 
-    private static final JsonMapper MAPPER = new JsonMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static final Logger LOGGER = LoggerFactory.getLogger(VideoMsgConsumer.class);
 

@@ -93,6 +93,7 @@ import {
 } from "@/api/mine";
 import { getPayChannel } from "@/utils/pay";
 import { safeGoBack } from "@/utils/nav";
+import { success, fail } from "@/utils/ux";
 
 /** 默认状态栏高度（px） */
 const DEFAULT_STATUS_BAR_HEIGHT = 20;
@@ -200,7 +201,7 @@ async function handlePay(): Promise<void> {
     // 1. 创建订单
     const order = await createVipOrder(selectedId.value);
     if (!order?.orderNo) {
-      uni.showToast({ title: "下单失败，请重试", icon: "none" });
+      fail("下单失败，请重试");
       return;
     }
     // 2. 二次确认（生产环境接入真实渠道 SDK 后，此弹窗可保留为金额确认）
@@ -217,7 +218,7 @@ async function handlePay(): Promise<void> {
     if (!confirmed) {
       // 用户取消：关单避免堆积未支付订单；关单失败（网络等）静默，订单到期自动作废
       cancelVipOrder(order.orderNo).catch(() => {});
-      uni.showToast({ title: "已取消支付", icon: "none" });
+      fail("已取消支付");
       return;
     }
     // 3. 渠道支付（utils/pay.ts 抽象：当前为模拟渠道，生产替换为微信/支付宝渠道实现）
@@ -227,10 +228,10 @@ async function handlePay(): Promise<void> {
       subject: plan.name,
     });
     if (!paid) {
-      uni.showToast({ title: "支付未完成，请重试", icon: "none" });
+      fail("支付未完成，请重试");
       return;
     }
-    uni.showToast({ title: "开通成功", icon: "success" });
+    success("开通成功");
     // 4. 刷新会员状态
     vipStatus.value = await getVipStatus();
   } catch (e) {

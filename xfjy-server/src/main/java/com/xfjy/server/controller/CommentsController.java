@@ -7,6 +7,7 @@ import com.xfjy.server.service.RiskControlService;
 import com.xfjy.server.utils.UserThreadLocal;
 import com.xfjy.server.vo.PageResult;
 import com.xfjy.server.vo.TextDetectResult;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,19 +75,34 @@ public class CommentsController {
             String content = param.get("comment");
             // 回复目标评论 id（可选，传了即为回复）
             String replyCommentId = param.get("commentId");
+            // 语音评论字段（可选）：type=2 时 audioUrl/duration 必填
+            Integer mediaType = param.get("type") != null ? Integer.valueOf(param.get("type")) : null;
+            String audioUrl = param.get("audioUrl");
+            Integer duration = param.get("duration") != null ? Integer.valueOf(param.get("duration")) : null;
+            boolean isVoice = Integer.valueOf(2).equals(mediaType);
+
+            // 语音评论校验：必须有音频地址与正数时长
+            if (isVoice && (StringUtils.isBlank(audioUrl) || duration == null || duration <= 0)) {
+                return ResponseEntity.badRequest().build();
+            }
 
             // 风控：评论频率限制
             if (!this.riskControlService.allow(UserThreadLocal.get().getId(), RiskControlService.ACTION_COMMENT)) {
                 return ResponseEntity.status(429).build();
             }
 
-            // 审核：敏感词检测，BLOCK 直接拒发
-            TextDetectResult detect = this.contentReviewService.reviewText(content);
-            if ("BLOCK".equals(detect.getAction())) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            // 审核：敏感词检测（语音评论 content 可为空，跳过文本机审；语音内容审核由 MinIO 侧/举报兜底）
+            String filtered = content;
+            if (StringUtils.isNotEmpty(content)) {
+                TextDetectResult detect = this.contentReviewService.reviewText(content);
+                if ("BLOCK".equals(detect.getAction())) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+                }
+                filtered = detect.getFilteredText();
             }
 
-            Boolean bool = this.commentsService.saveComments(publishId, detect.getFilteredText(), replyCommentId);
+            Boolean bool = this.commentsService.saveComments(publishId, filtered, replyCommentId,
+                    isVoice ? 2 : null, audioUrl, duration);
             if (bool) {
 
                 return ResponseEntity.ok(null);

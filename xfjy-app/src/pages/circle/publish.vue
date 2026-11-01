@@ -118,6 +118,7 @@ import { publishMovement } from "@/api/circle";
 import { publishVideo } from "@/api/video";
 import { CIRCLE_NEED_REFRESH_KEY } from "@/store/circle";
 import { safeGoBack } from "@/utils/nav";
+import { success, info, fail } from "@/utils/ux";
 
 /** 内容最大字数 */
 const MAX_CONTENT_LENGTH = 500;
@@ -241,7 +242,7 @@ function chooseLocation(): void {
       latitude.value = String(res.latitude);
     },
     fail: () => {
-      uni.showToast({ title: "请授权位置权限", icon: "none" });
+      info("请授权位置权限");
     },
   });
 }
@@ -258,7 +259,7 @@ async function handlePublish(): Promise<void> {
   if (!canPublish.value || submitting.value) return;
   // 部分端 chooseVideo 不返回封面帧，空封面上传会失败，发布前守卫
   if (videoFile.value && !videoCover.value) {
-    uni.showToast({ title: "未获取到视频封面，请重新选择视频", icon: "none" });
+    fail("未获取到视频封面，请重新选择视频");
     return;
   }
   submitting.value = true;
@@ -280,7 +281,7 @@ async function handlePublish(): Promise<void> {
       uni.setStorageSync(CIRCLE_NEED_REFRESH_KEY, "1");
     }
     published = true;
-    uni.showToast({ title: "发布成功", icon: "success" });
+    success("发布成功");
     backTimer = setTimeout(() => {
       // mp 端发布页为原生 tab 页，切换不销毁页面，须手动重置表单，避免下次进入残留已发布内容
       content.value = "";

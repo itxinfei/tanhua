@@ -7,6 +7,7 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import App from './App.vue'
 import router from './router'
 import { perm } from './directives/perm'
+import { installErrorHandler } from './utils/logger'
 import './style.css'
 
 const app = createApp(App)
@@ -20,4 +21,5 @@ app.use(createPinia())
 app.directive('perm', perm)
 app.use(router)
 app.use(ElementPlus, { locale: zhCn })
+installErrorHandler(app)
 app.mount('#app')

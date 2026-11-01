@@ -85,6 +85,7 @@ import A11yRadioGroup from "@/components/a11y-radio-group.vue";
 import A11yButton from "@/components/a11y-button.vue";
 import { getUserProfile, updateUserProfile, uploadImage } from "@/api/mine";
 import { safeGoBack } from "@/utils/nav";
+import { success, fail, loading, hideLoading } from "@/utils/ux";
 
 /** 照片墙最大数量 */
 const MAX_ALBUM_COUNT = 6;
@@ -107,18 +108,18 @@ const submitting = ref(false);
 function changeAvatar(): void {
   uni.chooseImage({ count: 1, sizeType: ["compressed"], success: async (res) => {
     const tempPath = res.tempFilePaths[0];
-    uni.showLoading({ title: "上传中...", mask: true });
+    loading("上传中...");
     try {
       const result = await uploadImage(tempPath);
-      uni.hideLoading();
+      hideLoading();
       if (result.status === "done" && result.name) {
         form.value.avatar = result.name;
-        uni.showToast({ title: "头像已更新", icon: "success" });
+        success("头像已更新");
       } else {
-        uni.showToast({ title: "上传失败，请重试", icon: "none" });
+        fail("上传失败，请重试");
       }
     } catch (e) {
-      uni.hideLoading();
+      hideLoading();
       // upload 工具已统一 toast 错误提示
     }
   }});
@@ -127,16 +128,16 @@ function changeAvatar(): void {
 /** 添加照片墙图片：逐张上传 MinIO，成功 URL 入数组 */
 function addPhoto(): void {
   const remain = MAX_ALBUM_COUNT - form.value.photoAlbum.length;
-  if (remain <= 0) { uni.showToast({ title: "照片墙已满", icon: "none" }); return; }
+  if (remain <= 0) { fail("照片墙已满"); return; }
   uni.chooseImage({ count: remain, sizeType: ["compressed"], success: async (res) => {
-    uni.showLoading({ title: "上传中...", mask: true });
+    loading("上传中...");
     for (const tempPath of res.tempFilePaths) {
       try {
         const result = await uploadImage(tempPath);
         if (result.status === "done" && result.name) form.value.photoAlbum.push(result.name);
       } catch { /* 单张失败跳过，继续后续 */ }
     }
-    uni.hideLoading();
+    hideLoading();
   }});
 }
 
@@ -187,7 +188,7 @@ async function handleSave(): Promise<void> {
       photoAlbum: JSON.stringify(form.value.photoAlbum),
     });
     userStore.updateUserInfo(form.value);
-    uni.showToast({ title: "保存成功", icon: "success" });
+    success("保存成功");
     setTimeout(() => safeGoBack("/pages/mine/index"), 800);
   } catch {
     // request 层统一 toast

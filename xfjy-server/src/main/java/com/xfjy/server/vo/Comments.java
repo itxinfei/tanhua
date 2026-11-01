@@ -21,5 +21,8 @@ public class Comments {
     private Integer hasLiked; //是否点赞（1是，0否）
     private String parentId; //父评论id（空=顶层评论）
     private String replyNickname; //被回复人昵称（仅回复可见）
+    private Integer type; //媒体类型：1-文字 2-语音
+    private String audioUrl; //语音地址（type=2 时有值）
+    private Integer duration; //语音时长秒（type=2 时有值）
 
 }

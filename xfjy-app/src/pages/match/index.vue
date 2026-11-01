@@ -114,6 +114,7 @@ import { checkBenefit, recordBenefitUsage } from "@/api/mine";
 import { useUserStore } from "@/store/user";
 import MatchPopup from "@/components/match-popup.vue";
 import A11yButton from "@/components/a11y-button.vue";
+import { info, fail } from "@/utils/ux";
 
 const matchStore = useMatchStore();
 const userStore = useUserStore();
@@ -159,7 +160,7 @@ const systemStore = useSystemStore();
 const currentCity = computed(() => systemStore.currentCity);
 /** 城市选择暂未上线，点击给出明确提示（避免死交互） */
 function openCityPicker() {
-  uni.showToast({ title: "城市选择功能即将上线", icon: "none" });
+  info("城市选择功能即将上线");
 }
 
 /**
@@ -306,7 +307,7 @@ async function swipeOut(action: "like" | "dislike" | "superlike") {
 
   // 检查每日免费滑动次数
   if (!matchStore.canSwipe()) {
-    uni.showToast({ title: "今日免费次数已用完，开通VIP无限滑", icon: "none" });
+    info("今日免费次数已用完，开通VIP无限滑");
     dragX.value = 0;
     dragY.value = 0;
     swiping.value = false;
@@ -335,7 +336,7 @@ async function swipeOut(action: "like" | "dislike" | "superlike") {
     if (action === "superlike") {
       const ok = await recordBenefitUsage("super_like");
       if (!ok) {
-        uni.showToast({ title: "今日超级喜欢次数已用完", icon: "none" });
+        info("今日超级喜欢次数已用完");
       }
     }
   } catch {
@@ -343,7 +344,7 @@ async function swipeOut(action: "like" | "dislike" | "superlike") {
     dragX.value = 0;
     dragY.value = 0;
     swiping.value = false;
-    uni.showToast({ title: "操作失败，请重试", icon: "none" });
+    fail("操作失败，请重试");
     return;
   }
 
@@ -379,7 +380,7 @@ function handleDislike() {
 async function handleRewind(): Promise<void> {
   const last = lastSwipe.value;
   if (swiping.value || !last) {
-    uni.showToast({ title: "没有可回看的卡片", icon: "none" });
+    info("没有可回看的卡片");
     return;
   }
   try {
@@ -394,9 +395,9 @@ async function handleRewind(): Promise<void> {
     dragX.value = 0;
     dragY.value = 0;
     lastSwipe.value = null;
-    uni.showToast({ title: "已回看上一张", icon: "none" });
+    info("已回看上一张");
   } catch {
-    uni.showToast({ title: "回看失败，请重试", icon: "none" });
+    fail("回看失败，请重试");
   }
 }
 /**
@@ -408,12 +409,12 @@ async function handleSuperLike(): Promise<void> {
   try {
     const benefit = await checkBenefit("super_like");
     if (!benefit.hasBenefit) {
-      uni.showToast({ title: "超级喜欢需开通VIP", icon: "none" });
+      info("超级喜欢需开通VIP");
       setTimeout(() => uni.navigateTo({ url: "/pages/mine/vip" }), 600);
       return;
     }
     if (benefit.remainingToday === 0) {
-      uni.showToast({ title: "今日超级喜欢次数已用完", icon: "none" });
+      info("今日超级喜欢次数已用完");
       return;
     }
     dragX.value = 0;
@@ -423,7 +424,7 @@ async function handleSuperLike(): Promise<void> {
   }
 }
 function handleBoost() {
-  uni.showToast({ title: "曝光提升（VIP专属）", icon: "none" });
+  info("曝光提升（VIP专属）");
 }
 
 // ===== 跳转 =====

@@ -90,11 +90,13 @@ public class MovementsService {
         }
 
 
-        //图片上传
+        //图片上传（允许纯文字发布：imageContent 可为空）
         List<String> imageUrls = new ArrayList<>();
-        for (MultipartFile file : multipartFile) {
-            PicUploadResult uploadResult = this.picUploadService.upload(file);
-            imageUrls.add(uploadResult.getName());
+        if (multipartFile != null && multipartFile.length > 0) {
+            for (MultipartFile file : multipartFile) {
+                PicUploadResult uploadResult = this.picUploadService.upload(file);
+                imageUrls.add(uploadResult.getName());
+            }
         }
 
         publish.setMedias(imageUrls);

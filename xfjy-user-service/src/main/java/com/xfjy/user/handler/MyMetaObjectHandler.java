@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import org.apache.ibatis.reflection.MetaObject;
 import org.springframework.stereotype.Component;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 /**
  * MyBatis-Plus 字段自动填充：created/updated
@@ -16,17 +16,17 @@ public class MyMetaObjectHandler implements MetaObjectHandler {
     public void insertFill(MetaObject metaObject) {
         Object created = getFieldValByName("created", metaObject);
         if (null == created) {
-            setFieldValByName("created", new Date(), metaObject);
+            setFieldValByName("created", LocalDateTime.now(), metaObject);
         }
 
         Object updated = getFieldValByName("updated", metaObject);
         if (null == updated) {
-            setFieldValByName("updated", new Date(), metaObject);
+            setFieldValByName("updated", LocalDateTime.now(), metaObject);
         }
     }
 
     @Override
     public void updateFill(MetaObject metaObject) {
-        setFieldValByName("updated", new Date(), metaObject);
+        setFieldValByName("updated", LocalDateTime.now(), metaObject);
     }
 }

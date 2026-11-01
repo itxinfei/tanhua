@@ -115,6 +115,7 @@ import {
   getChatHistory,
   type ReceivedMessage,
 } from "@/utils/wukongim";
+import { info, fail } from "@/utils/ux";
 
 /** 默认头像路径 */
 const DEFAULT_AVATAR = "/static/logo/logo-icon-transparent.png";
@@ -186,7 +187,7 @@ let voiceStartAt = 0;
 function onRecorderStop(res: any): void {
   const duration = Date.now() - voiceStartAt;
   if (duration < MIN_VOICE_DURATION_MS) {
-    uni.showToast({ title: "说话时间太短", icon: "none" });
+    info("说话时间太短");
     return;
   }
   if (!res.tempFilePath) return;
@@ -202,7 +203,7 @@ function onVoiceStart(): void {
     recorderManager.start({ format: "mp3", duration: MAX_VOICE_DURATION_MS });
   } catch {
     isVoicePressing.value = false;
-    uni.showToast({ title: "当前设备不支持录音", icon: "none" });
+    info("当前设备不支持录音");
   }
 }
 
@@ -308,7 +309,7 @@ async function deliverMessage(msg: Message): Promise<void> {
           msg.type === "voice" ? await uploadChatAudio(msg.content) : await uploadChatImage(msg.content);
         if (!url) {
           msg.status = "failed";
-          uni.showToast({ title: "上传失败，点击气泡重试", icon: "none" });
+          fail("上传失败，点击气泡重试");
           return;
         }
         msg.content = url;
@@ -330,12 +331,12 @@ async function deliverMessage(msg: Message): Promise<void> {
     }
     msg.status = ok ? "sent" : "failed";
     if (!ok) {
-      uni.showToast({ title: "发送失败，点击气泡重试", icon: "none" });
+      fail("发送失败，点击气泡重试");
     }
   } catch {
     // 上传/网络异常（upload reject 等）不能让气泡永远停在 sending
     msg.status = "failed";
-    uni.showToast({ title: "发送失败，点击气泡重试", icon: "none" });
+    fail("发送失败，点击气泡重试");
   }
 }
 
@@ -382,7 +383,7 @@ function chooseLocation(): void {
       const msg = (err as { errMsg?: string }).errMsg || "";
       // 用户主动取消不算失败，其余（如未配置地图 key）明确提示
       if (!msg.includes("cancel")) {
-        uni.showToast({ title: "当前平台暂不支持选点", icon: "none" });
+        info("当前平台暂不支持选点");
       }
     },
   });
@@ -403,7 +404,7 @@ async function chooseCardContact(): Promise<void> {
     const result = await getContacts({ page: 1, pagesize: 50 });
     const contacts = result.items || [];
     if (contacts.length === 0) {
-      uni.showToast({ title: "暂无好友可分享", icon: "none" });
+      info("暂无好友可分享");
       return;
     }
     uni.showActionSheet({
@@ -449,7 +450,7 @@ function toggleVoicePlay(msg: Message): void {
   });
   ctx.onError(() => {
     playingVoiceId.value = "";
-    uni.showToast({ title: "语音播放失败", icon: "none" });
+    fail("语音播放失败");
   });
 }
 
@@ -460,7 +461,7 @@ function previewImg(url: string): void {
 
 /** 未完成功能占位提示 */
 function showTodoToast(feature: string): void {
-  uni.showToast({ title: `${feature}功能开发中`, icon: "none" });
+  info(`${feature}功能开发中`);
 }
 
 /** 接收对方新消息回调（onUnmounted 注销） */

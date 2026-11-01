@@ -1,6 +1,7 @@
-import { get, post } from "@/utils/request";
+import { get, post, upload } from "@/utils/request";
 import { getToken, BASE_URL, handleUnauthorized } from "@/utils/request";
 import type { PageResult, PageParam, Comment } from "@/api/circle";
+import type { PicUploadResult } from "@/api/mine";
 
 /**
  * 小视频
@@ -165,12 +166,47 @@ export function getVideoComments(
   return get<PageResult<Comment>>(`/small-videos/${videoId}/comments`, params as any);
 }
 
+/** 发表评论参数：文字评论传 comment；语音评论传 type=2 + audioUrl + duration */
+export interface PublishVideoCommentParam {
+  /** 文字内容（语音评论可为空） */
+  comment?: string;
+  /** 媒体类型：1-文字 2-语音 */
+  type?: number;
+  /** 语音文件地址（先经 /upload/audio 上传 MinIO 得到） */
+  audioUrl?: string;
+  /** 语音时长（秒） */
+  duration?: number;
+}
+
 /**
  * 发表视频评论
  * 对接后端: POST /small-videos/{id}/comments
  */
-export function publishVideoComment(videoId: string, comment: string): Promise<void> {
-  return post<void>(`/small-videos/${videoId}/comments`, { comment });
+export function publishVideoComment(
+  videoId: string,
+  param: PublishVideoCommentParam | string
+): Promise<void> {
+  const body: Record<string, any> =
+    typeof param === "string" ? { comment: param } : { ...param };
+  return post<void>(`/small-videos/${videoId}/comments`, body);
+}
+
+/**
+ * 上传语音评论音频（先传 MinIO 拿 URL，再以 audioUrl 提交评论）
+ * 对接后端: POST /upload/audio（multipart/form-data，字段名 file）
+ *
+ * @param filePath 录音得到的本地临时文件路径
+ * @returns 音频访问 URL
+ */
+export function uploadAudio(filePath: string): Promise<string> {
+  return upload<PicUploadResult>("/upload/audio", [filePath], "file").then(
+    (res) => {
+      if (res.status !== "done" || !res.name) {
+        throw new Error("音频上传失败");
+      }
+      return res.name;
+    }
+  );
 }
 
 /**

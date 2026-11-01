@@ -80,6 +80,10 @@ public class CommentsService {
             comments.setId(record.getId().toHexString());
             comments.setCreateDate(LocalDateTime.ofInstant(Instant.ofEpochMilli(record.getCreated()), ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("yyyy年MM月dd日 HH:mm")));
             comments.setContent(record.getContent());
+            // 语音评论字段（历史数据 mediaType 为 null，统一按文字评论 type=1 透出）
+            comments.setType(record.getMediaType() != null ? record.getMediaType() : 1);
+            comments.setAudioUrl(record.getAudioUrl());
+            comments.setDuration(record.getDuration());
 
             for (UserInfo userInfo : userInfoList) {
                 if(record.getUserId().longValue() == userInfo.getUserId().longValue()){
@@ -124,14 +128,18 @@ public class CommentsService {
         return pageResult;
     }
 
-    public Boolean saveComments(String publishId, String content, String replyCommentId) {
+    public Boolean saveComments(String publishId, String content, String replyCommentId,
+                                Integer mediaType, String audioUrl, Integer duration) {
         User user = UserThreadLocal.get();
         boolean success;
         if (StringUtils.isNotBlank(replyCommentId)) {
-            // 回复评论：由圈子服务归一到根评论后挂载
+            // 回复评论：由圈子服务归一到根评论后挂载（语音评论暂仅支持顶层，回复仍走文字）
             success = this.quanZiApi.saveReplyComment(user.getId(), publishId, replyCommentId, content);
+        } else if (Integer.valueOf(2).equals(mediaType)) {
+            // 语音评论：content 可为空，语音地址与时长必传（控制器已校验）
+            success = this.quanZiApi.saveComment(user.getId(), publishId, 2, content, 2, audioUrl, duration);
         } else {
-            success = this.quanZiApi.saveComment(user.getId(), publishId, 2, content);
+            success = this.quanZiApi.saveComment(user.getId(), publishId, 2, content, null, null, null);
         }
         if (!success) {
             return false;
@@ -141,7 +149,8 @@ public class CommentsService {
             Publish publish = this.quanZiApi.queryPublishById(publishId);
             if (publish != null && publish.getUserId() != null
                     && !publish.getUserId().equals(user.getId())) {
-                this.pushService.pushCommentNotification(publish.getUserId(), content);
+                this.pushService.pushCommentNotification(publish.getUserId(),
+                        StringUtils.isNotBlank(content) ? content : "[语音评论]");
             }
         } catch (Exception e) {
             LOGGER.warn("评论推送触发失败：publishId={}", publishId, e);

@@ -38,20 +38,21 @@
 
 <script setup lang="ts">
 import A11yButton from "@/components/a11y-button.vue";
+import { TABS, PUBLISH_PAGE } from "@/config/tab-config";
 
-type TabKey = "match" | "circle" | "publish" | "video" | "mine";
+/** active 取值：发布页传 "publish"，其余场景传对应 tab 的 pagePath */
+const props = defineProps<{ active?: string }>();
 
-const props = defineProps<{ active?: TabKey }>();
+/** 由统一配置派生（不再重复维护 tab 列表，单一数据源：config/tab-config.ts） */
+const sideTabs = TABS.map((t) => ({
+  key: t.pagePath,
+  text: t.text,
+  path: `/${t.pagePath}`,
+  icon: t.icon,
+  activeIcon: t.iconActive,
+}));
 
-/** 与 pages.json tabBar 配置保持一致（发布为 midButton，不在原生 list 中） */
-const sideTabs: { key: TabKey; text: string; path: string; icon: string; activeIcon: string }[] = [
-  { key: "match", text: "匹配", path: "/pages/match/index", icon: "/static/tabbar/match.png", activeIcon: "/static/tabbar/match-active.png" },
-  { key: "circle", text: "圈子", path: "/pages/circle/index", icon: "/static/tabbar/circle.png", activeIcon: "/static/tabbar/circle-active.png" },
-  { key: "video", text: "视频", path: "/pages/video/index", icon: "/static/tabbar/video.png", activeIcon: "/static/tabbar/video-active.png" },
-  { key: "mine", text: "我的", path: "/pages/mine/index", icon: "/static/tabbar/mine.png", activeIcon: "/static/tabbar/mine-active.png" },
-];
-
-function isActive(key: TabKey): boolean {
+function isActive(key: string): boolean {
   return props.active === key;
 }
 
@@ -62,7 +63,7 @@ function go(tab: (typeof sideTabs)[number]): void {
 
 function goPublish(): void {
   if (isActive("publish")) return;
-  uni.navigateTo({ url: "/pages/circle/publish" });
+  uni.navigateTo({ url: `/${PUBLISH_PAGE}` });
 }
 </script>
 
@@ -72,17 +73,15 @@ function goPublish(): void {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 900;
-  /* 与原生 H5 tabBar 一致：毛玻璃半透明，融入页面而非硬切割 */
-  background: rgba(255, 255, 255, 0.82);
-  -webkit-backdrop-filter: saturate(180%) blur(18px);
-  backdrop-filter: saturate(180%) blur(18px);
-  border-top: 1rpx solid rgba(0, 0, 0, 0.06);
+  z-index: 998;
+  /* 与原生 H5 tabBar 一致：实色白底 + 品牌色 1px 发丝线 */
+  background: #ffffff;
+  border-top: 1px solid #ff5e9c;
   padding-bottom: env(safe-area-inset-bottom);
 
   .tabbar-inner {
     display: flex;
-    height: 100rpx;
+    height: 100rpx; /* = 50px，与原生 tabbar 高度一致 */
   }
 
   .tab-entry {
@@ -106,8 +105,8 @@ function goPublish(): void {
   }
 
   .tab-icon {
-    width: 48rpx;
-    height: 48rpx;
+    width: 56rpx; /* = 28px，与原生 .uni-tabbar__icon 一致 */
+    height: 56rpx;
   }
 
   /* 中间发布键：抖音式渐变“+”，无方块底色 */
@@ -122,7 +121,7 @@ function goPublish(): void {
     position: absolute;
     top: 50%;
     left: 50%;
-    border-radius: 8rpx;
+    border-radius: 5px;
     /* 抖音主黑实心 */
     background: #161823;
     transform: translate(-50%, -50%);
@@ -139,12 +138,33 @@ function goPublish(): void {
   }
 
   .tab-text {
-    font-size: 20rpx;
+    font-size: 20rpx; /* = 10px，与原生 tabbar 文字一致 */
     line-height: 1;
-    color: #9aa3af;
+    color: #000000; /* 与 theme.json tabColor 一致 */
 
     &.active {
-      color: var(--color-primary);
+      color: #ff5e9c; /* 与 theme.json tabSelectedColor 一致 */
+    }
+  }
+}
+
+/* 暗色模式：与 App.vue 原生 tabbar 暗色变体一致 */
+@media (prefers-color-scheme: dark) {
+  .custom-tabbar {
+    background: rgba(26, 26, 26, 0.82);
+    border-top-color: #ff8eb9;
+
+    .plus-h,
+    .plus-v {
+      background: #ffffff;
+    }
+
+    .tab-text {
+      color: #999999;
+
+      &.active {
+        color: #ff5e9c;
+      }
     }
   }
 }

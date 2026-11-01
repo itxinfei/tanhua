@@ -52,6 +52,7 @@ import {
   removeFromBlacklist,
   type UserProfile,
 } from "@/api/mine";
+import { success } from "@/utils/ux";
 
 /** 默认分页大小 */
 const DEFAULT_PAGE_SIZE = 10;
@@ -119,7 +120,7 @@ async function handleRemove(userId: string): Promise<void> {
       try {
         await removeFromBlacklist(userId);
         userList.value = userList.value.filter((user) => user.id !== userId);
-        uni.showToast({ title: "已移除", icon: "success" });
+        success("已移除");
       } catch {
         // 错误提示由 request 封装统一处理
       }

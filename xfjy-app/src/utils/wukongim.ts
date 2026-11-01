@@ -16,7 +16,7 @@ import {
   MessageText,
   Channel,
 } from "wukongimjssdk";
-import { BASE_URL } from "./request";
+import { BASE_URL, get } from "./request";
 
 /** 会话摘要（聊天列表展示用） */
 export interface ChatSession {
@@ -44,6 +44,33 @@ export interface MatchEvent {
   from: string;
   nickname: string;
   avatar: string;
+}
+
+/** 服务端下发的 IM 接入凭证（GET /messages/im/credential） */
+export interface ImCredential {
+  /** 业务用户ID（即 IM uid） */
+  username: string;
+  /** 服务端派生的 IM token（盐值不出服务端） */
+  token: string;
+  /** IM 通道标识：wukongim / huanxin */
+  provider: string;
+  /** IM 长连接地址（ws://host:5200） */
+  wsUrl: string;
+}
+
+/**
+ * 获取当前登录用户的 IM 接入凭证（uid + token + wsUrl + provider）
+ * 凭证由服务端派生，前端不感知 token 生成规则，避免本地派生错误导致登录失败。
+ *
+ * @returns 凭证对象；网络/鉴权失败时返回 null（调用方静默降级）
+ */
+export async function getImCredential(): Promise<ImCredential | null> {
+  try {
+    const data = await get<ImCredential>("/messages/im/credential");
+    return data || null;
+  } catch {
+    return null;
+  }
 }
 
 type MessageHandler = (msg: ReceivedMessage) => void;

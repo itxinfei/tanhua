@@ -5,6 +5,9 @@ import com.xfjy.server.service.MovementsService;
 import com.xfjy.server.service.RiskControlService;
 import com.xfjy.server.utils.UserThreadLocal;
 import com.xfjy.server.vo.Movements;
+import com.xfjy.server.vo.MovementPublishParam;
+// test "marker" with quotes
+    // MediaType.APPLICATION_JSON_VALUE @RequestBody MovementPublishParam
 import com.xfjy.server.vo.PageResult;
 import com.xfjy.server.vo.TextDetectResult;
 import com.xfjy.server.vo.VisitorsVo;
@@ -13,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -34,27 +38,27 @@ public class MovementsController {
     @Autowired
     private RiskControlService riskControlService;
 
-    /**
-     * 发布动态
-     *
-     * <p>风控：单用户 60s 内最多发布 5 次，超限 429</p>
-     * <p>审核：文字走敏感词检测，HIGH 级拒发(400)，LOW 级替换星号，MID 级放行+进人工审核队列；
-     * 含图片的动态统一进人工审核队列（先发后审，管理端可驳回下架）</p>
-     *
-     * @param textContent
-     * @param location
-     * @param longitude
-     * @param latitude
-     * @param multipartFile
-     * @return
-     */
+    // 含图发布（multipart）：imageContent 已改为可选，纯文字亦可走此端点
     @PostMapping
     public ResponseEntity<Void> saveMovements(@RequestParam("textContent") String textContent,
                                               @RequestParam("location") String location,
                                               @RequestParam("longitude") String longitude,
                                               @RequestParam("latitude") String latitude,
                                               @RequestParam(value = "tags", required = false) String tags,
-                                              @RequestParam("imageContent") MultipartFile[] multipartFile) {
+                                              @RequestParam(value = "imageContent", required = false) MultipartFile[] multipartFile) {
+        return doSave(textContent, location, longitude, latitude, tags, multipartFile);
+    }
+
+    // 纯文字发布（application/json）：规避部分平台 uni.uploadFile 空文件数组不可靠的问题
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Void> saveMovementsJson(@RequestBody MovementPublishParam param) {
+        return doSave(param.getTextContent(), param.getLocation(), param.getLongitude(),
+                param.getLatitude(), param.getTags(), null);
+    }
+
+    // 发布动态统一处理（风控 + 审核 + 落库 + 审核队列）
+    private ResponseEntity<Void> doSave(String textContent, String location, String longitude,
+                                        String latitude, String tags, MultipartFile[] multipartFile) {
         try {
             Long userId = UserThreadLocal.get().getId();
 
