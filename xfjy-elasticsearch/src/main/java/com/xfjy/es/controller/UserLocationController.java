@@ -68,7 +68,7 @@ public class UserLocationController {
     @GetMapping("/queryUserFromLocation")
     public ResponseEntity<List<UserLocationES>> queryUserFromLocation(@RequestParam("longitude") Double longitude,
                                                                        @RequestParam("latitude") Double latitude,
-                                                                       @RequestParam(value = "range", defaultValue = "2000") Integer range) {
+                                                                       @RequestParam(value = "range", defaultValue = "2000") Double range) {
         try {
             int page = 1;
             int pageSize = 100;

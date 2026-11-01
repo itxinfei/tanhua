@@ -39,10 +39,9 @@ export const error = (...args: unknown[]): void => {
  * Vue errorHandler（组件渲染/生命周期/方法错误）+ window.onerror（未捕获脚本错误）
  * + unhandledrejection（未处理 Promise rejection），后两者仅 H5 端生效
  */
-export function installErrorHandler(
-  app: { config: { errorHandler: (err: unknown, instance: unknown) => void } }
-): void {
-  app.config.errorHandler = (err: unknown, _instance: unknown) => {
+export function installErrorHandler(app: { config: { errorHandler?: unknown } }): void {
+  type VueErrorHandler = (err: unknown, instance: unknown, info: string) => void;
+  (app.config as { errorHandler?: VueErrorHandler }).errorHandler = (err, _instance, _info) => {
     error("Vue error:", err);
   };
 
@@ -53,9 +52,9 @@ export function installErrorHandler(
       _source: string,
       _lineno: number,
       _colno: number,
-      error: Error | null
+      err: unknown
     ) => {
-      error("window.onerror:", message, error || "");
+      error("window.onerror:", message, err || "");
     };
     window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
       error("unhandledrejection:", event.reason);
