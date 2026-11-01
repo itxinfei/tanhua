@@ -17,13 +17,12 @@
 #   full_build: true = 强制全量重建（忽略增量判定）
 #
 # 并发策略：
-#   - 与 ci.yml 共用并发组 xfjy-pipeline，cancel-in-progress=false：
-#     同一 push 里两个 workflow 入组顺序只差几毫秒，ci 先占组、deploy 排队，
-#     全程串行 → 不会并发写同一 m2/npm 缓存卷
-#   - 不能开 cancel-in-progress=true：实测同 push 的 deploy 入组时会把
-#     正在排队/运行的 ci run 直接 cancel（0 步空跑），门禁形同虚设
-#   - 代价：连续 push 时旧 SHA 的部署也会按序跑完，但每个 run 只部署自己的
-#     SHA（checkout 已锁），队列清完线上=最新，dev 环境可接受
+#   - 独立并发组 xfjy-deploy，cancel-in-progress=false：
+#     实测共享组跨 workflow 会把先入组排队的对方 run 直接 cancel（0 步空跑），
+#     与 cancel-in-progress 取值无关，所以 ci/deploy 必须分组
+#   - 与 ci.yml 的 m2/npm 缓存卷互斥改用 deploy/ci/build-lock.sh 文件锁：
+#     本 job 开头按 m2→npm 固定顺序抢锁（ci 侧只单锁，无死锁），结尾 always 释放；
+#     ci 在跑编译时 deploy 会自动排队等锁，效果即"ci 先跑、deploy 随后"
 #
 # 镜像标签记录（供 ops.yml rollback 使用）：
 #   - 部署前把本次 tag 写入 ${CI_STATE_DIR}/pending-deploy-tag
@@ -67,7 +66,7 @@ on:
         default: 'false'
 
 concurrency:
-  group: xfjy-pipeline
+  group: xfjy-deploy
   cancel-in-progress: false
 
 env:
@@ -83,7 +82,7 @@ env:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 90
     container:
       image: xfjy/ci:latest
       volumes:
@@ -93,6 +92,8 @@ jobs:
     env:
       CI_SHA: ${{ github.sha }}
       CI_REF: ${{ github.ref_name }}
+      LOCK_OWNER: "deploy"
+      LOCK_TIMEOUT: "3600"
     steps:
       - name: Checkout（按触发 SHA 检出）
         run: |
@@ -110,6 +111,17 @@ jobs:
             echo "[WARN] 检出的不是触发 SHA（并发推送），以分支最新为准"
           fi
           git log -1 --oneline
+
+      # ── 抢占缓存卷互斥锁（顺序固定 m2→npm，与 ci 侧单锁不构成环等待） ──
+      - name: 获取构建锁 m2
+        run: |
+          cd /ci
+          LOCK_RESOURCE=m2 sh deploy/ci/build-lock.sh acquire
+
+      - name: 获取构建锁 npm
+        run: |
+          cd /ci
+          LOCK_RESOURCE=npm sh deploy/ci/build-lock.sh acquire
 
       # ── 增量构建范围判定 ──────────────────────────────────
       - name: 判定增量构建范围
@@ -370,6 +382,19 @@ jobs:
         run: |
           cd /ci
           rm -f deploy/.env
+
+      # ── 释放缓存卷互斥锁 ──────────────────────────────────
+      - name: 释放构建锁 npm
+        if: ${{ always() }}
+        run: |
+          cd /ci
+          LOCK_RESOURCE=npm sh deploy/ci/build-lock.sh release
+
+      - name: 释放构建锁 m2
+        if: ${{ always() }}
+        run: |
+          cd /ci
+          LOCK_RESOURCE=m2 sh deploy/ci/build-lock.sh release
 
       # ── 部署成功后清理构建垃圾 ────────────────────────────
       # 悬空镜像/旧 tag 镜像/构建缓存/退出容器；失败时保留现场便于排查

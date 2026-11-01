@@ -7,11 +7,11 @@
 #   3. 前端 app：vue-tsc 类型检查 + build:h5 生产构建 + stylelint（非阻断）
 #
 # 与 deploy.yml 的关系：
-#   - 共用并发组 xfjy-pipeline，cancel-in-progress=false：
-#     ci 与 deploy 同 push 入组只差几毫秒，ci 先占组、deploy 排队，
-#     全程串行 → 不会并发写同一 m2/npm 缓存卷
-#   - 不能开 cancel-in-progress=true：实测同 push 的 deploy 入组时会把
-#     正在排队/运行的 ci run 直接 cancel（0 步空跑），门禁形同虚设
+#   - 各自独立并发组（本实例实测：共享组时后入组的 run 会把同组排队的
+#     另一 workflow run 直接 cancel，0 步空跑，与 cancel-in-progress 取值无关）
+#   - ci 组 cancel-in-progress=false：门禁必须完整跑完
+#   - 跨 workflow 的 m2/npm 缓存卷互斥改用 deploy/ci/build-lock.sh 文件锁：
+#     每个触碰共享缓存的 job 在首步 acquire、末步 release（always 兜底）
 #   - Checkout 按触发 SHA 锁定：验证的一定是触发这次 run 的代码
 # ============================================================
 name: ci
@@ -21,7 +21,7 @@ on:
   pull_request:
 
 concurrency:
-  group: xfjy-pipeline
+  group: ci-gate
   cancel-in-progress: false
 
 env:
@@ -31,14 +31,19 @@ jobs:
   # ── 后端编译验证 ──────────────────────────────────────────
   backend:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60
     container:
       image: xfjy/ci:latest
       volumes:
         - /home/itxinfei/.cache/m2:/root/.m2/repository
+        - /home/itxinfei/.cache/ci-state:/opt/ci-state
     env:
       CI_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       CI_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
+      CI_STATE_DIR: /opt/ci-state
+      LOCK_OWNER: "ci-backend"
+      LOCK_RESOURCE: m2
+      LOCK_TIMEOUT: "3600"
     steps:
       - name: Checkout（按触发 SHA 检出）
         run: |
@@ -57,23 +62,39 @@ jobs:
           fi
           git log -1 --oneline
 
+      - name: 获取构建锁（与 deploy 互斥共享 m2 卷）
+        run: |
+          cd /ci
+          sh deploy/ci/build-lock.sh acquire
+
       - name: 编译所有模块（test-compile，跳过测试执行）
         run: |
           cd /ci
           MAVEN_OPTS="-Xmx1g" mvn ${MVN_ARGS} test-compile -DskipTests -T 2
           echo "[OK] 全部 Maven 模块编译通过"
 
+      - name: 释放构建锁
+        if: ${{ always() }}
+        run: |
+          cd /ci
+          sh deploy/ci/build-lock.sh release
+
   # ── 前端 admin 类型检查 + 构建 ────────────────────────────
   frontend-admin:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60
     container:
       image: xfjy/ci:latest
       volumes:
         - /home/itxinfei/.cache/npm:/root/.npm
+        - /home/itxinfei/.cache/ci-state:/opt/ci-state
     env:
       CI_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       CI_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
+      CI_STATE_DIR: /opt/ci-state
+      LOCK_OWNER: "ci-admin"
+      LOCK_RESOURCE: npm
+      LOCK_TIMEOUT: "3600"
     steps:
       - name: Checkout（按触发 SHA 检出）
         run: |
@@ -88,6 +109,11 @@ jobs:
           fi
           git checkout -q --detach FETCH_HEAD
           git log -1 --oneline
+
+      - name: 获取构建锁（与 deploy 互斥共享 npm 卷）
+        run: |
+          cd /ci
+          sh deploy/ci/build-lock.sh acquire
 
       - name: 安装依赖并类型检查
         run: |
@@ -103,17 +129,28 @@ jobs:
           [ -f dist/index.html ] || { echo "ERROR: dist/index.html 缺失"; exit 1; }
           echo "[OK] xfjy-admin 构建通过"
 
+      - name: 释放构建锁
+        if: ${{ always() }}
+        run: |
+          cd /ci
+          sh deploy/ci/build-lock.sh release
+
   # ── 前端 app 类型检查 + 构建 ──────────────────────────────
   frontend-app:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60
     container:
       image: xfjy/ci:latest
       volumes:
         - /home/itxinfei/.cache/npm:/root/.npm
+        - /home/itxinfei/.cache/ci-state:/opt/ci-state
     env:
       CI_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       CI_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
+      CI_STATE_DIR: /opt/ci-state
+      LOCK_OWNER: "ci-app"
+      LOCK_RESOURCE: npm
+      LOCK_TIMEOUT: "3600"
     steps:
       - name: Checkout（按触发 SHA 检出）
         run: |
@@ -128,6 +165,11 @@ jobs:
           fi
           git checkout -q --detach FETCH_HEAD
           git log -1 --oneline
+
+      - name: 获取构建锁（与 deploy 互斥共享 npm 卷）
+        run: |
+          cd /ci
+          sh deploy/ci/build-lock.sh acquire
 
       - name: 安装依赖并类型检查
         run: |
@@ -148,3 +190,9 @@ jobs:
         run: |
           cd /ci/xfjy-app
           npm run lint:style
+
+      - name: 释放构建锁
+        if: ${{ always() }}
+        run: |
+          cd /ci
+          sh deploy/ci/build-lock.sh release
