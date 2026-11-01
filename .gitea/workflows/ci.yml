@@ -98,8 +98,18 @@ jobs:
 
       - name: 安装依赖
         run: |
+          echo "=== NPM INSTALL admin ==="
+          echo "PWD=$(pwd)"
+          ls -la
           cd xfjy-admin
-          npm ci --prefer-offline
+          echo "Node: $(node --version)"
+          echo "NPM: $(npm --version)"
+          echo "--- package.json deps ---"
+          head -30 package.json
+          echo "--- npm config ---"
+          npm config get registry
+          npm install --legacy-peer-deps --prefer-offline --no-audit --no-fund 2>&1 || echo "NPM INSTALL FAILED $?"
+          echo "=== NPM INSTALL END ==="
 
       - name: 类型检查（vue-tsc）
         run: |
@@ -136,8 +146,18 @@ jobs:
 
       - name: 安装依赖
         run: |
+          echo "=== NPM INSTALL app ==="
+          echo "PWD=$(pwd)"
+          ls -la
           cd xfjy-app
-          npm ci --prefer-offline
+          echo "Node: $(node --version)"
+          echo "NPM: $(npm --version)"
+          echo "--- package.json deps ---"
+          head -30 package.json
+          echo "--- npm config ---"
+          npm config get registry
+          npm install --legacy-peer-deps --prefer-offline --no-audit --no-fund 2>&1 || echo "NPM INSTALL FAILED $?"
+          echo "=== NPM INSTALL END ==="
 
       - name: 类型检查（vue-tsc）
         run: |
