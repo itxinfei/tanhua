@@ -32,15 +32,15 @@ jobs:
     steps:
       - name: Checkout
         run: |
+          set -e
           echo "STEP_START"
-          whoami
-          pwd
-          ls -la /workspace 2>&1 || echo "no_workspace"
+          rm -rf /workspace
           mkdir -p /workspace
           cd /workspace
           echo "CLONE_START"
-          git clone --depth 1 http://gitea:3000/admin/xfjy.git . 2>&1
+          git clone --depth 1 http://gitea:3000/admin/xfjy.git .
           echo "CLONE_END"
+          git log -1 --oneline
           ls -la 2>&1 | head -5
 
       - name: 编译所有模块（test-compile，跳过测试执行）
@@ -59,16 +59,15 @@ jobs:
     steps:
       - name: Checkout
         run: |
+          set -e
           echo "STEP_START"
-          whoami
-          pwd
-          ls -la /workspace 2>&1 || echo "no_workspace"
+          rm -rf /workspace
           mkdir -p /workspace
           cd /workspace
           echo "CLONE_START"
-          git clone --depth 1 http://gitea:3000/admin/xfjy.git . 2>&1
+          git clone --depth 1 http://gitea:3000/admin/xfjy.git .
           echo "CLONE_END"
-          ls -la 2>&1 | head -5
+          git log -1 --oneline
 
       - name: 安装依赖并类型检查
         run: |
@@ -87,16 +86,15 @@ jobs:
     steps:
       - name: Checkout
         run: |
+          set -e
           echo "STEP_START"
-          whoami
-          pwd
-          ls -la /workspace 2>&1 || echo "no_workspace"
+          rm -rf /workspace
           mkdir -p /workspace
           cd /workspace
           echo "CLONE_START"
-          git clone --depth 1 http://gitea:3000/admin/xfjy.git . 2>&1
+          git clone --depth 1 http://gitea:3000/admin/xfjy.git .
           echo "CLONE_END"
-          ls -la 2>&1 | head -5
+          git log -1 --oneline
 
       - name: 安装依赖并类型检查
         run: |

@@ -53,6 +53,7 @@ jobs:
       - name: Checkout
         run: |
           set -e
+          rm -rf /workspace
           mkdir -p /workspace
           cd /workspace
           git clone --depth 1 http://gitea:3000/admin/xfjy.git .
@@ -61,6 +62,7 @@ jobs:
       # ── 预检：确保 deploy/.env 存在 ──────────────────────
       - name: 预检环境
         run: |
+          cd /workspace
           if [ ! -f deploy/.env ]; then
             echo "[WARN] deploy/.env 不存在，部分操作可能需要密码"
             echo "       stop / restart / status / logs 不需要密码"
@@ -72,6 +74,7 @@ jobs:
       - name: 停止服务
         if: ${{ env.ACTION == 'stop' || env.ACTION == 'down' }}
         run: |
+          cd /workspace
           TARGETS="${TARGET_SERVICES}"
           [ -z "${TARGETS}" ] && TARGETS="backend"
           echo "[ops] 停止: ${TARGETS}"
@@ -81,6 +84,7 @@ jobs:
       - name: 重启服务
         if: ${{ env.ACTION == 'restart' }}
         run: |
+          cd /workspace
           TARGETS="${TARGET_SERVICES}"
           [ -z "${TARGETS}" ] && TARGETS="backend"
           echo "[ops] 重启: ${TARGETS}"
@@ -90,12 +94,14 @@ jobs:
       - name: 查看状态
         if: ${{ env.ACTION == 'status' || env.ACTION == 'ps' }}
         run: |
+          cd /workspace
           bash deploy/manage.sh status
 
       # ── logs ────────────────────────────────────────────
       - name: 查看日志
         if: ${{ env.ACTION == 'logs' }}
         run: |
+          cd /workspace
           TARGETS="${TARGET_SERVICES}"
           if [ -z "${TARGETS}" ]; then
             echo "[ERROR] logs 需要指定服务名，例如：services=xfjy-server"
@@ -110,6 +116,7 @@ jobs:
         if: ${{ env.ACTION == 'rollback' }}
         run: |
           set -euo pipefail
+          cd /workspace
 
           # 确定回滚目标 tag
           ROLLBACK_TAG="${ROLLBACK_TARGET}"

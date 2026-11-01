@@ -76,6 +76,7 @@ jobs:
       - name: Checkout
         run: |
           set -e
+          rm -rf /workspace
           mkdir -p /workspace
           cd /workspace
           git clone --depth 1 http://gitea:3000/admin/xfjy.git .
@@ -86,6 +87,7 @@ jobs:
         if: ${{ env.SKIP_CI != 'true' }}
         run: |
           set -e
+          cd /workspace
           chmod +x deploy/ci/*.sh
           bash deploy/ci/incremental-build.sh
           echo "---- 判定结果 ----"
@@ -96,6 +98,7 @@ jobs:
         if: ${{ env.SKIP_CI != 'true' }}
         run: |
           set -e
+          cd /workspace
           # shellcheck disable=SC1091
           . "${CI_STATE_DIR}/affected.env"
           BUILD_LIST="${BUILD_MODULES}"
@@ -126,7 +129,9 @@ jobs:
       # ── 缓存构建产物与指纹基线 ────────────────────────────
       - name: 缓存构建产物与指纹基线
         if: ${{ env.SKIP_CI != 'true' && success() }}
-        run: bash deploy/ci/cache-artifacts.sh save
+        run: |
+          cd /workspace
+          bash deploy/ci/cache-artifacts.sh save
 
       # ── 构建前端（CI 容器内，复用 npm 缓存卷；admin/h5 并行） ──
       # 提速原理：CI job 容器挂载了 /root/.npm 缓存卷，npm ci --prefer-offline
@@ -137,6 +142,7 @@ jobs:
         if: ${{ env.SKIP_CI != 'true' && success() }}
         run: |
           set -e
+          cd /workspace
           # shellcheck disable=SC1091
           . "${CI_STATE_DIR}/affected.env"
           if [ -z "${FRONTEND_AFFECTED}" ]; then
@@ -200,6 +206,7 @@ jobs:
         if: ${{ env.SKIP_CI != 'true' && success() }}
         run: |
           set -e
+          cd /workspace
           # shellcheck disable=SC1091
           . "${CI_STATE_DIR}/affected.env"
           bash deploy/ci/stage-artifacts.sh ${BACKEND_AFFECTED}
@@ -215,6 +222,7 @@ jobs:
         id: tag
         run: |
           set -e
+          cd /workspace
           if git describe --tags --exact-match >/dev/null 2>&1; then
             TAG="$(git describe --tags --exact-match)"
           else
@@ -235,6 +243,7 @@ jobs:
           MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
         run: |
           set -e
+          cd /workspace
           if [ -z "${MYSQL_PASSWORD}" ]; then
             echo "[ERROR] 未配置 Secrets.MYSQL_PASSWORD"
             exit 1
@@ -256,6 +265,7 @@ jobs:
         if: ${{ env.ACTION != 'deploy' || success() }}
         run: |
           set -e
+          cd /workspace
           chmod +x deploy/manage.sh
           TARGETS="${TARGET_SERVICES}"
           if [ -z "${TARGETS}" ] && [ "${SKIP_CI}" != "true" ]; then
@@ -287,12 +297,16 @@ jobs:
       # literal block 内顶格写，会终止 block scalar，导致 Gitea 拒绝加载 workflow。
       - name: 健康检查
         if: ${{ env.ACTION == 'deploy' && success() }}
-        run: bash deploy/ci/health-check.sh
+        run: |
+          cd /workspace
+          bash deploy/ci/health-check.sh
 
       # ── 输出部署后状态 ────────────────────────────────────
       - name: 输出部署后状态
         if: ${{ always() }}
-        run: bash deploy/manage.sh status
+        run: |
+          cd /workspace
+          bash deploy/manage.sh status
 
       # ── 清理临时密码文件 ──────────────────────────────────
       - name: 清理临时文件
