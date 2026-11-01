@@ -5,15 +5,27 @@
 #   1) 自动：push 到 master → 自动增量编译打包 → 只重建受影响容器 → 健康检查
 #   2) 手动：Gitea 仓库 Actions 页 → Run workflow，可指定动作与服务范围
 #
-# 手动输入项：
+# 手动输入项（on.workflow_dispatch.inputs，位置错误会导致参数失效）：
 #   action    : deploy(默认) | build | start | stop | restart | status | logs
 #   services  : 空格分隔的服务名；留空 = 按变更范围自动推断
 #               后端微服务：xfjy-gateway xfjy-sso xfjy-user-service xfjy-circle-service
 #                         xfjy-video-service xfjy-match-service xfjy-message-service
 #                         xfjy-server xfjy-recommend xfjy-elasticsearch xfjy-pay-service
 #               前端：admin(xfjy-admin) / app(xfjy-h5)
-#   skip_ci   : true = 跳过编译打包（仅对已有产物做启停等操作）
+#   skip_ci   : true = 跳过编译打包（仅对已有产物做启停等操作；此时 services 必填，
+#               留空会被拒绝，避免误触发全量启停）
 #   full_build: true = 强制全量重建（忽略增量判定）
+#
+# 并发策略：
+#   - 与 ci.yml 共用并发组 xfjy-pipeline：同一次 push 里 ci 先跑、deploy 排队，
+#     避免两个工作流并发写同一 m2/npm 缓存卷
+#   - cancel-in-progress=true：连续 push 时只有最新一次会执行到底，
+#     防止排队的旧 run 把线上退回旧版本
+#
+# 镜像标签记录（供 ops.yml rollback 使用）：
+#   - 部署前把本次 tag 写入 ${CI_STATE_DIR}/pending-deploy-tag
+#   - 部署成功后才轮换：current ← pending，previous ← 旧 current
+#   - rollback 目标是 previous-deploy-tag（上一个成功上线的版本）
 #
 # 增量构建原理：
 #   1. 对每个 Maven 模块 / 前端目录计算源码指纹（文件内容 SHA256 汇总）
@@ -33,24 +45,27 @@ on:
   push:
     branches: [master]
   workflow_dispatch:
+    inputs:
+      action:
+        description: '动作：deploy(默认,增量构建并部署) | build(仅构建) | start | stop | restart | status | logs'
+        required: true
+        default: 'deploy'
+      services:
+        description: '服务名，空格分隔；留空表示按变更范围自动推断'
+        required: false
+        default: ''
+      skip_ci:
+        description: 'true = 跳过编译打包，仅对已有容器做启停操作（此时 services 必填）'
+        required: false
+        default: 'false'
+      full_build:
+        description: 'true = 强制全量重建，忽略增量判定'
+        required: false
+        default: 'false'
 
-inputs:
-  action:
-    description: '动作：deploy(默认,增量构建并部署) | build(仅构建) | start | stop | restart | status | logs'
-    required: true
-    default: 'deploy'
-  services:
-    description: '服务名，空格分隔；留空表示按变更范围自动推断'
-    required: false
-    default: ''
-  skip_ci:
-    description: 'true = 跳过编译打包，仅对已有容器做启停操作'
-    required: false
-    default: 'false'
-  full_build:
-    description: 'true = 强制全量重建，忽略增量判定'
-    required: false
-    default: 'false'
+concurrency:
+  group: xfjy-pipeline
+  cancel-in-progress: true
 
 env:
   ACTION: ${{ github.event.inputs.action || 'deploy' }}
@@ -65,20 +80,32 @@ env:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     container:
       image: xfjy/ci:latest
       volumes:
         - /home/itxinfei/.cache/m2:/root/.m2/repository
         - /home/itxinfei/.cache/npm:/root/.npm
         - /home/itxinfei/.cache/ci-state:/opt/ci-state
-
+    env:
+      CI_SHA: ${{ github.sha }}
+      CI_REF: ${{ github.ref_name }}
     steps:
-      - name: Checkout
+      - name: Checkout（按触发 SHA 检出）
         run: |
           set -e
           mkdir -p /ci
           cd /ci
-          git clone --depth 1 http://gitea:3000/admin/xfjy.git .
+          git init -q .
+          git remote add origin http://gitea:3000/admin/xfjy.git
+          if ! git fetch -q --depth 1 origin "${CI_SHA}"; then
+            echo "[checkout] 按 SHA fetch 失败，回退按分支 fetch: ${CI_REF}"
+            git fetch -q --depth 1 origin "refs/heads/${CI_REF}"
+          fi
+          git checkout -q --detach FETCH_HEAD
+          if [ "$(git rev-parse HEAD)" != "${CI_SHA}" ]; then
+            echo "[WARN] 检出的不是触发 SHA（并发推送），以分支最新为准"
+          fi
           git log -1 --oneline
 
       # ── 增量构建范围判定 ──────────────────────────────────
@@ -215,21 +242,16 @@ jobs:
           echo "---- 暂存结果 ----"
           du -sh deploy/build/* 2>/dev/null || true
 
-      # ── 解析并记录镜像标签 ──────────────────────────────
-      - name: 解析并记录镜像标签
+      # ── 解析镜像标签（写入 pending，部署成功后才轮换为 current） ──
+      - name: 解析镜像标签
         if: ${{ env.ACTION == 'deploy' }}
-        id: tag
         run: |
           set -e
           cd /ci
-          if git describe --tags --exact-match >/dev/null 2>&1; then
-            TAG="$(git describe --tags --exact-match)"
-          else
-            TAG="$(git rev-parse --short HEAD)"
-          fi
-          echo "IMAGE_TAG=${TAG}" >> "${GITHUB_OUTPUT:-/dev/stdout}"
-          echo "${TAG}" > "${CI_STATE_DIR}/last-deploy-tag"
-          echo "[tag] 镜像标签: ${TAG}（已记录到 last-deploy-tag，供 rollback 使用）"
+          # --depth 1 检出无 tag 对象，git describe 不可用，统一用 commit sha
+          TAG="$(git rev-parse --short HEAD)"
+          echo "${TAG}" > "${CI_STATE_DIR}/pending-deploy-tag"
+          echo "[tag] 本次部署镜像标签: ${TAG}（部署成功后轮换为 current）"
 
       # ── 准备部署参数（注入中间件密码 + 镜像标签） ──────────
       - name: 准备部署参数
@@ -248,6 +270,11 @@ jobs:
             exit 1
           fi
           [ -z "${MINIO_ACCESS_KEY}" ] && echo "[WARN] 未配置 Secrets.MINIO_ACCESS_KEY"
+          IMAGE_TAG="$(cat "${CI_STATE_DIR}/pending-deploy-tag")"
+          if [ -z "${IMAGE_TAG}" ]; then
+            echo "[ERROR] pending-deploy-tag 为空，无法生成 deploy/.env"
+            exit 1
+          fi
           umask 077
           {
             printf 'MYSQL_USERNAME=%s\n' "${MYSQL_USERNAME}"
@@ -255,9 +282,9 @@ jobs:
             printf 'NEO4J_PASSWORD=%s\n' "${NEO4J_PASSWORD}"
             printf 'MINIO_ACCESS_KEY=%s\n' "${MINIO_ACCESS_KEY}"
             printf 'MINIO_SECRET_KEY=%s\n' "${MINIO_SECRET_KEY}"
-            printf 'IMAGE_TAG=%s\n' "${{ steps.tag.outputs.IMAGE_TAG || '' }}"
+            printf 'IMAGE_TAG=%s\n' "${IMAGE_TAG}"
           } > deploy/.env
-          echo "[env] 已生成 deploy/.env"
+          echo "[env] 已生成 deploy/.env（IMAGE_TAG=${IMAGE_TAG}）"
 
       # ── 执行部署动作 ──────────────────────────────────────
       - name: 执行部署
@@ -271,6 +298,12 @@ jobs:
             # shellcheck disable=SC1091
             . "${CI_STATE_DIR}/affected.env"
             TARGETS="${BACKEND_AFFECTED} ${FRONTEND_AFFECTED}"
+          fi
+          # skip_ci=true 且未指定服务 → 空 TARGETS 会被 manage.sh 展开为全量，
+          # 属于误操作高危路径，直接拒绝
+          if [ "${SKIP_CI}" = "true" ] && [ -z "$(echo "${TARGETS}" | tr -d ' ')" ]; then
+            echo "[ERROR] skip_ci=true 时必须显式填写 services，避免误触发全量启停"
+            exit 1
           fi
           # 增量部署且无任何变更 → 跳过，避免 manage.sh 把空目标展开为全量重建
           # 注意：Gitea Actions 用 sh（非 bash）执行 run 块，不能用 ${var//pat/rep} 等 bash 语法
@@ -291,6 +324,27 @@ jobs:
             *) echo "[ERROR] 未知 action: ${ACTION}"; exit 1 ;;
           esac
 
+      # ── 部署成功后轮换 tag 记录（供 ops rollback 用） ──────
+      # 只在部署成功后落笔：失败/取消的 run 不会污染 current/previous
+      - name: 轮换部署 tag 记录
+        if: ${{ env.ACTION == 'deploy' && success() }}
+        run: |
+          set -e
+          PENDING="${CI_STATE_DIR}/pending-deploy-tag"
+          CURRENT="${CI_STATE_DIR}/current-deploy-tag"
+          PREVIOUS="${CI_STATE_DIR}/previous-deploy-tag"
+          if [ ! -f "${PENDING}" ]; then
+            echo "[WARN] 无 pending-deploy-tag（无变更跳过部署？），不轮换记录"
+            exit 0
+          fi
+          if [ -f "${CURRENT}" ]; then
+            cp "${CURRENT}" "${PREVIOUS}"
+          fi
+          cp "${PENDING}" "${CURRENT}"
+          rm -f "${PENDING}"
+          echo "[tag] current=$(cat "${CURRENT}")"
+          echo "[tag] previous=$(cat "${PREVIOUS}" 2>/dev/null || echo '（无，首次部署）')"
+
       # ── 部署后健康检查 ────────────────────────────────────
       # 逻辑抽到 deploy/ci/health-check.sh：原内联 python3 -c 多行脚本在 YAML
       # literal block 内顶格写，会终止 block scalar，导致 Gitea 拒绝加载 workflow。
@@ -310,7 +364,9 @@ jobs:
       # ── 清理临时密码文件 ──────────────────────────────────
       - name: 清理临时文件
         if: ${{ always() }}
-        run: rm -f deploy/.env
+        run: |
+          cd /ci
+          rm -f deploy/.env
 
       # ── 部署成功后清理构建垃圾 ────────────────────────────
       # 悬空镜像/旧 tag 镜像/构建缓存/退出容器；失败时保留现场便于排查

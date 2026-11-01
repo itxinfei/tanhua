@@ -3,20 +3,24 @@
 #
 # 职责：push / MR 触发，只做代码质量检查，不部署。
 #   1. 后端：mvn test-compile 编译验证（所有模块，确保不破坏编译）
-#   2. 前端 admin：vue-tsc 类型检查
-#   3. 前端 app：vue-tsc 类型检查
+#   2. 前端 admin：vue-tsc 类型检查 + 生产构建（构建期错误不再漏到 deploy）
+#   3. 前端 app：vue-tsc 类型检查 + build:h5 生产构建 + stylelint（非阻断）
 #
 # 与 deploy.yml 的关系：
-#   - ci.yml 是快速门禁（~3min），跑不过说明代码有问题
-#   - deploy.yml 是部署流水线（~10min+），push to master 后自动触发
-#   - 两者独立运行，deploy 不等待 ci 结果（Gitea 无 workflow 依赖机制）
-#   - 实际使用中：ci 红了就别 push master，先修
+#   - 两者共用并发组 xfjy-pipeline：同一次 push 里 ci 先跑、deploy 排队，
+#     不再并发写同一 m2/npm 缓存卷（历史"缺依赖/编译失败"的根因之一）
+#   - cancel-in-progress=true：新 push 到来时旧的排队/运行中任务自动取消
+#   - Checkout 按触发 SHA 锁定：验证的一定是触发这次 run 的代码
 # ============================================================
 name: ci
 
 on:
   push:
   pull_request:
+
+concurrency:
+  group: xfjy-pipeline
+  cancel-in-progress: true
 
 env:
   MVN_ARGS: "-B -ntp -s deploy/ci/settings.xml -Dmaven.repo.local=/root/.m2/repository"
@@ -25,45 +29,62 @@ jobs:
   # ── 后端编译验证 ──────────────────────────────────────────
   backend:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     container:
       image: xfjy/ci:latest
       volumes:
         - /home/itxinfei/.cache/m2:/root/.m2/repository
+    env:
+      CI_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      CI_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
     steps:
-      - name: Checkout
+      - name: Checkout（按触发 SHA 检出）
         run: |
           set -e
-          echo "STEP_START"
           mkdir -p /ci
           cd /ci
-          echo "CLONE_START"
-          git clone --depth 1 http://gitea:3000/admin/xfjy.git .
-          echo "CLONE_END"
+          git init -q .
+          git remote add origin http://gitea:3000/admin/xfjy.git
+          if ! git fetch -q --depth 1 origin "${CI_SHA}"; then
+            echo "[checkout] 按 SHA fetch 失败，回退按分支 fetch: ${CI_REF}"
+            git fetch -q --depth 1 origin "refs/heads/${CI_REF}"
+          fi
+          git checkout -q --detach FETCH_HEAD
+          if [ "$(git rev-parse HEAD)" != "${CI_SHA}" ]; then
+            echo "[WARN] 检出的不是触发 SHA（并发推送或 PR 已更新），以分支最新为准"
+          fi
           git log -1 --oneline
 
       - name: 编译所有模块（test-compile，跳过测试执行）
         run: |
           cd /ci
           MAVEN_OPTS="-Xmx1g" mvn ${MVN_ARGS} test-compile -DskipTests -T 2
-          echo "[OK] 全部 12 个 Maven 模块编译通过"
+          echo "[OK] 全部 Maven 模块编译通过"
 
-  # ── 前端 admin 类型检查 ───────────────────────────────────
+  # ── 前端 admin 类型检查 + 构建 ────────────────────────────
   frontend-admin:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     container:
       image: xfjy/ci:latest
       volumes:
         - /home/itxinfei/.cache/npm:/root/.npm
+    env:
+      CI_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      CI_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
     steps:
-      - name: Checkout
+      - name: Checkout（按触发 SHA 检出）
         run: |
           set -e
-          echo "STEP_START"
           mkdir -p /ci
           cd /ci
-          echo "CLONE_START"
-          git clone --depth 1 http://gitea:3000/admin/xfjy.git .
-          echo "CLONE_END"
+          git init -q .
+          git remote add origin http://gitea:3000/admin/xfjy.git
+          if ! git fetch -q --depth 1 origin "${CI_SHA}"; then
+            echo "[checkout] 按 SHA fetch 失败，回退按分支 fetch: ${CI_REF}"
+            git fetch -q --depth 1 origin "refs/heads/${CI_REF}"
+          fi
+          git checkout -q --detach FETCH_HEAD
           git log -1 --oneline
 
       - name: 安装依赖并类型检查
@@ -73,23 +94,37 @@ jobs:
           npx vue-tsc --noEmit
           echo "[OK] xfjy-admin 类型检查通过"
 
-  # ── 前端 app 类型检查 ─────────────────────────────────────
+      - name: 生产构建
+        run: |
+          cd /ci/xfjy-admin
+          npm run build
+          [ -f dist/index.html ] || { echo "ERROR: dist/index.html 缺失"; exit 1; }
+          echo "[OK] xfjy-admin 构建通过"
+
+  # ── 前端 app 类型检查 + 构建 ──────────────────────────────
   frontend-app:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     container:
       image: xfjy/ci:latest
       volumes:
         - /home/itxinfei/.cache/npm:/root/.npm
+    env:
+      CI_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      CI_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
     steps:
-      - name: Checkout
+      - name: Checkout（按触发 SHA 检出）
         run: |
           set -e
-          echo "STEP_START"
           mkdir -p /ci
           cd /ci
-          echo "CLONE_START"
-          git clone --depth 1 http://gitea:3000/admin/xfjy.git .
-          echo "CLONE_END"
+          git init -q .
+          git remote add origin http://gitea:3000/admin/xfjy.git
+          if ! git fetch -q --depth 1 origin "${CI_SHA}"; then
+            echo "[checkout] 按 SHA fetch 失败，回退按分支 fetch: ${CI_REF}"
+            git fetch -q --depth 1 origin "refs/heads/${CI_REF}"
+          fi
+          git checkout -q --detach FETCH_HEAD
           git log -1 --oneline
 
       - name: 安装依赖并类型检查
@@ -98,3 +133,16 @@ jobs:
           npm install --legacy-peer-deps --prefer-offline --no-audit --no-fund --ignore-scripts
           npm run type-check
           echo "[OK] xfjy-app 类型检查通过"
+
+      - name: 生产构建（H5）
+        run: |
+          cd /ci/xfjy-app
+          npm run build:h5
+          [ -f dist/build/h5/index.html ] || { echo "ERROR: dist/build/h5/index.html 缺失"; exit 1; }
+          echo "[OK] xfjy-app H5 构建通过"
+
+      - name: 样式检查（非阻断，存量违规清理前不挡门禁）
+        continue-on-error: true
+        run: |
+          cd /ci/xfjy-app
+          npm run lint:style
