@@ -254,7 +254,8 @@ jobs:
             TARGETS="${BACKEND_AFFECTED} ${FRONTEND_AFFECTED}"
           fi
           # 增量部署且无任何变更 → 跳过，避免 manage.sh 把空目标展开为全量重建
-          if [ "${SKIP_CI}" != "true" ] && [ "${ACTION}" = "deploy" ] && [ -z "${TARGETS// /}" ]; then
+          # 注意：Gitea Actions 用 sh（非 bash）执行 run 块，不能用 ${var//pat/rep} 等 bash 语法
+          if [ "${SKIP_CI}" != "true" ] && [ "${ACTION}" = "deploy" ] && [ -z "$(echo "${TARGETS}" | tr -d ' ')" ]; then
             echo "[CI] 无变更，跳过部署"
             exit 0
           fi
