@@ -99,9 +99,10 @@ public class UsersService {
         userInfoVo.setBirthday(userInfo.getBirthday());
         userInfoVo.setEducation(userInfo.getEdu());
         userInfoVo.setCity(userInfo.getCity());
-        userInfoVo.setGender(userInfo.getSex().name().toLowerCase());
+        SexEnum sex = userInfo.getSex();
+        userInfoVo.setGender(sex != null ? sex.name().toLowerCase() : "");
         userInfoVo.setId(userInfo.getUserId());
-        userInfoVo.setIncome(userInfo.getIncome() + "K");
+        userInfoVo.setIncome(userInfo.getIncome() != null ? userInfo.getIncome() + "K" : "");
         userInfoVo.setMarriage(StringUtils.equals(userInfo.getMarriage(), "已婚") ? 1 : 0);
         userInfoVo.setNickname(userInfo.getNickName());
         userInfoVo.setProfession(userInfo.getIndustry());
@@ -210,7 +211,8 @@ public class UsersService {
             UserLikeListVo userLikeListVo = new UserLikeListVo();
 
             userLikeListVo.setNickname(userInfo.getNickName());
-            userLikeListVo.setGender(userInfo.getSex().name().toLowerCase());
+            SexEnum likeSex = userInfo.getSex();
+            userLikeListVo.setGender(likeSex != null ? likeSex.name().toLowerCase() : "");
             userLikeListVo.setId(userInfo.getUserId());
             userLikeListVo.setEducation(userInfo.getEdu());
             userLikeListVo.setCity(userInfo.getCity());
@@ -301,7 +303,8 @@ public class UsersService {
 
             blackListVo.setNickname(userInfo.getNickName());
             blackListVo.setId(userInfo.getUserId());
-            blackListVo.setGender(userInfo.getSex().name().toLowerCase());
+            SexEnum blackSex = userInfo.getSex();
+            blackListVo.setGender(blackSex != null ? blackSex.name().toLowerCase() : "");
             blackListVo.setAvatar(userInfo.getLogo());
             blackListVo.setAge(userInfo.getAge());
 

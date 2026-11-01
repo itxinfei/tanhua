@@ -104,7 +104,7 @@
     <!-- 非 tabBar 页原生底栏不显示，用自定义底栏补齐；键盘弹起时隐藏避免遮挡。
          mp-weixin 端发布页是原生 tab 页（底栏自带发布入口），不再叠加自定义底栏 -->
     <!-- #ifdef H5 -->
-    <custom-tabbar v-if="!keyboardOpen" active="publish" />
+    <app-tabbar v-if="!keyboardOpen" :active="-1" />
     <!-- #endif -->
   </view>
 </template>
@@ -113,7 +113,7 @@
 import { ref, computed, onMounted } from "vue";
 import { onUnload } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
-import CustomTabbar from "@/components/custom-tabbar.vue";
+import AppTabbar from "@/components/AppTabbar.vue";
 import { publishMovement } from "@/api/circle";
 import { publishVideo } from "@/api/video";
 import { CIRCLE_NEED_REFRESH_KEY } from "@/store/circle";

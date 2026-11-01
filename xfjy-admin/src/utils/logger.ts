@@ -10,6 +10,8 @@
  *   - 异常捕获（Vue errorHandler + window.onerror + unhandledrejection）
  */
 
+import type { App as VueApp } from "vue";
+
 const ENABLE_LOG: boolean = import.meta.env.VITE_ENABLE_LOG !== "false";
 
 const TAG = "[xfjy-admin]";
@@ -38,10 +40,8 @@ export const error = (...args: unknown[]): void => {
  * 安装全局异常捕获
  * Vue errorHandler + window.onerror + unhandledrejection
  */
-export function installErrorHandler(
-  app: { config: { errorHandler: (err: unknown, instance: unknown) => void } }
-): void {
-  app.config.errorHandler = (err: unknown, _instance: unknown) => {
+export function installErrorHandler(app: VueApp): void {
+  app.config.errorHandler = (err: unknown, _instance: unknown, _info: string) => {
     error("Vue error:", err);
   };
   if (typeof window !== "undefined") {
@@ -50,9 +50,9 @@ export function installErrorHandler(
       _source: string,
       _lineno: number,
       _colno: number,
-      error: Error | null
+      err: Error | null
     ) => {
-      error("window.onerror:", message, error || "");
+      error("window.onerror:", message, err || "");
     };
     window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
       error("unhandledrejection:", event.reason);

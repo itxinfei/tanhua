@@ -29,10 +29,13 @@ export const warn = (...args: unknown[]): void => {
   console.warn(TAG, ...args);
 };
 
-export const error = (...args: unknown[]): void => {
+export const reportError = (...args: unknown[]): void => {
   if (!ENABLE_LOG) return;
   console.error(TAG, ...args);
 };
+
+/** @deprecated Use reportError instead — kept for backward compatibility */
+export const error = reportError;
 
 /**
  * 安装全局异常捕获
@@ -42,22 +45,17 @@ export const error = (...args: unknown[]): void => {
 export function installErrorHandler(app: { config: { errorHandler?: unknown } }): void {
   type VueErrorHandler = (err: unknown, instance: unknown, info: string) => void;
   (app.config as { errorHandler?: VueErrorHandler }).errorHandler = (err, _instance, _info) => {
-    error("Vue error:", err);
+    reportError("Vue error:", err);
   };
 
   // #ifdef H5
   if (typeof window !== "undefined") {
-    window.onerror = (
-      message: string,
-      _source: string,
-      _lineno: number,
-      _colno: number,
-      err: unknown
-    ) => {
-      error("window.onerror:", message, err || "");
+    const handler: OnErrorEventHandlerNonNull = (message, _source, _lineno, _colno, err) => {
+      reportError("window.onerror:", message, err || "");
     };
+    window.onerror = handler;
     window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
-      error("unhandledrejection:", event.reason);
+      reportError("unhandledrejection:", event.reason);
     });
   }
   // #endif

@@ -1,12 +1,12 @@
 /**
  * 底部导航统一配置（单一数据源）
  *
- * App 内存在三套 tabbar 实现，均以本文件为视觉规格与数据来源：
- *  1. 原生 tabBar —— pages.json tabBar.list（编译期配置，无法 import，改动需人工同步本文件）
- *  2. H5 全局注入底栏 —— utils/global-tabbar.ts（非 tab 二级页）
- *  3. 发布页组件底栏 —— components/custom-tabbar.vue（H5 发布页）
+ * App 内 tabbar 已统一为一套 AppTabbar 组件 + 本配置文件：
+ *  1. H5 全局注入底栏 —— utils/global-tabbar.ts 用 createApp(AppTabbar).mount 挂载（接管所有页面含 tab 页）
+ *  2. 发布页 —— pages/circle/publish.vue 直接 <app-tabbar :active="-1" />
+ *  3. 原生 tabBar —— pages.json tabBar.list（编译期配置，仅 MP 端使用，H5 端由 App.vue 隐藏）
  *
- * 视觉规格（与 App.vue .uni-tabbar 样式锁定值一致）：
+ * 视觉规格（在 AppTabbar.vue 维护，与本文件常量对齐）：
  *  底栏高度 50px · 图标 28px · 文字 10px · 实色白底 · 品牌色 1px 发丝线 · 抖音式中央发布键
  *
  * 修改 tab 项时务必同步：本文件 + pages.json tabBar.list（两者无法自动联动）

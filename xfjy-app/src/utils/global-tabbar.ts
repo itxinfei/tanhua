@@ -8,66 +8,27 @@
  *   - 非 tab 页：显示，并按路径前缀高亮所属 tab（如 /pages/mine/vip → 高亮「我的」）
  *   - 登录等全屏页（/pages/auth/*）：不显示
  *
+ * 实现：用 createApp(AppTabbar).mount(bar) 挂载统一 AppTabbar 组件，
+ * 替代原手写 DOM + 内联 CSS 字符串（视觉规格统一在 AppTabbar.vue 一处维护）。
+ *
  * 规则文档：docs/H5-tabbar机制与全局底栏.md
  */
 // #ifdef H5
+import { createApp } from "vue";
+import AppTabbar from "@/components/AppTabbar.vue";
 import {
   TABS,
-  PUBLISH_PAGE,
   EXCLUDED_PREFIXES,
   TAB_BAR_HEIGHT_PX,
-  TAB_ICON_SIZE_PX,
-  TAB_FONT_SIZE_PX,
 } from "@/config/tab-config";
 
-/** 底栏内容高度（px），与原生 tabbar（--tab-bar-height）一致 */
-const BAR_HEIGHT_PX = TAB_BAR_HEIGHT_PX;
-
-const STYLE_ID = "xfjy-global-tabbar-style";
+/** 挂载目标容器 id */
 const BAR_ID = "xfjy-global-tabbar";
 
-/* 视觉规格统一来源：config/tab-config.ts（图标 28px / 文字 10px / 实色白底 / 品牌色 1px 发丝线），
-   与 App.vue 原生 .uni-tabbar 样式完全对齐，消除"切页后底栏样式跳变" */
-const CSS = `
-#${BAR_ID} {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 998;
-  display: flex; align-items: stretch; box-sizing: border-box;
-  min-height: ${BAR_HEIGHT_PX}px;
-  /* 实色白底：与原生 tabbar 一致，半透明在浅色页面发透 */
-  background: #ffffff;
-  padding-bottom: env(safe-area-inset-bottom);
-  font-size: 0;
-}
-#${BAR_ID}::before {
-  content: ""; position: absolute; left: 0; top: 0; width: 100%; height: 1px;
-  background: #ff5e9c;
-}
-#${BAR_ID} .gtab-item {
-  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  cursor: pointer; -webkit-tap-highlight-color: rgba(0, 0, 0, 0); box-sizing: border-box;
-}
-#${BAR_ID} .gtab-item img { width: ${TAB_ICON_SIZE_PX}px; height: ${TAB_ICON_SIZE_PX}px; }
-#${BAR_ID} .gtab-item .gtab-label {
-  font-size: ${TAB_FONT_SIZE_PX}px; line-height: normal; margin-top: 3px; color: #000000;
-}
-#${BAR_ID} .gtab-item.active .gtab-label { color: #ff5e9c; }
-/* 中央发布键：黑灰实心加号（与原生 uni-tabbar__mid 视觉一致） */
-#${BAR_ID} .gtab-mid { flex: 0 0 50px; position: relative; }
-#${BAR_ID} .gtab-mid::before, #${BAR_ID} .gtab-mid::after {
-  content: ""; position: absolute; top: 50%; left: 50%;
-  border-radius: 5px; background: #161823; transform: translate(-50%, -50%);
-}
-#${BAR_ID} .gtab-mid::before { width: 28px; height: 5px; }
-#${BAR_ID} .gtab-mid::after { width: 5px; height: 28px; }
-/* 暗色模式：与 App.vue 原生 tabbar 暗色变体一致 */
-@media (prefers-color-scheme: dark) {
-  #${BAR_ID} { background: rgba(26, 26, 26, 0.82); box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.35); }
-  #${BAR_ID}::before { background: #ff8eb9; }
-  #${BAR_ID} .gtab-item .gtab-label { color: #999999; }
-  #${BAR_ID} .gtab-item.active .gtab-label { color: #ff5e9c; }
-  #${BAR_ID} .gtab-mid::before, #${BAR_ID} .gtab-mid::after { background: #ffffff; }
-}
-`;
+/** AppTabbar 实例（通过 defineExpose 暴露 setActive） */
+let vm: { setActive?: (i: number) => void } | null = null;
+/** 挂载目标 div */
+let bar: HTMLElement | null = null;
 
 /** 当前路由（去掉 #/ 前缀与查询串），如 pages/mine/vip */
 function currentRoute(): string {
@@ -100,96 +61,39 @@ function applyWindowBottom(value: string): void {
   });
 }
 
-function refresh(bar: HTMLElement): void {
+function refresh(): void {
+  if (!bar) return;
   const route = currentRoute();
   // 注入底栏接管所有页面（含 tab 页）：tab 页原生 tabBar 已由 App.vue 隐藏，
   // 避免依赖 uni-app H5 原生 midButton（渲染不可靠）导致加号不显示
   const show = !!route && !isExcluded(route);
   bar.style.display = show ? "flex" : "none";
-  applyWindowBottom(show ? `${BAR_HEIGHT_PX}px` : "0px");
-  if (!show) return;
-  const active = activeTabIndex(route);
-  // 仅遍历 tab 项（mid 发布键无 data-tab-index，且插入后 DOM 顺序与 TABS 数组不再对齐）
-  bar.querySelectorAll<HTMLElement>(".gtab-item[data-tab-index]").forEach((el) => {
-    const i = Number(el.dataset.tabIndex);
-    const tab = TABS[i];
-    const isActive = i === active;
-    el.classList.toggle("active", isActive);
-    const img = el.querySelector("img");
-    if (img) {
-      img.src = isActive ? tab.iconActive : tab.icon;
-    }
-  });
-}
-
-function buildBar(): HTMLElement {
-  document.getElementById(BAR_ID)?.remove();
-  const bar = document.createElement("div");
-  bar.id = BAR_ID;
-
-  TABS.forEach((tab, tabIndex) => {
-    const item = document.createElement("div");
-    item.className = "gtab-item";
-    item.dataset.tabIndex = String(tabIndex);
-    item.setAttribute("role", "button");
-    item.setAttribute("aria-label", `切换到${tab.text}`);
-    const img = document.createElement("img");
-    img.src = tab.icon;
-    img.alt = "";
-    const label = document.createElement("div");
-    label.className = "gtab-label";
-    label.textContent = tab.text;
-    item.appendChild(img);
-    item.appendChild(label);
-    item.addEventListener("click", () => {
-      uni.switchTab({ url: `/${tab.pagePath}` });
-    });
-    bar.appendChild(item);
-  });
-
-  // 中央发布键（抖音式）：跳转发布动态页
-  const mid = document.createElement("div");
-  mid.className = "gtab-item gtab-mid";
-  mid.setAttribute("role", "button");
-  mid.setAttribute("aria-label", "发布动态");
-  mid.addEventListener("click", () => {
-    uni.navigateTo({ url: `/${PUBLISH_PAGE}` });
-  });
-  // 插入到第 3 位（匹配 / 圈子 之后），与原生 tabbar 布局一致
-  bar.insertBefore(mid, bar.children[2] || null);
-
-  return bar;
+  applyWindowBottom(show ? `${TAB_BAR_HEIGHT_PX}px` : "0px");
+  if (show && vm) {
+    const active = activeTabIndex(route);
+    vm.setActive?.(active);
+  }
 }
 
 /** 在 App.vue onLaunch（H5 条件编译内）调用一次 */
 export function installGlobalTabbar(): void {
   if (document.getElementById(BAR_ID)) return;
 
-  if (!document.getElementById(STYLE_ID)) {
-    const style = document.createElement("style");
-    style.id = STYLE_ID;
-    style.textContent = CSS;
-    document.head.appendChild(style);
-  }
-
-  const bar = buildBar();
+  bar = document.createElement("div");
+  bar.id = BAR_ID;
   document.body.appendChild(bar);
 
-  // 路由变化（hash 路由）与页面节点增删时刷新显示/高亮/占位
-  window.addEventListener("hashchange", () => refresh(bar));
-  const observer = new MutationObserver(() => {
-    requestAnimationFrame(() => {
-      const show = bar.style.display !== "none";
-      applyWindowBottom(show ? `${BAR_HEIGHT_PX}px` : "0px");
-    });
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
+  // 用 createApp 挂载统一 AppTabbar 组件（替代原手写 DOM + 内联 CSS）
+  const app = createApp(AppTabbar);
+  vm = app.mount(bar) as unknown as { setActive?: (i: number) => void };
 
+  // 路由变化（hash 路由）与兜底轮询刷新显示/高亮/占位
+  window.addEventListener("hashchange", refresh);
   // 兜底轮询：极少数情况下 hashchange 未触发（直接改 location、框架内部 pushState、
   // 或冷启动首帧页面栈尚未就绪），用轻量轮询保证底栏始终与实际页面一致，
-  // 根除“tabbar 莫名消失/不刷新”的问题。refresh 仅切换 display/class，开销极小。
-  setInterval(() => refresh(bar), 400);
+  // 根除“tabbar 莫名消失/不刷新”的问题。refresh 仅切换 display/调用 setActive，开销极小。
+  setInterval(refresh, 400);
 
-  refresh(bar);
+  refresh();
 }
 // #endif

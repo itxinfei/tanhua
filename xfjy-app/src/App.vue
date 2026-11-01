@@ -47,13 +47,6 @@ onShow(() => {
     });
 });
 
-// 原生 tabBar 居中发布键（抖音式发布入口）：跳转发布动态页
-// midButton 仅微信小程序原生 tabBar 支持，H5/其他端无此 API 或永不触发，故加运行时保护
-if (typeof uni.onTabBarMidButtonTap === "function") {
-  uni.onTabBarMidButtonTap(() => {
-    uni.navigateTo({ url: "/pages/circle/publish" });
-  });
-}
 </script>
 
 <style lang="scss">
@@ -132,95 +125,14 @@ page {
 
 /* #ifdef H5 */
 /* ===== 底部 tabBar（仅 H5；小程序端为原生 tabBar，由 theme.json 控制） =====
-   统一视觉规格（与 global-tabbar.ts / custom-tabbar.vue 共用 config/tab-config.ts）：
+   统一视觉规格（AppTabbar.vue 单一维护，与 config/tab-config.ts 常量对齐）：
    实色白底 · 图标 28px · 文字 10px · 品牌色 1px 发丝线 · 抖音式中央发布键 */
 
-/* 隐藏原生 tabBar：注入底栏（global-tabbar.ts）接管所有页面（含 tab 页），避免双栏。
+/* 隐藏原生 tabBar：注入底栏（global-tabbar.ts 挂载 AppTabbar）接管所有页面（含 tab 页），避免双栏。
    原生 H5 midButton 渲染不可靠，统一由注入底栏提供发布加号 */
 .uni-tabbar,
 .uni-tabbar-border {
   display: none !important;
-}
-
-.uni-tabbar {
-  background: #ffffff !important;
-  box-shadow: none;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  /* 与运行时 --tab-bar-height: 50px 的占位高度对齐，消除页面底部与底栏之间的空隙 */
-  min-height: 50px;
-}
-
-/* 图标尺寸锁定 28px：框架默认不约束 .uni-tabbar__icon 尺寸，img 的 100% 会解析成
-   PNG 原始尺寸（81px），把整个 tabbar 撑到 100px —— “顶部分割线看起来太高”的根因 */
-.uni-tabbar__icon {
-  width: 28px;
-  height: 28px;
-}
-
-/* tabbar 顶部分割线：对标抖音发丝线，高度锁定 1px。
-   --color-primary 只定义在 uni-page-body 内，到不了 tabbar（其兄弟元素），
-   此处必须显式写颜色，否则该线透明不可见 */
-.uni-tabbar-border {
-  height: 1px !important;
-  background-color: #ff5e9c !important;
-}
-
-/* 中间发布键：对标抖音，无方块底色，仅绘制深色粗体实心“+”（圆润端点）。
-   必须保持框架默认的 absolute 定位——改成 relative 会让发布键进入文档流，
-   tab item 高度变成 mid(50px)+内容(50px)=100px，整个底栏被撑高一倍 */
-.uni-tabbar__mid {
-  position: absolute;
-  bottom: 0;
-  background: transparent !important;
-  border-radius: 0;
-  box-shadow: none;
-}
-
-.uni-tabbar__mid::before,
-.uni-tabbar__mid::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  border-radius: 5px;
-  /* 白底上深色实心，笔画饱满 */
-  background: #161823;
-  transform: translate(-50%, -50%);
-}
-
-.uni-tabbar__mid::before {
-  /* 横笔 */
-  width: 28px;
-  height: 5px;
-}
-
-.uni-tabbar__mid::after {
-  /* 竖笔 */
-  width: 5px;
-  height: 28px;
-}
-
-@media (prefers-color-scheme: dark) {
-  .uni-tabbar {
-    background: rgba(26, 26, 26, 0.82) !important;
-    box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.35);
-  }
-
-  .uni-tabbar-border {
-    background-color: #ff8eb9 !important;
-  }
-
-  .uni-tabbar__mid {
-    /* 透明底，暗色模式下无需额外投影 */
-    box-shadow: none;
-  }
-
-  /* 深色底上的加号改为白色 */
-  .uni-tabbar__mid::before,
-  .uni-tabbar__mid::after {
-    background: #ffffff;
-  }
 }
 /* #endif */
 

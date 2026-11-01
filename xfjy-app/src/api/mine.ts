@@ -72,9 +72,12 @@ export interface NotificationSettingParam {
 export function getUserProfile(
   userId?: string
 ): Promise<UserProfile> {
-  return get<UserProfile>("/users", {
-    userID: userId,
-  });
+  // userId 为空时查当前登录用户；不传 userID 参数，避免拼出 /users?userID= 这样的空值请求
+  const params: Record<string, string> = {};
+  if (userId) {
+    params.userID = userId;
+  }
+  return get<UserProfile>("/users", params);
 }
 
 /**
