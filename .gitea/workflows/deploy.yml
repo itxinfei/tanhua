@@ -74,7 +74,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        run: |
+          set -e
+          cd "${GITHUB_WORKSPACE:-/workspace}"
+          rm -rf .git
+          git clone --depth 1 http://gitea:3000/admin/xfjy.git .
+          git log -1 --oneline
 
       # ── 增量构建范围判定 ──────────────────────────────────
       - name: 判定增量构建范围

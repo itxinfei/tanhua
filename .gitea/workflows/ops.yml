@@ -51,7 +51,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        run: |
+          set -e
+          cd "${GITHUB_WORKSPACE:-/workspace}"
+          rm -rf .git
+          git clone --depth 1 http://gitea:3000/admin/xfjy.git .
+          git log -1 --oneline
 
       # ── 预检：确保 deploy/.env 存在 ──────────────────────
       - name: 预检环境
