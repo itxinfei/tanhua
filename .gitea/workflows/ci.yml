@@ -7,9 +7,11 @@
 #   3. 前端 app：vue-tsc 类型检查 + build:h5 生产构建 + stylelint（非阻断）
 #
 # 与 deploy.yml 的关系：
-#   - 两者共用并发组 xfjy-pipeline：同一次 push 里 ci 先跑、deploy 排队，
-#     不再并发写同一 m2/npm 缓存卷（历史"缺依赖/编译失败"的根因之一）
-#   - cancel-in-progress=true：新 push 到来时旧的排队/运行中任务自动取消
+#   - 共用并发组 xfjy-pipeline，cancel-in-progress=false：
+#     ci 与 deploy 同 push 入组只差几毫秒，ci 先占组、deploy 排队，
+#     全程串行 → 不会并发写同一 m2/npm 缓存卷
+#   - 不能开 cancel-in-progress=true：实测同 push 的 deploy 入组时会把
+#     正在排队/运行的 ci run 直接 cancel（0 步空跑），门禁形同虚设
 #   - Checkout 按触发 SHA 锁定：验证的一定是触发这次 run 的代码
 # ============================================================
 name: ci
@@ -20,7 +22,7 @@ on:
 
 concurrency:
   group: xfjy-pipeline
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   MVN_ARGS: "-B -ntp -s deploy/ci/settings.xml -Dmaven.repo.local=/root/.m2/repository"

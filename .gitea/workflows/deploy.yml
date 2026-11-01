@@ -17,10 +17,13 @@
 #   full_build: true = 强制全量重建（忽略增量判定）
 #
 # 并发策略：
-#   - 与 ci.yml 共用并发组 xfjy-pipeline：同一次 push 里 ci 先跑、deploy 排队，
-#     避免两个工作流并发写同一 m2/npm 缓存卷
-#   - cancel-in-progress=true：连续 push 时只有最新一次会执行到底，
-#     防止排队的旧 run 把线上退回旧版本
+#   - 与 ci.yml 共用并发组 xfjy-pipeline，cancel-in-progress=false：
+#     同一 push 里两个 workflow 入组顺序只差几毫秒，ci 先占组、deploy 排队，
+#     全程串行 → 不会并发写同一 m2/npm 缓存卷
+#   - 不能开 cancel-in-progress=true：实测同 push 的 deploy 入组时会把
+#     正在排队/运行的 ci run 直接 cancel（0 步空跑），门禁形同虚设
+#   - 代价：连续 push 时旧 SHA 的部署也会按序跑完，但每个 run 只部署自己的
+#     SHA（checkout 已锁），队列清完线上=最新，dev 环境可接受
 #
 # 镜像标签记录（供 ops.yml rollback 使用）：
 #   - 部署前把本次 tag 写入 ${CI_STATE_DIR}/pending-deploy-tag
@@ -65,7 +68,7 @@ on:
 
 concurrency:
   group: xfjy-pipeline
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   ACTION: ${{ github.event.inputs.action || 'deploy' }}
