@@ -123,9 +123,14 @@ public class HttpServiceProxyConfig {
                     .build();
         }
         if (this.discoveryClient != null) {
-            RestClient restClient = RestClient.builder()
-                    .requestInterceptor(new ServiceInstanceInterceptor(serviceId, this.discoveryClient))
-                    .build();
+            // 兜底路径同样注入 X-Internal-Token（与 lb:// 分支一致），
+            // 否则域服务 XInternalTokenInterceptor 收到 token=null 直接 403
+            var builder = RestClient.builder()
+                    .requestInterceptor(new ServiceInstanceInterceptor(serviceId, this.discoveryClient));
+            if (!this.internalAuthToken.isEmpty()) {
+                builder.defaultHeader("X-Internal-Token", this.internalAuthToken);
+            }
+            RestClient restClient = builder.build();
             return HttpServiceProxyFactory
                     .builderFor(RestClientAdapter.create(restClient))
                     .build();

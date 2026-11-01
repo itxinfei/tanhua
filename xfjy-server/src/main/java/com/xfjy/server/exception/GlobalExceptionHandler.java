@@ -1,5 +1,7 @@
 package com.xfjy.server.exception;
 
+import com.xfjy.server.exception.BenefitLimitException;
+import com.xfjy.server.exception.SwipeLimitException;
 import com.xfjy.server.response.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +41,33 @@ public class GlobalExceptionHandler {
                 .orElse("参数校验失败");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Result.fail(400, msg));
+    }
+
+    /**
+     * 处理滑动次数耗尽异常（HTTP 402 PAYMENT_REQUIRED）
+     *
+     * <p>返回结构化 data，便于前端区分"业务 400"和"需要付费 402"：
+     * 前端拦截到此状态码后跳转 /pages/mine/vip 付费引导页。</p>
+     */
+    @ExceptionHandler(SwipeLimitException.class)
+    public ResponseEntity<Result<SwipeLimitException>> handleSwipeLimit(SwipeLimitException e) {
+        LOGGER.warn("[滑动限制] code={}, type={}, usage={}/{}, message={}",
+                SwipeLimitException.CODE, e.getLimitType(), e.getCurrentUsage(), e.getMaxLimit(), e.getMessage());
+        return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED)
+                .body(Result.fail(SwipeLimitException.CODE, e.getMessage()));
+    }
+
+    /**
+     * 处理权益次数耗尽异常（HTTP 402 PAYMENT_REQUIRED）
+     *
+     * <p>super_like / advanced_filter 等每日限次权益用尽时抛出。</p>
+     */
+    @ExceptionHandler(BenefitLimitException.class)
+    public ResponseEntity<Result<BenefitLimitException>> handleBenefitLimit(BenefitLimitException e) {
+        LOGGER.warn("[权益限制] code={}, service={}, message={}",
+                BenefitLimitException.CODE, e.getServiceCode(), e.getMessage());
+        return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED)
+                .body(Result.fail(BenefitLimitException.CODE, e.getMessage()));
     }
 
     /**
