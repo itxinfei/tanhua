@@ -34,18 +34,16 @@ jobs:
         run: |
           set -e
           echo "STEP_START"
-          rm -rf /workspace
-          mkdir -p /workspace
-          cd /workspace
+          mkdir -p /ci
+          cd /ci
           echo "CLONE_START"
           git clone --depth 1 http://gitea:3000/admin/xfjy.git .
           echo "CLONE_END"
           git log -1 --oneline
-          ls -la 2>&1 | head -5
 
       - name: 编译所有模块（test-compile，跳过测试执行）
         run: |
-          cd /workspace
+          cd /ci
           MAVEN_OPTS="-Xmx1g" mvn ${MVN_ARGS} test-compile -DskipTests -T 2
           echo "[OK] 全部 12 个 Maven 模块编译通过"
 
@@ -61,9 +59,8 @@ jobs:
         run: |
           set -e
           echo "STEP_START"
-          rm -rf /workspace
-          mkdir -p /workspace
-          cd /workspace
+          mkdir -p /ci
+          cd /ci
           echo "CLONE_START"
           git clone --depth 1 http://gitea:3000/admin/xfjy.git .
           echo "CLONE_END"
@@ -71,7 +68,7 @@ jobs:
 
       - name: 安装依赖并类型检查
         run: |
-          cd /workspace/xfjy-admin
+          cd /ci/xfjy-admin
           npm install --legacy-peer-deps --prefer-offline --no-audit --no-fund --ignore-scripts
           npx vue-tsc --noEmit
           echo "[OK] xfjy-admin 类型检查通过"
@@ -88,9 +85,8 @@ jobs:
         run: |
           set -e
           echo "STEP_START"
-          rm -rf /workspace
-          mkdir -p /workspace
-          cd /workspace
+          mkdir -p /ci
+          cd /ci
           echo "CLONE_START"
           git clone --depth 1 http://gitea:3000/admin/xfjy.git .
           echo "CLONE_END"
@@ -98,7 +94,7 @@ jobs:
 
       - name: 安装依赖并类型检查
         run: |
-          cd /workspace/xfjy-app
+          cd /ci/xfjy-app
           npm install --legacy-peer-deps --prefer-offline --no-audit --no-fund --ignore-scripts
           npm run type-check
           echo "[OK] xfjy-app 类型检查通过"
