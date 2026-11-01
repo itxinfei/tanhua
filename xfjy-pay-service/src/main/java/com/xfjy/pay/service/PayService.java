@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -307,6 +308,26 @@ public class PayService {
             seq = System.currentTimeMillis() % 1000000L;
         }
         return "VIP" + day + String.format("%06d", seq);
+    }
+
+    /**
+     * 每小时扫描超时未支付订单，批量置 EXPIRED（FR-PAY-03）
+     *
+     * <p>confirmPay 只做"懒过期"（用户点击支付时才置位），后台看板与对账会长期看到
+     * 已过期的 PENDING 订单，故补定时扫描。更新条件限定 status=PENDING，幂等可重跑。</p>
+     */
+    @Scheduled(cron = "0 5 * * * ?")
+    public void expireOverdueOrders() {
+        Date now = new Date();
+        LambdaUpdateWrapper<PayOrder> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(PayOrder::getStatus, "PENDING")
+                .lt(PayOrder::getExpireTime, now)
+                .set(PayOrder::getStatus, "EXPIRED")
+                .set(PayOrder::getUpdated, now);
+        int rows = this.payOrderMapper.update(null, wrapper);
+        if (rows > 0) {
+            LOGGER.info("超时未支付订单批量置 EXPIRED, rows = {}", rows);
+        }
     }
 
     // ==================== P2 增值服务权益矩阵 ====================

@@ -31,7 +31,7 @@ public class RateLimitGlobalFilter implements GlobalFilter, Ordered {
 
     /** 需要限流的 POST 路径（发布类写操作） */
     private static final Set<String> LIMITED_PATHS = Set.of(
-            "/movements", "/comments", "/smallVideos", "/users/report");
+            "/movements", "/comments", "/small-videos", "/users/report");
 
     private static final String KEY_PREFIX = "XFJY_GATEWAY_LIMIT_";
     private static final Duration WINDOW = Duration.ofSeconds(60);

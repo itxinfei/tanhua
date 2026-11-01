@@ -1,7 +1,6 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import {
-  getHuanXinUser,
   getContacts,
   addContact,
   getLikeMessages,
@@ -40,11 +39,11 @@ function setSeenCount(type: NoticeType, count: number): void {
 
 /**
  * 聊天状态管理
- * 管理环信凭证、联系人列表
- * 注：消息收发由环信 SDK 直接管理，此 store 仅负责后端数据
+ * 管理 WuKongIM 凭证、联系人列表
+ * 注：消息收发由 WuKongIM SDK 直连管理，此 store 仅负责后端数据
  */
 export const useChatStore = defineStore("chat", () => {
-  /** 环信账号凭证（登录环信 SDK 用） */
+  /** WuKongIM 账号凭证（登录 IM SDK 用，由 App.vue onShow 直连初始化） */
   const huanXinUser = ref<HuanXinUser | null>(null);
 
   /** 联系人列表 */
@@ -65,16 +64,15 @@ export const useChatStore = defineStore("chat", () => {
   const loading = ref(false);
 
   /**
-   * 获取环信账号凭证（首次调用后缓存）
-   * 前端用此凭证登录环信 SDK
+   * 获取 WuKongIM 账号凭证（首次调用后缓存）
+   * 前端用此凭证登录 WuKongIM SDK
+   * ⚠️ 已废弃：App.vue onShow 中改为直连 WuKongIM，此方法保留仅为向后兼容
    */
-  async function loadHuanXinUser(): Promise<HuanXinUser> {
+  async function loadHuanXinUser(): Promise<HuanXinUser | null> {
     if (huanXinUser.value) {
       return huanXinUser.value;
     }
-    const result = await getHuanXinUser();
-    huanXinUser.value = result;
-    return result;
+    return null;
   }
 
   /**

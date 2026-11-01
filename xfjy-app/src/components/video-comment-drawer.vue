@@ -51,7 +51,7 @@ import { formatCount } from "@/utils/format";
 import type { Comment } from "@/api/circle";
 
 const props = defineProps<{ visible: boolean; videoId: string }>();
-const emit = defineEmits<{ (e: "close"): void }>();
+const emit = defineEmits<{ (e: "close"): void; (e: "commented"): void }>();
 
 /**
  * 后端部分日期字符串含异常分隔符（如 "2026年10月31??19:22"），
@@ -140,6 +140,7 @@ async function send() {
     await publishVideoComment(props.videoId, content);
     text.value = "";
     uni.showToast({ title: "评论成功", icon: "success" });
+    emit("commented");
     await reload();
   } catch {
     // request 层统一 toast

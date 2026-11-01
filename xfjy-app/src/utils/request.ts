@@ -125,6 +125,14 @@ function request<T = any>(options: RequestOptions): Promise<T> {
           return;
         }
 
+        // 403 权限/账号状态错误：优先展示后端携带的 reason（如封禁原因）
+        if (res.statusCode === 403) {
+          const reason = (res.data as any)?.reason || (res.data as any)?.message;
+          uni.showToast({ title: reason || "没有操作权限", icon: "none", duration: 3000 });
+          reject(new Error(reason || "无权限"));
+          return;
+        }
+
         if (res.statusCode >= 400) {
           uni.showToast({ title: `请求失败(${res.statusCode})`, icon: "none" });
           reject(new Error(`HTTP ${res.statusCode}`));
@@ -215,6 +223,11 @@ export function upload<T = any>(
         if (res.statusCode === 400) {
           uni.showToast({ title: "操作失败，请检查输入内容", icon: "none" });
           reject(new Error("请求参数校验失败"));
+          return;
+        }
+        if (res.statusCode === 403) {
+          uni.showToast({ title: "没有操作权限", icon: "none" });
+          reject(new Error("无权限"));
           return;
         }
         if (res.statusCode >= 400) {

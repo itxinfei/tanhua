@@ -12,7 +12,7 @@
 | `VisitorsApi` | `/api/visitors` | xfjy-user-service | 访客记录 |
 | `QuanZiApi` | `/api/quanzi` | xfjy-circle-service | 动态/评论/时间线 |
 | `VideoApi` | `/api/video` | xfjy-video-service | 小视频/关注作者 |
-| `HuanXinApi` | `/api/huanxin` | xfjy-message-service | 环信用户注册/消息下发 |
+| `HuanXinApi` | `/api/huanxin` | xfjy-message-service | WuKongIM/LiveKit 双通道 IM（原环信契约，保留接口名避 5 处调用方零改动） |
 | `RecommendUserApi` | `/api/recommend-user` | xfjy-match-service | 推荐候选/地理位置 |
 | `UserLocationApi` | `/api/user-location` | xfjy-match-service | 地理位置上报 |
 | `ESUserLocationApi` | `/api/es-user-location` | xfjy-elasticsearch | ES Geo 附近的人 |

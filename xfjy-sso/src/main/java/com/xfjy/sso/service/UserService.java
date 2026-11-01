@@ -6,6 +6,8 @@ import com.xfjy.sso.mapper.UserMapper;
 import com.xfjy.sso.pojo.User;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -29,12 +31,62 @@ public class UserService {
     private StringRedisTemplate redisTemplate;
 
     private static final String CODE_KEY_PREFIX = "XFJY_SSO_CODE_";
+    private static final String CODE_FAIL_KEY_PREFIX = "XFJY_SSO_CODE_FAIL_";
     private static final Duration CODE_EXPIRE = Duration.ofMinutes(5);
+    /** 验证码连续错误次数上限，达到即作废该码（NFR-SEC-10） */
+    private static final int CODE_FAIL_LIMIT = 5;
     /**
-     * 开发用万能验证码（未接入短信服务商时本地联调使用）
+     * 开发用万能验证码（未接入短信服务商时本地联调使用）。
+     *
+     * <p><b>安全债（用户拍板保留，11.7-15）</b>：命中此码可登录任意手机号，
+     * 上线前必须移除或改为环境开关；每次命中打 WARN 日志便于排查。</p>
      */
     private static final String DEV_MASTER_CODE = "123456";
     private static final SecureRandom RANDOM = new SecureRandom();
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserService.class);
+
+    /**
+     * 校验验证码：必须与 Redis 中的码一致（或命中开发万能码）。
+     *
+     * <p>失败计数：同一手机号连续错 {@value #CODE_FAIL_LIMIT} 次立即作废该验证码，
+     * 必须重新发送（NFR-SEC-10，封掉 5 分钟窗口内的穷举）。</p>
+     *
+     * @return true=校验通过（并清除该码与失败计数）
+     */
+    private boolean verifyCode(String phone, String code) {
+        if (StringUtils.isBlank(phone) || StringUtils.isBlank(code)) {
+            return false;
+        }
+        String key = CODE_KEY_PREFIX + phone;
+        String failKey = CODE_FAIL_KEY_PREFIX + phone;
+        if (DEV_MASTER_CODE.equals(code)) {
+            LOGGER.warn("使用开发万能验证码登录，phone={}（该码上线前必须移除）", phone);
+            redisTemplate.delete(key);
+            redisTemplate.delete(failKey);
+            return true;
+        }
+        String cached = redisTemplate.opsForValue().get(key);
+        if (cached == null) {
+            return false;
+        }
+        if (code.equals(cached)) {
+            redisTemplate.delete(key);
+            redisTemplate.delete(failKey);
+            return true;
+        }
+        // 校验失败：累加错误次数，达上限作废该码
+        Long fails = redisTemplate.opsForValue().increment(failKey);
+        if (fails != null && fails == 1L) {
+            redisTemplate.expire(failKey, CODE_EXPIRE);
+        }
+        if (fails != null && fails >= CODE_FAIL_LIMIT) {
+            redisTemplate.delete(key);
+            redisTemplate.delete(failKey);
+            LOGGER.warn("验证码连续错误达上限已作废，phone={} fails={}", phone, fails);
+        }
+        return false;
+    }
 
     /**
      * 发送短信验证码
@@ -44,6 +96,7 @@ public class UserService {
     public String sendCode(String phone) {
         String code = String.format("%06d", ThreadLocalRandom.current().nextInt(1000000));
         redisTemplate.opsForValue().set(CODE_KEY_PREFIX + phone, code, CODE_EXPIRE);
+        redisTemplate.delete(CODE_FAIL_KEY_PREFIX + phone);
         // TODO: 接入阿里云短信服务后，此处改为调用短信通道下发，不再返回验证码明文
         return code;
     }
@@ -51,20 +104,16 @@ public class UserService {
     /**
      * 手机号 + 验证码登录/注册
      *
-     * @return {token, user, isNew}；验证码错误返回 null
+     * <p>返回 null=验证码错误；返回含 error 键的 Map=账号态异常（FROZEN 携带封禁原因）；正常返回 {token,user,isNew}</p>
      */
     public Map<String, Object> loginVerification(String phone, String code) {
         if (StringUtils.isBlank(phone) || StringUtils.isBlank(code)) {
             return null;
         }
 
-        // 校验验证码：Redis 中的验证码 或 开发万能验证码
-        String cached = redisTemplate.opsForValue().get(CODE_KEY_PREFIX + phone);
-        boolean codeValid = code.equals(cached) || DEV_MASTER_CODE.equals(code);
-        if (!codeValid) {
+        if (!verifyCode(phone, code)) {
             return null;
         }
-        redisTemplate.delete(CODE_KEY_PREFIX + phone);
 
         // 查询用户，不存在则注册
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
@@ -82,7 +131,14 @@ public class UserService {
             user.setUpdated(new java.util.Date());
             this.userMapper.insert(user);
         } else if (!"NORMAL".equals(user.getStatus())) {
-            return null; //已封禁(FROZEN)或已注销(DELETED)
+            // 已封禁(FROZEN)：返回 403 + 封禁原因（FR-AUTH-01 验收口径）；已注销(DELETED)：按验证码错误同等响应，不暴露账号状态
+            if ("FROZEN".equals(user.getStatus())) {
+                Map<String, Object> frozen = new HashMap<>();
+                frozen.put("error", "FROZEN");
+                frozen.put("reason", StringUtils.defaultIfBlank(user.getFreezeReason(), "请联系客服"));
+                return frozen;
+            }
+            return null;
         }
 
         // Sa-Token 签发 token（会话存 Redis，所有服务共享校验）
@@ -129,13 +185,9 @@ public class UserService {
             return 1;
         }
 
-        // 校验验证码：Redis 中的验证码 或 开发万能验证码
-        String cached = redisTemplate.opsForValue().get(CODE_KEY_PREFIX + newPhone);
-        boolean codeValid = code.equals(cached) || DEV_MASTER_CODE.equals(code);
-        if (!codeValid) {
+        if (!verifyCode(newPhone, code)) {
             return 1;
         }
-        redisTemplate.delete(CODE_KEY_PREFIX + newPhone);
 
         // 校验新手机号未被他人占用
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();

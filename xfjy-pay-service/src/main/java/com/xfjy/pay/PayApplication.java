@@ -3,6 +3,7 @@ package com.xfjy.pay;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * 支付服务（微服务化阶段四）
@@ -11,6 +12,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @SpringBootApplication(scanBasePackages = "com.xfjy")
 @MapperScan("com.xfjy.pay.mapper")
+@EnableScheduling
 public class PayApplication {
 
     public static void main(String[] args) {

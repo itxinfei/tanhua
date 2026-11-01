@@ -79,16 +79,16 @@ import { ref, nextTick, onUnmounted } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
 import { useUserStore } from "@/store/user";
-import { getHuanXinUser } from "@/api/chat";
 import { getAgentApi } from "@/api/kefu";
 import { getVipStatus } from "@/api/mine";
 import {
-  loginEasemob,
+  loginIMDirect,
   onMessageReceived,
   sendTextMessage,
   getChatHistory,
+  logoutIM,
   type ReceivedMessage,
-} from "@/utils/easemob";
+} from "@/utils/wukongim";
 
 /** 默认头像 */
 const DEFAULT_AVATAR = "/static/logo/logo-icon-transparent.png";
@@ -220,10 +220,8 @@ onLoad(async () => {
     const agent = await getAgentApi();
     agentId.value = agent.agentId;
 
-    // 2. 环信 SDK 登录
-    const credential = await getHuanXinUser();
-    if (!credential.username || !credential.token) return;
-    const ok = await loginEasemob(credential.username, credential.token);
+    // 2. WuKongIM 直连登录
+    const ok = await loginIMDirect(agentId.value);
     if (!ok) return;
 
     // 3. 先注册消息到达回调再拉历史：历史是最后一次性赋值的，
@@ -248,7 +246,8 @@ onLoad(async () => {
 
     // 4. 拉取与客服的历史消息
     const history = await getChatHistory(agentId.value);
-    const myId = credential.username;
+    // WuKongIM 直连登录后无凭证对象，我的 uid 即当前登录用户 ID（消息归属判断用）
+    const myId = String(userStore.userInfo?.id ?? "");
     const historyItems: Message[] = history.map((msg, i) => ({
       id: `hist-${i}-${msg.time}`,
       content: msg.content,

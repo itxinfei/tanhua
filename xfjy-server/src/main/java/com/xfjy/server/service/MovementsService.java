@@ -81,6 +81,8 @@ public class MovementsService {
         publish.setLocationName(location);
         publish.setLatitude(latitude);
         publish.setLongitude(longitude);
+        // 发布时间：此前未设置导致新动态 created=null，列表/详情填充 new Date(null) 直接 NPE（500）
+        publish.setCreated(System.currentTimeMillis());
 
         // 修改点：打通发布页话题标签。前端逗号分隔传入，解析为 List 落库 Publish.tags
         if (StringUtils.isNotEmpty(tags)) {
@@ -245,9 +247,10 @@ public class MovementsService {
             Long commentCount = commentCountMap.get(movements.getId());
             movements.setCommentCount(commentCount == null ? 0 : commentCount.intValue());
 
-            movements.setCreateDate(RelativeDateFormat.format(new Date(record.getCreated()))); //发布时间，如10分钟前
+            // 发布时间：历史数据可能 created=null（保存端此前未设置），兜底避免 NPE
+            movements.setCreateDate(RelativeDateFormat.format(new Date(record.getCreated() == null ? System.currentTimeMillis() : record.getCreated()))); //发布时间，如10分钟前
             movements.setTextContent(record.getText());
-            movements.setImageContent(record.getMedias().toArray(new String[]{}));
+            movements.setImageContent(record.getMedias() == null ? new String[0] : record.getMedias().toArray(new String[]{}));
 
             if (record.getTags() != null && !record.getTags().isEmpty()) {
                 movementTagsMap.put(movements.getId(), record.getTags().toArray(new String[0]));
@@ -271,7 +274,8 @@ public class MovementsService {
                             ? movementTags
                             : StringUtils.split(userInfo.getTags(), ','));
                     movements.setNickname(userInfo.getNickName());
-                    movements.setGender(userInfo.getSex().name().toLowerCase());
+                    // 性别可能未填写（null），兜底空串避免 NPE
+                    movements.setGender(userInfo.getSex() == null ? "" : userInfo.getSex().name().toLowerCase());
                     movements.setAvatar(userInfo.getLogo());
                     movements.setAge(userInfo.getAge());
 

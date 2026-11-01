@@ -1,10 +1,12 @@
 package com.xfjy.server.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xfjy.service.api.HuanXinApi;
 import com.xfjy.service.api.QuanZiApi;
 import com.xfjy.service.api.UserInfoApi;
+import com.xfjy.service.api.UserLikeApi;
 import com.xfjy.service.api.UsersApi;
 import com.xfjy.service.pojo.Comment;
 import com.xfjy.service.pojo.UserInfo;
@@ -15,9 +17,11 @@ import com.xfjy.server.pojo.Announcement;
 import com.xfjy.server.pojo.User;
 import com.xfjy.server.utils.UserThreadLocal;
 import com.xfjy.server.vo.Contacts;
+import com.xfjy.server.vo.HuanXinUser;
 import com.xfjy.server.vo.MessageAnnouncement;
 import com.xfjy.server.vo.MessageLike;
 import com.xfjy.server.vo.PageResult;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -38,6 +42,9 @@ public class IMService {
     private UsersApi usersApi;
 
     @Autowired
+    private UserLikeApi userLikeApi;
+
+    @Autowired
     private HuanXinApi huanXinApi;
 
     @Autowired
@@ -49,11 +56,59 @@ public class IMService {
     @Autowired
     private AnnouncementService announcementService;
 
+    @Autowired
+    private SysConfigService sysConfigService;
+
+    /**
+     * IM token 派生盐（token = md5(uid + salt)）。
+     *
+     * <p>默认值与存量已注册账号一致，生产环境通过环境变量 {@code IM_TOKEN_SALT} 覆盖；
+     * 覆盖后存量用户下次取凭证时自动重新注册。</p>
+     */
+    @Value("${im.token-salt:_xfjy}")
+    private String imTokenSalt;
+
+    /** IM 长连接地址，环境变量 {@code IM_WS_URL} 覆盖（默认自建 WuKongIM ws 端口 5200） */
+    @Value("${im.ws-url:ws://192.168.20.133:5200}")
+    private String imWsUrl;
+
+    /**
+     * 获取当前用户的 IM 接入凭证（uid + token + wsUrl + provider）
+     *
+     * <p>token 由服务端派生并注册到 IM 通道（WuKongIM 幂等注册 / 环信 user-level token），
+     * 盐值不出服务端；客户端拿到即可直连，不感知派生规则。</p>
+     */
+    public HuanXinUser getImCredential() {
+        User user = UserThreadLocal.get();
+        String uid = String.valueOf(user.getId());
+        String password = DigestUtils.md5Hex(uid + this.imTokenSalt);
+
+        // 先取 token（WuKongIM 取 token 即注册，幂等）；取不到说明通道侧无此账号（环信需先注册），补注册后重试
+        String token = this.huanXinApi.getUserToken(uid, password);
+        if (StringUtils.isBlank(token)) {
+            this.huanXinApi.registerUser(uid, password);
+            token = this.huanXinApi.getUserToken(uid, password);
+        }
+
+        HuanXinUser credential = new HuanXinUser();
+        credential.setUsername(uid);
+        credential.setToken(token);
+        credential.setProvider(this.sysConfigService.getImProvider());
+        credential.setWsUrl(this.imWsUrl);
+        return credential;
+    }
+
     public Boolean contactUser(Long userId) {
         //需要做2件事：1、保存数据到MongoDB，2、好友关系注册到环信
 
+        User user = UserThreadLocal.get();
+        // FR-IM-02 验收口径：未互相喜欢不得建立会话
+        if (!Boolean.TRUE.equals(this.userLikeApi.isMutualLike(user.getId(), userId))) {
+            return false;
+        }
+
         Users users = new Users();
-        users.setUserId(UserThreadLocal.get().getId());
+        users.setUserId(user.getId());
         users.setFriendId(userId);
 
         // 1、保存数据到MongoDB
@@ -69,71 +124,58 @@ public class IMService {
 
         User user = UserThreadLocal.get();
 
-        List<Users> usersList = null;
-
-        if (StringUtils.isNotEmpty(keyword)) {
-            usersList = this.usersApi.queryAllUsersList(user.getId());
-        } else {
-            PageInfo<Users> pageInfo = this.usersApi.queryUsersList(user.getId(), page, pageSize);
-            usersList = pageInfo.getRecords();
-        }
-
-        List<Long> fUserIds = new ArrayList<>();
+        // 联系人关系存 Mongo、资料存 MySQL，昵称过滤必须先取全量关系再查资料，
+        // 故分页在内存完成（单用户联系人量级为百，可接受）
+        List<Users> usersList = this.usersApi.queryAllUsersList(user.getId());
+        List<Long> friendIds = new ArrayList<>();
         for (Users users : usersList) {
-            fUserIds.add(users.getFriendId());
+            friendIds.add(users.getFriendId());
         }
-
-        //查询用户（好友）的信息
-        UserInfoQueryParam queryParam = new UserInfoQueryParam();
-        queryParam.setUserIds(fUserIds);
-        if (StringUtils.isNotEmpty(keyword)) {
-            queryParam.setNickName(keyword);
-        }
-        List<UserInfo> userInfoList = this.userInfoApi.queryUserInfoList(queryParam);
 
         List<Contacts> contactsList = new ArrayList<>();
+        if (!friendIds.isEmpty()) {
+            UserInfoQueryParam queryParam = new UserInfoQueryParam();
+            queryParam.setUserIds(friendIds);
+            if (StringUtils.isNotEmpty(keyword)) {
+                queryParam.setNickName(keyword);
+            }
+            List<UserInfo> userInfoList = this.userInfoApi.queryUserInfoList(queryParam);
 
-        if(StringUtils.isEmpty(keyword)){
-            for (Users users : usersList) {
+            // 按 userId（业务ID）配对，资料表自增主键 id 不是用户ID
+            for (Long friendId : friendIds) {
                 for (UserInfo userInfo : userInfoList) {
-                    if(users.getFriendId().longValue() == userInfo.getId().longValue()){
-
-                        Contacts contacts = new Contacts();
-                        contacts.setCity(StringUtils.substringBefore(userInfo.getCity(),"-"));
-                        contacts.setUserId(userInfo.getUserId().toString());
-                        contacts.setNickname(userInfo.getNickName());
-                        contacts.setGender(userInfo.getSex().name().toLowerCase());
-                        contacts.setAvatar(userInfo.getLogo());
-                        contacts.setAge(userInfo.getAge());
-
-                        contactsList.add(contacts);
-
+                    if (userInfo.getUserId() != null && userInfo.getUserId().longValue() == friendId.longValue()) {
+                        contactsList.add(toContacts(userInfo));
                         break;
                     }
                 }
             }
-        }else {
-            for (UserInfo userInfo : userInfoList) {
-                Contacts contacts = new Contacts();
-                contacts.setCity(StringUtils.substringBefore(userInfo.getCity(),"-"));
-                contacts.setUserId(userInfo.getUserId().toString());
-                contacts.setNickname(userInfo.getNickName());
-                contacts.setGender(userInfo.getSex().name().toLowerCase());
-                contacts.setAvatar(userInfo.getLogo());
-                contacts.setAge(userInfo.getAge());
-
-                contactsList.add(contacts);
-            }
         }
 
+        int total = contactsList.size();
+        int from = Math.max(0, (page - 1) * pageSize);
+        int to = Math.min(total, from + pageSize);
+        List<Contacts> items = from >= to ? new ArrayList<>() : new ArrayList<>(contactsList.subList(from, to));
+
         PageResult pageResult = new PageResult();
-        pageResult.setPagesize(pageSize);
         pageResult.setPage(page);
-        pageResult.setPages(0);
-        pageResult.setCounts(0);
-        pageResult.setItems(contactsList);
+        pageResult.setPagesize(pageSize);
+        pageResult.setCounts(total);
+        pageResult.setPages(pageSize > 0 ? (int) Math.ceil(total / (double) pageSize) : 0);
+        pageResult.setItems(items);
 
         return pageResult;
+    }
+
+    private Contacts toContacts(UserInfo userInfo) {
+        Contacts contacts = new Contacts();
+        contacts.setCity(StringUtils.substringBefore(userInfo.getCity(), "-"));
+        contacts.setUserId(userInfo.getUserId().toString());
+        contacts.setNickname(userInfo.getNickName());
+        contacts.setGender(userInfo.getSex().name().toLowerCase());
+        contacts.setAvatar(userInfo.getLogo());
+        contacts.setAge(userInfo.getAge());
+        return contacts;
     }
 
     public PageResult queryMessageLikeList(Integer page, Integer pageSize) {

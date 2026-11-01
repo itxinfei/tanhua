@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -53,6 +54,7 @@ public class UserController {
      * 手机号 + 验证码登录/注册
      *
      * <p>风控：同 IP 60s 内最多 10 次（429），连续失败 5 次锁账号 15 分钟（423）</p>
+     * <p>状态码：200 成功 / 401 验证码错误 / 403 已封禁（body 携带 reason）</p>
      */
     @PostMapping("/user/loginVerification")
     public ResponseEntity<Map<String, Object>> loginVerification(@RequestBody Map<String, String> body, HttpServletRequest request) {
@@ -65,9 +67,16 @@ public class UserController {
         }
         Map<String, Object> result = this.userService.loginVerification(phone, body.get("code"));
         if (result == null) {
-            // 登录失败（验证码错误或账号封禁），计入失败次数
+            // 登录失败（验证码错误/已注销），计入失败次数；已注销不暴露账号状态
             this.loginLimitService.recordLoginFailure(phone);
             return ResponseEntity.status(401).build();
+        }
+        if ("FROZEN".equals(result.get("error"))) {
+            // 已封禁：403 + 封禁原因（FR-AUTH-01 验收口径），不计入验证码失败次数
+            Map<String, Object> fail = new HashMap<>();
+            fail.put("error", "FROZEN");
+            fail.put("reason", result.get("reason"));
+            return ResponseEntity.status(403).body(fail);
         }
         this.loginLimitService.recordLoginSuccess(phone);
         return ResponseEntity.ok(result);

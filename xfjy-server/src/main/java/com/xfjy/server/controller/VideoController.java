@@ -20,7 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.Map;
 
 @RestController
-@RequestMapping("smallVideos")
+@RequestMapping("small-videos")
 public class VideoController {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(VideoController.class);
@@ -45,6 +45,13 @@ public class VideoController {
 
     @Autowired
     private PushService pushService;
+
+    /**
+     * 分页大小上限：防止超大 pagesize 拉爆列表接口（热点流候选池仅 100 条，50 已足够）
+     */
+    private int capPageSize(Integer pageSize) {
+        return (pageSize == null || pageSize <= 0) ? 10 : Math.min(pageSize, 50);
+    }
 
     /**
      * 发布小视频
@@ -89,7 +96,7 @@ public class VideoController {
             if (page <= 0) {
                 page = 1;
             }
-            PageResult pageResult = this.videoService.queryVideoList(page, pageSize);
+            PageResult pageResult = this.videoService.queryVideoList(page, capPageSize(pageSize));
             if (null != pageResult) {
                 return ResponseEntity.ok(pageResult);
             }
@@ -109,7 +116,7 @@ public class VideoController {
             if (page <= 0) {
                 page = 1;
             }
-            PageResult pageResult = this.videoService.queryFollowVideoList(page, pageSize);
+            PageResult pageResult = this.videoService.queryFollowVideoList(page, capPageSize(pageSize));
             if (null != pageResult) {
                 return ResponseEntity.ok(pageResult);
             }
@@ -129,7 +136,7 @@ public class VideoController {
             if (page <= 0) {
                 page = 1;
             }
-            PageResult pageResult = this.videoService.queryHotVideoList(page, pageSize);
+            PageResult pageResult = this.videoService.queryHotVideoList(page, capPageSize(pageSize));
             if (null != pageResult) {
                 return ResponseEntity.ok(pageResult);
             }
@@ -149,7 +156,7 @@ public class VideoController {
             if (page <= 0) {
                 page = 1;
             }
-            PageResult pageResult = this.videoService.queryFriendVideoList(page, pageSize);
+            PageResult pageResult = this.videoService.queryFriendVideoList(page, capPageSize(pageSize));
             if (null != pageResult) {
                 return ResponseEntity.ok(pageResult);
             }
@@ -169,7 +176,7 @@ public class VideoController {
             if (page <= 0) {
                 page = 1;
             }
-            PageResult pageResult = this.videoService.queryLocationVideoList(page, pageSize);
+            PageResult pageResult = this.videoService.queryLocationVideoList(page, capPageSize(pageSize));
             if (null != pageResult) {
                 return ResponseEntity.ok(pageResult);
             }

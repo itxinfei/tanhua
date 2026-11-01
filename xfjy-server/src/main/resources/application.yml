@@ -50,7 +50,7 @@ xfjy:
       url: http://127.0.0.1:18085  # 小视频服务（视频/关注作者）
   message:
     service:
-      url: http://127.0.0.1:18086  # 消息/IM服务（环信集成：好友注册/消息下发）
+      url: http://127.0.0.1:18086  # 消息/IM服务（WuKongIM双通道：凭证签发/联系人/会话 + LiveKit 通话Token）
   sso:
     url: http://127.0.0.1:18080
     default:

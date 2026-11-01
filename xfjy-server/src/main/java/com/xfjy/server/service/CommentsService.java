@@ -78,7 +78,7 @@ public class CommentsService {
             Comments comments = new Comments();
 
             comments.setId(record.getId().toHexString());
-            comments.setCreateDate(LocalDateTime.ofInstant(Instant.ofEpochMilli(record.getCreated()), ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("yyyy年MM月dd??HH:mm")));
+            comments.setCreateDate(LocalDateTime.ofInstant(Instant.ofEpochMilli(record.getCreated()), ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("yyyy年MM月dd日 HH:mm")));
             comments.setContent(record.getContent());
 
             for (UserInfo userInfo : userInfoList) {

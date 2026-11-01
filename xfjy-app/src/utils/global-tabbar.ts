@@ -102,6 +102,15 @@ const CSS = `
 
 /** 当前路由（去掉 #/ 前缀与查询串），如 pages/mine/vip */
 function currentRoute(): string {
+  // 优先取 uni-app 运行时页面栈栈顶（navigateTo/switchTab/reLaunch 之后以它为权威来源），
+  // 避免仅依赖 hashchange 在路由已变、事件未触发时底栏“卡在隐藏态”导致二级页 tabbar 消失
+  try {
+    const pages = getCurrentPages();
+    const top = pages[pages.length - 1];
+    if (top && top.route) {
+      return top.route;
+    }
+  } catch (_) { /* 非 H5 或不支持时忽略，走 hash 兜底 */ }
   const hash = location.hash.replace(/^#/, "");
   return hash.split("?")[0].replace(/^\//, "");
 }
@@ -208,6 +217,11 @@ export function installGlobalTabbar(): void {
     });
   });
   observer.observe(document.body, { childList: true, subtree: true });
+
+  // 兜底轮询：极少数情况下 hashchange 未触发（直接改 location、框架内部 pushState、
+  // 或冷启动首帧页面栈尚未就绪），用轻量轮询保证底栏始终与实际页面一致，
+  // 根除“tabbar 莫名消失/不刷新”的问题。refresh 仅切换 display/class，开销极小。
+  setInterval(() => refresh(bar), 400);
 
   refresh(bar);
 }

@@ -23,6 +23,8 @@ import com.xfjy.server.vo.*;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -31,6 +33,8 @@ import java.util.List;
 
 @Service
 public class UsersService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(UsersService.class);
 
     @Autowired
     private UserInfoApi userInfoApi;
@@ -67,7 +71,12 @@ public class UsersService {
 
     /** 短信验证码 Redis key 前缀（与 xfjy-sso 保持一致） */
     private static final String CODE_KEY_PREFIX = "XFJY_SSO_CODE_";
-    /** 开发用万能验证码（与 xfjy-sso 保持一致） */
+    /**
+     * 开发用万能验证码（与 xfjy-sso 保持一致）。
+     *
+     * <p><b>安全债（用户拍板保留，11.7-15）</b>：命中此码可注销任意账号，
+     * 上线前必须移除或改为环境开关；每次命中打 WARN 日志便于排查。</p>
+     */
     private static final String DEV_MASTER_CODE = "123456";
 
     public UserInfoVo queryUserInfo(String userID, String huanxinID) {
@@ -386,6 +395,9 @@ public class UsersService {
 
         // 校验验证码：Redis 中的验证码 或 开发万能验证码
         String cached = this.redisTemplate.opsForValue().get(CODE_KEY_PREFIX + user.getMobile());
+        if (DEV_MASTER_CODE.equals(code)) {
+            LOGGER.warn("使用开发万能验证码注销账号，userId={}（该码上线前必须移除）", user.getId());
+        }
         boolean codeValid = code.equals(cached) || DEV_MASTER_CODE.equals(code);
         if (!codeValid) {
             return false;

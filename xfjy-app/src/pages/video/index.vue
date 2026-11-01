@@ -25,11 +25,13 @@
       @change="onSwiperChange"
     >
       <swiper-item v-for="(video, idx) in displayList" :key="video.id">
-        <view class="video-item">
+        <!-- is-active 仅当前条目：唱片旋转/跑马灯等无限动画只在此条目运行，避免多个动画并发渲染卡顿 -->
+        <view class="video-item" :class="{ 'is-active': idx === swiperIndex }">
           <!-- 当前及相邻 item 常驻 video 节点（±1 窗口），滑入即有缓存节点，避免每次滑动销毁重建原生播放器；远处的 item 退回封面图控制内存 -->
           <template v-if="Math.abs(idx - swiperIndex) <= 1">
             <video
               :id="'vid-' + video.id"
+              :key="video.id + '-' + (videoRetryTick[video.id] || 0)"
               class="video-player"
               :src="video.videoUrl"
               :autoplay="idx === swiperIndex"
@@ -40,7 +42,7 @@
               @timeupdate="idx === swiperIndex ? onTimeUpdate($event) : null"
               @play="onVideoPlay(idx)"
               @pause="onVideoPause(idx)"
-              @error="onVideoError"
+              @error="onVideoError(video)"
             />
             <!-- 余像：窗口内非当前 item 用封面盖住未起播的黑块 -->
             <image
@@ -57,8 +59,20 @@
           <view class="tap-layer" aria-hidden="true" @click="onVideoTap(video, $event)" />
 
           <!-- 中央播放/暂停指示（暂停时显示大播放键：CSS 三角，避免安卓把 ▶ 渲染成 emoji） -->
-          <view v-if="currentId === video.id && !isPlaying" class="center-state" aria-hidden="true">
+          <view v-if="currentId === video.id && !isPlaying && !erroredVideoIds.has(video.id)" class="center-state" aria-hidden="true">
             <view class="play-icon" />
+          </view>
+
+          <!-- 播放失败浮层：点击重试（重挂载 video 节点重新加载） -->
+          <view
+            v-if="video.id === currentId && erroredVideoIds.has(video.id)"
+            class="video-error"
+            role="alert"
+            aria-label="视频加载失败，点击重试"
+            @tap="retryVideo(video)"
+          >
+            <text class="video-error-title">视频加载失败</text>
+            <view class="video-error-retry" aria-hidden="true">点此重试</view>
           </view>
 
           <!-- 双击飞出的爱心（纯装饰动画） -->
@@ -164,6 +178,7 @@
       :visible="commentVisible"
       :video-id="activeCommentVideoId"
       @close="commentVisible = false"
+      @commented="onVideoCommented"
     />
 
     <!-- 底部分享面板（对话框语义 + Esc 关闭 + 焦点管理） -->
@@ -193,7 +208,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, getCurrentInstance } from "vue";
+import { ref, computed, watch, nextTick, getCurrentInstance } from "vue";
 import { onShow, onHide, onShareAppMessage } from "@dcloudio/uni-app";
 import MatchPopup from "@/components/match-popup.vue";
 import {
@@ -349,8 +364,24 @@ function onVideoPause(idx: number) {
   isPlaying.value = false;
 }
 
-function onVideoError() {
-  uni.showToast({ title: "视频加载失败，可上滑再看或稍后重试", icon: "none" });
+/** 播放失败的视频 id 集合（仅当前条目展示重试浮层） */
+const erroredVideoIds = ref(new Set<string>());
+/** 重试计数：变化即重挂载 video 节点，触发重新加载 */
+const videoRetryTick = ref<Record<string, number>>({});
+
+function onVideoError(video: Video) {
+  // 记录所有失败视频（含相邻预加载条目）：滑到该条时 error 不会重发，
+  // 若此处过滤会导致预加载失败的视频滑入后永久黑屏；浮层仅对当前条目展示（见模板条件）
+  erroredVideoIds.value = new Set(erroredVideoIds.value).add(video.id);
+}
+
+/** 点击重试：清除错误态 → bump key 重挂载 video → 重新起播 */
+function retryVideo(video: Video) {
+  const next = new Set(erroredVideoIds.value);
+  next.delete(video.id);
+  erroredVideoIds.value = next;
+  videoRetryTick.value[video.id] = (videoRetryTick.value[video.id] || 0) + 1;
+  nextTick(() => playAt(swiperIndex.value));
 }
 
 /** 空状态文案随频道变化 */
@@ -395,8 +426,13 @@ async function switchChannel(ch: ChannelKey) {
   isPlaying.value = true;
   progress.value = 0;
   const chState = channels[ch];
+  // 切频道统一清空错误态，避免命中缓存数据时残留过期错误浮层
+  erroredVideoIds.value = new Set();
   if (chState.list.value.length === 0) {
     await loadVideos();
+  } else {
+    // 已有数据的频道：autoplay 属性变化在 H5 不会触发播放，需命令式起播首条
+    playAt(0);
   }
 }
 
@@ -477,12 +513,16 @@ function spawnHeart(e: any) {
 }
 
 /**
- * 进度条更新
+ * 进度条更新：timeupdate 触发频率远高于视觉需要（每秒可达数十次），
+ * 仅在整数百分比变化时才写 ref，避免高频触发页面重渲染
  */
 function onTimeUpdate(e: any) {
   const cur = e?.detail?.currentTime || 0;
   const dur = e?.detail?.duration || 0;
-  progress.value = dur > 0 ? Math.min(100, (cur / dur) * 100) : 0;
+  const next = dur > 0 ? Math.min(100, Math.round((cur / dur) * 100)) : 0;
+  if (next !== Math.round(progress.value)) {
+    progress.value = next;
+  }
 }
 
 /**
@@ -494,11 +534,13 @@ async function handleLike(video: Video) {
     if (wasLiked) {
       video.hasLiked = 0;
       video.likeCount = Math.max(0, video.likeCount - 1);
-      await dislikeVideo(video.id);
+      const count = await dislikeVideo(video.id);
+      if (typeof count === "number") video.likeCount = count;
     } else {
       video.hasLiked = 1;
       video.likeCount += 1;
-      await likeVideo(video.id);
+      const count = await likeVideo(video.id);
+      if (typeof count === "number") video.likeCount = count;
     }
   } catch {
     video.hasLiked = wasLiked ? 1 : 0;
@@ -529,6 +571,13 @@ async function handleFocus(video: Video) {
       video.hasFocus = 1;
       await focusVideoUser(video.userId);
     }
+    // 同步所有频道中同一作者的其他视频的关注态（每条 video 是独立对象，不会自动联动）
+    const focused = wasFocused ? 0 : 1;
+    for (const ch of Object.values(channels)) {
+      for (const v of ch.list.value) {
+        if (v.userId === video.userId && v !== video) v.hasFocus = focused;
+      }
+    }
   } catch {
     video.hasFocus = wasFocused ? 1 : 0;
   }
@@ -537,6 +586,12 @@ async function handleFocus(video: Video) {
 function showComments(video: Video) {
   activeCommentVideoId.value = video.id;
   commentVisible.value = true;
+}
+
+/** 抽屉内发表评论成功：同步刷新列表中该视频的评论数 */
+function onVideoCommented() {
+  const target = displayList.value.find((v) => v.id === activeCommentVideoId.value);
+  if (target) target.commentCount += 1;
 }
 
 function openShare(video: Video) {
@@ -569,6 +624,7 @@ async function loadVideos() {
 
   swiperIndex.value = 0;
   loading.value = true;
+  erroredVideoIds.value = new Set();
   try {
     chState.page.value = 1;
     chState.hasMore.value = true;
@@ -791,6 +847,34 @@ onShareAppMessage(() => ({
   }
 }
 
+/* 播放失败浮层 */
+.video-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24rpx;
+  z-index: 7;
+  background: rgba(0, 0, 0, 0.6);
+
+  .video-error-title {
+    font-size: 30rpx;
+    color: #fff;
+    text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.5);
+  }
+
+  .video-error-retry {
+    padding: 16rpx 48rpx;
+    border: 2rpx solid rgba(255, 255, 255, 0.9);
+    border-radius: 999rpx;
+    font-size: 28rpx;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.12);
+  }
+}
+
 /* 双击飞心 */
 .float-heart {
   position: absolute;
@@ -945,7 +1029,6 @@ onShareAppMessage(() => ({
         width: 36rpx;
         height: 36rpx;
         border-radius: 50%;
-        animation: spin 5s linear infinite;
       }
 
       &.disc-paused .disc-img {
@@ -964,10 +1047,19 @@ onShareAppMessage(() => ({
         font-size: 24rpx;
         color: rgba(255, 255, 255, 0.9);
         padding-left: 100%;
-        animation: marquee 8s linear infinite;
       }
     }
   }
+}
+
+/* 唱片旋转/跑马灯仅在当前播放条目运行（顶层选择器：.is-active 挂在 .video-item 上），
+   非当前条目静止，避免多个无限动画并发渲染导致卡顿 */
+.video-item.is-active .disc-img {
+  animation: spin 5s linear infinite;
+}
+
+.video-item.is-active .music-text {
+  animation: marquee 8s linear infinite;
 }
 
 @keyframes marquee {

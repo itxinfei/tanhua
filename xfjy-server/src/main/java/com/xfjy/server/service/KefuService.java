@@ -14,6 +14,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -48,14 +49,18 @@ public class KefuService {
     @Autowired
     private UserInfoApi userInfoApi;
 
+    /** IM token 派生盐，与用户账号一致（见 {@code IMService#getImCredential}） */
+    @Value("${im.token-salt:_xfjy}")
+    private String imTokenSalt;
+
     /**
      * 获取人工客服环信账号 ID
-     * 首次调用时在环信侧幂等注册客服账号（密码规则与用户账号一致：md5(账号 + "_xfjy")）
+     * 首次调用时在环信侧幂等注册客服账号（密码规则与用户账号一致：md5(账号 + 盐)）
      *
      * @return 客服环信账号 ID
      */
     public String getAgentId() {
-        String password = DigestUtils.md5Hex(KEFU_AGENT_ID + "_xfjy");
+        String password = DigestUtils.md5Hex(KEFU_AGENT_ID + this.imTokenSalt);
         try {
             boolean registered = this.huanXinApi.registerUser(KEFU_AGENT_ID, password);
             if (registered) {
@@ -76,7 +81,7 @@ public class KefuService {
      * @return {username, token}；环信不可用时 token 为 null
      */
     public Map<String, String> getAgentCredential() {
-        String password = DigestUtils.md5Hex(KEFU_AGENT_ID + "_xfjy");
+        String password = DigestUtils.md5Hex(KEFU_AGENT_ID + this.imTokenSalt);
         Map<String, String> credential = new HashMap<>();
         credential.put("username", KEFU_AGENT_ID);
         try {

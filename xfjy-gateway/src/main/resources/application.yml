@@ -38,12 +38,12 @@ spring:
             - id: xfjy-server
               uri: lb://xfjy-server
               predicates:
-                - Path=/users/**,/movements/**,/comments/**,/messages/**,/smallVideos/**,/huanxin/**,/baidu/**,/xfjy/**,/admin/**,/test-media/**,/kefu/**,/upload/**
+                - Path=/users/**,/movements/**,/comments/**,/messages/**,/small-videos/**,/baidu/**,/xfjy/**,/admin/**,/test-media/**,/kefu/**,/upload/**
           # 测试素材静态资源：/test-media/** → gateway → server(18081) → file:d:/MyCode/mytanhua/test-assets/
           # 编排层(BFF)决策：前端业务请求统一经 gateway → server(18081)，server 通过 @HttpExchange 契约代理
           # 调用各域服务(user 18090 / match 18082 / circle 18084 / video 18085 / message 18086)，
           # gateway 不直连各域服务，避免跨域聚合逻辑散落到前端。路由已切换 lb://xfjy-server 服务发现。
-          # 辅助服务：recommend 18087(评分计算) / elasticsearch 18088(附近的人ES查询)，仅内部调用不走网关。
+          # 辅助服务：recommend(无独立端口，内部调用) / elasticsearch 18088(附近的人ES查询)，仅内部调用不走网关。
 
 # 内部服务鉴权 Token（与域服务保持一致，网关转发时自动注入 X-Internal-Token 头）
 internal:

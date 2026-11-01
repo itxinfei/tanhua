@@ -1,0 +1,165 @@
+# ============================================================
+# 心飞交友 - 运维操作（快速 stop / restart / rollback / status / logs）
+#
+# 职责：纯 docker compose 操作，不编译、不打包、不连数据库。
+#       适合紧急停止某服务、重启、查看日志、回滚到上一个版本。
+#
+# 触发方式：仅手动（Gitea Actions → Run workflow）
+#
+# 手动输入项：
+#   action    : stop | restart | status | logs | rollback
+#   services  : 空格分隔的服务名；留空 = 全部后端
+#   target    : rollback 专用：回滚到指定镜像 tag（留空 = 上一个）
+#
+# 与 deploy.yml 的区别：
+#   - deploy.yml 需要编译打包 + 密码文件，适合部署新版本
+#   - ops.yml 不需要编译，秒级执行，适合紧急运维
+#   - ops.yml 不生成 deploy/.env，依赖已有 .env 或容器内配置
+# ============================================================
+name: ops
+
+on:
+  workflow_dispatch:
+
+inputs:
+  action:
+    description: '操作：stop | restart | status | logs | rollback'
+    required: true
+    default: 'status'
+  services:
+    description: '服务名，空格分隔；留空 = 全部后端微服务'
+    required: false
+    default: ''
+  target:
+    description: 'rollback 专用：回滚到指定镜像 tag（如 v1.0.2）；留空 = 上一个已部署版本'
+    required: false
+    default: ''
+
+env:
+  ACTION: ${{ github.event.inputs.action || 'status' }}
+  TARGET_SERVICES: ${{ github.event.inputs.services || '' }}
+  ROLLBACK_TARGET: ${{ github.event.inputs.target || '' }}
+  CI_STATE_DIR: /opt/ci-state
+
+jobs:
+  ops:
+    runs-on: ubuntu-latest
+    container:
+      image: xfjy/ci:latest
+      volumes:
+        - /home/itxinfei/.cache/ci-state:/opt/ci-state
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 预检：确保 deploy/.env 存在 ──────────────────────
+      - name: 预检环境
+        run: |
+          if [ ! -f deploy/.env ]; then
+            echo "[WARN] deploy/.env 不存在，部分操作可能需要密码"
+            echo "       stop / restart / status / logs 不需要密码"
+            echo "       rollback 需要 IMAGE_TAG 环境变量"
+          fi
+          chmod +x deploy/manage.sh
+
+      # ── stop ────────────────────────────────────────────
+      - name: 停止服务
+        if: ${{ env.ACTION == 'stop' || env.ACTION == 'down' }}
+        run: |
+          TARGETS="${TARGET_SERVICES}"
+          [ -z "${TARGETS}" ] && TARGETS="backend"
+          echo "[ops] 停止: ${TARGETS}"
+          bash deploy/manage.sh stop ${TARGETS}
+
+      # ── restart ─────────────────────────────────────────
+      - name: 重启服务
+        if: ${{ env.ACTION == 'restart' }}
+        run: |
+          TARGETS="${TARGET_SERVICES}"
+          [ -z "${TARGETS}" ] && TARGETS="backend"
+          echo "[ops] 重启: ${TARGETS}"
+          bash deploy/manage.sh restart ${TARGETS}
+
+      # ── status ───────────────────────────────────────────
+      - name: 查看状态
+        if: ${{ env.ACTION == 'status' || env.ACTION == 'ps' }}
+        run: |
+          bash deploy/manage.sh status
+
+      # ── logs ────────────────────────────────────────────
+      - name: 查看日志
+        if: ${{ env.ACTION == 'logs' }}
+        run: |
+          TARGETS="${TARGET_SERVICES}"
+          if [ -z "${TARGETS}" ]; then
+            echo "[ERROR] logs 需要指定服务名，例如：services=xfjy-server"
+            exit 1
+          fi
+          bash deploy/manage.sh logs ${TARGETS}
+
+      # ── rollback ────────────────────────────────────────
+      # 回滚原理：读取上次部署记录的镜像 tag，用该 tag 重新 up -d
+      # 记录文件：$CI_STATE_DIR/last-deploy-tag
+      - name: 回滚到指定版本
+        if: ${{ env.ACTION == 'rollback' }}
+        run: |
+          set -euo pipefail
+
+          # 确定回滚目标 tag
+          ROLLBACK_TAG="${ROLLBACK_TARGET}"
+          if [ -z "${ROLLBACK_TAG}" ]; then
+            # 从上次部署记录读取
+            LAST_TAG_FILE="${CI_STATE_DIR}/last-deploy-tag"
+            if [ -f "${LAST_TAG_FILE}" ]; then
+              ROLLBACK_TAG="$(cat "${LAST_TAG_FILE}")"
+              echo "[rollback] 未指定 target，使用上次部署 tag: ${ROLLBACK_TAG}"
+            else
+              echo "[ERROR] 未指定 target 且无上次部署记录"
+              echo "        请在 target 字段填入要回滚的镜像 tag（如 v1.0.2）"
+              exit 1
+            fi
+          fi
+
+          echo "[rollback] 目标版本: ${ROLLBACK_TAG}"
+
+          # 确定回滚范围
+          TARGETS="${TARGET_SERVICES}"
+          [ -z "${TARGETS}" ] && TARGETS="backend"
+
+          # 设置镜像 tag 环境变量
+          export IMAGE_TAG="${ROLLBACK_TAG}"
+
+          # 检查 deploy/.env 是否存在
+          if [ ! -f deploy/.env ]; then
+            echo "[WARN] deploy/.env 不存在，尝试从 Gitea Secrets 生成"
+            MYSQL_PASSWORD="${MYSQL_PASSWORD:-}"
+            NEO4J_PASSWORD="${NEO4J_PASSWORD:-}"
+            MINIO_ACCESS_KEY="${MINIO_ACCESS_KEY:-}"
+            MINIO_SECRET_KEY="${MINIO_SECRET_KEY:-}"
+            MYSQL_USERNAME="${MYSQL_USERNAME:-root}"
+            if [ -z "${MYSQL_PASSWORD}" ]; then
+              echo "[ERROR] 无 deploy/.env 且未配置 Secrets.MYSQL_PASSWORD"
+              exit 1
+            fi
+            umask 077
+            {
+              printf 'MYSQL_USERNAME=%s\n' "${MYSQL_USERNAME}"
+              printf 'MYSQL_PASSWORD=%s\n' "${MYSQL_PASSWORD}"
+              printf 'NEO4J_PASSWORD=%s\n' "${NEO4J_PASSWORD}"
+              printf 'MINIO_ACCESS_KEY=%s\n' "${MINIO_ACCESS_KEY}"
+              printf 'MINIO_SECRET_KEY=%s\n' "${MINIO_SECRET_KEY}"
+              printf 'IMAGE_TAG=%s\n' "${IMAGE_TAG}"
+            } > deploy/.env
+          fi
+
+          # 执行回滚：用指定 tag 重新部署
+          echo "[rollback] 重建镜像并启动: ${TARGETS} @ ${ROLLBACK_TAG}"
+          bash deploy/manage.sh deploy ${TARGETS}
+
+          echo "[rollback] 完成"
+
+      # ── 清理 ─────────────────────────────────────────────
+      - name: 清理临时文件
+        if: ${{ always() }}
+        run: rm -f deploy/.env

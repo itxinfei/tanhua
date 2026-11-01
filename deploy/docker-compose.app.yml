@@ -96,7 +96,7 @@ services:
       context: build/xfjy-user-service
       dockerfile: Dockerfile
     pull_policy: never
-    image: xfjy/xfjy-user-service:latest
+    image: xfjy/xfjy-user-service:${IMAGE_TAG:-latest}
     container_name: xfjy-user-service
     networks:
       - xfjy-app-net
@@ -113,7 +113,7 @@ services:
       context: build/xfjy-circle-service
       dockerfile: Dockerfile
     pull_policy: never
-    image: xfjy/xfjy-circle-service:latest
+    image: xfjy/xfjy-circle-service:${IMAGE_TAG:-latest}
     container_name: xfjy-circle-service
     networks:
       - xfjy-app-net
@@ -130,7 +130,7 @@ services:
       context: build/xfjy-video-service
       dockerfile: Dockerfile
     pull_policy: never
-    image: xfjy/xfjy-video-service:latest
+    image: xfjy/xfjy-video-service:${IMAGE_TAG:-latest}
     container_name: xfjy-video-service
     networks:
       - xfjy-app-net
@@ -147,7 +147,7 @@ services:
       context: build/xfjy-match-service
       dockerfile: Dockerfile
     pull_policy: never
-    image: xfjy/xfjy-match-service:latest
+    image: xfjy/xfjy-match-service:${IMAGE_TAG:-latest}
     container_name: xfjy-match-service
     networks:
       - xfjy-app-net
@@ -164,7 +164,7 @@ services:
       context: build/xfjy-message-service
       dockerfile: Dockerfile
     pull_policy: never
-    image: xfjy/xfjy-message-service:latest
+    image: xfjy/xfjy-message-service:${IMAGE_TAG:-latest}
     container_name: xfjy-message-service
     networks:
       - xfjy-app-net
@@ -232,7 +232,7 @@ services:
       context: build/xfjy-pay-service
       dockerfile: Dockerfile
     pull_policy: never
-    image: xfjy/xfjy-pay-service:latest
+    image: xfjy/xfjy-pay-service:${IMAGE_TAG:-latest}
     container_name: xfjy-pay-service
     networks:
       - xfjy-app-net

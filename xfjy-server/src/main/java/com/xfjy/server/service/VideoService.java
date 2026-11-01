@@ -28,8 +28,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class VideoService {
@@ -128,8 +130,20 @@ public class VideoService {
                 }
 
                 List<Video> videoList = this.videoApi.queryVideoListByPids(vidList);
+                // Mongo in 查询不保证返回顺序，按推荐 Redis 列表给出的顺序重排，避免推荐排序被打乱
+                Map<Long, Video> videoById = new java.util.HashMap<>();
+                for (Video v : videoList) {
+                    videoById.put(v.getVid(), v);
+                }
+                List<Video> ordered = new ArrayList<>();
+                for (Long vid : vidList) {
+                    Video v = videoById.get(vid);
+                    if (v != null) {
+                        ordered.add(v);
+                    }
+                }
                 pageInfo = new PageInfo<>();
-                pageInfo.setRecords(videoList);
+                pageInfo.setRecords(ordered);
             }
         }
 
@@ -167,6 +181,15 @@ public class VideoService {
             commentCountMap = Collections.emptyMap();
         }
 
+        // 关注态以真实关注关系为准（其他页面关注/Redis 键过期也能正确显示），Redis 仅作降级兜底
+        Set<Long> followedIds = null;
+        try {
+            List<Long> followIdList = this.videoApi.queryFollowUserIds(userId);
+            followedIds = followIdList == null ? new HashSet<>() : new HashSet<>(followIdList);
+        } catch (Exception e) {
+            LOGGER.warn("查询用户关注列表失败，关注态降级为 Redis 键判断", e);
+        }
+
         for (Video record : records) {
             VideoVo videoVo = new VideoVo();
 
@@ -181,9 +204,13 @@ public class VideoService {
             Long commentCount = commentCountMap.get(videoVo.getId());
             videoVo.setCommentCount(commentCount == null ? 0 : commentCount.intValue());
 
-            // 是否关注：查询 Redis 中已记录的关注关系
-            String focusKey = "VIDEO_FOLLOW_USER_" + userId + "_" + record.getUserId();
-            videoVo.setHasFocus(this.redisTemplate.hasKey(focusKey) ? 1 : 0);
+            // 是否关注：优先真实关注关系，查询失败时降级 Redis 已记录的关注键
+            if (followedIds != null) {
+                videoVo.setHasFocus(followedIds.contains(record.getUserId()) ? 1 : 0);
+            } else {
+                String focusKey = "VIDEO_FOLLOW_USER_" + userId + "_" + record.getUserId();
+                videoVo.setHasFocus(this.redisTemplate.hasKey(focusKey) ? 1 : 0);
+            }
 
             String likeUserCommentKey = "QUANZI_COMMENT_LIKE_USER_" + userId + "_" + videoVo.getId();
             videoVo.setHasLiked(this.redisTemplate.hasKey(likeUserCommentKey) ? 1 : 0); //是否点赞
@@ -278,16 +305,21 @@ public class VideoService {
             return pageResult;
         }
 
-        // 按点赞数降序排序（Redis key: QUANZI_COMMENT_LIKE_{videoId}）
-        records.sort((a, b) -> {
-            String keyA = "QUANZI_COMMENT_LIKE_" + a.getId().toHexString();
-            String keyB = "QUANZI_COMMENT_LIKE_" + b.getId().toHexString();
-            String valA = this.redisTemplate.opsForValue().get(keyA);
-            String valB = this.redisTemplate.opsForValue().get(keyB);
-            long likeA = valA != null ? Long.parseLong(valA) : 0;
-            long likeB = valB != null ? Long.parseLong(valB) : 0;
-            return Long.compare(likeB, likeA);
-        });
+        // 一次 multiGet 批量读出各视频的点赞数（Redis key: QUANZI_COMMENT_LIKE_{videoId}），再内存排序，
+        // 避免比较器/循环内逐条 GET 产生 100 次串行网络往返
+        List<String> likeKeys = new ArrayList<>();
+        for (Video record : records) {
+            likeKeys.add("QUANZI_COMMENT_LIKE_" + record.getId().toHexString());
+        }
+        List<String> likeValues = this.redisTemplate.opsForValue().multiGet(likeKeys);
+        Map<String, Long> likeCountMap = new java.util.HashMap<>();
+        for (int i = 0; i < likeKeys.size(); i++) {
+            String val = likeValues != null && i < likeValues.size() ? likeValues.get(i) : null;
+            likeCountMap.put(likeKeys.get(i), val != null ? Long.parseLong(val) : 0L);
+        }
+        records.sort((a, b) -> Long.compare(
+                likeCountMap.getOrDefault("QUANZI_COMMENT_LIKE_" + b.getId().toHexString(), 0L),
+                likeCountMap.getOrDefault("QUANZI_COMMENT_LIKE_" + a.getId().toHexString(), 0L)));
 
         // 分页截取
         int startIndex = (page - 1) * pageSize;

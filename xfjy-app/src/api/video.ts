@@ -39,7 +39,7 @@ export interface PublishVideoParam {
 
 /**
  * 发布小视频（封面图 + 视频文件上传）
- * 对接后端: POST /smallVideos（multipart/form-data）
+ * 对接后端: POST /small-videos（multipart/form-data）
  * 后端接收两个字段: videoThumbnail（封面图）、videoFile（视频文件）
  *
  * @param param 封面图本地路径、视频本地路径
@@ -53,7 +53,7 @@ export function publishVideo(param: PublishVideoParam): Promise<void> {
     }
 
     uni.uploadFile({
-      url: BASE_URL + "/smallVideos",
+      url: BASE_URL + "/small-videos",
       files: [
         { name: "videoThumbnail", uri: param.thumbnailPath },
         { name: "videoFile", uri: param.videoPath },
@@ -96,115 +96,115 @@ export function publishVideo(param: PublishVideoParam): Promise<void> {
 
 /**
  * 查询小视频列表（推荐排序）
- * 对接后端: GET /smallVideos
+ * 对接后端: GET /small-videos
  */
 export function getVideoList(params: PageParam): Promise<PageResult<Video>> {
-  return get<PageResult<Video>>("/smallVideos", params as any);
+  return get<PageResult<Video>>("/small-videos", params as any);
 }
 
 /**
  * 查询「关注」流视频（仅当前登录用户关注的人发布的视频）
- * 对接后端: GET /smallVideos/focus
+ * 对接后端: GET /small-videos/focus
  */
 export function getFollowVideoList(params: PageParam): Promise<PageResult<Video>> {
-  return get<PageResult<Video>>("/smallVideos/focus", params as any);
+  return get<PageResult<Video>>("/small-videos/focus", params as any);
 }
 
 /**
  * 查询「热点」流视频（按点赞数排序）
- * 对接后端: GET /smallVideos/hot
+ * 对接后端: GET /small-videos/hot
  */
 export function getHotVideoList(params: PageParam): Promise<PageResult<Video>> {
-  return get<PageResult<Video>>("/smallVideos/hot", params as any);
+  return get<PageResult<Video>>("/small-videos/hot", params as any);
 }
 
 /**
  * 查询「朋友」流视频（当前用户关注的作者发布的视频）
- * 对接后端: GET /smallVideos/friend
+ * 对接后端: GET /small-videos/friend
  */
 export function getFriendVideoList(params: PageParam): Promise<PageResult<Video>> {
-  return get<PageResult<Video>>("/smallVideos/friend", params as any);
+  return get<PageResult<Video>>("/small-videos/friend", params as any);
 }
 
 /**
  * 查询「定位」流视频（有地理位置信息的视频）
- * 对接后端: GET /smallVideos/location
+ * 对接后端: GET /small-videos/location
  */
 export function getLocationVideoList(params: PageParam): Promise<PageResult<Video>> {
-  return get<PageResult<Video>>("/smallVideos/location", params as any);
+  return get<PageResult<Video>>("/small-videos/location", params as any);
 }
 
 /**
  * 视频点赞
- * 对接后端: POST /smallVideos/{id}/like
+ * 对接后端: POST /small-videos/{id}/like
  *
  * @returns 最新点赞数
  */
 export function likeVideo(id: string): Promise<number> {
-  return post<number>(`/smallVideos/${id}/like`);
+  return post<number>(`/small-videos/${id}/like`);
 }
 
 /**
  * 取消视频点赞
- * 对接后端: POST /smallVideos/{id}/dislike
+ * 对接后端: POST /small-videos/{id}/dislike
  *
  * @returns 最新点赞数
  */
 export function dislikeVideo(id: string): Promise<number> {
-  return post<number>(`/smallVideos/${id}/dislike`);
+  return post<number>(`/small-videos/${id}/dislike`);
 }
 
 /**
  * 查询视频评论列表
- * 对接后端: GET /smallVideos/{id}/comments
+ * 对接后端: GET /small-videos/{id}/comments
  */
 export function getVideoComments(
   videoId: string,
   params: PageParam
 ): Promise<PageResult<Comment>> {
-  return get<PageResult<Comment>>(`/smallVideos/${videoId}/comments`, params as any);
+  return get<PageResult<Comment>>(`/small-videos/${videoId}/comments`, params as any);
 }
 
 /**
  * 发表视频评论
- * 对接后端: POST /smallVideos/{id}/comments
+ * 对接后端: POST /small-videos/{id}/comments
  */
 export function publishVideoComment(videoId: string, comment: string): Promise<void> {
-  return post<void>(`/smallVideos/${videoId}/comments`, { comment });
+  return post<void>(`/small-videos/${videoId}/comments`, { comment });
 }
 
 /**
  * 视频评论点赞
- * 对接后端: POST /smallVideos/comments/{id}/like
+ * 对接后端: POST /small-videos/comments/{id}/like
  *
  * @returns 最新点赞数
  */
 export function likeVideoComment(id: string): Promise<number> {
-  return post<number>(`/smallVideos/comments/${id}/like`);
+  return post<number>(`/small-videos/comments/${id}/like`);
 }
 
 /**
  * 取消视频评论点赞
- * 对接后端: POST /smallVideos/comments/{id}/dislike
+ * 对接后端: POST /small-videos/comments/{id}/dislike
  *
  * @returns 最新点赞数
  */
 export function dislikeVideoComment(id: string): Promise<number> {
-  return post<number>(`/smallVideos/comments/${id}/dislike`);
+  return post<number>(`/small-videos/comments/${id}/dislike`);
 }
 
 /**
  * 关注视频作者
- * 对接后端: POST /smallVideos/{id}/userFocus
+ * 对接后端: POST /small-videos/{id}/userFocus
  */
 export function focusVideoUser(userId: string): Promise<void> {
-  return post<void>(`/smallVideos/${userId}/userFocus`);
+  return post<void>(`/small-videos/${userId}/userFocus`);
 }
 
 /**
  * 取消关注视频作者
- * 对接后端: POST /smallVideos/{id}/userUnFocus
+ * 对接后端: POST /small-videos/{id}/userUnFocus
  */
 export function unfocusVideoUser(userId: string): Promise<void> {
-  return post<void>(`/smallVideos/${userId}/userUnFocus`);
+  return post<void>(`/small-videos/${userId}/userUnFocus`);
 }

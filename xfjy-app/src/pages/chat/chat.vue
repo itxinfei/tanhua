@@ -103,16 +103,18 @@ import { ref, nextTick, onUnmounted } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
 import { useUserStore } from "@/store/user";
-import { getHuanXinUser, uploadChatImage, uploadChatAudio, getContacts } from "@/api/chat";
+import { uploadChatImage, uploadChatAudio, getContacts } from "@/api/chat";
 import { getUserProfile } from "@/api/mine";
 import {
-  loginEasemob,
+  loginIMDirect,
+  loginIM,
+  logoutIM,
   onMessageReceived,
   sendTextMessage,
   sendStructuredMessage,
   getChatHistory,
   type ReceivedMessage,
-} from "@/utils/easemob";
+} from "@/utils/wukongim";
 
 /** 默认头像路径 */
 const DEFAULT_AVATAR = "/static/logo/logo-icon-transparent.png";
@@ -509,12 +511,10 @@ onLoad(async (options: any) => {
       .catch(() => {});
   }
 
-  // 环信 SDK 登录 → 注册消息接收 → 拉历史
+  // WuKongIM 直连登录 → 注册消息接收 → 拉历史
   try {
-    const credential = await getHuanXinUser();
-    if (credential.username && credential.token) {
-      const ok = await loginEasemob(credential.username, credential.token);
-      if (ok) {
+    const ok = await loginIMDirect(String(userId.value));
+    if (ok) {
         // 先注册消息到达回调再拉历史：历史是最后一次性赋值的，
         // 在途实时消息先进 pending 缓冲，避免注册晚于拉取导致消息丢失
         const pending: ReceivedMessage[] = [];
@@ -528,7 +528,8 @@ onLoad(async (options: any) => {
         });
 
         const history = await getChatHistory(userId.value);
-        const myId = credential.username;
+        // WuKongIM 直连登录后无凭证对象，我的 uid 即当前登录用户 ID（消息归属判断用）
+        const myId = String(userStore.userInfo?.id ?? "");
         const historyItems: Message[] = history.map((msg, i) => ({
           id: `hist-${i}-${msg.time}`,
           type: msg.type,
@@ -551,7 +552,6 @@ onLoad(async (options: any) => {
         historyLoaded.value = true;
         scrollToBottom();
       }
-    }
   } catch {
     // 环信登录失败静默降级（可发但不达，列表为空）
   }

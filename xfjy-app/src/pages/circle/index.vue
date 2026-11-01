@@ -8,7 +8,7 @@
         role="tab"
         :checked="topTab === 'circle'"
         label="圈子"
-        @tap="topTab = 'circle'"
+        @tap="switchTopTab('circle')"
       >圈子</a11y-button>
       <a11y-button
         class="seg"
@@ -16,7 +16,7 @@
         role="tab"
         :checked="topTab === 'message'"
         label="消息"
-        @tap="topTab = 'message'"
+        @tap="switchTopTab('message')"
       >
         消息
         <view v-if="totalUnread > 0" class="seg-badge" aria-hidden="true">{{ totalUnread > 99 ? '99+' : totalUnread }}</view>
@@ -146,7 +146,7 @@ import { useCircleStore, CIRCLE_NEED_REFRESH_KEY } from "@/store/circle";
 import type { Movement } from "@/api/circle";
 import { getContacts, type Contact } from "@/api/chat";
 import { useChatStore, type NoticeType } from "@/store/chat";
-import { loginEasemob, getConversations } from "@/utils/easemob";
+import { loginIM, getConversations } from "@/utils/wukongim";
 
 const circleStore = useCircleStore();
 const chatStore = useChatStore();
@@ -279,7 +279,7 @@ const totalUnread = computed(() =>
 async function initEasemobAndMerge(): Promise<void> {
   try {
     const credential = await chatStore.loadHuanXinUser();
-    const ok = await loginEasemob(credential.username, credential.token);
+    const ok = await loginIM(credential.username, credential.token, credential.wsUrl);
     if (!ok) return;
     const sessions = await getConversations();
     const sessionMap = new Map(sessions.map((s) => [s.conversationId, s]));
@@ -316,6 +316,16 @@ async function loadMessages(): Promise<void> {
 
 function goNotifications(type: string): void {
   uni.navigateTo({ url: "/pages/chat/notifications?type=" + type });
+}
+
+/** 顶级分区切换：切到消息分区时立即拉取联系人/会话与通知未读（onShow 只覆盖首次展示） */
+function switchTopTab(tab: "circle" | "message"): void {
+  if (topTab.value === tab) return;
+  topTab.value = tab;
+  if (tab === "message") {
+    loadMessages();
+    chatStore.loadNoticeCounts();
+  }
 }
 
 function goChatDetail(contact: ChatListItem): void {

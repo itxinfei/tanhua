@@ -1,10 +1,14 @@
 import { get, post, upload } from "@/utils/request";
 import type { PageResult, PageParam } from "@/api/circle";
 
-/** 环信用户凭证（SDK 5.x token 登录用） */
+/** IM 用户凭证（SDK 登录用） */
 export interface HuanXinUser {
   username: string;
   token: string;
+  /** IM 通道：wukongim（默认）/ huanxin */
+  provider?: string;
+  /** 长连接地址，由服务端下发 */
+  wsUrl?: string;
 }
 
 /** 聊天联系人 */
@@ -37,12 +41,12 @@ export interface MessageAnnouncement {
 }
 
 /**
- * 获取当前用户的环信账号凭证
- * 对接后端: GET /huanxin/user
- * 后端已用环信用户名密码换取用户级 token，前端直接用 token 登录 SDK
+ * @deprecated 已废弃：HuanXinController 已删除，App.vue/chat页面改用 loginIMDirect 直连 WuKongIM。
+ * 本函数仅保留供历史参考，无任何调用方。
+ * 原路径 GET /huanxin/user 已下线；现 WuKongIM token 由前端按 userId 本地派生（参见 wukongim.ts）
  */
 export function getHuanXinUser(): Promise<HuanXinUser> {
-  return get<HuanXinUser>("/huanxin/user");
+  return get<HuanXinUser>("/messages/im/credential");
 }
 
 /**

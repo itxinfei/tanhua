@@ -5,9 +5,9 @@ import { installAuthGuard } from "@/utils/auth-guard";
 import { installGlobalTabbar } from "@/utils/global-tabbar";
 // #endif
 import { getToken } from "@/utils/request";
-import { getHuanXinUser } from "@/api/chat";
-import { loginEasemob, isEasemobLoggedIn, onMatchReceived } from "@/utils/easemob";
+import { loginIM, isIMLoggedIn, onMatchReceived } from "@/utils/wukongim";
 import { useMatchStore } from "@/store/match";
+import { useUserStore } from "@/store/user";
 
 onLaunch(() => {
   // 安装全局登录路由守卫（需先于任何页面导航）
@@ -23,7 +23,7 @@ onLaunch(() => {
     uni.reLaunch({ url: "/pages/auth/login" });
   }
 
-  // 全局监听环信匹配消息：互喜时后端透传，任意页面实时弹 "It's a Match"
+  // 全局监听 WuKongIM 匹配消息：互喜时后端透传，任意页面实时弹 "It's a Match"
   const matchStore = useMatchStore();
   onMatchReceived((event) => {
     matchStore.showMatchPopup({
@@ -35,17 +35,15 @@ onLaunch(() => {
 });
 
 onShow(() => {
-  // 全局环信登录（幂等）：保证任意页面都能实时收到匹配消息
-  if (!getToken() || isEasemobLoggedIn()) return;
-  getHuanXinUser()
-    .then((credential) => {
-      if (credential.username && credential.token) {
-        return loginEasemob(credential.username, credential.token);
-      }
-      return false;
-    })
+  // WuKongIM 登录（幂等）：前端直连 WuKongIM，无需后端 token 端点
+  if (!getToken() || isIMLoggedIn()) return;
+  const userStore = useUserStore();
+  const uid = String(userStore.userInfo?.id || "");
+  if (!uid) return;
+  // WuKongIM 直连模式：token 由前端按 userId 本地签发（与 wukongim.ts 同机制）
+  loginIM(uid, `xfjy_${uid}_im_token`)
     .catch(() => {
-      // 登录失败静默降级：聊天相关功能按原有页面级逻辑兜底
+      // 登录失败静默降级：聊天功能在会话页级逻辑兜底
     });
 });
 

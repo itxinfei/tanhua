@@ -1,7 +1,8 @@
 <template>
   <view class="post-detail">
     <!-- 动态内容 -->
-    <view class="post-card">
+    <!-- 动态主体：接口失败 post=null 时不渲染，避免读 null 属性崩溃（评论区仍可用） -->
+    <view v-if="post" class="post-card">
       <view class="post-header">
         <image lazy-load class="avatar" :src="post.avatar" mode="aspectFill" :aria-label="`${post.nickname} 的头像`" />
         <view class="user-info">

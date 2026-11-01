@@ -49,26 +49,26 @@ export const useUserStore = defineStore("user", () => {
 
   /**
    * 全量登出（退出登录/注销账号统一入口）：
-   * 清空各业务 store + 断开环信连接 + 清 token 并回登录页。
+   * 清空各业务 store + 断开 WuKongIM 连接 + 清 token 并回登录页。
    * 缺一步都会造成换账号后残留旧账号的会话/数据
    */
   async function signOutAll(): Promise<void> {
-    const [{ useMatchStore }, { useChatStore }, { useCircleStore }, { useSystemStore }, easemob] =
+    const [{ useMatchStore }, { useChatStore }, { useCircleStore }, { useSystemStore }, im] =
       await Promise.all([
         import("@/store/match"),
         import("@/store/chat"),
         import("@/store/circle"),
         import("@/store/system"),
-        import("@/utils/easemob"),
+        import("@/utils/wukongim"),
       ]);
     useMatchStore().clear();
     useChatStore().clear();
     useCircleStore().clear();
     useSystemStore().clear();
     try {
-      await easemob.logoutEasemob();
+      await im.logoutIM();
     } catch {
-      // 环信登出失败不阻断本地清理
+      // IM 登出失败不阻断本地清理
     }
     logout();
   }

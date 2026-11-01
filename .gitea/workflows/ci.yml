@@ -1,0 +1,83 @@
+# ============================================================
+# 心飞交友 - CI 质量门禁
+#
+# 职责：push / MR 触发，只做代码质量检查，不部署。
+#   1. 后端：mvn test-compile 编译验证（所有模块，确保不破坏编译）
+#   2. 前端 admin：vue-tsc 类型检查
+#   3. 前端 app：vue-tsc 类型检查
+#
+# 与 deploy.yml 的关系：
+#   - ci.yml 是快速门禁（~3min），跑不过说明代码有问题
+#   - deploy.yml 是部署流水线（~10min+），push to master 后自动触发
+#   - 两者独立运行，deploy 不等待 ci 结果（Gitea 无 workflow 依赖机制）
+#   - 实际使用中：ci 红了就别 push master，先修
+# ============================================================
+name: ci
+
+on:
+  push:
+  pull_request:
+
+env:
+  MVN_ARGS: "-B -ntp -s deploy/ci/settings.xml -Dmaven.repo.local=/root/.m2/repository"
+
+jobs:
+  # ── 后端编译验证 ──────────────────────────────────────────
+  backend:
+    runs-on: ubuntu-latest
+    container:
+      image: xfjy/ci:latest
+      volumes:
+        - /home/itxinfei/.cache/m2:/root/.m2/repository
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: 编译所有模块（test-compile，跳过测试执行）
+        run: |
+          mvn ${MVN_ARGS} test-compile -DskipTests -T 1C
+          echo "[OK] 全部 12 个 Maven 模块编译通过"
+
+  # ── 前端 admin 类型检查 ───────────────────────────────────
+  frontend-admin:
+    runs-on: ubuntu-latest
+    container:
+      image: xfjy/ci:latest
+      volumes:
+        - /home/itxinfei/.cache/npm:/root/.npm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: 安装依赖
+        run: |
+          cd xfjy-admin
+          npm ci --prefer-offline
+
+      - name: 类型检查（vue-tsc）
+        run: |
+          cd xfjy-admin
+          npx vue-tsc --noEmit
+          echo "[OK] xfjy-admin 类型检查通过"
+
+  # ── 前端 app 类型检查 ─────────────────────────────────────
+  frontend-app:
+    runs-on: ubuntu-latest
+    container:
+      image: xfjy/ci:latest
+      volumes:
+        - /home/itxinfei/.cache/npm:/root/.npm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: 安装依赖
+        run: |
+          cd xfjy-app
+          npm ci --prefer-offline
+
+      - name: 类型检查（vue-tsc）
+        run: |
+          cd xfjy-app
+          npm run type-check
+          echo "[OK] xfjy-app 类型检查通过"

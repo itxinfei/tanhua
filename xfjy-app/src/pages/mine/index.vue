@@ -211,12 +211,12 @@ onShow(() => {
 .mine-page {
   min-height: calc(100vh - var(--window-bottom, 0px));
   background: var(--bg-sub);
-  padding-bottom: calc(var(--window-bottom, 0px) + 40rpx);
+  padding-bottom: calc(var(--window-bottom, 0px) + 24rpx);
 }
 
 .header {
   background: linear-gradient(180deg, var(--color-primary-deep) 0%, var(--color-primary) 100%);
-  padding: 0 32rpx 24rpx;
+  padding: 0 32rpx 16rpx;
   border-radius: 0 0 40rpx 40rpx;
   position: relative;
   overflow: hidden;
@@ -321,7 +321,7 @@ onShow(() => {
   .stats-row {
     display: flex;
     justify-content: space-around;
-    margin-top: 24rpx;
+    margin-top: 16rpx;
     background: rgba(255, 255, 255, 0.15);
     border-radius: 20rpx;
     padding: 20rpx 0;
@@ -351,8 +351,8 @@ onShow(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: 24rpx 32rpx;
-  padding: 28rpx 32rpx;
+  margin: 16rpx 32rpx;
+  padding: 20rpx 32rpx;
   background: linear-gradient(135deg, #1a1a2e, #2c2c2c, #4a3b2a);
   border-radius: 24rpx;
   border: 2rpx solid rgba(255, 215, 0, 0.6);
@@ -389,7 +389,7 @@ onShow(() => {
 }
 
 .menu-group {
-  margin: 0 32rpx 24rpx;
+  margin: 0 32rpx 16rpx;
   background: var(--bg-card);
   border-radius: 24rpx;
   overflow: hidden;
@@ -397,7 +397,7 @@ onShow(() => {
   .menu-item {
     display: flex;
     align-items: center;
-    padding: 28rpx 32rpx;
+    padding: 20rpx 32rpx;
     border-bottom: 1rpx solid var(--border-faint);
 
     &:last-child {
