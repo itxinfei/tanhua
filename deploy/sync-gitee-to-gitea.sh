@@ -45,8 +45,10 @@ if [ -z "${GITEE_SHA}" ]; then
   exit 1
 fi
 
-if [ "${GITEE_SHA}" = "${GITEA_SHA}" ]; then
-  # 无变化，直接退出（保持日志精简）
+# 注意：同步 push 后 gitea/master 会多出 CI 配置提交，SHA 必然不等于 GITEE_SHA，
+#       用祖先检测（而非 SHA 相等）避免每轮 cron 重复触发无用同步。
+if [ -n "${GITEA_SHA}" ] && git merge-base --is-ancestor "${GITEE_SHA}" "${GITEA_SHA}" 2>/dev/null; then
+  # Gitee 最新提交已包含在 Gitea 历史中，无需同步
   exit 0
 fi
 
@@ -60,30 +62,25 @@ if ! git checkout --force "${GITEE_SHA}" -- . >>"${LOG_FILE}" 2>&1; then
   exit 1
 fi
 
-# 2.1) CI 配置文件只存在于 Gitea（Gitee 主仓不含 .gitea/ 与 deploy/ 的 CI 部分），
-#      从 Gitea 远端恢复，避免被 Gitee 同步覆盖后流水线失效。
-CI_PATHS=(
+# 2.1) 仅兜底恢复 Gitee 主仓不存在的 CI 专属文件（从 Gitea 远端）。
+#      双端维护的文件（compose/manage.sh/setup.sh 等）一律以 Gitee 版本为准，
+#      避免用 Gitea 旧版覆盖 Gitee 新版导致修改丢失。
+CI_ONLY_PATHS=(
   ".gitea"
-  "deploy/docker-compose.app.yml"
-  "deploy/docker-compose.web.yml"
-  "deploy/docker-compose.gitea.yml"
-  "deploy/docker-compose.middleware.yml"
-  "deploy/docker"
-  "deploy/gitea"
-  "deploy/manage.sh"
-  "deploy/sync-gitee-to-gitea.sh"
   "deploy/application-local.ci.yml"
-  "deploy/setup.sh"
-  "deploy/mysql"
-  "deploy/legacy"
-  ".dockerignore"
 )
-for p in "${CI_PATHS[@]}"; do
-  if git cat-file -e "${GITEA_SHA}:${p}" 2>/dev/null; then
-    git checkout "${GITEA_SHA}" -- "${p}" >>"${LOG_FILE}" 2>&1
+CI_CHANGED=0
+for p in "${CI_ONLY_PATHS[@]}"; do
+  if ! git cat-file -e "${GITEE_SHA}:${p}" 2>/dev/null; then
+    if git cat-file -e "${GITEA_SHA}:${p}" 2>/dev/null; then
+      git checkout "${GITEA_SHA}" -- "${p}" >>"${LOG_FILE}" 2>&1
+      CI_CHANGED=1
+    fi
   fi
 done
-git commit -m "chore(ci): 同步 Gitea 侧 CI 部署配置" -- .gitea deploy .dockerignore >>"${LOG_FILE}" 2>&1
+if [ "${CI_CHANGED}" = "1" ]; then
+  git commit -m "chore(ci): 恢复 Gitea 侧 CI 专属配置" -- .gitea deploy/application-local.ci.yml >>"${LOG_FILE}" 2>&1
+fi
 
 # 3) 推送到 Gitea —— push 事件触发 Gitea Actions 流水线
 #    Gitea 远端可能含本地没有的提交（如流水线自身产生的提交），先把它合并进来再推，
