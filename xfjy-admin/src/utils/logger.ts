@@ -10,8 +10,6 @@
  *   - 异常捕获（Vue errorHandler + window.onerror + unhandledrejection）
  */
 
-import type { App as VueApp } from "vue";
-
 const ENABLE_LOG: boolean = import.meta.env.VITE_ENABLE_LOG !== "false";
 
 const TAG = "[xfjy-admin]";
@@ -31,31 +29,30 @@ export const warn = (...args: unknown[]): void => {
   console.warn(TAG, ...args);
 };
 
-export const error = (...args: unknown[]): void => {
+export const reportError = (...args: unknown[]): void => {
   if (!ENABLE_LOG) return;
   console.error(TAG, ...args);
 };
+
+/** @deprecated Use reportError instead — kept for backward compatibility */
+export const error = reportError;
 
 /**
  * 安装全局异常捕获
  * Vue errorHandler + window.onerror + unhandledrejection
  */
-export function installErrorHandler(app: VueApp): void {
-  app.config.errorHandler = (err: unknown, _instance: unknown, _info: string) => {
-    error("Vue error:", err);
+export function installErrorHandler(app: { config: { errorHandler?: unknown } }): void {
+  type VueErrorHandler = (err: unknown, instance: unknown, info: string) => void;
+  (app.config as { errorHandler?: VueErrorHandler }).errorHandler = (err: unknown, _instance: unknown, _info: string) => {
+    reportError("Vue error:", err);
   };
   if (typeof window !== "undefined") {
-    window.onerror = (
-      message: string,
-      _source: string,
-      _lineno: number,
-      _colno: number,
-      err: Error | null
-    ) => {
-      error("window.onerror:", message, err || "");
+    const handler: OnErrorEventHandlerNonNull = (message, _source, _lineno, _colno, err) => {
+      reportError("window.onerror:", typeof message === 'string' ? message : String(message), err || "");
     };
+    window.onerror = handler;
     window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
-      error("unhandledrejection:", event.reason);
+      reportError("unhandledrejection:", event.reason);
     });
   }
 }

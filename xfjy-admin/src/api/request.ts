@@ -21,7 +21,7 @@ request.interceptors.request.use(
     log(`${config.method?.toUpperCase() || 'GET'} ${config.url}`, config.params || config.data || '')
     return config
   },
-  (error) => Promise.reject(error)
+  (err) => Promise.reject(err)
 )
 
 // 响应拦截器
@@ -42,17 +42,17 @@ request.interceptors.response.use(
     }
     return res
   },
-  (error) => {
-    const startAt = (error.config as any).__startAt as number | undefined
-    error(`${error.config?.method?.toUpperCase() || 'GET'} ${error.config?.url} ✗ (${startAt ? Date.now() - startAt : 0}ms)`, error.message)
-    if (error.response) {
-      const { status } = error.response
+  (err) => {
+    const startAt = (err.config as any).__startAt as number | undefined
+    error(`${err.config?.method?.toUpperCase() || 'GET'} ${err.config?.url} ✗ (${startAt ? Date.now() - startAt : 0}ms)`, err.message)
+    if (err.response) {
+      const { status } = err.response
       if (status === 401) {
         // 优先展示后端返回的具体原因（如登录接口的"账号或密码错误"）
-        const backendMsg = error.response.data?.message
+        const backendMsg = err.response.data?.message
         ElMessage.error(backendMsg || '登录已过期，请重新登录')
         // 登录接口本身返回 401 时不跳转（用户已在登录页），其余 401 清 token 跳登录
-        const isLoginRequest = error.config?.url?.includes('/login')
+        const isLoginRequest = err.config?.url?.includes('/login')
         if (!isLoginRequest) {
           localStorage.removeItem('xfjy_admin_token')
           localStorage.removeItem('xfjy_admin_info')
@@ -63,14 +63,14 @@ request.interceptors.response.use(
       } else if (status === 500) {
         ElMessage.error('服务器内部错误')
       } else {
-        ElMessage.error(error.response.data?.message || '请求失败')
+        ElMessage.error(err.response.data?.message || '请求失败')
       }
-    } else if (error.message.includes('timeout')) {
+    } else if (err.message.includes('timeout')) {
       ElMessage.error('请求超时，请稍后重试')
     } else {
       ElMessage.error('网络异常，请检查网络连接')
     }
-    return Promise.reject(error)
+    return Promise.reject(err)
   }
 )
 

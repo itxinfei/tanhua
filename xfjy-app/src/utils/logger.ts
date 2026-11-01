@@ -51,7 +51,7 @@ export function installErrorHandler(app: { config: { errorHandler?: unknown } })
   // #ifdef H5
   if (typeof window !== "undefined") {
     const handler: OnErrorEventHandlerNonNull = (message, _source, _lineno, _colno, err) => {
-      reportError("window.onerror:", message, err || "");
+      reportError("window.onerror:", typeof message === 'string' ? message : String(message), err || "");
     };
     window.onerror = handler;
     window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
