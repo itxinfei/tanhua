@@ -47,10 +47,9 @@ public class UsersController {
                                                     @RequestParam(value = "huanxinID", required = false) String huanxinID) {
         try {
             //用户第一次接收到环信推来的信息，不带用户信息
+            //资料未完善时返回空壳对象（200），由前端引导完善；只有真正异常才回 500
             UserInfoVo userInfoVo = this.usersService.queryUserInfo(userID, huanxinID);
-            if (null != userInfoVo) {
-                return ResponseEntity.ok(userInfoVo);
-            }
+            return ResponseEntity.ok(userInfoVo);
         } catch (Exception e) {
             LOGGER.error("接口处理异常", e);
         }

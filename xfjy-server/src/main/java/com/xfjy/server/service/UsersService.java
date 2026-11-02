@@ -90,7 +90,12 @@ public class UsersService {
 
         UserInfo userInfo = this.userInfoApi.queryUserInfoById(userId);
         if (null == userInfo) {
-            return null;
+            // 兜底：正常路径 user-service 已懒初始化资料行；仅在其不可用等极端场景返回空壳。
+            // "资料未完善"是正常业务态，不能让 controller 误判为 500（前端按空字段引导完善资料）
+            UserInfoVo emptyVo = new UserInfoVo();
+            emptyVo.setId(userId);
+            emptyVo.setGender("");
+            return emptyVo;
         }
 
         UserInfoVo userInfoVo = new UserInfoVo();
