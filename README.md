@@ -254,12 +254,21 @@ flowchart TB
 
 ### CI/CD 流水线
 
+> 平台基线（2026-11-02 升级）：**Gitea 28.3.0 + Gitea Runner 5.2.4**，Docker 部署于 192.168.20.133（compose 见 `deploy/docker-compose.gitea.yml`）；Actions 历史运行记录设为永久保留（`RUN_RETENTION_DAYS=0`）。
+
+手动运行（Actions → Run workflow）的输入项全部为**下拉选择**：
+
+- 动作（deploy 工作流）：`deploy` / `build` / `start` / `stop` / `restart` / `status` / `logs`
+- 运维（ops 工作流）：`status` / `stop` / `restart` / `logs` / `rollback`
+- 目标：`auto`（按变更自动推断）/ `all` / `backend`（11 个后端）/ `app`（H5）/ `admin` / 单个微服务
+
 | 动作 | 触发方式 | 行为 |
 |------|----------|------|
-| `deploy` | push master / 手动 | 增量编译 + 镜像构建 + `--no-cache` 重启 |
-| `build` | 手动 | 仅 `mvn package` |
-| `start / stop / restart` | 手动 | 容器生命周期 |
+| `deploy` | push master / 手动 | 增量编译 + 镜像构建 + `--build --force-recreate` |
+| `build` | 手动 | 仅构建镜像，不重启容器 |
+| `start / stop / restart` | 手动 | 容器生命周期（自动跳过编译） |
 | `status / logs` | 手动 | 运维观测 |
+| `rollback`（ops 工作流） | 手动 | 回滚到上一个成功版本或指定 tag |
 
 ### 镜像版本管理（**Git Tag = 语义版本**）
 
@@ -279,10 +288,9 @@ git push origin master
 
 | 输入参数 | 说明 |
 |----------|------|
-| `image_tag` | 手动覆盖标签（CI 调试用） |
-| `services` | 指定服务增量构建 |
-| `skip_ci` | 跳过编译，仅用现有产物 |
-| `full_build` | 强制全量 mvn rebuild |
+| `target` | 下拉选择部署/操作目标（auto/all/backend/app/admin/单个微服务） |
+| `skip_ci` | 跳过编译，仅用现有产物（start/stop/restart/status/logs 自动跳过） |
+| `full_build` | 强制全量 mvn rebuild，忽略增量判定 |
 
 ---
 

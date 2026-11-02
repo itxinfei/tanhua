@@ -18,19 +18,27 @@ Gitee 只作为受控主仓，**CI 不会向 Gitee 写回任何东西**，也不
 
 ---
 
-## 2. 注册 act_runner
+## 2. 注册 Runner（gitea/runner）
+
+> 版本基线（2026-11-02）：Gitea **28.3.0** + Runner **5.2.4**（镜像 `gitea/runner:5.2.4`，
+> 旧标签 `gitea/act_runner`、`gitea/runner:2.0.0` 均已废弃）。注册信息持久化在
+> `runner-config` 命名卷（容器内 `/data/.runner`），升级 Runner 镜像无需重新注册。
 
 1. Gitea 后台 → **管理 → Runner → 创建 Runner**，复制生成的注册令牌。
-2. 写入 `deploy/docker-compose.gitea.yml` 的 `GITEA_RUNNER_TOKEN` 环境变量（建议用 `.env` 或 shell export，勿入库明文）。
-3. 构建 CI 镜像（必须先在宿主机跑，镜像才进宿主 docker，act_runner 才能拉起）：
+2. 写入 `deploy/gitea/.env`（权限 600，已被 .gitignore 排除，勿入库明文）：
+   ```bash
+   GITEA_RUNNER_TOKEN=<注册令牌>
+   ```
+   compose 中由 `${GITEA_RUNNER_TOKEN}` 插值到容器变量 `GITEA_RUNNER_REGISTRATION_TOKEN`。
+3. 构建 CI 镜像（必须先在宿主机跑，镜像才进宿主 docker，runner 才能拉起 job 容器）：
    ```bash
    docker build -f deploy/gitea/Dockerfile.ci -t xfjy/ci:latest deploy/gitea
    ```
-4. 启动：
+4. 启动（**必须带 `--env-file`**，否则 runner 注册令牌为空）：
    ```bash
-   docker compose -f deploy/docker-compose.gitea.yml up -d
+   docker compose -f deploy/docker-compose.gitea.yml --env-file deploy/gitea/.env up -d
    ```
-5. 回到 Gitea Runner 页面，应看到 `xfjy-runner` 状态为 Active。
+5. 回到 Gitea Runner 页面，应看到 `xfjy-runner` 状态为 Active（runner 日志出现 `declare successfully`）。
 
 ---
 

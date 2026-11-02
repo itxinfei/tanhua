@@ -26,9 +26,10 @@ volumes:
 services:
 
   gitea:
-    # Gitea 1.27.3：1.x 系列最后一个稳定版（官方在 1.27 之后改用 28.x 命名）
-    # 1.27 官方建议搭配 Gitea Runner 2.0.0（job summary / cancelling 状态 / continue-on-error 聚合）
-    image: gitea/gitea:1.27.3
+    # Gitea 28.3.0：当前最新稳定版（1.27 之后官方改用 28.x 命名）
+    # 28.0 breaking：actions 新增 RUN_RETENTION_DAYS（默认 400 天清理历史 run），
+    # 下方显式设 0 = 永不自动清理；Git 网络操作改走内部代理，升级后需验证 clone/push
+    image: gitea/gitea:28.3.0
     container_name: xfjy-gitea
     restart: unless-stopped
     environment:
@@ -40,6 +41,8 @@ services:
       GITEA__actions__ENABLED: "true"
       # 从 gitea.com 拉取官方 actions（如 actions/checkout）
       GITEA__actions__DEFAULT_ACTIONS_URL: https://gitea.com
+      # 历史 Actions 运行记录保留天数：0 = 永不自动删除（28.x 默认 400）
+      GITEA__actions__RUN_RETENTION_DAYS: "0"
       TZ: Asia/Shanghai
     ports:
       - "3000:3000"
@@ -57,9 +60,10 @@ services:
       retries: 10
 
   runner:
-    # Gitea Runner 2.0.0（官方发布说明：用 gitea/runner:2.0.0 替换旧的 gitea/act_runner 标签）
-    # 1.27 官方建议搭配 Runner 2.0.0：job summary / cancelling 状态 / continue-on-error 聚合
-    image: gitea/runner:2.0.0
+    # Gitea Runner 5.2.4：当前最新稳定版，与 Gitea 28.x 配套
+    # 注册信息持久化在 runner-config 卷（/data/.runner），升级镜像无需重新注册；
+    # 旧版 gitea/act_runner / gitea/runner:2.0.0 标签均已废弃
+    image: gitea/runner:5.2.4
     container_name: xfjy-act-runner
     restart: unless-stopped
     # GITEA_RUNNER_TOKEN 来自 Gitea 后台「管理 → Runner → 创建 Runner」生成的注册令牌
