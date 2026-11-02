@@ -2,6 +2,8 @@
 
 格式：日期 | 模块 | 更新内容 | 开发者
 
+2026-11-02 | Gitea CI/CD | **修复工作流下拉化引入的 push 部署回归**：SKIP_CI 表达式原用 contains(' start stop... ', inputs.action)，push 事件 inputs.action 为空串时 contains(字符串,'') 恒为 true，导致正常推送被误判跳过编译、target=auto 命中拒绝逻辑（run#117 failure）；改为 contains(fromJSON('["start","stop","restart","status","logs"]'), inputs.action) 数组精确匹配，空串返回 false。教训：字符串 contains 判空串恒真，枚举匹配必须用数组形式 | 开发者：Claude Code
+
 2026-11-02 | xfjy-app 图标 | **图标框架选型锁定：UnoCSS Icons + Phosphor（禁止回退 uni-icons）**：①现状排查：全站 46 处/16 文件统一用 @dcloudio uni-icons（无混用，保留该优点），但官方已说明图标无法无限扩充、custom-prefix 即将废弃、样式仅能 color/size 属性控制、风格偏老；②决策：新图标固定走 UnoCSS presetIcons + @iconify-json/ph（Phosphor，9000+ 图标 MIT 协议，圆润年轻，与主色 #fe3c72 匹配），类名 i-ph-*（中划线、禁冒号、动态类名 safelist），颜色走主题变量；③uni-icons 冻结：存量保留可运行但禁止新增引用、禁止回退，按页面分批迁移（P0 优先），全部迁移完再移除 main.ts 注册；④tabbar 定制图形继续用 gen-tabbar-icons.py 生成 PNG，不改字体图标；⑤新增 docs/icon-icons.md 权威规范，CLAUDE.md 顶部/3.5 节/黑名单/自检清单同步强制规则与文档地图登记 | 开发者：itxinfei
 
 2026-11-02 | 协作流程 | **多 Agent 看板认领协议落地 + "完成任务必须更新文档"入规**：①新增 `.claude/board/` 任务看板（README 协议 + `_template.md` 任务卡 + `tasks/` 活跃卡目录，.gitignore 排除不入库）：一任务一卡（TASK-YYYYMMDD-NN-slug），状态 todo→doing→done/blocked，执行者认领前必须与所有 doing 卡做文件冲突检查、原子认领（Edit 并发抢卡失败者禁止强占）、硬边界外文件停工找编排者；②高扇入收口文件（CLAUDE.md/CHANGELOG/uni.scss/theme.json/pages.json/pom.xml/网关路由/compose/workflows）只由编排者串行改；③CLAUDE.md 新增第九节「多 Agent 协作」强制规程，第八节新增"任务完成必须更新文档"条目（技术栈升级同步 README/部署文档/CHANGELOG，含版本、备份回滚、验证结果） | 开发者：Claude Code

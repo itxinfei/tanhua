@@ -112,8 +112,11 @@ concurrency:
 env:
   ACTION: ${{ github.event.inputs.action || 'deploy' }}
   TARGET_RAW: ${{ github.event.inputs.target || 'auto' }}
-  # start/stop/restart/status/logs 不需要新构建产物，即使下拉选了编译也强制跳过
-  SKIP_CI: ${{ (github.event.inputs.skip_ci == 'true' || contains(' start stop restart status logs ', github.event.inputs.action)) && 'true' || 'false' }}
+  # start/stop/restart/status/logs 不需要新构建产物，即使下拉选了编译也强制跳过。
+  # 必须用 fromJSON 数组 + contains：contains(字符串, '') 对空串恒返回 true，
+  # push 事件 inputs.action 为空会被误判成跳过编译（run#117 事故教训）；
+  # 数组形式 contains(["start",...], '') 精确匹配元素，空串返回 false。
+  SKIP_CI: ${{ (github.event.inputs.skip_ci == 'true' || contains(fromJSON('["start","stop","restart","status","logs"]'), github.event.inputs.action)) && 'true' || 'false' }}
   FULL_BUILD: ${{ github.event.inputs.full_build || 'false' }}
   # 11 个可部署 Spring Boot 应用（xfjy-api 仅为接口库，不打包）
   SERVICES: "xfjy-gateway xfjy-sso xfjy-user-service xfjy-circle-service xfjy-video-service xfjy-match-service xfjy-message-service xfjy-server xfjy-recommend xfjy-elasticsearch xfjy-pay-service"
