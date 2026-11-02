@@ -5,15 +5,20 @@
 #   1) 自动：push 到 master → 自动增量编译打包 → 只重建受影响容器 → 健康检查
 #   2) 手动：Gitea 仓库 Actions 页 → Run workflow，可指定动作与服务范围
 #
-# 手动输入项（on.workflow_dispatch.inputs，位置错误会导致参数失效）：
-#   action    : deploy(默认) | build | start | stop | restart | status | logs
-#   services  : 空格分隔的服务名；留空 = 按变更范围自动推断
-#               后端微服务：xfjy-gateway xfjy-sso xfjy-user-service xfjy-circle-service
-#                         xfjy-video-service xfjy-match-service xfjy-message-service
-#                         xfjy-server xfjy-recommend xfjy-elasticsearch xfjy-pay-service
-#               前端：admin(xfjy-admin) / app(xfjy-h5)
-#   skip_ci   : true = 跳过编译打包（仅对已有产物做启停等操作；此时 services 必填，
-#               留空会被拒绝，避免误触发全量启停）
+# 手动输入项（on.workflow_dispatch.inputs，全部下拉选择，位置错误会导致参数失效）：
+#   action    : deploy(默认,增量构建并部署) | build(仅构建镜像) | start | stop
+#               | restart | status | logs
+#   target    : 下拉单选构建/操作目标，选项格式「服务名 · 中文职责」（如
+#               xfjy-user-service · 用户服务（资料/关系 :18090）），脚本用
+#               ${TARGET_RAW%% *} 只取空格前服务名，中文仅用于页面辨识：
+#               auto(默认,按代码变更自动推断，仅对 deploy/build 有效)
+#               all(11 个后端 + admin + app) / backend(11 个后端)
+#               app(App H5) / admin(后台管理前端)
+#               或 11 个微服务逐个单选（含网关/登录/用户/圈子/视频/匹配/消息/
+#               主业务/推荐/ES/支付，下拉直接可读不用记名字）
+#               多目标批量操作请用 all / backend 聚合项（Gitea 下拉不支持多选）
+#   skip_ci   : true = 跳过编译打包；start/stop/restart/status/logs 会自动跳过
+#               （无需新产物），此时 target 必须选具体服务或聚合项，auto 会被拒绝
 #   full_build: true = 强制全量重建（忽略增量判定）
 #
 # 并发策略：
@@ -49,21 +54,56 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: '动作：deploy(默认,增量构建并部署) | build(仅构建) | start | stop | restart | status | logs'
+        description: '动作：deploy=增量构建并部署（默认） / build=仅构建镜像 / start=启动 / stop=停止容器 / restart=重启 / status=状态 / logs=日志'
+        type: choice
         required: true
-        default: 'deploy'
-      services:
-        description: '服务名，空格分隔；留空表示按变更范围自动推断'
-        required: false
-        default: ''
+        default: deploy
+        options:
+          - deploy
+          - build
+          - start
+          - stop
+          - restart
+          - status
+          - logs
+      target:
+        description: '目标：auto=按变更自动推断（默认，仅 deploy/build 有效）/ all=全部前后端 / backend=全部后端 / app=App H5 / admin=后台管理 / 或单个微服务；批量多服务请选 all 或 backend（下拉不支持多选）'
+        type: choice
+        required: true
+        default: 'auto · 自动（按代码变更推断，仅 deploy/build）'
+        options:
+          - 'auto · 自动（按代码变更推断，仅 deploy/build）'
+          - 'all · 全部（11个后端微服务 + 2个前端）'
+          - 'backend · 全部后端（11个微服务）'
+          - 'app · App H5（手机端页面）'
+          - 'admin · 后台管理前端'
+          - 'xfjy-gateway · 网关（唯一对外入口 :8090）'
+          - 'xfjy-sso · 登录认证（Sa-Token :18080）'
+          - 'xfjy-user-service · 用户服务（资料/关系 :18090）'
+          - 'xfjy-circle-service · 圈子动态（:18084）'
+          - 'xfjy-video-service · 小视频（:18085）'
+          - 'xfjy-match-service · 匹配（附近的人/探花 :18082）'
+          - 'xfjy-message-service · 消息/IM Token（:18086）'
+          - 'xfjy-server · 主业务 BFF（上传/编排 :18081）'
+          - 'xfjy-recommend · 推荐消费者（双塔算法，无端口）'
+          - 'xfjy-elasticsearch · ES 检索服务（无端口）'
+          - 'xfjy-pay-service · 支付/VIP（:18089）'
       skip_ci:
-        description: 'true = 跳过编译打包，仅对已有容器做启停操作（此时 services 必填）'
-        required: false
+        description: '跳过编译打包（start/stop/restart/status/logs 会自动跳过；auto 目标被拒绝时改选具体服务）'
+        type: choice
+        required: true
         default: 'false'
+        options:
+          - 'false'
+          - 'true'
       full_build:
-        description: 'true = 强制全量重建，忽略增量判定'
-        required: false
+        description: '强制全量重建，忽略增量判定'
+        type: choice
+        required: true
         default: 'false'
+        options:
+          - 'false'
+          - 'true'
 
 concurrency:
   group: xfjy-deploy
@@ -71,8 +111,9 @@ concurrency:
 
 env:
   ACTION: ${{ github.event.inputs.action || 'deploy' }}
-  TARGET_SERVICES: ${{ github.event.inputs.services || '' }}
-  SKIP_CI: ${{ github.event.inputs.skip_ci || 'false' }}
+  TARGET_RAW: ${{ github.event.inputs.target || 'auto' }}
+  # start/stop/restart/status/logs 不需要新构建产物，即使下拉选了编译也强制跳过
+  SKIP_CI: ${{ (github.event.inputs.skip_ci == 'true' || contains(' start stop restart status logs ', github.event.inputs.action)) && 'true' || 'false' }}
   FULL_BUILD: ${{ github.event.inputs.full_build || 'false' }}
   # 11 个可部署 Spring Boot 应用（xfjy-api 仅为接口库，不打包）
   SERVICES: "xfjy-gateway xfjy-sso xfjy-user-service xfjy-circle-service xfjy-video-service xfjy-match-service xfjy-message-service xfjy-server xfjy-recommend xfjy-elasticsearch xfjy-pay-service"
@@ -308,16 +349,19 @@ jobs:
           set -e
           cd /ci
           chmod +x deploy/manage.sh
-          TARGETS="${TARGET_SERVICES}"
+          # 下拉项格式「服务名 · 中文说明」，只取第一个空格前的真实服务名（POSIX 参数展开，sh 可用）
+          TARGETS="${TARGET_RAW%% *}"
+          # auto = 未指定具体目标：deploy/build 交给增量判定；运维动作下会被下面拒绝
+          [ "${TARGETS}" = "auto" ] && TARGETS=""
           if [ -z "${TARGETS}" ] && [ "${SKIP_CI}" != "true" ]; then
             # shellcheck disable=SC1091
             . "${CI_STATE_DIR}/affected.env"
             TARGETS="${BACKEND_AFFECTED} ${FRONTEND_AFFECTED}"
           fi
           # skip_ci=true 且未指定服务 → 空 TARGETS 会被 manage.sh 展开为全量，
-          # 属于误操作高危路径，直接拒绝
-          if [ "${SKIP_CI}" = "true" ] && [ -z "$(echo "${TARGETS}" | tr -d ' ')" ]; then
-            echo "[ERROR] skip_ci=true 时必须显式填写 services，避免误触发全量启停"
+          # 属于误操作高危路径，直接拒绝（status 不需要目标，放行）
+          if [ "${ACTION}" != "status" ] && [ "${SKIP_CI}" = "true" ] && [ -z "$(echo "${TARGETS}" | tr -d ' ')" ]; then
+            echo "[ERROR] 当前动作无需编译且 target=auto，请在目标下拉中选择具体服务，或选 backend/all"
             exit 1
           fi
           # 增量部署且无任何变更 → 跳过，避免 manage.sh 把空目标展开为全量重建

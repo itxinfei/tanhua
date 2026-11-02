@@ -6,10 +6,12 @@
 #
 # 触发方式：仅手动（Gitea Actions → Run workflow）
 #
-# 手动输入项（on.workflow_dispatch.inputs，位置错误会导致参数失效）：
-#   action    : stop | restart | status | logs | rollback
-#   services  : 空格分隔的服务名；留空 = 全部后端
-#   target    : rollback 专用：回滚到指定镜像 tag（留空 = 上一个成功部署的版本）
+# 手动输入项（on.workflow_dispatch.inputs，全部下拉选择，位置错误会导致参数失效）：
+#   action       : status(默认,只读) | stop(停止容器) | restart | logs | rollback
+#   target       : 下拉单选，选项格式「服务名 · 中文职责」（脚本 ${VAR%% *} 取空格前
+#                  服务名，中文仅页面辨识）：backend(默认=全部后端) / all(全部含前端)
+#                  / app(App H5) / admin(后台管理) / 11 个微服务逐个单选；status 忽略此项
+#   rollback_tag : rollback 专用：指定镜像 tag（commit 短 SHA）；留空 = 上一个成功版本
 #
 # 并发策略：
 #   - 独立并发组 xfjy-ops，cancel-in-progress=false：
@@ -31,15 +33,39 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: '操作：stop | restart | status | logs | rollback'
+        description: '运维操作：status=查看状态（默认，只读）/ stop=停止容器 / restart=重启 / logs=跟踪日志 / rollback=回滚版本'
+        type: choice
         required: true
-        default: 'status'
-      services:
-        description: '服务名，空格分隔；留空 = 全部后端微服务'
-        required: false
-        default: ''
+        default: status
+        options:
+          - status
+          - stop
+          - restart
+          - logs
+          - rollback
       target:
-        description: 'rollback 专用：回滚到指定镜像 tag（如 abc1234）；留空 = 上一个成功部署版本'
+        description: '目标：backend=全部后端（默认）/ all=全部含前端 / app=App H5 / admin=后台管理 / 或单个微服务；status 忽略此项（显示全部）'
+        type: choice
+        required: true
+        default: 'backend · 全部后端（11个微服务）'
+        options:
+          - 'backend · 全部后端（11个微服务）'
+          - 'all · 全部（11个后端微服务 + 2个前端）'
+          - 'app · App H5（手机端页面）'
+          - 'admin · 后台管理前端'
+          - 'xfjy-gateway · 网关（唯一对外入口 :8090）'
+          - 'xfjy-sso · 登录认证（Sa-Token :18080）'
+          - 'xfjy-user-service · 用户服务（资料/关系 :18090）'
+          - 'xfjy-circle-service · 圈子动态（:18084）'
+          - 'xfjy-video-service · 小视频（:18085）'
+          - 'xfjy-match-service · 匹配（附近的人/探花 :18082）'
+          - 'xfjy-message-service · 消息/IM Token（:18086）'
+          - 'xfjy-server · 主业务 BFF（上传/编排 :18081）'
+          - 'xfjy-recommend · 推荐消费者（双塔算法，无端口）'
+          - 'xfjy-elasticsearch · ES 检索服务（无端口）'
+          - 'xfjy-pay-service · 支付/VIP（:18089）'
+      rollback_tag:
+        description: 'rollback 专用：回滚到指定镜像 tag（commit 短 SHA，如 abc1234）；留空 = 回滚到上一个成功部署版本'
         required: false
         default: ''
 
@@ -49,8 +75,8 @@ concurrency:
 
 env:
   ACTION: ${{ github.event.inputs.action || 'status' }}
-  TARGET_SERVICES: ${{ github.event.inputs.services || '' }}
-  ROLLBACK_TARGET: ${{ github.event.inputs.target || '' }}
+  TARGET_SERVICES: ${{ github.event.inputs.target || 'backend' }}
+  ROLLBACK_TARGET: ${{ github.event.inputs.rollback_tag || '' }}
   CI_STATE_DIR: /opt/ci-state
 
 jobs:
@@ -96,7 +122,7 @@ jobs:
         if: ${{ env.ACTION == 'stop' || env.ACTION == 'down' }}
         run: |
           cd /ci
-          TARGETS="${TARGET_SERVICES}"
+          TARGETS="${TARGET_SERVICES%% *}"  # 取「服务名 · 中文」空格前的值
           [ -z "${TARGETS}" ] && TARGETS="backend"
           echo "[ops] 停止: ${TARGETS}"
           bash deploy/manage.sh stop ${TARGETS}
@@ -106,7 +132,7 @@ jobs:
         if: ${{ env.ACTION == 'restart' }}
         run: |
           cd /ci
-          TARGETS="${TARGET_SERVICES}"
+          TARGETS="${TARGET_SERVICES%% *}"  # 取「服务名 · 中文」空格前的值
           [ -z "${TARGETS}" ] && TARGETS="backend"
           echo "[ops] 重启: ${TARGETS}"
           bash deploy/manage.sh restart ${TARGETS}
@@ -123,9 +149,9 @@ jobs:
         if: ${{ env.ACTION == 'logs' }}
         run: |
           cd /ci
-          TARGETS="${TARGET_SERVICES}"
+          TARGETS="${TARGET_SERVICES%% *}"  # 取「服务名 · 中文」空格前的值
           if [ -z "${TARGETS}" ]; then
-            echo "[ERROR] logs 需要指定服务名，例如：services=xfjy-server"
+            echo "[ERROR] logs 需要在 target 下拉中选择具体服务（backend 会跟踪全部后端日志）"
             exit 1
           fi
           bash deploy/manage.sh logs ${TARGETS}
@@ -164,7 +190,7 @@ jobs:
           echo "[rollback] 目标版本: ${ROLLBACK_TAG}"
 
           # 确定回滚范围
-          TARGETS="${TARGET_SERVICES}"
+          TARGETS="${TARGET_SERVICES%% *}"  # 取「服务名 · 中文」空格前的值
           [ -z "${TARGETS}" ] && TARGETS="backend"
 
           # 设置镜像 tag 环境变量（manage.sh 中 IMAGE_TAG env 优先于 .env 文件）
