@@ -109,6 +109,8 @@ deploy/build/
 .atomcode/
 .playwright-cli/
 .playwright-mcp/
+# 多 agent 任务看板（认领/产出过程记录，见 .claude/board/README.md）
+.claude/board/
 
 # ===== 部署临时目录与备份文件 =====
 deploy/tmp_sync/
