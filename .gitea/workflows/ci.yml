@@ -115,6 +115,18 @@ jobs:
           cd /ci
           sh deploy/ci/build-lock.sh acquire
 
+      # runner 容器 Node 22.11 < rolldown 原生包 engines >=22.12，不升级则
+      # @rolldown/binding-linux-x64-gnu 被 npm 静默跳过，构建报 Cannot find module
+      # （与 deploy.yml 构建前端同理，须 n 升 22.14.0；装在 /opt/node 覆盖原位置）
+      - name: 升级 Node 至 22.14.0
+        run: |
+          export N_NODE_MIRROR=https://npmmirror.com/mirrors/node
+          export N_PREFIX=/opt/node
+          npm install -g n --no-audit --no-fund --prefer-offline
+          n 22.14.0
+          hash -r
+          node --version
+
       - name: 安装依赖并类型检查
         run: |
           cd /ci/xfjy-admin
@@ -189,7 +201,11 @@ jobs:
         continue-on-error: true
         run: |
           cd /ci/xfjy-app
-          npm run lint:style
+          if node -e "process.exit(require('./package.json').scripts['lint:style']?0:1)"; then
+            npm run lint:style
+          else
+            echo "[skip] package.json 尚无 lint:style 脚本"
+          fi
 
       - name: 释放构建锁
         if: ${{ always() }}
