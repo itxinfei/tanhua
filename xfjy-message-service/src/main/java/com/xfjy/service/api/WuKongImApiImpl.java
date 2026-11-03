@@ -32,15 +32,22 @@ import java.util.Map;
  *
  * WuKongIM REST API 文档：https://wukong.mintlify.app/en/api/introduction.md
  * 鉴权模型：内部系统专用，无需 Token（区别于环信 app token 模型）
- * 端点映射（环信 → WuKongIM）：
- * - registerContact → POST /channel/subscriber_add（单聊频道双订阅）
- * - sendMessage     → POST /message/send（payload=Base64，透传 no_persist+sync_once）
+ *
+ * 【单聊频道模型 —— 务必与 App 端 wukongim.ts / chat.vue 保持一致】
+ * WuKongIM 的 channel_type=1 是「个人频道」：channel_id 必须是【接收方 uid】，
+ * 频道随首条消息自动建立、只投递给频道主本人，不能也无需加订阅者
+ * （对个人频道调 /channel/subscriber_add 服务端直接 400「个人频道不支持添加订阅者！」）。
+ * 因此 A 给 B 发消息 = from_uid=A, channel_id=B, channel_type=1；
+ * A 拉与 B 的历史 = login_uid=A, channel_id=B，服务端返回 A↔B 双向消息；
+ * A 的会话列表里该会话 channel_id 即对方 uid=B。
+ *
+ * 端点映射：
+ * - registerContact → 个人频道无需订阅注册，no-op（好友关系以业务库 MongoDB 为准）
+ * - sendMessage     → POST /message/send（channel_id=接收方 uid，payload=Base64，透传 no_persist+sync_once）
  * - registerUser    → POST /user/token（uid+token 注册，幂等）
  * - getUserToken    → POST /user/token（注册后返回 token）
  * - getChatSessions → POST /conversation/sync（msg_count=1 组装摘要）
- * - getChatMessages → POST /channel/messagesync（按 seq 范围拉取）
- *
- * 单聊频道 ID 规则：channel_id = {较小uid}_{较大uid}，channel_type=1
+ * - getChatMessages → POST /channel/messagesync（channel_id=对方 uid，按 seq 拉取双向历史）
  */
 @Slf4j
 @RestController
@@ -63,34 +70,18 @@ public class WuKongImApiImpl implements WuKongImApi {
     // ==================== 契约方法 ====================
 
     /**
-     * 好友关系注册到 WuKongIM
+     * 好友关系「注册」到 WuKongIM —— 个人频道模型下为 no-op。
      *
-     * POST /channel/subscriber_add
-     * 单聊频道双方均加入订阅者，保证互相收发消息
+     * 单聊 channel_id=接收方 uid、channel_type=1，频道随首条消息自动建立并投递，
+     * 不需要、也不能加订阅者（个人频道 subscriber_add 服务端返回 400）。
+     * 好友关系已由 BFF 落业务库 MongoDB xfjy_users，IM 侧无需任何准备动作。
+     * 保留接口仅为维持既有调用契约（互配成功后调用）。
      */
     @Override
     @PostMapping("/contacts/{userId}/{friendId}")
     public void registerContact(@PathVariable("userId") Long userId,
                                 @PathVariable("friendId") Long friendId) {
-        try {
-            String channelId = personalChannelId(userId, friendId);
-            Map<String, Object> body = new HashMap<>();
-            body.put("channel_id", channelId);
-            body.put("channel_type", CHANNEL_TYPE_PERSONAL);
-            body.put("subscribers", List.of(String.valueOf(userId), String.valueOf(friendId)));
-            body.put("reset", 0);
-            body.put("temp_subscriber", 0);
-
-            ResponseEntity<String> resp = post("/channel/subscriber_add", body);
-            if (resp.getStatusCode().is2xxSuccessful()) {
-                log.info("[WuKongIM] 好友注册成功: {} <-> {}, channel={}", userId, friendId, channelId);
-            } else {
-                log.warn("[WuKongIM] 好友注册失败: {} <-> {}, status={}, body={}",
-                        userId, friendId, resp.getStatusCode(), resp.getBody());
-            }
-        } catch (Exception e) {
-            log.error("[WuKongIM] 好友注册异常: {} <-> {}", userId, friendId, e);
-        }
+        log.info("[WuKongIM] 个人频道无需订阅注册，跳过: {} <-> {}（好友关系以业务库为准）", userId, friendId);
     }
 
     /**
@@ -215,8 +206,9 @@ public class WuKongImApiImpl implements WuKongImApi {
 
                 String channelId = conv.path("channel_id").asString("");
                 int channelType = conv.path("channel_type").asInt(0);
-                String contactId = extractPeerUid(channelId, channelType, userId);
-                if (contactId == null) continue;
+                // 只取个人频道会话；个人频道 channel_id 即对方 uid（群频道 type=2 不作为好友会话展示）
+                if (channelType != CHANNEL_TYPE_PERSONAL || channelId.isEmpty()) continue;
+                String contactId = channelId;
 
                 Map<String, Object> session = new HashMap<>();
                 session.put("contactId", contactId);
@@ -245,9 +237,9 @@ public class WuKongImApiImpl implements WuKongImApi {
     /**
      * 获取两用户之间的聊天记录
      *
-     * POST /channel/messagesync
-     * cursor 作为 start_message_seq（数字字符串），返回最后一条 message_seq+1 作为下次游标
-     * WuKongIM 按 seq 正序返回，无需 reverse
+     * POST /channel/messagesync：login_uid=fromUserId，channel_id=toUserId（对方个人频道）。
+     * cursor 作为 start_message_seq（数字字符串），返回最后一条 message_seq+1 作为下次游标；
+     * 服务端按 seq 正序返回该会话双方的完整消息，无需 reverse、无需双拼频道。
      */
     @Override
     @PostMapping("/chat-messages")
@@ -257,11 +249,11 @@ public class WuKongImApiImpl implements WuKongImApi {
                                                 @RequestParam(value = "cursor", required = false) String cursor) {
         Map<String, Object> result = new HashMap<>();
         try {
-            String channelId = personalChannelId(Long.parseLong(fromUserId), Long.parseLong(toUserId));
-
+            // 个人频道模型：channel_id = 对方(toUserId) 的 uid；
+            // 以 login_uid=fromUserId 拉取该频道，WuKongIM 返回双方完整消息（含自己发出的）。
             Map<String, Object> body = new HashMap<>();
             body.put("login_uid", fromUserId);
-            body.put("channel_id", channelId);
+            body.put("channel_id", toUserId);
             body.put("channel_type", CHANNEL_TYPE_PERSONAL);
             body.put("limit", limit);
             body.put("pull_mode", 0);
@@ -394,32 +386,6 @@ public class WuKongImApiImpl implements WuKongImApi {
         body.put("device_flag", 0);
         body.put("device_level", 1);
         return post("/user/token", body);
-    }
-
-    /**
-     * 构建单聊频道 ID：{较小uid}_{较大uid}
-     * 保证两用户对同一频道 ID 达成一致
-     */
-    private String personalChannelId(Long uid1, Long uid2) {
-        long min = Math.min(uid1, uid2);
-        long max = Math.max(uid1, uid2);
-        return min + "_" + max;
-    }
-
-    /**
-     * 从单聊频道 ID 解析对方用户 ID
-     *
-     * channel_id 格式 {min}_{max}，去掉自己即为对方
-     * 群聊频道（type=2）直接返回 channel_id 本身
-     */
-    private String extractPeerUid(String channelId, int channelType, String selfUid) {
-        if (channelId == null || channelId.isEmpty()) return null;
-        if (channelType != CHANNEL_TYPE_PERSONAL) return channelId;
-        String[] parts = channelId.split("_");
-        if (parts.length != 2) return channelId;
-        if (parts[0].equals(selfUid)) return parts[1];
-        if (parts[1].equals(selfUid)) return parts[0];
-        return channelId;
     }
 
     /**

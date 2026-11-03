@@ -14,22 +14,26 @@ import java.util.Map;
 /**
  * WuKongIM 开源 IM 集成契约（xfjy-message-service，18086）
  *
- * 方法签名与 {@link HuanXinApi} 完全对齐，供 ImProviderDelegate 按配置委派：
- * - 好友关系注册到 WuKongIM（单聊频道双订阅）
- * - 发送消息（payload=Base64(JSON)）
+ * 单聊频道模型：channel_type=1 为「个人频道」，channel_id = 接收方 uid。
+ * A 给 B 发消息即 from_uid=A、channel_id=B；频道随首条消息自动建立，
+ * 无需也不能加订阅者（个人频道 subscriber_add 服务端 400）。
+ *
+ * 能力清单：
+ * - 好友关系注册（个人频道模型下为 no-op，好友关系以业务库为准）
+ * - 发送消息（channel_id=接收方 uid，payload=Base64(JSON)）
  * - 注册/更新用户 token（业务系统自定义 uid+token）
  *
  * WuKongIM REST API 文档：https://wukong.mintlify.app/en/api/introduction.md
- * 鉴权模型：内部系统专用，无需 Token（与环信 app token 模型不同）
+ * 鉴权模型：内部系统专用，无需 Token
  */
 @HttpExchange("/api/wukongim")
 public interface WuKongImApi {
 
     /**
-     * 好友关系注册到 WuKongIM
+     * 好友关系注册（个人频道模型下为 no-op）
      *
-     * 单聊频道 channel_type=1，channel_id=较小uid_较大uid
-     * 双方均加入频道订阅者，保证互相收发消息
+     * 单聊 channel_id=接收方 uid、channel_type=1，频道随首条消息自动建立并投递，
+     * 无需也不能加订阅者；好友关系统一以业务库 MongoDB 为准。保留方法仅为维持调用契约。
      *
      * @param userId   当前用户ID
      * @param friendId 好友用户ID
@@ -95,10 +99,11 @@ public interface WuKongImApi {
     /**
      * 获取与某用户的聊天记录（后台用户详情弹窗「聊天记录」tab 使用）
      *
-     * 通过 WuKongIM /channel/messagesync 按 seq 范围拉取两用户单聊频道历史消息
+     * 通过 WuKongIM /channel/messagesync 拉取：login_uid=fromUserId，
+     * channel_id=toUserId（对方个人频道），服务端返回该会话双方的完整历史消息。
      *
-     * @param fromUserId 发送方用户ID
-     * @param toUserId   接收方用户ID
+     * @param fromUserId 登录视角用户ID
+     * @param toUserId   对方用户ID（即个人频道 channel_id）
      * @param limit      返回条数上限
      * @param cursor     翻页游标（首次传 null 或空字符串）
      * @return {messages: [{from, content, time, type}], cursor: "..."}
