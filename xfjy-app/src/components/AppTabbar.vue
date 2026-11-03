@@ -134,45 +134,11 @@ function goPublish(): void {
     }
   }
 
-  /* 居中发布键：第 3 位，5 等分布局，与两侧 tab 等宽；品牌色圆形底 + 白色加号 */
+  /* 居中发布键：第 3 位，5 等分布局，与两侧 tab 等宽；品牌色圆形底 + 白色加号
+     注意：plus 系列元素位于 a11y-button 子组件内部，scoped 样式无法穿透，
+     故 plus 系列样式移到下方非 scoped 全局样式块（见 <style lang="scss">） */
   &__mid {
-    .app-tabbar__plus {
-      position: relative;
-      width: 44px;
-      height: 44px;
-    }
-
-    .app-tabbar__plus-circle {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      background: var(--color-primary);
-      box-shadow: 0 4rpx 12rpx rgba(255, 94, 156, 0.4);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .app-tabbar__plus-h,
-    .app-tabbar__plus-v {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      border-radius: 2px;
-      background: var(--bg-card);
-      transform: translate(-50%, -50%);
-    }
-
-    .app-tabbar__plus-h {
-      width: 18px;
-      height: 3px;
-    }
-
-    .app-tabbar__plus-v {
-      width: 3px;
-      height: 18px;
-    }
+    /* 布局占位，样式见全局块 */
   }
 }
 
@@ -193,11 +159,57 @@ function goPublish(): void {
         color: var(--color-primary);
       }
     }
+  }
+}
+</style>
 
-    .app-tabbar__plus-circle {
-      background: var(--color-primary);
-      box-shadow: 0 4rpx 12rpx rgba(255, 142, 185, 0.4);
-    }
+<!-- 发布键样式（非 scoped）：plus 系列元素是 a11y-button 子组件的 slot 内容，
+     scoped 样式无法穿透子组件边界，必须用全局样式块；命名空间 .app-tabbar__mid 保证唯一性 -->
+<style lang="scss">
+.app-tabbar__mid {
+  .app-tabbar__plus {
+    position: relative;
+    width: 44px;
+    height: 44px;
+  }
+
+  .app-tabbar__plus-circle {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: var(--color-primary);
+    box-shadow: 0 4rpx 12rpx rgba(255, 94, 156, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .app-tabbar__plus-h,
+  .app-tabbar__plus-v {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    border-radius: 2px;
+    background: var(--bg-card);
+    transform: translate(-50%, -50%);
+  }
+
+  .app-tabbar__plus-h {
+    width: 18px;
+    height: 3px;
+  }
+
+  .app-tabbar__plus-v {
+    width: 3px;
+    height: 18px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .app-tabbar__plus-circle {
+    background: var(--color-primary);
+    box-shadow: 0 4rpx 12rpx rgba(255, 142, 185, 0.4);
   }
 }
 </style>
