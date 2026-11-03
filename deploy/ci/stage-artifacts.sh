@@ -51,6 +51,7 @@ BACKEND_SERVICES=(
 log() { printf '%s[stage]%s %s\n' $'\033[36m' $'\033[0m' "$*"; }
 ok()  { printf '%s[ OK ]%s %s\n' $'\033[32m' $'\033[0m' "$*"; }
 warn(){ printf '%s[WARN]%s %s\n' $'\033[33m' $'\033[0m' "$*"; }
+err() { printf '%s[FAIL]%s %s\n' $'\033[31m' $'\033[0m' "$*" >&2; }
 
 FRONTEND_ONLY=false
 TARGETS=()
@@ -135,6 +136,10 @@ for pair in "xfjy-admin:xfjy-admin/dist:Dockerfile.admin" "xfjy-h5:xfjy-app/dist
 done
 
 [ ${#STAGED[@]} -gt 0 ] && log "已暂存构建上下文：${STAGED[*]}"
-[ ${#MISSING[@]} -gt 0 ] && warn "以下服务缺少产物（未暂存）：${MISSING[*]}"
+if [ ${#MISSING[@]} -gt 0 ]; then
+  err "以下服务缺少产物（未暂存）：${MISSING[*]}"
+  err "前端产物缺失请先确认 CI「构建前端」步骤是否成功执行"
+  exit 1
+fi
 [ ${#STAGED[@]} -gt 0 ] && ok "构建上下文暂存完成"
 exit 0
