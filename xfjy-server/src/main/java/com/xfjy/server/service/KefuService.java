@@ -1,7 +1,7 @@
 package com.xfjy.server.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.xfjy.service.api.HuanXinApi;
+import com.xfjy.service.api.WuKongImApi;
 import com.xfjy.service.api.UserInfoApi;
 import com.xfjy.service.pojo.FAQ;
 import com.xfjy.service.pojo.Feedback;
@@ -44,7 +44,7 @@ public class KefuService {
     private FeedbackMapper feedbackMapper;
 
     @Autowired
-    private HuanXinApi huanXinApi;
+    private WuKongImApi wuKongImApi;
 
     @Autowired
     private UserInfoApi userInfoApi;
@@ -62,14 +62,14 @@ public class KefuService {
 
     /**
      * 获取人工客服 IM 账号 ID
-     * 首次调用时在 IM 通道（WuKongIM）幂等注册客服账号（密码规则与用户账号一致：md5(账号 + 盐)）
+     * 首次调用时在 IM 通道（WuKongIM）幂等注册客服账号（密码规则与用户账号一致：sha256(账号 + 盐)）
      *
      * @return 客服 IM 账号 ID
      */
     public String getAgentId() {
-        String password = DigestUtils.md5Hex(KEFU_AGENT_ID + this.imTokenSalt);
+        String password = DigestUtils.sha256Hex(KEFU_AGENT_ID + this.imTokenSalt);
         try {
-            boolean registered = this.huanXinApi.registerUser(KEFU_AGENT_ID, password);
+            boolean registered = this.wuKongImApi.registerUser(KEFU_AGENT_ID, password);
             if (registered) {
                 LOGGER.info("[客服] 客服账号已就绪: {}", KEFU_AGENT_ID);
             } else {
@@ -88,14 +88,14 @@ public class KefuService {
      * @return {username, token, wsUrl, provider}；IM 通道不可用时 token 为 null
      */
     public Map<String, String> getAgentCredential() {
-        String password = DigestUtils.md5Hex(KEFU_AGENT_ID + this.imTokenSalt);
+        String password = DigestUtils.sha256Hex(KEFU_AGENT_ID + this.imTokenSalt);
         Map<String, String> credential = new HashMap<>();
         credential.put("username", KEFU_AGENT_ID);
         credential.put("wsUrl", this.imWsUrl);
-        credential.put("provider", this.sysConfigService.getImProvider());
+        credential.put("provider", "wukongim");
         try {
-            this.huanXinApi.registerUser(KEFU_AGENT_ID, password);
-            String token = this.huanXinApi.getUserToken(KEFU_AGENT_ID, password);
+            this.wuKongImApi.registerUser(KEFU_AGENT_ID, password);
+            String token = this.wuKongImApi.getUserToken(KEFU_AGENT_ID, password);
             credential.put("token", token);
         } catch (Exception e) {
             LOGGER.error("[客服] 获取客服凭证异常: {}", KEFU_AGENT_ID, e);

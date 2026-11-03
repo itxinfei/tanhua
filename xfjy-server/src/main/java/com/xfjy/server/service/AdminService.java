@@ -55,7 +55,9 @@ public class AdminService {
         }
 
         // Sa-Token 登录，签发Token（有效期由 sa-token 配置管理）
-        StpUtil.login(admin.getId());
+        // loginId 加 "admin-" 前缀，与 C 端 sso 的 "user-" 命名空间隔离，防止跨端会话串号
+        // 注意：Sa-Token 的 loginId 不允许包含冒号（会抛 SaTokenException），故用连字符
+        StpUtil.login("admin-" + admin.getId());
 
         Map<String, Object> result = new HashMap<>();
         result.put("token", StpUtil.getTokenValue());

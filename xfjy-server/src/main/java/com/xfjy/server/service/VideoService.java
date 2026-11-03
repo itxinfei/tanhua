@@ -108,8 +108,6 @@ public class VideoService {
         PageResult pageResult = new PageResult();
         pageResult.setPage(page);
         pageResult.setPagesize(pageSize);
-        pageResult.setPages(0);
-        pageResult.setCounts(0);
 
         PageInfo<Video> pageInfo = null;
 
@@ -144,6 +142,8 @@ public class VideoService {
                 }
                 pageInfo = new PageInfo<>();
                 pageInfo.setRecords(ordered);
+                pageInfo.setTotal(vids.length);
+                pageInfo.setPages((vids.length + pageSize - 1) / pageSize);
             }
         }
 
@@ -151,6 +151,9 @@ public class VideoService {
             pageInfo = this.videoApi.queryVideoList(page, pageSize);
         }
 
+        int total = pageInfo.getTotal() != null ? pageInfo.getTotal() : 0;
+        pageResult.setCounts(total);
+        pageResult.setPages((total + pageSize - 1) / pageSize);
         List<Video> records = pageInfo.getRecords();
         List<VideoVo> videoVoList = this.assembleVideoVoList(records, user.getId());
         pageResult.setItems(videoVoList);
@@ -234,20 +237,30 @@ public class VideoService {
         UserInfoQueryParam queryParam = new UserInfoQueryParam();
         queryParam.setUserIds(userIds);
         List<UserInfo> userInfos = this.userInfoApi.queryUserInfoList(queryParam);
-        for (VideoVo videoVo : videoVoList) {
+        LOGGER.info("批量查询用户信息: userIds={}, 返回数量={}", userIds, userInfos == null ? 0 : userInfos.size());
+        
+        // 构建 userId -> UserInfo 的映射，避免双重循环匹配
+        Map<Long, UserInfo> userInfoMap = new java.util.HashMap<>();
+        if (userInfos != null) {
             for (UserInfo userInfo : userInfos) {
-                if (videoVo.getUserId().longValue() == userInfo.getUserId().longValue()) {
-
-                    videoVo.setNickname(userInfo.getNickName());
-                    videoVo.setAvatar(userInfo.getLogo());
-                    // 签名：取用户标签，无标签时给默认文案
-                    String tags = userInfo.getTags();
-                    videoVo.setSignature(StringUtils.isNotEmpty(tags) ? tags : "这个人很懒，什么都没写");
-
-                    break;
-                }
+                userInfoMap.put(userInfo.getUserId(), userInfo);
             }
-
+        }
+        
+        for (VideoVo videoVo : videoVoList) {
+            UserInfo userInfo = userInfoMap.get(videoVo.getUserId());
+            if (userInfo != null) {
+                videoVo.setNickname(userInfo.getNickName());
+                videoVo.setAvatar(userInfo.getLogo());
+                // 签名：优先使用用户个性签名，其次用户标签，最后默认文案
+                String signature = userInfo.getSignature();
+                if (StringUtils.isEmpty(signature)) {
+                    signature = userInfo.getTags();
+                }
+                videoVo.setSignature(StringUtils.isNotEmpty(signature) ? signature : "这个人很懒，什么都没写");
+            } else {
+                LOGGER.warn("视频 {} 的作者 {} 未找到用户信息", videoVo.getId(), videoVo.getUserId());
+            }
         }
 
         return videoVoList;
@@ -262,16 +275,19 @@ public class VideoService {
         PageResult pageResult = new PageResult();
         pageResult.setPage(page);
         pageResult.setPagesize(pageSize);
-        pageResult.setPages(0);
-        pageResult.setCounts(0);
 
         List<Long> followIds = this.videoApi.queryFollowUserIds(user.getId());
         if (followIds == null || followIds.isEmpty()) {
+            pageResult.setCounts(0);
+            pageResult.setPages(0);
             pageResult.setItems(new ArrayList<>());
             return pageResult;
         }
 
         PageInfo<Video> pageInfo = this.videoApi.queryVideoListByUserIds(followIds, page, pageSize);
+        int total = pageInfo.getTotal() != null ? pageInfo.getTotal() : 0;
+        pageResult.setCounts(total);
+        pageResult.setPages((total + pageSize - 1) / pageSize);
         List<Video> records = pageInfo.getRecords();
         if (records == null) {
             records = new ArrayList<>();
@@ -294,16 +310,18 @@ public class VideoService {
         PageResult pageResult = new PageResult();
         pageResult.setPage(page);
         pageResult.setPagesize(pageSize);
-        pageResult.setPages(0);
-        pageResult.setCounts(0);
 
         // 取最新 100 条视频作为候选池
         PageInfo<Video> allPage = this.videoApi.queryVideoList(1, 100);
         List<Video> records = allPage.getRecords();
         if (records == null || records.isEmpty()) {
+            pageResult.setCounts(0);
+            pageResult.setPages(0);
             pageResult.setItems(new ArrayList<>());
             return pageResult;
         }
+        pageResult.setCounts(records.size());
+        pageResult.setPages((records.size() + pageSize - 1) / pageSize);
 
         // 一次 multiGet 批量读出各视频的点赞数（Redis key: QUANZI_COMMENT_LIKE_{videoId}），再内存排序，
         // 避免比较器/循环内逐条 GET 产生 100 次串行网络往返
@@ -355,10 +373,11 @@ public class VideoService {
         PageResult pageResult = new PageResult();
         pageResult.setPage(page);
         pageResult.setPagesize(pageSize);
-        pageResult.setPages(0);
-        pageResult.setCounts(0);
 
         PageInfo<Video> pageInfo = this.videoApi.queryLocationVideoList(page, pageSize);
+        int total = pageInfo.getTotal() != null ? pageInfo.getTotal() : 0;
+        pageResult.setCounts(total);
+        pageResult.setPages((total + pageSize - 1) / pageSize);
         List<Video> records = pageInfo.getRecords();
         if (records == null || records.isEmpty()) {
             pageResult.setItems(new ArrayList<>());

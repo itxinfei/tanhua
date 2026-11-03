@@ -60,25 +60,38 @@ public class PicUploadService {
             return fileUploadResult;
         }
 
-        //格式校验
-        boolean isLegal = false;
+        // 文件为空校验
+        if (uploadFile == null || uploadFile.isEmpty()) {
+            LOGGER.error("上传文件为空");
+            fileUploadResult.setStatus("error");
+            return fileUploadResult;
+        }
 
+        //格式校验（处理 originalFilename 为 null 的情况）
+        String originalFilename = uploadFile.getOriginalFilename();
+        if (originalFilename == null || originalFilename.isBlank()) {
+            LOGGER.error("上传文件名为空，contentType={}", uploadFile.getContentType());
+            fileUploadResult.setStatus("error");
+            return fileUploadResult;
+        }
+
+        boolean isLegal = false;
         for (String type : allowedTypes) {
-            if (StringUtils.endsWithIgnoreCase(uploadFile.getOriginalFilename(),
-                    type)) {
+            if (StringUtils.endsWithIgnoreCase(originalFilename, type)) {
                 isLegal = true;
                 break;
             }
         }
 
         if (!isLegal) {
+            LOGGER.error("不支持的文件格式: {}, 允许的类型: {}", originalFilename, String.join(", ", allowedTypes));
             fileUploadResult.setStatus("error");
             return fileUploadResult;
         }
 
         // 文件新路径
-        String fileName = uploadFile.getOriginalFilename();
-        String filePath = getFilePath(fileName, dir);
+        String filePath = getFilePath(originalFilename, dir);
+        LOGGER.info("开始上传文件: {} -> {}, size={} bytes", originalFilename, filePath, uploadFile.getSize());
 
         // 上传到 MinIO
         try (InputStream in = new ByteArrayInputStream(uploadFile.getBytes())) {
@@ -95,9 +108,9 @@ public class PicUploadService {
                     .stream(in, uploadFile.getSize(), -1)
                     .contentType(uploadFile.getContentType())
                     .build());
+            LOGGER.info("文件上传成功: {}", filePath);
         } catch (Exception e) {
-            LOGGER.error("文件上传失败", e);
-            //上传失败
+            LOGGER.error("文件上传失败: {}", originalFilename, e);
             fileUploadResult.setStatus("error");
             return fileUploadResult;
         }

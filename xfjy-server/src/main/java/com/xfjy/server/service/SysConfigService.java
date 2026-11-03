@@ -29,15 +29,6 @@ public class SysConfigService {
     /** 缓存有效期 30 秒 */
     private static final Duration CACHE_TTL = Duration.ofSeconds(30);
 
-    /** IM 通道配置键 */
-    public static final String KEY_IM_PROVIDER = "im.provider";
-
-    /** 默认 IM 通道（开源 WuKongIM） */
-    public static final String IM_PROVIDER_WUKONGIM = "wukongim";
-
-    /** 环信 IM 通道 */
-    public static final String IM_PROVIDER_HUANXIN = "huanxin";
-
     @Autowired
     private SysConfigMapper sysConfigMapper;
 
@@ -105,22 +96,6 @@ public class SysConfigService {
             log.warn("[系统配置] Redis清除失败: key={}, err={}", key, e.getMessage());
         }
         log.info("[系统配置] 配置已更新: {} = {}", key, value);
-    }
-
-    /**
-     * 获取当前 IM 通道
-     *
-     * @return wukongim（默认）/ huanxin
-     */
-    public String getImProvider() {
-        return getConfig(KEY_IM_PROVIDER, IM_PROVIDER_WUKONGIM);
-    }
-
-    /**
-     * 判断当前是否使用 WuKongIM 通道
-     */
-    public boolean isWuKongIm() {
-        return IM_PROVIDER_WUKONGIM.equalsIgnoreCase(getImProvider());
     }
 
     /**

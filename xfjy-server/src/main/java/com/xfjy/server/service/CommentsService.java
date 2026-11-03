@@ -52,10 +52,11 @@ public class CommentsService {
         PageResult pageResult = new PageResult();
         pageResult.setPage(page);
         pageResult.setPagesize(pageSize);
-        pageResult.setCounts(0);
-        pageResult.setPages(0);
 
         PageInfo<Comment> pageInfo = this.quanZiApi.queryCommentList(publishId, page, pageSize);
+        int total = pageInfo.getTotal() != null ? pageInfo.getTotal() : 0;
+        pageResult.setCounts(total);
+        pageResult.setPages((total + pageSize - 1) / pageSize);
         List<Comment> records = pageInfo.getRecords();
 
         if (CollectionUtils.isEmpty(records)) {

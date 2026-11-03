@@ -49,8 +49,8 @@ public class GraphRecommendService {
      * 失败仅打日志，不阻断 likeUser 主链路。
      */
     public void syncLikeRelation(Long userId, Long likeUserId) {
-        String cypher = "MERGE (u:User {id: $userId}) "
-                + "MERGE (v:User {id: $likeUserId}) "
+        String cypher = "MERGE (u:User {userId: $userId}) "
+                + "MERGE (v:User {userId: $likeUserId}) "
                 + "MERGE (u)-[:LIKES]->(v)";
         Map<String, Object> params = new HashMap<>();
         params.put("userId", userId);
@@ -63,7 +63,7 @@ public class GraphRecommendService {
      * 失败仅打日志，不阻断 disLikeUser 主链路。
      */
     public void removeLikeRelation(Long userId, Long likeUserId) {
-        String cypher = "MATCH (u:User {id: $userId})-[r:LIKES]->(v:User {id: $likeUserId}) DELETE r";
+        String cypher = "MATCH (u:User {userId: $userId})-[r:LIKES]->(v:User {userId: $likeUserId}) DELETE r";
         Map<String, Object> params = new HashMap<>();
         params.put("userId", userId);
         params.put("likeUserId", likeUserId);
@@ -79,9 +79,9 @@ public class GraphRecommendService {
      * @return 二度好友用户 id 列表
      */
     public List<Long> findSecondDegreeFriends(Long userId, int limit) {
-        String cypher = "MATCH (u:User {id: $userId})-[:LIKES]->(:User)-[:LIKES]->(fof:User) "
-                + "WHERE fof.id <> $userId "
-                + "RETURN DISTINCT fof.id AS id LIMIT $limit";
+        String cypher = "MATCH (u:User {userId: $userId})-[:LIKES]->(:User)-[:LIKES]->(fof:User) "
+                + "WHERE fof.userId <> $userId "
+                + "RETURN DISTINCT fof.userId AS userId LIMIT $limit";
         Map<String, Object> params = new HashMap<>();
         params.put("userId", userId);
         params.put("limit", limit);

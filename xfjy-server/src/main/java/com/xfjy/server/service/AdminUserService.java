@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xfjy.service.api.HuanXinApi;
+import com.xfjy.service.api.WuKongImApi;
 import com.xfjy.service.api.QuanZiApi;
 import com.xfjy.service.api.UserInfoApi;
 import com.xfjy.service.pojo.UserInfo;
@@ -15,6 +15,7 @@ import com.xfjy.server.pojo.User;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -40,10 +41,13 @@ public class AdminUserService {
     private ReportMapper reportMapper;
 
     @Autowired
-    private HuanXinApi huanXinApi;
+    private WuKongImApi wuKongImApi;
 
     @Autowired
     private QuanZiApi quanZiApi;
+
+    @Value("${admin.reset-password:123456}")
+    private String resetPassword;
 
     /**
      * 分页查询用户列表
@@ -52,6 +56,13 @@ public class AdminUserService {
                                               String keyword, String gender, String status,
                                               String startDate, String endDate) {
         QueryWrapper<User> userWrapper = buildUserFilterWrapper(keyword, gender, status, startDate, endDate);
+        if (userWrapper == null) {
+            // 性别/关键词无匹配用户，直接返回空结果
+            Map<String, Object> empty = new HashMap<>();
+            empty.put("total", 0L);
+            empty.put("list", new ArrayList<>());
+            return empty;
+        }
         userWrapper.orderByDesc("created");
 
         IPage<User> userPage = this.userMapper.selectPage(new Page<>(page, pageSize), userWrapper);
@@ -71,11 +82,20 @@ public class AdminUserService {
     /**
      * 导出用户列表（返回全部匹配数据，不分页）
      */
-    public List<User> exportUsers(String keyword, String gender, String status,
+    public List<Map<String, Object>> exportUsers(String keyword, String gender, String status,
                                   String startDate, String endDate) {
         QueryWrapper<User> userWrapper = buildUserFilterWrapper(keyword, gender, status, startDate, endDate);
+        if (userWrapper == null) {
+            return new ArrayList<>();
+        }
         userWrapper.orderByDesc("created");
-        return this.userMapper.selectList(userWrapper);
+        List<User> users = this.userMapper.selectList(userWrapper);
+        // 合并 UserInfo（昵称/性别/年龄/城市），与分页列表数据结构保持一致
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (User user : users) {
+            items.add(buildUserItem(user));
+        }
+        return items;
     }
 
     /**
@@ -292,7 +312,7 @@ public class AdminUserService {
     public Boolean resetPassword(Long userId) {
         User user = new User();
         user.setId(userId);
-        user.setPassword(org.apache.commons.codec.digest.DigestUtils.md5Hex("123456"));
+        user.setPassword(org.apache.commons.codec.digest.DigestUtils.md5Hex(resetPassword));
         return this.userMapper.updateById(user) > 0;
     }
 
@@ -370,10 +390,10 @@ public class AdminUserService {
     }
 
     /**
-     * 查询用户会话列表（调环信 REST API，补充对方昵称/头像并按最近活跃排序）
+     * 查询用户会话列表（调 IM REST API，补充对方昵称/头像并按最近活跃排序）
      */
     public List<Map<String, Object>> queryChatSessions(Long userId) {
-        List<Map<String, Object>> sessions = this.huanXinApi.getChatSessions(String.valueOf(userId), 20);
+        List<Map<String, Object>> sessions = this.wuKongImApi.getChatSessions(String.valueOf(userId), 20);
         // 补充对方昵称/头像（contactId 即对方 userId）
         for (Map<String, Object> session : sessions) {
             String contactId = String.valueOf(session.get("contactId"));
@@ -386,7 +406,7 @@ public class AdminUserService {
                 }
                 session.put("avatar", contactInfo != null ? contactInfo.getLogo() : "");
             } catch (NumberFormatException e) {
-                // contactId 非数字（如环信客服账号），直接作为昵称展示
+                // contactId 非数字（如 IM 客服账号），直接作为昵称展示
                 session.put("nickname", contactId);
                 session.put("avatar", "");
             } catch (Exception e) {
@@ -406,11 +426,11 @@ public class AdminUserService {
     }
 
     /**
-     * 查询与某用户的聊天记录（调环信 REST API）
+     * 查询与某用户的聊天记录（调 IM REST API）
      */
     public Map<String, Object> queryChatMessages(Long userId, String contactId, Integer pageSize) {
         int limit = (pageSize == null || pageSize <= 0) ? 20 : pageSize;
-        return this.huanXinApi.getChatMessages(String.valueOf(userId), contactId, limit, null);
+        return this.wuKongImApi.getChatMessages(String.valueOf(userId), contactId, limit, null);
     }
 
     /**

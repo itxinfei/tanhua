@@ -1,7 +1,7 @@
 package com.xfjy.server.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.xfjy.service.api.HuanXinApi;
+import com.xfjy.service.api.WuKongImApi;
 import com.xfjy.service.api.PayApi;
 import com.xfjy.service.api.QuanZiApi;
 import com.xfjy.service.api.UserInfoApi;
@@ -53,9 +53,6 @@ public class AdminDashboardService {
 
     @Autowired
     private WuKongImApi wuKongImApi;
-
-    @Autowired
-    private HuanXinApi huanXinApi;
 
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
@@ -215,23 +212,18 @@ public class AdminDashboardService {
     /**
      * 实时统计：今日消息数、今日动态发布数、今日视频数
      *
-     * 消息数通过 WuKongImApi 获取（环信不支持则返回 null）；
+     * 消息数通过 WuKongImApi 获取（不可用时返回 null）；
      * 动态数和视频数通过 QuanZiApi/VideoApi 的日期范围查询统计
      */
     public Map<String, Object> realtimeStats() {
         Map<String, Object> result = new HashMap<>();
 
-        // 今日消息数（WuKongImApi，环信返回 null）
+        // 今日消息数（WuKongImApi，不可用时保持 null）
         Long todayMessages = null;
         try {
             todayMessages = this.wuKongImApi.getTodayMessageCount();
         } catch (Exception e) {
-            // 降级：WuKongImApi 不可用时尝试环信
-            try {
-                todayMessages = this.huanXinApi.getTodayMessageCount();
-            } catch (Exception ex) {
-                // 两者都不可用，保持 null
-            }
+            // WuKongImApi 不可用时降级，保持 null
         }
         result.put("todayMessages", todayMessages);
 

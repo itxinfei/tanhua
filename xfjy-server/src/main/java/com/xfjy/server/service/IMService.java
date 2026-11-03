@@ -3,7 +3,7 @@ package com.xfjy.server.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.xfjy.service.api.HuanXinApi;
+import com.xfjy.service.api.WuKongImApi;
 import com.xfjy.service.api.QuanZiApi;
 import com.xfjy.service.api.UserInfoApi;
 import com.xfjy.service.api.UserLikeApi;
@@ -17,7 +17,7 @@ import com.xfjy.server.pojo.Announcement;
 import com.xfjy.server.pojo.User;
 import com.xfjy.server.utils.UserThreadLocal;
 import com.xfjy.server.vo.Contacts;
-import com.xfjy.server.vo.HuanXinUser;
+import com.xfjy.server.vo.ImCredential;
 import com.xfjy.server.vo.MessageAnnouncement;
 import com.xfjy.server.vo.MessageLike;
 import com.xfjy.server.vo.PageResult;
@@ -31,6 +31,11 @@ import java.time.format.DateTimeFormatter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.xfjy.server.graph.Neo4jClient;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,7 +51,7 @@ public class IMService {
     private UserLikeApi userLikeApi;
 
     @Autowired
-    private HuanXinApi huanXinApi;
+    private WuKongImApi wuKongImApi;
 
     @Autowired
     private UserInfoApi userInfoApi;
@@ -60,8 +65,13 @@ public class IMService {
     @Autowired
     private SysConfigService sysConfigService;
 
+    @Autowired //Neo4j 图数据库（P2 二度好友推荐）：好友关系落 FRIEND 边，不可用降级
+    private Neo4jClient neo4jClient;
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(IMService.class);
+
     /**
-     * IM token 派生盐（token = md5(uid + salt)）。
+     * IM token 派生盐（token = sha256(uid + salt)）。
      *
      * <p>默认值与存量已注册账号一致，生产环境通过环境变量 {@code IM_TOKEN_SALT} 覆盖；
      * 覆盖后存量用户下次取凭证时自动重新注册。</p>
@@ -79,22 +89,22 @@ public class IMService {
      * <p>token 由服务端派生并注册到 IM 通道（WuKongIM 幂等注册 / 环信 user-level token），
      * 盐值不出服务端；客户端拿到即可直连，不感知派生规则。</p>
      */
-    public HuanXinUser getImCredential() {
+    public ImCredential getImCredential() {
         User user = UserThreadLocal.get();
         String uid = String.valueOf(user.getId());
-        String password = DigestUtils.md5Hex(uid + this.imTokenSalt);
+        String password = DigestUtils.sha256Hex(uid + this.imTokenSalt);
 
         // 先取 token（WuKongIM 取 token 即注册，幂等）；取不到说明通道侧无此账号（环信需先注册），补注册后重试
-        String token = this.huanXinApi.getUserToken(uid, password);
+        String token = this.wuKongImApi.getUserToken(uid, password);
         if (StringUtils.isBlank(token)) {
-            this.huanXinApi.registerUser(uid, password);
-            token = this.huanXinApi.getUserToken(uid, password);
+            this.wuKongImApi.registerUser(uid, password);
+            token = this.wuKongImApi.getUserToken(uid, password);
         }
 
-        HuanXinUser credential = new HuanXinUser();
+        ImCredential credential = new ImCredential();
         credential.setUsername(uid);
         credential.setToken(token);
-        credential.setProvider(this.sysConfigService.getImProvider());
+        credential.setProvider("wukongim");
         credential.setWsUrl(this.imWsUrl);
         return credential;
     }
@@ -113,11 +123,11 @@ public class IMService {
     public Map<String, Object> getChatHistory(String peerUid, String cursor, Integer limit) {
         User user = UserThreadLocal.get();
         String fromUid = String.valueOf(user.getId());
-        return this.huanXinApi.getChatMessages(fromUid, peerUid, limit, cursor);
+        return this.wuKongImApi.getChatMessages(fromUid, peerUid, limit, cursor);
     }
 
     public Boolean contactUser(Long userId) {
-        //需要做2件事：1、保存数据到MongoDB，2、好友关系注册到环信
+        //需要做2件事：1、保存数据到MongoDB，2、好友关系注册到 IM
 
         User user = UserThreadLocal.get();
         // FR-IM-02 验收口径：未互相喜欢不得建立会话
@@ -132,8 +142,17 @@ public class IMService {
         // 1、保存数据到MongoDB
         this.usersApi.saveUsers(users);
 
-        // 2、好友关系注册到环信（契约调用 message-service）
-        this.huanXinApi.registerContact(users.getUserId(), users.getFriendId());
+        // 1.5、同步好友关系到 Neo4j（FRIEND 边，幂等 MERGE 双方 User 节点 + 双向边）
+        // 失败仅日志，绝不阻断好友注册主链路（Neo4jClient 内部已降级，外层再包一层兜底）
+        try {
+            this.neo4jClient.addFriendship(users.getUserId(), users.getFriendId());
+        } catch (Exception e) {
+            LOGGER.warn("Neo4j FRIEND 关系同步失败（降级跳过）, userId={}, friendId={}",
+                    users.getUserId(), users.getFriendId(), e);
+        }
+
+        // 2、好友关系注册到 IM（契约调用 message-service）
+        this.wuKongImApi.registerContact(users.getUserId(), users.getFriendId());
 
         return true;
     }
@@ -214,8 +233,9 @@ public class IMService {
 
         PageResult pageResult = new PageResult();
         pageResult.setPage(page);
-        pageResult.setPages(0);
-        pageResult.setCounts(0);
+        int total = pageInfo.getTotal() != null ? pageInfo.getTotal() : 0;
+        pageResult.setPages(pageSize != null && pageSize > 0 ? (int) Math.ceil(total / (double) pageSize) : 0);
+        pageResult.setCounts(total);
         pageResult.setPagesize(pageSize);
 
         List<Comment> records = pageInfo.getRecords();
@@ -272,8 +292,8 @@ public class IMService {
 
         PageResult pageResult = new PageResult();
         pageResult.setPage(page);
-        pageResult.setPages(0);
-        pageResult.setCounts(0);
+        pageResult.setCounts((int) announcementPage.getTotal());
+        pageResult.setPages((int) announcementPage.getPages());
         pageResult.setPagesize(pageSize);
         pageResult.setItems(messageAnnouncementList);
 

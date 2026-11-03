@@ -6,7 +6,7 @@ import com.xfjy.service.pojo.RecommendUser;
 import com.xfjy.service.pojo.UserInfo;
 import com.xfjy.service.vo.UserInfoQueryParam;
 import com.xfjy.service.vo.UserLocationVo;
-import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +31,8 @@ import java.util.stream.Collectors;
  *   <li>地理距离：Haversine 距离衰减 1/(1+d/decayKm)，当前用户无位置则整体降级</li>
  *   <li>画像相似度：tags Jaccard×0.5 + 年龄差衰减×0.3 + 同城×0.2</li>
  *   <li>互惠匹配（T4）：cosine(my_vec, cand_vec)²，Qdrant 无 embedding 时降级</li>
+ *   <li>社交信号（P2）：二度好友社交候选按共同好友数归一化的 socialScore，由 Neo4j 召回时写入；
+ *       社交候选无 ALS 协同过滤分，ALS 维度视为缺失降级，由社交维度代替参与排序</li>
  * </ul>
  * 输出分数映射到 0~100 区间（缘分值），权重通过 application.yml 热调。
  */
@@ -54,6 +56,10 @@ public class RecommendScoringService {
     /** T4 互惠匹配权重：cosine²双向相似度，无 embedding 时该维度降级（权重不计入分母） */
     @Value("${xfjy.recommend.scoring.w-recip:0.2}")
     private double weightRecip;
+
+    /** P2 社交信号权重：二度好友 socialScore 维度，社交候选无 ALS 分则由该维度代替参与排序 */
+    @Value("${xfjy.recommend.scoring.w-social:0.25}")
+    private double weightSocial;
 
     @Value("${xfjy.recommend.scoring.geo-decay-km:50}")
     private double geoDecayKm;
@@ -139,13 +145,18 @@ public class RecommendScoringService {
     /**
      * 单候选评分：可用维度加权求和后按可用权重归一，结果 ×100 映射到缘分值区间。
      * 数据缺失维度（sX=-1）不计入分母，实现自动降级。
+     *
+     * <p>社交候选（record.getSocialScore() != null 且 >=0）：无 ALS 协同过滤分，故 ALS 维度降级，
+     * 由社交维度（socialScore，权重 w-social）代替参与排序，使社交关系影响缘分值。</p>
      */
     private double computeScore(RecommendUser record, double maxAls,
                                 UserInfo myProfile, UserInfo candProfile,
                                 UserLocationVo myLocation, UserLocationVo candLocation,
                                 double sRecip) {
-        // ALS 维度始终可用（候选来自 ALS 结果或默认推荐）
-        double sAls = clamp01(record.getScore() / maxAls);
+        // 社交候选（二度好友）：无 ALS 协同过滤分 → ALS 维度降级；否则 ALS 维度归一化
+        boolean isSocial = record.getSocialScore() != null && record.getSocialScore() >= 0;
+        double sAls = isSocial ? -1 : clamp01(record.getScore() / maxAls);
+        double sSocial = isSocial ? record.getSocialScore() : -1;
 
         double sGeo = -1;
         if (myLocation != null && candLocation != null) {
@@ -159,8 +170,12 @@ public class RecommendScoringService {
             sProfile = profileSimilarity(myProfile, candProfile);
         }
 
-        double sum = weightAls * sAls;
-        double wsum = weightAls;
+        double sum = 0;
+        double wsum = 0;
+        if (sAls >= 0) {
+            sum += weightAls * sAls;
+            wsum += weightAls;
+        }
         if (sGeo >= 0) {
             sum += weightGeo * sGeo;
             wsum += weightGeo;
@@ -168,6 +183,11 @@ public class RecommendScoringService {
         if (sProfile >= 0) {
             sum += weightProfile * sProfile;
             wsum += weightProfile;
+        }
+        // P2 社交信号维度（二度好友候选活跃；非社交候选降级）
+        if (sSocial >= 0) {
+            sum += weightSocial * sSocial;
+            wsum += weightSocial;
         }
         // T4 互惠匹配维度（无 embedding 时降级）
         if (sRecip >= 0) {

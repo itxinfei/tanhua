@@ -5,7 +5,7 @@ import com.xfjy.service.api.UserInfoApi;
 import com.xfjy.service.pojo.RecommendUser;
 import com.xfjy.service.pojo.UserInfo;
 import com.xfjy.service.vo.UserLocationVo;
-import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

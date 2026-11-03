@@ -3,7 +3,7 @@ package com.xfjy.server.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import tools.jackson.databind.json.JsonMapper;
 import com.xfjy.service.api.ESUserLocationApi;
-import com.xfjy.service.api.HuanXinApi;
+import com.xfjy.service.api.WuKongImApi;
 import com.xfjy.service.api.PayApi;
 import com.xfjy.service.api.SwipeLogApi;
 import com.xfjy.service.api.UserInfoApi;
@@ -22,20 +22,21 @@ import com.xfjy.service.vo.UserLocationVo;
 import com.xfjy.server.pojo.Question;
 import com.xfjy.server.pojo.User;
 import com.xfjy.server.utils.UserThreadLocal;
+import com.xfjy.server.graph.Neo4jClient;
 import com.xfjy.server.vo.NearUserVo;
 import com.xfjy.server.vo.PageResult;
 import com.xfjy.server.vo.RecommendUserQueryParam;
 import com.xfjy.server.vo.TodayBest;
-import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class TodayBestService {
@@ -63,7 +64,7 @@ public class TodayBestService {
     private static final JsonMapper MAPPER = new JsonMapper();
 
     @Autowired
-    private HuanXinApi huanXinApi;
+    private WuKongImApi wuKongImApi;
 
     @Autowired
     private UserLikeApi userLikeApi;
@@ -104,6 +105,9 @@ public class TodayBestService {
     @Autowired //Neo4j 图推荐（P2：喜欢关系同步+二度好友召回，不可用降级）
     private GraphRecommendService graphRecommendService;
 
+    @Autowired //Neo4j 二度好友扩散召回（P2：好友关系图 FRIEND 边；不可用降级）
+    private Neo4jClient neo4jClient;
+
 
     public TodayBest queryTodayBest() {
 
@@ -142,6 +146,9 @@ public class TodayBestService {
         if (CollectionUtils.isEmpty(records)) {
             records = this.coldStartService.recommendColdStart(user.getId(), queryParam.getPagesize());
         }
+
+        // P2 二度好友扩散召回：并入「朋友的朋友」作为社交候选（过滤/打分前并入，走统一质量门）
+        records = this.blendSecondDegreeFriends(user.getId(), records);
 
         // 召回过滤：排除已喜欢 + 异性过滤（评分前调用，减少无效候选）
         records = this.recommendFilterService.filter(user.getId(), records);
@@ -242,6 +249,56 @@ public class TodayBestService {
         return todayBest;
     }
 
+    /**
+     * 二度好友扩散召回：将「朋友的朋友」并入推荐候选集。
+     *
+     * <p>在召回过滤（已喜欢排除 + 异性过滤）与混合评分之前并入，使社交候选走统一质量门与加权评分，
+     * 而非凭空插队。Neo4j 不可用、返回空或异常时返回原列表，绝不阻断推荐主链路。</p>
+     *
+     * @param userId  当前用户 ID
+     * @param records 当前候选集（原地补充，去重后并入）
+     * @return 补充后的候选集
+     */
+    private List<RecommendUser> blendSecondDegreeFriends(Long userId, List<RecommendUser> records) {
+        if (userId == null || CollectionUtils.isEmpty(records)) {
+            return records;
+        }
+        try {
+            Map<Long, Integer> secondDegreeMap = this.neo4jClient.findSecondDegreeFriendsWithCommon(userId, 50);
+            if (secondDegreeMap.isEmpty()) {
+                return records;
+            }
+            Set<Long> existing = records.stream()
+                    .map(RecommendUser::getUserId)
+                    .collect(Collectors.toSet());
+            int added = 0;
+            for (Map.Entry<Long, Integer> entry : secondDegreeMap.entrySet()) {
+                Long sd = entry.getKey();
+                Integer commonFriends = entry.getValue();
+                if (sd == null || existing.contains(sd)) {
+                    continue;
+                }
+                RecommendUser candidate = new RecommendUser();
+                candidate.setUserId(sd);
+                candidate.setToUserId(userId);
+                // ALS 协同过滤维度对社交候选缺失：score 置 0，由 RecommendScoringService 识别为社交候选，
+                // 将 ALS 维度降级、改用社交维度（socialScore）参与混合评分
+                candidate.setScore(0.0);
+                // 社交信号：共同好友数归一化（/5 封顶 1.0），1 个共同好友即 0.2 起步，多共同好友更强
+                candidate.setSocialScore(Math.min(1.0, commonFriends / 5.0));
+                records.add(candidate);
+                existing.add(sd);
+                added++;
+            }
+            if (added > 0) {
+                LOGGER.debug("二度好友扩散召回并入 {} 个社交候选, userId={}", added, userId);
+            }
+        } catch (Exception e) {
+            LOGGER.warn("二度好友扩散召回失败（降级跳过）, userId={}", userId, e);
+        }
+        return records;
+    }
+
     public String queryQuestion(Long userId) {
         Question question = this.questionService.queryQuestion(userId);
         if (null != question) {
@@ -270,8 +327,8 @@ public class TodayBestService {
 
         try {
             String msgStr = MAPPER.writeValueAsString(msg);
-            // 发送环信透传消息（契约调用 message-service）
-            this.huanXinApi.sendMessage(userId.toString(), msgStr);
+            // 发送 IM 透传消息（契约调用 message-service）
+            this.wuKongImApi.sendMessage(userId.toString(), msgStr);
             return true;
         } catch (Exception e) {
             LOGGER.error("今日佳人查询异常", e);
@@ -347,6 +404,9 @@ public class TodayBestService {
             // T5 冷启动兜底（地理召回+画像相似度，不足时默认推荐用户补尾）
             records = this.coldStartService.recommendColdStart(user.getId(), 50);
         }
+
+        // P2 二度好友扩散召回：并入「朋友的朋友」作为社交候选（过滤/打分前并入，走统一质量门）
+        records = this.blendSecondDegreeFriends(user.getId(), records);
 
         // 召回过滤：排除已喜欢 + 异性过滤（评分前调用）
         records = this.recommendFilterService.filter(user.getId(), records);
@@ -450,16 +510,19 @@ public class TodayBestService {
         try {
             BenefitCheckVo benefit = this.payApi.checkBenefit(userId, "super_like");
             if (benefit == null) {
+                // 权益配置不存在 → 视为未开通
                 throw new BenefitLimitException("super_like", "超级喜欢", SWIPE_LIMIT_UPGRADE_URL);
             }
             // 基础权益门槛：VIP lv1 起才能用 super_like
             if (!Boolean.TRUE.equals(benefit.getHasBenefit())) {
+                // 未开通 VIP
                 throw new BenefitLimitException("super_like", "超级喜欢", SWIPE_LIMIT_UPGRADE_URL);
             }
             // 每日限次判定（dailyLimit=NULL 表示不限次，仅 VIP 顶级才有）
             if (benefit.getDailyLimit() != null && benefit.getRemainingToday() != null
                     && benefit.getRemainingToday() <= 0) {
-                throw new BenefitLimitException("super_like", "超级喜欢", SWIPE_LIMIT_UPGRADE_URL);
+                // 已开通但今日次数用完
+                throw new BenefitLimitException("super_like", "超级喜欢", SWIPE_LIMIT_UPGRADE_URL, true);
             }
             // 后端也扣减一次权益（与前端 recordBenefitUsage 双重兜底；幂等：recordBenefitUsage 内部已防重）
             try {
@@ -489,7 +552,7 @@ public class TodayBestService {
 
     /**
      * 喜欢用户（探花右滑/超级喜欢）
-     * 保存喜欢关系，若互相喜欢则自动注册为环信好友
+     * 保存喜欢关系，若互相喜欢则自动注册为 IM 好友
      *
      * @param likeUserId 被喜欢的用户ID
      * @param action 动作类型：like | superlike
@@ -513,11 +576,11 @@ public class TodayBestService {
         boolean mutualLike = this.userLikeApi.isMutualLike(user.getId(), likeUserId);
         recordSwipeLog(likeUserId, action, mutualLike);
         if (mutualLike) {
-            // 相互喜欢成为好友（注册环信联系人）
+            // 相互喜欢成为好友（注册 IM 联系人）
             this.imService.contactUser(likeUserId);
             // 推送匹配成功通知给对方（旁路，失败仅日志不阻断）
             this.pushService.pushMatchNotification(likeUserId);
-            // 环信透传匹配消息：App 在线时实时触发"It's a Match"弹窗（旁路，失败仅日志不阻断）
+            // IM 透传匹配消息：App 在线时实时触发"It's a Match"弹窗（旁路，失败仅日志不阻断）
             try {
                 UserInfo likeUserInfo = this.userInfoApi.queryUserInfoById(user.getId());
                 Map<String, Object> msg = new HashMap<>();
@@ -525,9 +588,9 @@ public class TodayBestService {
                 msg.put("userId", user.getId().toString());
                 msg.put("nickname", likeUserInfo != null ? likeUserInfo.getNickName() : "");
                 msg.put("avatar", likeUserInfo != null ? likeUserInfo.getLogo() : "");
-                this.huanXinApi.sendMessage(likeUserId.toString(), MAPPER.writeValueAsString(msg));
+                this.wuKongImApi.sendMessage(likeUserId.toString(), MAPPER.writeValueAsString(msg));
             } catch (Exception e) {
-                LOGGER.warn("匹配成功环信消息发送失败：userId={}", likeUserId, e);
+                LOGGER.warn("匹配成功 IM 消息发送失败：userId={}", likeUserId, e);
             }
         }
         return mutualLike;
