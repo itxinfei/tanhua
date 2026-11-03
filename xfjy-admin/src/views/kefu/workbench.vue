@@ -344,7 +344,7 @@ onUnmounted(() => {
   flex-direction: column;
 }
 .panel-header {
-  padding: 14px 16px;
+  padding: var(--xfjy-space-4) var(--xfjy-space-4);
   font-size: 15px;
   font-weight: 600;
   border-bottom: 1px solid var(--xfjy-border-light);
@@ -369,7 +369,7 @@ onUnmounted(() => {
   .user-avatar {
     width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; object-fit: cover;
     &.placeholder {
-      background: var(--xfjy-primary); color: #fff; font-size: 13px;
+      background: var(--xfjy-primary); color: var(--xfjy-text-inverse); font-size: 13px;
       display: flex; align-items: center; justify-content: center;
     }
   }
@@ -389,9 +389,9 @@ onUnmounted(() => {
     max-width: 180px;
   }
   .unread-badge {
-    background: var(--xfjy-danger); color: #fff;
+    background: var(--xfjy-danger); color: var(--xfjy-text-inverse);
     font-size: 11px; min-width: 18px; height: 18px; line-height: 18px;
-    border-radius: 9px; text-align: center; padding: 0 5px;
+    border-radius: var(--xfjy-radius-sm); text-align: center; padding: 0 var(--xfjy-space-1);
   }
 }
 .empty-tip {
@@ -405,7 +405,7 @@ onUnmounted(() => {
   color: var(--xfjy-text-disabled); font-size: 14px;
 }
 .chat-header {
-  padding: 14px 20px;
+  padding: var(--xfjy-space-4) var(--xfjy-space-5);
   font-size: 15px; font-weight: 600;
   border-bottom: 1px solid var(--xfjy-border-light);
 }
@@ -418,6 +418,7 @@ onUnmounted(() => {
   &.mine { justify-content: flex-end; }
   .bubble {
     max-width: 60%;
+    /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 聊天气泡内距，气泡高度按内容自然撑开，见 AGENTS.md §11 存量豁免 */
     padding: 10px 14px;
     border-radius: 12px;
     font-size: 14px;
@@ -427,7 +428,7 @@ onUnmounted(() => {
   }
   &.mine .bubble {
     background: var(--xfjy-primary);
-    color: #fff;
+    color: var(--xfjy-text-inverse);
   }
 }
 
@@ -443,6 +444,7 @@ onUnmounted(() => {
 .voice-bubble {
   display: flex;
   align-items: center;
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 语音图标与波形/文字的 6px 对齐，见 AGENTS.md §11 存量豁免 */
   gap: 6px;
   cursor: pointer;
   user-select: none;

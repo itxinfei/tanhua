@@ -61,7 +61,7 @@ const formattedValue = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--xfjy-text-inverse);
   flex-shrink: 0;
   overflow: hidden;
 }
@@ -106,18 +106,18 @@ const formattedValue = computed(() => {
   right: var(--xfjy-space-3);
   bottom: var(--xfjy-space-2);
   font-size: var(--xfjy-font-size-xs);
-  padding: 1px 9px;
+  padding: 1px var(--xfjy-space-2);
   border-radius: 20px;
   font-variant-numeric: tabular-nums;
 }
 
 .stat-card__change.up {
   color: var(--xfjy-success);
-  background: #f3fbf6;
+  background: var(--xfjy-success-tint);
 }
 
 .stat-card__change.down {
   color: var(--xfjy-danger);
-  background: #fdf2f4;
+  background: var(--xfjy-danger-tint);
 }
 </style>

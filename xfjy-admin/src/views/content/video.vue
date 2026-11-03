@@ -119,7 +119,7 @@
         :src="previewUrl"
         controls
         autoplay
-        style="width: 100%; max-height: 480px; background: #000; border-radius: 4px"
+        style="width: 100%; max-height: 480px; background: var(--xfjy-media-bg); border-radius: 4px"
       />
     </el-dialog>
 
@@ -143,7 +143,7 @@
             :src="detailRow.videoUrl"
             :poster="detailRow.picUrl"
             controls
-            style="width: 100%; max-height: 360px; background: #000; border-radius: 6px"
+            style="width: 100%; max-height: 360px; background: var(--xfjy-media-bg); border-radius: 6px"
           />
         </div>
 
@@ -340,6 +340,7 @@ onMounted(() => {
 .stat-text {
   font-size: 12px;
   color: var(--xfjy-text-regular);
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 同列多个内联统计项之间的分隔 6px，见 AGENTS.md §11 存量豁免 */
   margin-right: 6px;
 }
 

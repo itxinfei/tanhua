@@ -54,7 +54,7 @@
         <el-table-column label="被举报对象" width="160">
           <template #default="{ row }">
             <el-tag :type="targetTypeColor(row.targetType)" size="small">{{ targetTypeLabel(row.targetType) }}</el-tag>
-            <span style="margin-left: 6px">{{ row.targetUserNickname }}</span>
+            <span class="target-name">{{ row.targetUserNickname }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="reason" label="举报原因" width="120" show-overflow-tooltip />
@@ -469,7 +469,13 @@ onMounted(() => {
 .user-cell {
   display: flex;
   align-items: center;
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 头像与文字间距 6px，见 AGENTS.md §11 存量豁免 */
   gap: 6px;
+}
+
+.target-name {
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 标签与昵称之间 6px 分隔，见 AGENTS.md §11 存量豁免 */
+  margin-left: 6px;
 }
 
 .text-muted {
@@ -480,8 +486,8 @@ onMounted(() => {
 .batch-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: var(--xfjy-space-2);
+  margin-bottom: var(--xfjy-space-2);
   padding: 8px 12px;
   background: var(--xfjy-primary-50);
   border: 1px solid var(--xfjy-primary-100);
@@ -500,14 +506,14 @@ onMounted(() => {
 }
 
 .detail-section {
-  margin-bottom: 22px;
+  margin-bottom: var(--xfjy-space-6);
 }
 
 .detail-section-title {
   font-size: 14px;
   font-weight: 600;
   color: var(--xfjy-text-primary);
-  margin-bottom: 10px;
+  margin-bottom: var(--xfjy-space-2);
   padding-left: 8px;
   border-left: 3px solid var(--xfjy-primary);
   line-height: 1.2;
@@ -560,6 +566,7 @@ onMounted(() => {
   display: flex;
   gap: 8px;
   overflow-x: auto;
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 横向滚动条预留 6px 间隙，见 AGENTS.md §11 存量豁免 */
   padding-bottom: 6px;
 }
 

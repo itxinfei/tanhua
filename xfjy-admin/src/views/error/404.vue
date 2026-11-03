@@ -99,6 +99,7 @@ function starStyle(n: number) {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* stylelint-disable-next-line color-no-hex -- 404 插画渐层配色，随插画整体重做，见 AGENTS.md §11 存量豁免 */
   background: linear-gradient(160deg, #f5f7ff 0%, #f0f2f5 60%, var(--xfjy-primary-50) 100%);
   position: relative;
   overflow: hidden;
@@ -114,6 +115,7 @@ function starStyle(n: number) {
 .star {
   position: absolute;
   border-radius: 50%;
+  /* stylelint-disable-next-line color-no-hex -- 404 插画配色，见 AGENTS.md §11 存量豁免 */
   background: #c5cae9;
   opacity: 0.5;
   animation: twinkle 3s ease-in-out infinite;
@@ -179,12 +181,14 @@ function starStyle(n: number) {
   margin-top: 12px;
   font-size: 22px;
   font-weight: 600;
+  /* stylelint-disable-next-line color-no-hex -- 404 插画配色，见 AGENTS.md §11 存量豁免 */
   color: #303133;
 }
 
 .nf-desc {
   margin-top: 8px;
   font-size: 14px;
+  /* stylelint-disable-next-line color-no-hex -- 404 插画配色，见 AGENTS.md §11 存量豁免 */
   color: #909399;
 }
 

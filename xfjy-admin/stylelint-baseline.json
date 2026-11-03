@@ -1,0 +1,5 @@
+{
+  "note": "stylelint warning 基线。只允许下调：修复批次完成时同步改小对应文件的数字。",
+  "total": 0,
+  "files": {}
+}

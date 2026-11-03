@@ -62,7 +62,7 @@
               </div>
             </div>
             <div class="rt-metric">
-              <div class="rt-metric__icon" style="color: var(--xfjy-warning); background: #fff7ed">
+              <div class="rt-metric__icon" style="color: var(--xfjy-warning); background: var(--xfjy-warning-50)">
                 <el-icon><VideoCamera /></el-icon>
               </div>
               <div class="rt-metric__body">
@@ -109,7 +109,7 @@
                 </div>
               </div>
               <div class="rt-metric">
-                <div class="rt-metric__icon" style="color: var(--xfjy-warning); background: #fff7ed">
+                <div class="rt-metric__icon" style="color: var(--xfjy-warning); background: var(--xfjy-warning-50)">
                   <el-icon><TrendCharts /></el-icon>
                 </div>
                 <div class="rt-metric__body">
@@ -808,7 +808,7 @@ onMounted(loadAll)
   margin-left: 4px;
   font-size: 10px;
   line-height: 1;
-  padding: 2px 5px;
+  padding: 2px var(--xfjy-space-1);
   border-radius: 8px;
   color: var(--xfjy-text-disabled);
   background: var(--xfjy-bg-card);
@@ -856,7 +856,7 @@ onMounted(loadAll)
   font-size: var(--xfjy-font-size-xs);
   line-height: 1;
   padding: 3px 8px;
-  border-radius: 10px;
+  border-radius: var(--xfjy-radius-sm);
   color: var(--xfjy-text-secondary);
   background: var(--xfjy-bg-hover);
 }
@@ -892,7 +892,7 @@ onMounted(loadAll)
   flex: 1;
   display: flex;
   height: 10px;
-  border-radius: 5px;
+  border-radius: var(--xfjy-radius-sm);
   overflow: hidden;
   background: var(--xfjy-bg-hover);
 }
@@ -962,7 +962,7 @@ onMounted(loadAll)
 .hot-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--xfjy-space-2);
 }
 
 .hot-item {
@@ -988,7 +988,7 @@ onMounted(loadAll)
 }
 
 .hot-item__rank--top {
-  color: #fff;
+  color: var(--xfjy-text-inverse);
   background: var(--xfjy-primary);
 }
 

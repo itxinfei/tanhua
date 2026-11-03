@@ -382,6 +382,7 @@ onMounted(() => {
 .stat-text {
   font-size: 12px;
   color: var(--xfjy-text-regular);
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 同列多个内联统计项之间的分隔 6px，见 AGENTS.md §11 存量豁免 */
   margin-right: 6px;
 }
 
@@ -423,7 +424,7 @@ onMounted(() => {
 .detail-media-item {
   width: 120px;
   height: 120px;
-  border-radius: 6px;
+  border-radius: var(--xfjy-radius-md);
   flex-shrink: 0;
 }
 

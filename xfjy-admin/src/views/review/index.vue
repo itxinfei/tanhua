@@ -139,7 +139,7 @@
                 v-if="currentItem.type === 'VIDEO'"
                 controls
                 :src="currentItem.medias[0]"
-                style="max-width: 100%; max-height: 320px; border-radius: 8px; background: #000"
+                style="max-width: 100%; max-height: 320px; border-radius: 8px; background: var(--xfjy-media-bg)"
               />
               <!-- 非视频：横向滚动多图，每张图都带完整预览列表，点击可在大图查看器内左右切换 -->
               <div v-else class="media-row">
@@ -539,6 +539,7 @@ onUnmounted(() => {
 
 kbd {
   display: inline-block;
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 键帽内距 1px 6px（键帽尺寸），见 AGENTS.md §11 存量豁免 */
   padding: 1px 6px;
   margin: 0 2px;
   background: var(--xfjy-bg-card);
@@ -574,7 +575,7 @@ kbd {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
+  padding: var(--xfjy-space-2) var(--xfjy-space-3);
   border-bottom: 1px solid var(--xfjy-border-light);
 }
 
@@ -597,7 +598,7 @@ kbd {
 .queue-item {
   display: flex;
   gap: 8px;
-  padding: 10px 12px;
+  padding: var(--xfjy-space-2) var(--xfjy-space-3);
   cursor: pointer;
   border-bottom: 1px solid var(--xfjy-border-light);
   border-left: 3px solid transparent;
@@ -670,6 +671,7 @@ kbd {
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 审核结论标签组与上文 6px 起行距，见 AGENTS.md §11 存量豁免 */
   margin-top: 6px;
 }
 
@@ -730,7 +732,7 @@ kbd {
 }
 
 .detail-section h4 {
-  margin: 0 0 10px;
+  margin: 0 0 var(--xfjy-space-2);
   color: var(--xfjy-text-primary);
   font-size: 14px;
 }
@@ -741,13 +743,14 @@ kbd {
   font-size: 14px;
   line-height: 1.8;
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .media-row {
   display: flex;
-  gap: 10px;
+  gap: var(--xfjy-space-2);
   overflow-x: auto;
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 横向滚动条预留 6px 间隙，见 AGENTS.md §11 存量豁免 */
   padding-bottom: 6px;
 }
 
@@ -760,7 +763,7 @@ kbd {
 }
 
 .review-result {
-  padding: 14px 16px;
+  padding: var(--xfjy-space-4) var(--xfjy-space-4);
   background: var(--xfjy-bg-hover);
   border-radius: 8px;
 }
@@ -779,7 +782,7 @@ kbd {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 20px;
+  padding: var(--xfjy-space-4) var(--xfjy-space-5);
   border-top: 1px solid var(--xfjy-border-light);
 }
 

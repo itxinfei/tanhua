@@ -210,7 +210,7 @@ async function submitPassword() {
 
 <style scoped>
 .profile-card {
-  background: #fff;
+  background: var(--xfjy-text-inverse);
   border-radius: 8px;
   padding: 24px;
 }

@@ -208,6 +208,7 @@ const activeMenu = computed(() => {
 
 /* 折叠态下 sub-menu 标题居中 */
 :deep(.el-menu--collapse .el-sub-menu__title) {
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 折叠态内距视觉微调，见 AGENTS.md §11 存量豁免 */
   padding: 0 18px !important;
 }
 </style>

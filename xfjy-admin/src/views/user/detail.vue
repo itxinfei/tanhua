@@ -686,7 +686,7 @@ watch(activeTab, async (tab) => {
 }
 
 .session-header {
-  padding: 10px 12px;
+  padding: var(--xfjy-space-2) var(--xfjy-space-3);
   font-size: 13px;
   font-weight: 600;
   border-bottom: 1px solid var(--xfjy-border);
@@ -702,7 +702,7 @@ watch(activeTab, async (tab) => {
   display: flex;
   gap: 8px;
   align-items: flex-start;
-  padding: 10px 12px;
+  padding: var(--xfjy-space-2) var(--xfjy-space-3);
   cursor: pointer;
   border-bottom: 1px solid var(--xfjy-border-light);
   transition: background 0.2s;
@@ -714,13 +714,13 @@ watch(activeTab, async (tab) => {
 
 .session-item.active {
   background: var(--xfjy-primary);
-  color: #fff;
+  color: var(--xfjy-text-inverse);
 }
 
 .session-item.active .session-msg,
 .session-item.active .session-time,
 .session-item.active .session-id {
-  color: #fff;
+  color: var(--xfjy-text-inverse);
 }
 
 .session-avatar {
@@ -782,7 +782,7 @@ watch(activeTab, async (tab) => {
 }
 
 .message-header {
-  padding: 10px 12px;
+  padding: var(--xfjy-space-2) var(--xfjy-space-3);
   font-size: 13px;
   font-weight: 600;
   border-bottom: 1px solid var(--xfjy-border);
@@ -824,7 +824,7 @@ watch(activeTab, async (tab) => {
 
 .message-item.mine .bubble {
   background: var(--xfjy-primary);
-  color: #fff;
+  color: var(--xfjy-text-inverse);
 }
 
 /* 移动端：聊天容器占满可视高度，避免固定 480px 超出抽屉 */
@@ -846,6 +846,7 @@ watch(activeTab, async (tab) => {
 .user-cell {
   display: flex;
   align-items: center;
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 头像与文字间距 6px，见 AGENTS.md §11 存量豁免 */
   gap: 6px;
 }
 

@@ -56,7 +56,7 @@
           <div v-if="testResult.hitWords.length > 0">
             <div>命中 {{ testResult.hitWords.length }} 个敏感词，最高级别：{{ levelLabel(testResult.maxLevel) }}</div>
             <div style="margin-top: 4px">
-              <el-tag v-for="word in testResult.hitWords" :key="word" size="small" style="margin-right: 6px">{{ word }}</el-tag>
+              <el-tag v-for="word in testResult.hitWords" :key="word" size="small" class="hit-word">{{ word }}</el-tag>
             </div>
           </div>
           <div v-else>未命中敏感词</div>
@@ -451,5 +451,10 @@ onMounted(() => {
   font-size: var(--xfjy-font-size-xs);
   color: var(--xfjy-text-secondary);
   margin-top: var(--xfjy-space-1);
+}
+
+.hit-word {
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 敏感词标签右侧 6px 分隔，见 AGENTS.md §11 存量豁免 */
+  margin-right: 6px;
 }
 </style>

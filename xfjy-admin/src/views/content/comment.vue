@@ -323,7 +323,7 @@ onMounted(() => {
   white-space: pre-wrap;
   padding: 12px 16px;
   background: var(--xfjy-bg-hover);
-  border-radius: 6px;
+  border-radius: var(--xfjy-radius-md);
 }
 
 .detail-desc {

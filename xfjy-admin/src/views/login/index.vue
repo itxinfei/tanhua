@@ -262,7 +262,7 @@ async function handleLogin() {
 /* 漂浮爱心粒子 */
 .float-heart {
   position: absolute;
-  color: #fff;
+  color: var(--xfjy-text-inverse);
   z-index: 1;
   opacity: 0.7;
   pointer-events: none;
@@ -279,7 +279,7 @@ async function handleLogin() {
   width: 100%;
   max-width: 460px;
   margin: 0 auto;
-  color: #fff;
+  color: var(--xfjy-text-inverse);
 }
 
 /* 内容区柔光遮罩：压暗四周、提亮中央，保证文字在爱心背景上的可读性 */
@@ -314,12 +314,12 @@ async function handleLogin() {
 }
 
 .brand-title {
-  margin-top: 22px;
+  margin-top: var(--xfjy-space-6);
   text-align: center;
   font-size: 40px;
   font-weight: 800;
   letter-spacing: 4px;
-  background: linear-gradient(90deg, #ffffff, #ffe3f1);
+  background: linear-gradient(90deg, var(--xfjy-text-inverse), var(--xfjy-primary-tint));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -327,7 +327,7 @@ async function handleLogin() {
 }
 
 .brand-slogan {
-  margin-top: 10px;
+  margin-top: var(--xfjy-space-2);
   text-align: center;
   font-size: 15px;
   opacity: 0.9;
@@ -340,7 +340,7 @@ async function handleLogin() {
   display: flex;
   width: fit-content;
   align-items: center;
-  padding: 14px 10px;
+  padding: var(--xfjy-space-3) var(--xfjy-space-2);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -384,8 +384,8 @@ async function handleLogin() {
 .feature-list li {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 12px 14px;
+  gap: var(--xfjy-space-3);
+  padding: var(--xfjy-space-3) var(--xfjy-space-4);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -445,7 +445,7 @@ async function handleLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fff;
+  background: var(--xfjy-text-inverse);
   flex-shrink: 0;
 }
 
@@ -465,6 +465,7 @@ async function handleLogin() {
 }
 
 .login-header p {
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 贴合标题基线的副文案间距 6px，见 AGENTS.md §11 存量豁免 */
   margin-top: 6px;
   font-size: 14px;
   color: var(--xfjy-text-secondary);

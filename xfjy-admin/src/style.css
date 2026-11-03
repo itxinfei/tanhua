@@ -1,7 +1,8 @@
 /* ==================== 品牌主题（心飞交友） ==================== */
 :root {
-  /* ===== 品牌主色：玫红 #ff5e9c，辅助紫 #b13bff ===== */
-  --xfjy-primary: #ff5e9c;
+  /* ===== 品牌主色：暖玫红 #fe3c72，珊瑚 #ff655b，辅助紫 #b13bff ===== */
+  --xfjy-primary: #fe3c72;
+  --xfjy-coral: #ff655b;
   --xfjy-primary-deep: #b13bff;
   --xfjy-primary-soft: #ff8fb1;
   --xfjy-primary-violet: #8a5cf6;
@@ -16,8 +17,8 @@
   --xfjy-deep-200: #d4b3ff;
 
   /* ===== 品牌渐变 ===== */
-  --xfjy-gradient-brand: linear-gradient(135deg, #ff5e9c, #b13bff);
-  --xfjy-gradient-rose: linear-gradient(135deg, #ff8fb1, #ff5e9c);
+  --xfjy-gradient-brand: linear-gradient(135deg, #fe3c72, #ff655b);
+  --xfjy-gradient-rose: linear-gradient(135deg, #ff8fb1, #fe3c72);
   --xfjy-gradient-purple: linear-gradient(135deg, #8a5cf6, #b13bff);
   --xfjy-gradient-soft: linear-gradient(135deg, #ffd1e8, #e8d5ff);
 
@@ -49,17 +50,28 @@
   --xfjy-warning-50: #fff7ed;
   --xfjy-danger-50: #fef2f2;
 
+  /* ===== 徽标/渐变软底色 =====
+     取值沿用页面既有实现的原始十六进制（与上面的 -50/-100 色阶相近但不完全相同），
+     目的是替换硬编码 hex 时像素零变化；不要把它们合并进上面的色阶。 */
+  --xfjy-success-tint: #f3fbf6;
+  --xfjy-danger-tint: #fdf2f4;
+  --xfjy-primary-tint: #ffe3f1;
+
   /* ===== 侧边栏专用 ===== */
   --xfjy-sidebar-bg: #ffffff;
   --xfjy-sidebar-border: #e8eaed;
   --xfjy-sidebar-text: #4e5969;
   --xfjy-sidebar-text-secondary: #86909c;
   --xfjy-sidebar-hover: #f7f8fa;
-  --xfjy-sidebar-active-bg: rgba(255, 94, 156, 0.08);
-  --xfjy-sidebar-active-text: #ff5e9c;
-  --xfjy-sidebar-active-border: #ff5e9c;
+  --xfjy-sidebar-active-bg: rgba(254, 60, 114, 0.08);
+  --xfjy-sidebar-active-text: #fe3c72;
+  --xfjy-sidebar-active-border: #fe3c72;
   --xfjy-sidebar-sub-bg: #fafafa;
   --xfjy-sidebar-font-size: 15px;
+
+  /* ===== 语义色：反白文字 / 媒体底色 ===== */
+  --xfjy-text-inverse: #ffffff;
+  --xfjy-media-bg: #000;
 
   /* ===== Header 专用 ===== */
   --xfjy-header-bg: #ffffff;
@@ -67,7 +79,7 @@
   --xfjy-header-height: 56px;
 
   /* ===== 图表色板（CVD 验证通过） ===== */
-  --xfjy-chart-1: #ff5e9c;
+  --xfjy-chart-1: #fe3c72;
   --xfjy-chart-2: #7c3aed;
   --xfjy-chart-3: #00b894;
   --xfjy-chart-4: #f59e0b;
@@ -115,13 +127,13 @@
   --xfjy-line-height: 1.5;
 
   /* ===== 覆盖 Element Plus 默认主色（默认蓝 #409EFF），统一全站按钮/链接/高亮态 ===== */
-  --el-color-primary: #ff5e9c;
-  --el-color-primary-light-3: #ff7eb0;
-  --el-color-primary-light-5: #ffafce;
-  --el-color-primary-light-7: #ffcfe1;
-  --el-color-primary-light-8: #ffdfeb;
-  --el-color-primary-light-9: #ffeff5;
-  --el-color-primary-dark-2: #cc4b7d;
+  --el-color-primary: #fe3c72;
+  --el-color-primary-light-3: #fe779c;
+  --el-color-primary-light-5: #ff9eb9;
+  --el-color-primary-light-7: #ffc9d5;
+  --el-color-primary-light-8: #ffd8e2;
+  --el-color-primary-light-9: #ffe7ed;
+  --el-color-primary-dark-2: #cb305b;
 }
 
 /* ==================== 全局样式重置 ==================== */
@@ -159,7 +171,7 @@ a {
 
 ::-webkit-scrollbar-thumb {
   background: #c0c4cc;
-  border-radius: 3px;
+  border-radius: var(--xfjy-radius-sm);
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -370,4 +382,121 @@ a {
     max-width: 100%;
     flex: 0 0 100%;
   }
+}
+
+/* ==================== Element Plus ← 品牌 Token 映射 ====================
+   目的：EP 组件（按钮/输入框/卡片/弹层/提示）的功能色、圆角、文字/边框/背景、
+   阴影全部走品牌 Token，避免"EP 默认绿/红 + 4px 圆角"与页面其它元素不一致。
+   规则：
+   - 本段只做映射，不新增品牌色字面量；真源仍是上方 :root 的 --xfjy-*。
+   - --el-color-primary 及其色阶已在 L118-L125 定义，此处不重复。
+   - 浅色阶（light-3/5/7/8/9、dark-2）是 EP 组件内部消费的派生色，必须显式给出。
+   ====================================================================== */
+:root {
+  /* 功能色 */
+  --el-color-success: var(--xfjy-success);
+  --el-color-success-light-3: #4cc76a;
+  --el-color-success-light-5: #80d694;
+  --el-color-success-light-7: #b3e4bf;
+  --el-color-success-light-8: #ccecd3;
+  --el-color-success-light-9: #e6f5e9;
+  --el-color-success-dark-2: #009022;
+
+  --el-color-warning: var(--xfjy-warning);
+  --el-color-warning-light-3: #ff9b40;
+  --el-color-warning-light-5: #ffb673;
+  --el-color-warning-light-7: #ffd0a6;
+  --el-color-warning-light-8: #ffdec0;
+  --el-color-warning-light-9: #ffeedb;
+  --el-color-warning-dark-2: #cc6400;
+
+  --el-color-danger: var(--xfjy-danger);
+  --el-color-danger-light-3: #f76a6a;
+  --el-color-danger-light-5: #f99696;
+  --el-color-danger-light-7: #fbc0c0;
+  --el-color-danger-light-8: #fdd2d2;
+  --el-color-danger-light-9: #fee9e9;
+  --el-color-danger-dark-2: #c43232;
+  --el-color-error: var(--xfjy-danger);
+
+  --el-color-info: var(--xfjy-info);
+  --el-color-info-light-3: #a9b0ba;
+  --el-color-info-light-5: #bfc5cd;
+  --el-color-info-light-7: #d5d9df;
+  --el-color-info-light-8: #e0e3e7;
+  --el-color-info-light-9: #f0f1f3;
+  --el-color-info-dark-2: #6b737e;
+
+  /* 圆角：EP 默认 4px 与品牌卡片 8px 不一致；控件类统一走 base = 8px */
+  --el-border-radius-base: var(--xfjy-radius-md);
+  --el-border-radius-small: var(--xfjy-radius-sm);
+
+  /* 文字 */
+  --el-text-color-primary: var(--xfjy-text-primary);
+  --el-text-color-regular: var(--xfjy-text-regular);
+  --el-text-color-secondary: var(--xfjy-text-secondary);
+  --el-text-color-placeholder: var(--xfjy-text-disabled);
+  --el-text-color-disabled: var(--xfjy-text-disabled);
+
+  /* 边框 / 分割线 */
+  --el-border-color: var(--xfjy-border);
+  --el-border-color-light: var(--xfjy-border-light);
+  --el-border-color-lighter: var(--xfjy-border-light);
+  --el-border-color-extra-light: var(--xfjy-border-light);
+  --el-border-color-hover: var(--xfjy-border-hover);
+
+  /* 填充 / 背景 */
+  --el-fill-color-blank: var(--xfjy-bg-card);
+  --el-fill-color-light: var(--xfjy-bg-hover);
+  --el-fill-color-lighter: var(--xfjy-bg-hover);
+  --el-bg-color-page: var(--xfjy-bg-page);
+
+  /* 阴影 */
+  --el-box-shadow-light: var(--xfjy-shadow-card);
+  --el-box-shadow: var(--xfjy-shadow-hover);
+  --el-box-shadow-lighter: var(--xfjy-shadow-card);
+}
+
+/* ==================== Element Plus 圆角三级阶梯（12 / 8 / 4） ====================
+ * 为什么不把这些变量补在 :root：
+ *   el-card / el-tag / el-message-box / el-popover / el-pagination 的圆角变量
+ *   是声明在「组件自身选择器」上的（例如 .el-card{--el-card-border-radius:4px}）。
+ *   CSS 自定义属性在元素自身声明优先于从 :root 继承，所以 :root 里再写一遍无效，
+ *   必须落到同名组件选择器上；本文件在 element-plus/dist/index.css 之后加载
+ *   （见 main.ts 的 import 顺序），同优先级下后者胜出。
+ *
+ * 阶梯：容器 12（radius-lg） / 控件 8（radius-md，走 --el-border-radius-base） / 小元素 4（radius-sm）
+ */
+.el-card {
+  --el-card-border-radius: var(--xfjy-radius-lg);
+}
+
+.el-dialog {
+  /* EP 默认 --el-dialog-border-radius 链路到 base（8px），容器按阶梯提到 12 */
+  --el-dialog-border-radius: var(--xfjy-radius-lg);
+}
+
+.el-message-box {
+  --el-messagebox-border-radius: var(--xfjy-radius-lg);
+}
+
+.el-popover {
+  --el-popover-border-radius: var(--xfjy-radius-lg);
+}
+
+/* 控件类（el-button / el-input / el-select / el-alert）直接引用 --el-border-radius-base，
+   已在 :root 映射为 radius-md，无需重复覆盖 */
+
+.el-tag {
+  /* StatusTag 组件就渲染 el-tag，这里定死 4px 即它的最终圆角 */
+  --el-tag-border-radius: var(--xfjy-radius-sm);
+}
+
+.el-pagination {
+  --el-pagination-border-radius: var(--xfjy-radius-sm);
+}
+
+.el-message {
+  /* 顶部提示条按小元素处理 */
+  border-radius: var(--xfjy-radius-sm);
 }
