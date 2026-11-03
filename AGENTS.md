@@ -96,8 +96,10 @@ Copilot / Serena / Trae）开工前必须读完本文件。
 
 ## 6. 配置与密钥
 - 开发/测试：`application*.yml` 允许明文，**禁止** `${VAR:default}` 占位符（与 `CONST-SEC-005` 一致）。
-- 生产：数据库/Redis 密码、AK/SK、第三方密钥只允许部署注入，仓库内不得出现生产地址/口令。
-- 密钥不得写入代码、注释、测试、README；模板文件只放空值键名。
+- 敏感信息分级（2026-11-03 裁定）：**内网地址与内网凭据不作为风险处理**——`192.168.x`、`10.x`、`172.16-31.x` 等私网 IP、本机虚拟机账号密码属本地开发环境，允许出现在配置与文档中，**不报警、不改写**。
+- **公网 IP / 云服务器地址 / 公网主机名 + 任何凭据一律禁止进入仓库**（含代码、配置、README、示例、compose、CI 变量说明、文档截图）；发现即删除并提示轮换对应凭据（公网主机可达，凭据泄露即可被直接利用）。
+- 边界：`CONST-SEC-005` 约束**写法**（内网环境用明文、禁 `${VAR:default}`）；本条约束**范围**（公网地址与凭据不得入库），二者不冲突。
+- 生产：数据库/Redis 密码、AK/SK、第三方密钥只允许部署注入；密钥不得写入代码、注释、测试、README，模板文件只放空值键名。
 - MongoDB 必须写 `spring.mongodb.uri`；Redis/DataSource 前缀不变。
 - 新增环境变量必须同步部署变量表与 `deploy/.env.example`（若不存在则先建）。
 - Nacos 只用于发现；禁止引入配置中心。
@@ -160,6 +162,9 @@ Copilot / Serena / Trae）开工前必须读完本文件。
 `npm run lint:style --prefix xfjy-admin 2>&1 | rg "✖"` → 0（新增代码）
 
 ## 8. 提交与文档
+- **本地编译门禁**：提交到 Gitea 前必须本地编译通过，未通过不得 commit、不得 push；跳过验证的提交视为违规。
+- 最小验证集：后端 `mvn -o -q -DskipTests compile`（改了测试或核心逻辑改为 `mvn -o -pl <模块> test`）；前端 `xfjy-admin` 跑 `npm run build` 与 `npm run lint:style`（含 `stylelint-gate`）；规则文件改动跑 `pwsh scripts/sync-agent-rules.ps1 -Check`。
+- 验证失败：修问题后**新建一笔提交**，不得 `--amend`、不得 `--no-verify`。
 - 提交信息用 Conventional Commits：`feat|fix|refactor|docs|test|chore(scope): 描述`。
 - 一个 PR 只做一件事；禁止混入全仓格式化、依赖升级、无关重命名。
 - 禁止提交 `_` 前缀临时脚本、`node_modules`、`dist`、日志、`.env`、本地 board。

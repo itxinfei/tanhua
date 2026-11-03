@@ -374,7 +374,8 @@ public class MovementsService {
         String likeCommentKey = "QUANZI_COMMENT_LOVE_" + publishId;
         if (!this.redisTemplate.hasKey(likeCommentKey)) {
             // 缓存未命中：从DB加载初始值（DB已含本次喜欢），setIfAbsent 原子写入避免覆盖并发increment
-            loveCount = this.quanZiApi.queryCommentCount(publishId, 1);
+            // type=3=喜欢（1=点赞/2=评论），与 saveLoveComment/unLoveComment 的 commentType 保持一致
+            loveCount = this.quanZiApi.queryCommentCount(publishId, 3);
             this.redisTemplate.opsForValue().setIfAbsent(likeCommentKey, String.valueOf(loveCount != null ? loveCount : 0L));
         } else {
             // 缓存命中：原子自增（本次喜欢尚未计入缓存）
