@@ -19,7 +19,7 @@ server:
 # 内部服务鉴权 Token（可选逗号分隔，生产环境建议通过 INTERNAL_AUTH_TOKENS 环境变量注入覆盖）
 internal:
   auth:
-    tokens: -xfjy-internal-dev-token-change-in-prod
+    tokens: xfjy-internal-dev-token-change-in-prod
 
 logging:
   level:

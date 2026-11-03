@@ -48,4 +48,4 @@ spring:
 # 内部服务鉴权 Token（与域服务保持一致，网关转发时自动注入 X-Internal-Token 头）
 internal:
   auth:
-    tokens: -xfjy-internal-dev-token-change-in-prod
+    tokens: xfjy-internal-dev-token-change-in-prod

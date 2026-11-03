@@ -17,17 +17,9 @@ spring:
 # 内部服务鉴权 Token（可选逗号分隔，生产环境建议通过 INTERNAL_AUTH_TOKENS 环境变量注入覆盖）
 internal:
   auth:
-    tokens: -xfjy-internal-dev-token-change-in-prod
+    tokens: xfjy-internal-dev-token-change-in-prod
 
-# 环信 IM 服务端配置（REST API 对接，huanxin 通道时启用）
-# 凭证通过环境变量注入，禁止硬编码入库；本地开发在 application-local.yml 中覆盖
-huanxin:
-  appkey: xfjy#xfjy
-  client-id: 
-  client-secret: 
-  rest-host: https://a1.easemob.com
-
-# WuKongIM 开源 IM 服务端配置（REST API 对接，wukongim 通道默认启用）
+# WuKongIM 开源 IM 服务端配置（REST API 对接）
 # API 无需鉴权（内部系统专用），仅需服务地址；端口 5001 与 docker-compose.middleware.yml 对应
 wukongim:
   api-host: http://192.168.20.133:5001
