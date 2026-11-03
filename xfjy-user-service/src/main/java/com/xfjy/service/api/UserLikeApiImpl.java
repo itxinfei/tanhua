@@ -154,7 +154,10 @@ public class UserLikeApiImpl implements UserLikeApi {
         PageInfo<UserLike> pageInfo = new PageInfo<>();
         pageInfo.setPageNum(page);
         pageInfo.setPageSize(pageSize);
-        pageInfo.setTotal(0); //暂时不提供
+        // 计算总数：用相同条件但不带分页的 count 查询
+        long total = this.mongoTemplate.count(query, UserLike.class);
+        pageInfo.setTotal((int) total);
+        pageInfo.setPages(pageSize > 0 ? (int) ((total + pageSize - 1) / pageSize) : 0);
         pageInfo.setRecords(userLikeList);
 
         return pageInfo;

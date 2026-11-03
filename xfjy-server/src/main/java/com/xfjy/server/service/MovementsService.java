@@ -20,7 +20,7 @@ import com.xfjy.server.vo.Movements;
 import com.xfjy.server.vo.PageResult;
 import com.xfjy.server.vo.PicUploadResult;
 import com.xfjy.server.vo.VisitorsVo;
-import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -132,6 +132,9 @@ public class MovementsService {
                     List<Publish> publishList = this.quanZiApi.queryPublishByPids(pidList);
                     pageInfo = new PageInfo<>();
                     pageInfo.setRecords(publishList);
+                    pageInfo.setTotal(pids.length);
+                    // 推荐动态总页数 = ceil(总推荐数 / pageSize)
+                    pageInfo.setPages((pids.length + pageSize - 1) / pageSize);
                 }
 
             }
@@ -148,8 +151,9 @@ public class MovementsService {
 
         user = UserThreadLocal.get(); //查询完成后，依然还是需要获取到当前的登录用户
 
-        pageResult.setCounts(0);
-        pageResult.setPages(0);
+        int total = pageInfo.getTotal() != null ? pageInfo.getTotal() : 0;
+        pageResult.setCounts(total);
+        pageResult.setPages((total + pageSize - 1) / pageSize);
         pageResult.setPagesize(pageSize);
         pageResult.setPage(page);
 
@@ -244,6 +248,7 @@ public class MovementsService {
                 }
             }
             movements.setDistance(distance);
+            movements.setLocation(record.getLocationName());
 
             // 真实评论数（type=2 表示评论，来自上方批量查询）
             Long commentCount = commentCountMap.get(movements.getId());
@@ -476,6 +481,12 @@ public class MovementsService {
         pageResult.setPagesize(pageSize);
 
         PageInfo<Publish> albumPageInfo = this.quanZiApi.queryAlbumList(userId, page, pageSize);
+        int total = albumPageInfo.getTotal() != null ? albumPageInfo.getTotal() : 0;
+        pageResult.setCounts(total);
+        // 域服务可能未设置 pages（旧版本），此处兜底计算
+        Integer domainPages = albumPageInfo.getPages();
+        pageResult.setPages(domainPages != null ? domainPages
+                : (pageSize > 0 ? (total + pageSize - 1) / pageSize : 0));
         List<Publish> records = albumPageInfo.getRecords();
 
         if(CollectionUtils.isEmpty(records)){
@@ -494,7 +505,7 @@ public class MovementsService {
         pageResult.setPagesize(pageSize);
 
         PageInfo<Publish> pageInfo = this.quanZiApi.searchPublishByTag(tag, page, pageSize);
-        int total = pageInfo.getTotal();
+        int total = pageInfo.getTotal() != null ? pageInfo.getTotal() : 0;
         pageResult.setCounts(total);
         pageResult.setPages(pageSize > 0 ? (total + pageSize - 1) / pageSize : 0);
 

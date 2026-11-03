@@ -65,7 +65,9 @@ public class UsersApiImpl implements UsersApi {
     public PageInfo<Users> queryUsersList(@RequestParam("userId") Long userId,
                                           @RequestParam("page") Integer page,
                                           @RequestParam("pageSize") Integer pageSize) {
-        PageRequest pageRequest = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Order.desc("created")));
+        // Users 实体时间字段为 date（非 created），按 date 降序；page 防御 null/<1
+        int safePage = (page == null || page < 1) ? 1 : page;
+        PageRequest pageRequest = PageRequest.of(safePage - 1, pageSize, Sort.by(Sort.Order.desc("date")));
         Query query = Query.query(Criteria.where("userId").is(userId)).with(pageRequest);
 
         List<Users> usersList = this.mongoTemplate.find(query, Users.class);
@@ -74,7 +76,9 @@ public class UsersApiImpl implements UsersApi {
         pageInfo.setPageNum(page);
         pageInfo.setPageSize(pageSize);
         pageInfo.setRecords(usersList);
-        pageInfo.setTotal(0); //不提供总数
+        long total = this.mongoTemplate.count(Query.query(Criteria.where("userId").is(userId)), Users.class);
+        pageInfo.setTotal((int) total);
+        pageInfo.setPages(pageSize > 0 ? (int) ((total + pageSize - 1) / pageSize) : 0);
         return pageInfo;
     }
 }

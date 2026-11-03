@@ -92,7 +92,9 @@ public class VideoApiImpl implements VideoApi {
         pageInfo.setRecords(videos);
         pageInfo.setPageNum(page);
         pageInfo.setPageSize(pageSize);
-        pageInfo.setTotal(0); //不提供总数
+        long total = this.mongoTemplate.count(new Query(), Video.class);
+        pageInfo.setTotal((int) total);
+        pageInfo.setPages(pageSize > 0 ? (int) ((total + pageSize - 1) / pageSize) : 0);
         return pageInfo;
     }
 
@@ -201,6 +203,7 @@ public class VideoApiImpl implements VideoApi {
         pageInfo.setPageNum(p);
         pageInfo.setPageSize(size);
         pageInfo.setTotal((int) total);
+        pageInfo.setPages(size > 0 ? (int) ((total + size - 1) / size) : 0);
         pageInfo.setRecords(records);
         return pageInfo;
     }
@@ -237,7 +240,9 @@ public class VideoApiImpl implements VideoApi {
         pageInfo.setRecords(videos);
         pageInfo.setPageNum(page);
         pageInfo.setPageSize(pageSize);
-        pageInfo.setTotal(0);
+        long total = this.mongoTemplate.count(Query.query(Criteria.where("userId").in(userIds)), Video.class);
+        pageInfo.setTotal((int) total);
+        pageInfo.setPages(pageSize > 0 ? (int) ((total + pageSize - 1) / pageSize) : 0);
         return pageInfo;
     }
 
@@ -284,7 +289,9 @@ public class VideoApiImpl implements VideoApi {
         pageInfo.setRecords(videos);
         pageInfo.setPageNum(page);
         pageInfo.setPageSize(pageSize);
-        pageInfo.setTotal(0);
+        long total = this.mongoTemplate.count(Query.query(Criteria.where("locationName").ne(null)), Video.class);
+        pageInfo.setTotal((int) total);
+        pageInfo.setPages(pageSize > 0 ? (int) ((total + pageSize - 1) / pageSize) : 0);
         return pageInfo;
     }
 }

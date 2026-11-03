@@ -64,7 +64,9 @@ public class VisitorsApiImpl implements VisitorsApi {
         pageInfo.setRecords(visitorsList);
         pageInfo.setPageSize(pageSize);
         pageInfo.setPageNum(page);
-        pageInfo.setTotal(0); //暂时不提供
+        long total = this.mongoTemplate.count(Query.query(Criteria.where("userId").is(userId)), Visitors.class);
+        pageInfo.setTotal((int) total);
+        pageInfo.setPages(pageSize > 0 ? (int) ((total + pageSize - 1) / pageSize) : 0);
 
         return pageInfo;
     }

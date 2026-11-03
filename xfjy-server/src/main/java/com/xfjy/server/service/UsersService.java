@@ -20,7 +20,7 @@ import com.xfjy.server.mapper.UserMapper;
 import com.xfjy.server.pojo.*;
 import com.xfjy.server.utils.UserThreadLocal;
 import com.xfjy.server.vo.*;
-import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -29,7 +29,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class UsersService {
@@ -72,12 +74,11 @@ public class UsersService {
     /** 短信验证码 Redis key 前缀（与 xfjy-sso 保持一致） */
     private static final String CODE_KEY_PREFIX = "XFJY_SSO_CODE_";
     /**
-     * 开发用万能验证码（与 xfjy-sso 保持一致）。
-     *
-     * <p><b>安全债（用户拍板保留，11.7-15）</b>：命中此码可注销任意账号，
-     * 上线前必须移除或改为环境开关；每次命中打 WARN 日志便于排查。</p>
+     * 测试账号固定验证码：仅 user 表 ID=1 可用此码注销，其他账号必须使用真实短信验证码。
      */
-    private static final String DEV_MASTER_CODE = "123456";
+    private static final String TEST_USER_FIXED_CODE = "123456";
+    /** 测试账号用户ID（与 xfjy-sso 保持一致） */
+    private static final Long TEST_USER_ID = 1L;
 
     public UserInfoVo queryUserInfo(String userID, String huanxinID) {
         User user = UserThreadLocal.get();
@@ -151,6 +152,8 @@ public class UsersService {
         countsVo.setEachLoveCount(this.userLikeApi.queryEachLikeCount(user.getId()));
         countsVo.setLoveCount(this.userLikeApi.queryLikeCount(user.getId()));
         countsVo.setFanCount(this.userLikeApi.queryFanCount(user.getId()));
+        PageInfo<Visitors> visitorPage = this.visitorsApi.topVisitor(user.getId(), 1, 1);
+        countsVo.setVisitorCount(visitorPage != null && visitorPage.getTotal() != null ? visitorPage.getTotal().longValue() : 0L);
 
         return countsVo;
     }
@@ -159,15 +162,17 @@ public class UsersService {
         User user = UserThreadLocal.get();
         PageResult pageResult = new PageResult();
         pageResult.setPage(page);
-        pageResult.setPages(0);
-        pageResult.setCounts(0);
         pageResult.setPagesize(pageSize);
 
         // type：1 互相关注 2 我关注 3 粉丝 4 谁看过我
         List<Long> userIds = new ArrayList<>();
+        Map<Long, Long> visitTimeMap = new HashMap<>();
+        // 用于记录分页总数（各分支查询结果的 total）
+        long totalCount = 0;
         switch (type) {
             case 1: {
                 PageInfo<UserLike> pageInfo = this.userLikeApi.queryEachLikeList(user.getId(), page, pageSize);
+                totalCount = pageInfo.getTotal() != null ? pageInfo.getTotal() : 0;
                 for (UserLike record : pageInfo.getRecords()) {
                     userIds.add(record.getUserId());
                 }
@@ -175,6 +180,7 @@ public class UsersService {
             }
             case 2: {
                 PageInfo<UserLike> pageInfo = this.userLikeApi.queryLikeList(user.getId(), page, pageSize);
+                totalCount = pageInfo.getTotal() != null ? pageInfo.getTotal() : 0;
                 for (UserLike record : pageInfo.getRecords()) {
                     userIds.add(record.getLikeUserId());
                 }
@@ -182,6 +188,7 @@ public class UsersService {
             }
             case 3: {
                 PageInfo<UserLike> pageInfo = this.userLikeApi.queryFanList(user.getId(), page, pageSize);
+                totalCount = pageInfo.getTotal() != null ? pageInfo.getTotal() : 0;
                 for (UserLike record : pageInfo.getRecords()) {
                     userIds.add(record.getUserId());
                 }
@@ -189,8 +196,10 @@ public class UsersService {
             }
             case 4: {
                 PageInfo<Visitors> pageInfo = this.visitorsApi.topVisitor(user.getId(), page, pageSize);
+                totalCount = pageInfo.getTotal() != null ? pageInfo.getTotal() : 0;
                 for (Visitors record : pageInfo.getRecords()) {
                     userIds.add(record.getVisitorUserId());
+                    visitTimeMap.put(record.getVisitorUserId(), record.getDate());
                 }
                 break;
             }
@@ -198,6 +207,9 @@ public class UsersService {
                 break;
             }
         }
+
+        pageResult.setCounts((int) totalCount);
+        pageResult.setPages((int) ((totalCount + pageSize - 1) / pageSize));
 
         if (CollectionUtils.isEmpty(userIds)) {
             return pageResult;
@@ -230,6 +242,7 @@ public class UsersService {
                 score = RandomUtils.nextDouble(30, 90); // 特殊情况下的缘分值的生成，一般情况下都会有值
             }
             userLikeListVo.setMatchRate(score.intValue()); //缘分值
+            userLikeListVo.setVisitTime(visitTimeMap.get(userInfo.getUserId())); //来访时间（仅 type=4）
 
             userLikeListVos.add(userLikeListVo);
         }
@@ -243,9 +256,20 @@ public class UsersService {
         this.userLikeApi.deleteUserLike(user.getId(), userId);
     }
 
-    public void likeFan(Long userId) {
+    public MatchResultVo likeFan(Long userId) {
         User user = UserThreadLocal.get();
         this.userLikeApi.saveUserLike(user.getId(), userId);
+        // 保存后查询是否互相喜欢：对方也喜欢我即配对成功，前端据此弹庆祝并引导聊天
+        Boolean mutual = this.userLikeApi.isMutualLike(user.getId(), userId);
+        if (!Boolean.TRUE.equals(mutual)) {
+            return new MatchResultVo(false, null);
+        }
+        UserInfo target = this.userInfoApi.queryByUserId(userId);
+        MatchResultVo.MatchedUser matchedUser = null;
+        if (target != null) {
+            matchedUser = new MatchResultVo.MatchedUser(userId, target.getNickName(), target.getLogo());
+        }
+        return new MatchResultVo(true, matchedUser);
     }
 
     public SettingsVo querySettings() {
@@ -401,12 +425,13 @@ public class UsersService {
             return false;
         }
 
-        // 校验验证码：Redis 中的验证码 或 开发万能验证码
+        // 校验验证码：Redis 中的验证码 或 测试账号固定验证码（仅 ID=1）
         String cached = this.redisTemplate.opsForValue().get(CODE_KEY_PREFIX + user.getMobile());
-        if (DEV_MASTER_CODE.equals(code)) {
-            LOGGER.warn("使用开发万能验证码注销账号，userId={}（该码上线前必须移除）", user.getId());
+        boolean isTestUser = TEST_USER_ID.equals(user.getId());
+        if (isTestUser && TEST_USER_FIXED_CODE.equals(code)) {
+            LOGGER.warn("测试账号使用固定验证码注销，userId=1");
         }
-        boolean codeValid = code.equals(cached) || DEV_MASTER_CODE.equals(code);
+        boolean codeValid = code.equals(cached) || (isTestUser && TEST_USER_FIXED_CODE.equals(code));
         if (!codeValid) {
             return false;
         }
@@ -423,8 +448,8 @@ public class UsersService {
         deviceWrapper.eq("user_id", user.getId());
         this.userDeviceMapper.delete(deviceWrapper);
 
-        // 立即踢下线（Sa-Token 按 userId 注销所有会话）
-        StpUtil.logout(user.getId());
+        // 立即踢下线（Sa-Token 按 userId 注销所有会话；loginId 加 "user-" 前缀与 sso 端签发保持一致）
+        StpUtil.logout("user-" + user.getId());
 
         return rows > 0;
     }

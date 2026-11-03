@@ -1,5 +1,6 @@
 package com.xfjy.service.api;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -45,6 +46,11 @@ public class QuanziApiImpl implements QuanZiApi {
 
     @Autowired
     private RocketMQTemplate rocketMQTemplate;
+
+    /** 分页参数防御：page 为 null 或 <1 时按第 1 页处理，避免 PageRequest.of(-1) 抛异常 */
+    private int safePage(Integer page) {
+        return (page == null || page < 1) ? 1 : page;
+    }
 
     /** 安全删除：失败仅记录日志不抛异常（用于补偿回滚，避免回滚失败掩盖原始异常） */
     private void safeRemove(String desc, Runnable action) {
@@ -124,6 +130,18 @@ public class QuanziApiImpl implements QuanZiApi {
         List<String> savedTimeLineCollections = new ArrayList<>();
 
         try {
+            // 写入自己的时间线表（用户自己也能看到自己发布的动态）
+            TimeLine selfTimeLine = new TimeLine();
+            selfTimeLine.setId(ObjectId.get());
+            selfTimeLine.setUserId(publish.getUserId());
+            selfTimeLine.setPublishId(publish.getId());
+            selfTimeLine.setDate(System.currentTimeMillis());
+            String selfCollection = "quanzi_time_line_" + publish.getUserId();
+            this.mongoTemplate.save(selfTimeLine, selfCollection);
+            savedTimeLineIds.add(selfTimeLine.getId());
+            savedTimeLineCollections.add(selfCollection);
+
+            // 写入好友的时间线表
             for (Users user : users) {
                 TimeLine timeLine = new TimeLine();
                 timeLine.setId(ObjectId.get());
@@ -166,7 +184,7 @@ public class QuanziApiImpl implements QuanZiApi {
                                               @RequestParam(value = "page", required = false) Integer page,
                                               @RequestParam(value = "pageSize", required = false) Integer pageSize) {
 
-        Pageable pageable = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Order.desc("date")));
+        Pageable pageable = PageRequest.of(safePage(page) - 1, pageSize, Sort.by(Sort.Order.desc("date")));
         Query query = new Query().with(pageable);
 
         String tableName = "quanzi_time_line_";
@@ -194,7 +212,11 @@ public class QuanziApiImpl implements QuanZiApi {
         PageInfo<Publish> pageInfo = new PageInfo<>();
         pageInfo.setPageNum(page);
         pageInfo.setPageSize(pageSize);
-        pageInfo.setTotal(0); //不提供总数
+        // 计算总数：先查时间线总数，再按当前页实际查出的 publish 数量推算
+        // （MongoDB 分页下精确总数需额外 count 查询，这里用时间线总数作为上限）
+        long total = this.mongoTemplate.count(new Query(), TimeLine.class, tableName);
+        pageInfo.setTotal((int) total);
+        pageInfo.setPages(pageSize > 0 ? (int) ((total + pageSize - 1) / pageSize) : 0);
         pageInfo.setRecords(publishList);
 
         return pageInfo;
@@ -204,6 +226,10 @@ public class QuanziApiImpl implements QuanZiApi {
     @PostMapping("/saveLikeComment")
     public boolean saveLikeComment(@RequestParam(value = "userId", required = false) Long userId,
                                    @RequestParam(value = "publishId", required = false) String publishId) {
+        // 参数缺失时直接返回，避免 new ObjectId(null) 抛异常（本方法无 try-catch）
+        if (userId == null || StringUtils.isBlank(publishId)) {
+            return false;
+        }
 
         //判断是否已经点赞，如果已经点赞就返回
         Criteria criteria = Criteria.where("userId").is(userId)
@@ -229,6 +255,10 @@ public class QuanziApiImpl implements QuanZiApi {
     public boolean removeComment(@RequestParam(value = "userId", required = false) Long userId,
                                  @RequestParam(value = "publishId", required = false) String publishId,
                                  @RequestParam(value = "commentType", required = false) Integer commentType) {
+        // 参数缺失时直接返回，避免 new ObjectId(null) 抛异常（本方法无 try-catch）
+        if (userId == null || StringUtils.isBlank(publishId) || commentType == null) {
+            return false;
+        }
 
         Criteria criteria = Criteria.where("userId").is(userId)
                 .and("publishId").is(new ObjectId(publishId))
@@ -239,7 +269,9 @@ public class QuanziApiImpl implements QuanZiApi {
         boolean result = deleteResult.getDeletedCount() > 0;
         if (result) {
             // 评分事件：取消点赞（commentType=1→type=6）/ 取消喜欢（commentType=3→type=7）
-            Integer scoringType = (commentType == 1) ? 6 : (commentType == 3) ? 7 : null;
+            // commentType 为 Integer 可能为 null，用 equals 避免拆箱 NPE
+            Integer scoringType = Integer.valueOf(1).equals(commentType) ? 6
+                    : Integer.valueOf(3).equals(commentType) ? 7 : null;
             if (scoringType != null) {
                 Publish publish = this.mongoTemplate.findById(new ObjectId(publishId), Publish.class);
                 this.sendScoringMsg(scoringType, userId, publish);
@@ -252,6 +284,10 @@ public class QuanziApiImpl implements QuanZiApi {
     @PostMapping("/saveLoveComment")
     public boolean saveLoveComment(@RequestParam(value = "userId", required = false) Long userId,
                                    @RequestParam(value = "publishId", required = false) String publishId) {
+        // 参数缺失时直接返回，避免 new ObjectId(null) 抛异常（本方法无 try-catch）
+        if (userId == null || StringUtils.isBlank(publishId)) {
+            return false;
+        }
         //判断是否已经喜欢，如果已经喜欢就返回
         Criteria criteria = Criteria.where("userId").is(userId)
                 .and("publishId").is(new ObjectId(publishId))
@@ -310,7 +346,8 @@ public class QuanziApiImpl implements QuanZiApi {
 
             // 评分事件：评论（type=5），仅文字评论（commentType=2）
             // 点赞/喜欢由 saveLikeComment/saveLoveComment 各自发射，此处不重复
-            if (type == 2) {
+            // type 为 Integer 可能为 null，用 equals 避免拆箱 NPE
+            if (Integer.valueOf(2).equals(type)) {
                 this.sendScoringMsg(5, userId, publish);
             }
 
@@ -439,7 +476,7 @@ public class QuanziApiImpl implements QuanZiApi {
                                               @RequestParam(value = "page", required = false) Integer page,
                                               @RequestParam(value = "pageSize", required = false) Integer pageSize) {
 
-        PageRequest pageRequest = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Order.asc("created")));
+        PageRequest pageRequest = PageRequest.of(safePage(page) - 1, pageSize, Sort.by(Sort.Order.asc("created")));
 
         Query query = Query.query(Criteria.where("publishId").is(new ObjectId(publishId))
                 .and("commentType").is(2)).with(pageRequest);
@@ -447,7 +484,10 @@ public class QuanziApiImpl implements QuanZiApi {
         List<Comment> commentList = this.mongoTemplate.find(query, Comment.class);
 
         PageInfo<Comment> pageInfo = new PageInfo<>();
-        pageInfo.setTotal(0);
+        long total = this.mongoTemplate.count(Query.query(Criteria.where("publishId").is(new ObjectId(publishId))
+                .and("commentType").is(2)), Comment.class);
+        pageInfo.setTotal((int) total);
+        pageInfo.setPages(pageSize > 0 ? (int) ((total + pageSize - 1) / pageSize) : 0);
         pageInfo.setPageSize(pageSize);
         pageInfo.setPageNum(page);
         pageInfo.setRecords(commentList);
@@ -469,7 +509,7 @@ public class QuanziApiImpl implements QuanZiApi {
                                                     @RequestParam(value = "page", required = false) Integer page,
                                                     @RequestParam(value = "pageSize", required = false) Integer pageSize) {
 
-        PageRequest pageRequest = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Order.desc("created")));
+        PageRequest pageRequest = PageRequest.of(safePage(page) - 1, pageSize, Sort.by(Sort.Order.desc("created")));
         Query query = new Query(Criteria
                 .where("publishUserId").is(userId)
                 .and("commentType").is(type)).with(pageRequest);
@@ -480,7 +520,11 @@ public class QuanziApiImpl implements QuanZiApi {
         pageInfo.setPageNum(page);
         pageInfo.setPageSize(pageSize);
         pageInfo.setRecords(commentList);
-        pageInfo.setTotal(0); //不提供总数
+        long total = this.mongoTemplate.count(new Query(Criteria
+                .where("publishUserId").is(userId)
+                .and("commentType").is(type)), Comment.class);
+        pageInfo.setTotal((int) total);
+        pageInfo.setPages(pageSize > 0 ? (int) ((total + pageSize - 1) / pageSize) : 0);
         return pageInfo;
     }
 
@@ -492,9 +536,11 @@ public class QuanziApiImpl implements QuanZiApi {
         PageInfo<Publish> pageInfo = new PageInfo<>();
         pageInfo.setPageNum(page);
         pageInfo.setPageSize(pageSize);
-        pageInfo.setTotal(0); //不提供总数
+        long total = this.mongoTemplate.count(new Query(), Album.class, "quanzi_album_" + userId);
+        pageInfo.setTotal((int) total);
+        pageInfo.setPages(pageSize > 0 ? (int) ((total + pageSize - 1) / pageSize) : 0);
 
-        Pageable pageable = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Order.desc("created")));
+        Pageable pageable = PageRequest.of(safePage(page) - 1, pageSize, Sort.by(Sort.Order.desc("created")));
         Query query = new Query().with(pageable);
         List<Album> albumList = this.mongoTemplate.find(query, Album.class, "quanzi_album_" + userId);
 
@@ -599,6 +645,7 @@ public class QuanziApiImpl implements QuanZiApi {
         pageInfo.setPageNum(p);
         pageInfo.setPageSize(size);
         pageInfo.setTotal((int) total);
+        pageInfo.setPages(size > 0 ? (int) ((total + size - 1) / size) : 0);
         pageInfo.setRecords(records);
         return pageInfo;
     }
@@ -651,6 +698,7 @@ public class QuanziApiImpl implements QuanZiApi {
         pageInfo.setPageNum(p);
         pageInfo.setPageSize(size);
         pageInfo.setTotal((int) total);
+        pageInfo.setPages(size > 0 ? (int) ((total + size - 1) / size) : 0);
         pageInfo.setRecords(records);
         return pageInfo;
     }
@@ -779,13 +827,14 @@ public class QuanziApiImpl implements QuanZiApi {
         Criteria criteria = Criteria.where("tags").is(tag);
         long total = this.mongoTemplate.count(Query.query(criteria), Publish.class);
 
-        Pageable pageable = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Order.desc("created")));
+        Pageable pageable = PageRequest.of(safePage(page) - 1, pageSize, Sort.by(Sort.Order.desc("created")));
         List<Publish> records = this.mongoTemplate.find(Query.query(criteria).with(pageable), Publish.class);
 
         PageInfo<Publish> pageInfo = new PageInfo<>();
         pageInfo.setPageNum(page);
         pageInfo.setPageSize(pageSize);
         pageInfo.setTotal((int) total);
+        pageInfo.setPages(pageSize > 0 ? (int) ((total + pageSize - 1) / pageSize) : 0);
         pageInfo.setRecords(records);
         return pageInfo;
     }
