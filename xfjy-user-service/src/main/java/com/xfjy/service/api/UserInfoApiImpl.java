@@ -61,12 +61,14 @@ public class UserInfoApiImpl implements UserInfoApi {
     }
 
     /**
-     * 补建空资料行。显式写入 id=userId，保持项目"id 与 user_id 1:1"的历史约定；
-     * 主键冲突同时充当并发去重：两个请求同时首查时后者重查即可。
+     * 补建空资料行。id 是独立自增主键，与 user_id 不保证相等（存量大量 id 不等于 user_id），
+     * 严禁显式 setId(userId)，否则会撞上已被 AUTO_INCREMENT 分配出去的主键
+     * （Duplicate entry ... for key 'PRIMARY'）。并发去重由 user_id 唯一索引保证：
+     * 仅一个 insert 成功，另一方触发 DuplicateKeyException 后按 user_id 重查返回。
      */
     private UserInfo initBlankUserInfo(Long userId) {
         UserInfo userInfo = new UserInfo();
-        userInfo.setId(userId);
+        // id 留空交数据库 AUTO_INCREMENT，切勿 setId(userId)
         userInfo.setUserId(userId);
         userInfo.setSex(SexEnum.UNKNOWN);
         try {
@@ -126,10 +128,9 @@ public class UserInfoApiImpl implements UserInfoApi {
             return this.userInfoMapper.update(userInfo, queryWrapper) > 0;
         }
         // upsert：资料行不存在（懒初始化之前的并发写入/历史缺失账号）时补建，
-        // 否则新用户首次编辑资料 UPDATE 影响 0 行，资料永远无法保存
-        if (userInfo.getId() == null) {
-            userInfo.setId(userInfo.getUserId());
-        }
+        // 否则新用户首次编辑资料 UPDATE 影响 0 行，资料永远无法保存。
+        // id 强制留空走 AUTO_INCREMENT：id 与 user_id 不保证相等，setId(userId) 会撞主键。
+        userInfo.setId(null);
         if (userInfo.getSex() == null) {
             userInfo.setSex(SexEnum.UNKNOWN);
         }

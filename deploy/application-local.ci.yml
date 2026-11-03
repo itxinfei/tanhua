@@ -49,6 +49,23 @@ xfjy:
   neo4j:
     # 覆盖 base application.yml 的空默认值，直连运行中 Neo4j 的真实密码
     password: ${NEO4J_PASSWORD:itxinfei123456}
+  # 领域服务 base 里默认 127.0.0.1（本地裸跑用）；容器走 bridge 网络 xfjy-app-net，
+  # 127.0.0.1 指向 BFF 自身会 Connection refused，必须覆盖为容器名（与 sso 同模式）。
+  match:
+    service:
+      url: http://xfjy-match-service:18082
+  user:
+    service:
+      url: http://xfjy-user-service:18090
+  circle:
+    service:
+      url: http://xfjy-circle-service:18084
+  video:
+    service:
+      url: http://xfjy-video-service:18085
+  message:
+    service:
+      url: http://xfjy-message-service:18086
   sso:
     # Docker 部署必须用容器名：sso 的 18080 端口自 v2.4 起不对外发布（仅网关 8090 暴露），
     # 用宿主机 LAN IP 容器内连不上 → TokenInterceptor 解析用户必失败 → 所有需登录态接口 500。
