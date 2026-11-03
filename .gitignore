@@ -52,6 +52,9 @@ hs_err_pid*
 **/*credential*
 **/secrets.yml
 
+# 例外：IM 凭证 VO 类（非密钥文件，是数据传输对象）
+!xfjy-server/src/main/java/com/xfjy/server/vo/ImCredential.java
+
 # 例外：项目规则文档不受通配规则影响
 !.joycode/
 !.joycode/**
