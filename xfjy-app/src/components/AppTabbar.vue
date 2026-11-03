@@ -164,46 +164,52 @@ function goPublish(): void {
 </style>
 
 <!-- 发布键样式（非 scoped）：plus 系列元素是 a11y-button 子组件的 slot 内容，
-     scoped 样式无法穿透子组件边界，必须用全局样式块；命名空间 .app-tabbar__mid 保证唯一性 -->
+     scoped 样式无法穿透子组件边界，必须用全局样式块。
+     注意：uni-app 的 CSS 编译器对「同一规则内多个嵌套选择器」处理有 bug
+     （会拆成不同前缀结构，导致部分声明丢失），故此处全部使用扁平的独立顶层选择器，
+     不写嵌套、不写多选择器共用规则。 -->
 <style lang="scss">
-.app-tabbar__mid {
-  .app-tabbar__plus {
-    position: relative;
-    width: 44px;
-    height: 44px;
-  }
+.app-tabbar__plus {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-  .app-tabbar__plus-circle {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background: var(--color-primary);
-    box-shadow: 0 4rpx 12rpx rgba(255, 94, 156, 0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+.app-tabbar__plus-circle {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  box-shadow: 0 4rpx 12rpx rgba(255, 94, 156, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-  .app-tabbar__plus-h,
-  .app-tabbar__plus-v {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    border-radius: 2px;
-    background: var(--bg-card);
-    transform: translate(-50%, -50%);
-  }
+.app-tabbar__plus-h {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--bg-card);
+  transform: translate(-50%, -50%);
+}
 
-  .app-tabbar__plus-h {
-    width: 18px;
-    height: 3px;
-  }
-
-  .app-tabbar__plus-v {
-    width: 3px;
-    height: 18px;
-  }
+.app-tabbar__plus-v {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 18px;
+  border-radius: 2px;
+  background: var(--bg-card);
+  transform: translate(-50%, -50%);
 }
 
 @media (prefers-color-scheme: dark) {
