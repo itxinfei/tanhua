@@ -76,8 +76,8 @@ function goPublish(): void {
    图标为主的入口 2.8 倍（28px/10px），符合 uniapp skill 规范（2~2.4 倍） */
 .app-tabbar {
   /* 局部定义 CSS 变量：tabbar 挂在 body 上（不在 page 内），无法继承 App.vue page 级别的变量 */
-  --color-primary: var(--color-primary);
-  --text-secondary: var(--text-secondary);
+  --color-primary: #fe3c72;
+  --text-secondary: #666666;
 
   position: fixed;
   left: 0;
@@ -181,7 +181,7 @@ function goPublish(): void {
   .app-tabbar {
     /* 暗色模式变量值与 App.vue page 级别保持一致 */
     --color-primary: #ff8eb9;
-    --text-secondary: var(--text-secondary);
+    --text-secondary: #aaaaaa;
 
     background: rgba(26, 26, 26, 0.82);
     box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.35);

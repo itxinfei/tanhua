@@ -118,7 +118,7 @@ sa-token:
 # 内部服务鉴权 Token（与域服务保持一致，调用域服务时自动注入 X-Internal-Token 头）
 internal:
   auth:
-    tokens: ${INTERNAL_AUTH_TOKENS:-xfjy-internal-dev-token-change-in-prod}
+    tokens: xfjy-internal-dev-token-change-in-prod
 
 # Spring Boot Actuator 运行状态监控
 management:

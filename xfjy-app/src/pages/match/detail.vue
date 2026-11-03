@@ -421,10 +421,10 @@ onLoad(async (options: any) => {
   /* 次按钮：不喜欢 / 打招呼 */
   &.small { width: 96rpx; height: 96rpx; font-size: 38rpx;
     &.dislike { background: var(--bg-card); color: var(--color-danger); border: 4rpx solid var(--color-danger); box-shadow: 0 4rpx 16rpx rgba(255, 59, 48, 0.15); }
-    &.chat { background: linear-gradient(135deg, var(--info-blue), var(--info-blue-soft)); color: #fff; box-shadow: 0 6rpx 20rpx rgba(74, 144, 217, 0.4); }
+    &.chat { background: linear-gradient(135deg, var(--info-blue), var(--info-blue-soft)); color: var(--text-inverse); box-shadow: 0 6rpx 20rpx rgba(74, 144, 217, 0.4); }
   }
   /* 主按钮：超级喜欢 / 喜欢 */
-  &.super-like { width: 108rpx; height: 108rpx; font-size: 48rpx; background: linear-gradient(135deg, var(--gold), var(--gold-soft)); color: #fff; box-shadow: 0 8rpx 28rpx rgba(255, 179, 71, 0.5); }
+  &.super-like { width: 108rpx; height: 108rpx; font-size: 48rpx; background: linear-gradient(135deg, var(--gold), var(--gold-soft)); color: var(--text-inverse); box-shadow: 0 8rpx 28rpx rgba(255, 179, 71, 0.5); }
   &.like { width: 120rpx; height: 120rpx; font-size: 56rpx; background: var(--gradient-brand); color: var(--bg-card); box-shadow: 0 10rpx 32rpx rgba(254, 60, 114, 0.45); }
 }
 </style>

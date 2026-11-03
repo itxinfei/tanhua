@@ -160,9 +160,9 @@ Copilot / Serena / Trae）开工前必须读完本文件。
 - 视觉验收：每页 1280/1440 各截图一次，与 `src/views/user/index.vue` 并排比对
   标题字号/卡片圆角/按钮高度；`npm run lint:style` 新增代码零 warning。
 
-校验（`git diff HEAD` 覆盖已暂存改动；排除 token 定义文件，其内的 `#fe3c72` 为合法定义；
-CSS 变量定义行 `--color-…: #…` 与注释行不计命中）：
-`git diff HEAD -- 'xfjy-app/src/**' ':(exclude)xfjy-app/src/App.vue' ':(exclude)xfjy-app/src/uni.scss' | rg "^\+.*(uni-icons|#fe3c72|#ff5e9c)"` → 0；
+校验（`git diff HEAD` 覆盖已暂存改动；排除 token 定义文件；CSS 变量定义行与注释行不计命中，
+命令内已直接过滤）：
+`git diff HEAD -- 'xfjy-app/src/**' ':(exclude)xfjy-app/src/App.vue' ':(exclude)xfjy-app/src/uni.scss' | rg "^\+.*(uni-icons|#fe3c72|#ff5e9c)" | rg -v -- "--color-|^\+\s*(//|/\*|\*)"` → 0；
 `npm run lint:style --prefix xfjy-admin 2>&1 | rg "✖"` → 0（新增代码）
 
 ## 8. 提交与文档
@@ -200,11 +200,11 @@ CSS 变量定义行 `--color-…: #…` 与注释行不计命中）：
 | `ResponseEntity<Map|List>`（xfjy-server） | 43 处 | 新增禁止，存量随重构迁移 |
 | Controller 内 `catch(Exception)` | 146 处 | 新增禁止 |
 | `uni-icons`（xfjy-app/src） | 33 处 / 11 文件（按 `<uni-icons` 组件实例化计数） | 冻结，禁止新增 |
-| 页面硬编码 `#fe3c72` | 14 处（含 `mine/index.vue` 菜单色 3 处） | 新增禁止，存量随 token 收口迁移 |
+| 页面硬编码 `#fe3c72` | 代码级 0 处（2026-11-03 已收口为 `var(--color-primary)`）；残留 11 处均为注释说明 + `AppTabbar.vue` 局部 token 定义（tabbar 挂 body 无法继承 page 级变量） | 新增禁止 |
 | 原生 `<button>`（xfjy-app/src） | 6 处（`components/error-boundary.vue` 2、`components/match-popup.vue` 2、`pages/chat/notifications.vue`、`pages/match/guide.vue` 各 1；`mine/change-phone`、`mine/verify`、`mine/settings` 已迁移 `a11y-button`） | 冻结，禁止新增，随重构迁移 `a11y-button`（独立功能按钮不得用 `sm`，见 §7.1） |
 | `ResponseEntity<VO>` 裸 VO 返回（xfjy-server controller） | 55 处 | **裁决为既有形态而非违规**（2026-11-03）：§5 已按现状改写；约束仅为「禁止裸返回实体、禁止新增 `ResponseEntity<Map\|List>`」 |
 | 分页入参 `pagesize`（xfjy-server 存量接口） | 33 处 | 新增必须 `pageSize`（§5），存量随重构迁移，迁移时前后端需同改 |
-| 非主色硬编码 hex（xfjy-app/src，含 token 定义文件） | `#fff` 69、`#767676` 23、`#ffd700` 16、`#ccc` 12、`#ff3b30` 11、`#4cd964` 11、`#4a90d9` 7、`#1a1a2e` 7 等 | 冻结，新增禁止；`App.vue`/`uni.scss` 为 token 合法定义处；随 token 补充（如 `--text-inverse`、语义色变量）逐步收口 |
+| 非主色硬编码 hex（xfjy-app/src） | 主体已收口（2026-11-03，~200 处 → `var()`：`--text-inverse`/`--bg-card`/`--success`/`--gold*`/`--info-blue*`/`--bg-deep*` 等，token 见 `App.vue`）；残留 43 行代码均为结构性约束——21 处 `uni-icons color="…"` 原生属性、5 处 `AppTabbar.vue` 局部 token 定义（body 挂载）、3 处 `linear-gradient` 多停点、2 处 `confirmColor` 原生 API、12 处状态色对/第三方品牌色（network-status-bar、客服状态徽章、微信/朋友圈图标色） | 新增禁止；残留冻结（各类均有不可 token 化原因），收口随组件级重构 |
 | `/admin/**` 缺 `@RequireRole` | 1 处（`AdminController`） | **免登录入口 + 自身账户维护**，不补注解。依据：`AdminController` 仅 `POST admin/login`、`GET admin/info`、`PUT admin/password`、`POST admin/logout`、`PUT admin/profile`；`WebConfig` L28-30 已将 `/admin/login` 从 `AdminTokenInterceptor` 排除，其余路由依赖拦截器填充的 `AdminThreadLocal`，非业务控制器。 |
 | `xfjy-admin` 硬编码颜色（除 404 插画 4 处外） / 魔法间距 | 0 / 14 条（13 条 6px 间距 + 1 条侧栏折叠态内距，2026-11-03 收口后实测，原 26 / 38） | 新增禁止；颜色统一走 `--xfjy-*` token（本轮补充 `--xfjy-success-tint` / `--xfjy-danger-tint` / `--xfjy-primary-tint`，取值与替换前 hex 完全相同）。`npm run lint:style` 目标 **0 warning**，`npm run lint:style:gate` 不得超过 `xfjy-admin/stylelint-baseline.json` 基线（当前 total=0）；历史：65 → 43 → 19 → 0 |
 | `xfjy-admin` 6px 间距豁免（13 条，另有侧栏折叠态 1 条，合计 14 条 `declaration-property-value-disallowed-list` 豁免） | `movement.vue` L386、`video.vue` L344（内联统计项分隔）；`kefu/workbench.vue` L422 聊天气泡内距、L448 语音图标对齐；`login/index.vue` L469 标题副文案；`review/index.vue` L543 键帽、L675 结论标签组、L754 横向滚动条留白；`report/index.vue` L472-473 头像与文字间距、L477-478 标签与昵称分隔（`.target-name`）、L569-570 横向滚动条留白；`user/detail.vue` L850 头像文字；`sensitive/index.vue` L59 敏感词标签间距（`.hit-word`） | 均为图标/文字对齐或滚动条留白类视觉微调，改 4px 或 8px 会破坏对齐；已用行级 `declaration-property-value-disallowed-list` disable 并注明理由，**禁止新增** |

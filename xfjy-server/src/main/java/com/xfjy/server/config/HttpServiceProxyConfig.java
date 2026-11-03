@@ -57,7 +57,7 @@ public class HttpServiceProxyConfig {
     /** LoadBalancer 增强的 RestClient.Builder，通过 lb:// 协议自动服务发现与负载均衡；不可用时为 null */
     private final RestClient.Builder loadBalancedBuilder;
 
-    /** 容器 JsonMapper（Boot 自动配置，已应用 JacksonConfig 的 ObjectId 模块）；不可用时为 null */
+    /** 容器 JsonMapper（Boot 自动配置，已由 xfjy-api 自动装配 ObjectId 模块）；不可用时为 null */
     private final ObjectProvider<JsonMapper> jsonMapperProvider;
 
     /** 服务发现客户端（Nacos），LoadBalancer 不可用时的轮询兜底 */
@@ -149,7 +149,7 @@ public class HttpServiceProxyConfig {
         return applyContainerJsonMapper(builder, this.jsonMapperProvider.getIfAvailable());
     }
 
-    /** 用容器 JsonMapper 替换 JSON 转换器（含 JacksonConfig 注册的 ObjectId 模块）；JsonMapper 为 null 时保持默认转换器 */
+    /** 用容器 JsonMapper 替换 JSON 转换器（含 xfjy-api 自动装配的 ObjectId 模块）；JsonMapper 为 null 时保持默认转换器 */
     static RestClient.Builder applyContainerJsonMapper(RestClient.Builder builder, JsonMapper jsonMapper) {
         if (jsonMapper != null) {
             builder.configureMessageConverters(converters -> converters.withJsonConverter(

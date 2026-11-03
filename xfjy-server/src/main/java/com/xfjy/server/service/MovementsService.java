@@ -312,13 +312,14 @@ public class MovementsService {
         }
 
         // 保存成功，获取点赞数
-        Long likeCount = 0L;
+        Long likeCount;
         String likeCommentKey = "QUANZI_COMMENT_LIKE_" + publishId;
         if (!this.redisTemplate.hasKey(likeCommentKey)) {
-            Long count = this.quanZiApi.queryCommentCount(publishId, 1);
-            likeCount = count;
-            this.redisTemplate.opsForValue().set(likeCommentKey, String.valueOf(likeCount));
+            // 缓存未命中：从DB加载初始值（DB已含本次点赞），setIfAbsent 原子写入避免覆盖并发increment
+            likeCount = this.quanZiApi.queryCommentCount(publishId, 1);
+            this.redisTemplate.opsForValue().setIfAbsent(likeCommentKey, String.valueOf(likeCount != null ? likeCount : 0L));
         } else {
+            // 缓存命中：原子自增（本次点赞尚未计入缓存）
             likeCount = this.redisTemplate.opsForValue().increment(likeCommentKey);
         }
 
@@ -369,13 +370,14 @@ public class MovementsService {
         }
 
         // 保存成功，获取喜欢数
-        Long loveCount = 0L;
+        Long loveCount;
         String likeCommentKey = "QUANZI_COMMENT_LOVE_" + publishId;
         if (!this.redisTemplate.hasKey(likeCommentKey)) {
-            Long count = this.quanZiApi.queryCommentCount(publishId, 1);
-            loveCount = count;
-            this.redisTemplate.opsForValue().set(likeCommentKey, String.valueOf(loveCount));
+            // 缓存未命中：从DB加载初始值（DB已含本次喜欢），setIfAbsent 原子写入避免覆盖并发increment
+            loveCount = this.quanZiApi.queryCommentCount(publishId, 1);
+            this.redisTemplate.opsForValue().setIfAbsent(likeCommentKey, String.valueOf(loveCount != null ? loveCount : 0L));
         } else {
+            // 缓存命中：原子自增（本次喜欢尚未计入缓存）
             loveCount = this.redisTemplate.opsForValue().increment(likeCommentKey);
         }
 

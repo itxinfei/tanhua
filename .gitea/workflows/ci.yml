@@ -70,7 +70,7 @@ jobs:
       - name: 编译所有模块（test-compile，跳过测试执行）
         run: |
           cd /ci
-          MAVEN_OPTS="-Xmx1g" mvn ${MVN_ARGS} test-compile -DskipTests -T 2
+          MAVEN_OPTS="-Xmx1g" mvn ${MVN_ARGS} test-compile -DskipTests -T 2 -U
           echo "[OK] 全部 Maven 模块编译通过"
 
       - name: 释放构建锁
@@ -120,7 +120,10 @@ jobs:
       - name: 安装依赖并类型检查
         run: |
           cd /ci/xfjy-admin
-          npm install --legacy-peer-deps --prefer-offline --no-audit --no-fund --ignore-scripts
+          # 必须 npm ci 严格按 lock 落地整棵树：npm install 重算时会偶发漏装
+          # peerDependencies（pinia4 的 @vue/devtools-api 非根直接依赖），致 vite 构建
+          # 报 Rolldown failed to resolve import。与 deploy.yml 前端构建命令保持一致。
+          npm ci --legacy-peer-deps --prefer-offline --no-audit --no-fund
           npx vue-tsc --noEmit
           echo "[OK] xfjy-admin 类型检查通过"
 
@@ -130,6 +133,62 @@ jobs:
           npm run build
           [ -f dist/index.html ] || { echo "ERROR: dist/index.html 缺失"; exit 1; }
           echo "[OK] xfjy-admin 构建通过"
+
+      - name: 释放构建锁
+        if: ${{ always() }}
+        run: |
+          cd /ci
+          sh deploy/ci/build-lock.sh release
+
+  # ── 前端 admin 样式基线门禁 ───────────────────────────────
+  # 只校验 stylelint 的 warning 数量，不阻断存量违规：
+  #   基线登记在 xfjy-admin/stylelint-baseline.json，总数与单文件数量都不得上涨。
+  #   与 frontend-app 的 lint:style（非阻断）互不影响，两者各自独立 job。
+  frontend-admin-style:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container:
+      image: xfjy/ci:latest
+      volumes:
+        - /home/itxinfei/.cache/npm:/root/.npm
+        - /home/itxinfei/.cache/ci-state:/opt/ci-state
+    env:
+      CI_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      CI_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
+      CI_STATE_DIR: /opt/ci-state
+      LOCK_OWNER: "ci-admin-style"
+      LOCK_RESOURCE: npm
+      LOCK_TIMEOUT: "3600"
+    steps:
+      - name: Checkout（按触发 SHA 检出）
+        run: |
+          set -e
+          mkdir -p /ci
+          cd /ci
+          git init -q .
+          git remote add origin http://gitea:3000/admin/xfjy.git
+          if ! git fetch -q --depth 1 origin "${CI_SHA}"; then
+            echo "[checkout] 按 SHA fetch 失败，回退按分支 fetch: ${CI_REF}"
+            git fetch -q --depth 1 origin "refs/heads/${CI_REF}"
+          fi
+          git checkout -q --detach FETCH_HEAD
+          git log -1 --oneline
+
+      - name: 获取构建锁（与 deploy 互斥共享 npm 卷）
+        run: |
+          cd /ci
+          sh deploy/ci/build-lock.sh acquire
+
+      # Node 由 CI 镜像内置 22.23.4，无需 n 临时升级
+      - name: 安装依赖
+        run: |
+          cd /ci/xfjy-admin
+          npm ci --legacy-peer-deps --prefer-offline --no-audit --no-fund
+
+      - name: 样式 warning 基线门禁（不得超过基线）
+        run: |
+          cd /ci/xfjy-admin
+          npm run lint:style:gate
 
       - name: 释放构建锁
         if: ${{ always() }}
@@ -176,7 +235,10 @@ jobs:
       - name: 安装依赖并类型检查
         run: |
           cd /ci/xfjy-app
-          npm install --legacy-peer-deps --prefer-offline --no-audit --no-fund --ignore-scripts
+          # 必须 npm ci 严格按 lock 落地整棵树：npm install 重算时会偶发漏装
+          # peerDependencies（pinia4 的 @vue/devtools-api 非根直接依赖），致 vite 构建
+          # 报 Rolldown failed to resolve import。与 deploy.yml 前端构建命令保持一致。
+          npm ci --legacy-peer-deps --prefer-offline --no-audit --no-fund
           npm run type-check
           echo "[OK] xfjy-app 类型检查通过"
 
