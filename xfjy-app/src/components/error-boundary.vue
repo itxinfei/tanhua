@@ -118,11 +118,11 @@ function copyTraceId(): void {
 .error-title {
   font-size: 36rpx;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 .error-message {
   font-size: 26rpx;
-  color: #888;
+  color: var(--text-hint-weak);
   text-align: center;
   line-height: 1.6;
 }
@@ -138,16 +138,16 @@ function copyTraceId(): void {
   border: none;
 }
 .btn-primary {
-  background: linear-gradient(135deg, #ff6b9d, #ff8a80);
-  color: #fff;
+  background: linear-gradient(135deg, #ff6b9d, var(--color-danger));
+  color: var(--text-inverse);
 }
 .btn-secondary {
-  background: #f5f5f5;
-  color: #666;
+  background: var(--bg-page);
+  color: var(--text-secondary);
 }
 .trace-id {
   font-size: 22rpx;
-  color: #bbb;
+  color: var(--text-hint-weak);
   margin-top: 16rpx;
   font-family: monospace;
 }

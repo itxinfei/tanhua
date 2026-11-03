@@ -143,8 +143,9 @@ function goFeedback(): void {
     background: var(--bg-card);
     border-radius: 36rpx;
     padding: 0 24rpx;
-    height: 72rpx;
+    height: 76rpx;
     gap: 12rpx;
+    box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 
     .search-icon {
       font-size: 28rpx;
@@ -172,18 +173,27 @@ function goFeedback(): void {
 
 .faq-scroll {
   flex: 1;
-  padding: 20rpx 24rpx;
+  /* min-width:0 防止 flex 子项被内部宽条目撑破，保证右侧 24rpx 留白不溢出视口 */
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  padding: 8rpx 24rpx 24rpx;
 }
 
 .faq-group {
+  background: var(--bg-card);
+  border-radius: 24rpx;
   margin-top: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 
   &:first-child {
     margin-top: 0;
   }
 
   .group-title {
-    padding: 8rpx 8rpx 16rpx;
+    padding: 24rpx 32rpx 8rpx;
 
     .group-tag {
       font-size: 26rpx;
@@ -194,13 +204,14 @@ function goFeedback(): void {
 }
 
 .faq-item {
-  background: var(--bg-card);
-  border-radius: 20rpx;
-  padding: 28rpx 24rpx;
-  margin-top: 16rpx;
+  /* border-box + 宽度 100%：padding 计入宽度，避免条目撑破滚动容器导致右侧留白丢失 */
+  box-sizing: border-box;
+  width: 100%;
+  padding: 28rpx 32rpx;
+  border-top: 1rpx solid var(--border-faint);
 
   &:first-of-type {
-    margin-top: 0;
+    border-top: none;
   }
 
   .faq-question {
@@ -255,6 +266,7 @@ function goFeedback(): void {
   padding: 20rpx 24rpx;
   background: var(--bg-card);
   border-top: 1rpx solid var(--border-light);
+  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.03);
   display: flex;
   gap: 20rpx;
 
@@ -277,7 +289,7 @@ function goFeedback(): void {
       border-color: var(--color-primary);
 
       text {
-        color: #fff;
+        color: var(--text-inverse);
       }
     }
   }

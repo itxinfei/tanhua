@@ -12,7 +12,9 @@
         <a11y-button class="send-btn" :class="{ disabled: countdown > 0 }" :disabled="countdown > 0" :label="countdown > 0 ? `重新获取验证码，请等待 ${countdown} 秒` : '获取验证码'" @tap="sendCode">{{ countdown > 0 ? `${countdown}s` : '获取验证码' }}</a11y-button>
       </view>
     </view>
-    <button class="submit-btn" :disabled="submitting" @click="submit">确认更换</button>
+    <a11y-button class="submit-btn" variant="primary" block label="确认更换手机号" :loading="submitting" :disabled="submitting" @tap="submit">
+      <text>确认更换</text>
+    </a11y-button>
   </view>
 </template>
 
@@ -90,13 +92,12 @@ async function submit() {
     input { flex: 1; font-size: 28rpx; color: var(--text-primary); }
   }
 }
-/* 发送验证码按钮：#ff5e9c on #fff ≈2.6:1 → #c2185b；禁用态 #ccc → #767676，并保证触摸目标 ≥24px */
+/* 发送验证码按钮：#fe3c72 on #fff ≈3.4:1 → #c2185b；禁用态 #ccc → #767676，并保证触摸目标 ≥24px */
 .send-btn { font-size: 26rpx; color: var(--color-primary-text); flex-shrink: 0; margin-left: 16rpx; padding: 12rpx 8rpx; min-height: 48rpx;
   &.disabled { color: var(--text-hint); }
 }
 /* 占位符 #ccc → #767676 */
 .ph { color: var(--text-hint); }
-.submit-btn { margin-top: 60rpx; background: var(--color-primary); color: #fff; font-size: 30rpx; border-radius: 48rpx; height: 88rpx; line-height: 88rpx;
-  &[disabled] { opacity: 0.6; }
-}
+/* 提交按钮：a11y-button primary 变体（品牌渐变），仅补外边距与宽度 */
+.submit-btn { margin-top: 60rpx; }
 </style>

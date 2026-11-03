@@ -32,5 +32,25 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
+        <!--
+          ObjectId 的 Jackson 3 自动装配（MongoObjectIdModule + XfjyJacksonAutoConfiguration）。
+          全部 optional：编译期需要，运行期由宿主服务（Spring Boot 应用）提供，
+          不向下游传染 Boot/Jackson，未引入这些依赖的使用方会自动跳过该自动配置。
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-jackson</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <optional>true</optional>
+        </dependency>
     </dependencies>
 </project>

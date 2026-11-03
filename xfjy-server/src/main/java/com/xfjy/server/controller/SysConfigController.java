@@ -9,8 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -48,47 +46,12 @@ public class SysConfigController {
     }
 
     /**
-     * 获取当前 IM 通道
+     * 获取当前 IM 通道（已固定为 WuKongIM，环信通道已下线）
      */
     @GetMapping("im-provider")
     public ResponseEntity<Map<String, String>> getImProvider() {
         Map<String, String> result = new HashMap<>();
-        result.put("provider", this.sysConfigService.getImProvider());
+        result.put("provider", "wukongim");
         return ResponseEntity.ok(result);
-    }
-
-    /**
-     * 切换 IM 通道
-     *
-     * @param param {provider: "wukongim" | "huanxin"}
-     */
-    @PutMapping("im-provider")
-    public ResponseEntity<Map<String, Object>> switchImProvider(@RequestBody Map<String, String> param) {
-        Map<String, Object> result = new HashMap<>();
-        try {
-            String provider = param.get("provider");
-            if (!SysConfigService.IM_PROVIDER_WUKONGIM.equalsIgnoreCase(provider)
-                    && !SysConfigService.IM_PROVIDER_HUANXIN.equalsIgnoreCase(provider)) {
-                result.put("success", false);
-                result.put("message", "provider 仅支持 wukongim / huanxin");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
-            }
-
-            this.sysConfigService.setConfig(
-                    SysConfigService.KEY_IM_PROVIDER,
-                    provider.toLowerCase(),
-                    "IM 服务通道：wukongim=开源WuKongIM（默认），huanxin=环信第三方");
-
-            result.put("success", true);
-            result.put("provider", provider.toLowerCase());
-            result.put("message", "切换成功，约30秒内全节点生效");
-            LOGGER.info("IM通道已切换: {}", provider);
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            LOGGER.error("切换IM通道异常", e);
-            result.put("success", false);
-            result.put("message", "切换失败: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
-        }
     }
 }

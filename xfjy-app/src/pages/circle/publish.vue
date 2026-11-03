@@ -330,7 +330,7 @@ onUnload(() => {
 /* 抖音式发布页：白底，顶部安全区，底部留自定义底栏空间 */
 .publish-page {
   min-height: 100vh;
-  background: #fff;
+  background: var(--bg-card);
   padding: 0 28rpx;
   padding-bottom: calc(env(safe-area-inset-bottom) + 160rpx);
 }
@@ -353,24 +353,24 @@ onUnload(() => {
   justify-content: center;
 }
 
-/* 右侧发布按钮：品牌粉实心圆角，禁用态浅粉 */
+/* 右侧发布按钮：品牌玫红实心圆角，禁用态浅粉 */
 .top-publish {
   height: 64rpx;
   padding: 0 36rpx;
   border-radius: 32rpx;
-  background: #ff5e9c;
+  background: var(--gradient-brand);
   display: flex;
   align-items: center;
   justify-content: center;
 
   text {
-    color: #fff;
+    color: var(--text-inverse);
     font-size: 28rpx;
     font-weight: 600;
   }
 
   &.disabled {
-    background: #ffd0dc;
+    background: var(--bg-sub);
   }
 }
 
@@ -381,18 +381,18 @@ onUnload(() => {
   margin-top: 16rpx;
   font-size: 30rpx;
   line-height: 1.6;
-  color: #161823;
+  color: var(--text-primary);
 }
 
 .placeholder {
-  color: #9aa3af;
+  color: var(--text-hint);
 }
 
 .char-count {
   display: block;
   text-align: right;
   font-size: 22rpx;
-  color: #9aa3af;
+  color: var(--text-hint);
 }
 
 /* ===== 横向媒体行 ===== */
@@ -458,14 +458,14 @@ onUnload(() => {
 
   .media-add-label {
     font-size: 22rpx;
-    color: #767676;
+    color: var(--text-hint);
   }
 }
 
 /* ===== 设置列表（分组行，右箭头） ===== */
 .setting-list {
   margin-top: 24rpx;
-  border-top: 1rpx solid #f0f0f0;
+  border-top: 1rpx solid var(--border-light);
 }
 
 .setting-row {
@@ -473,7 +473,7 @@ onUnload(() => {
   align-items: center;
   justify-content: space-between;
   min-height: 96rpx;
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: 1rpx solid var(--border-light);
 
   .row-left {
     display: flex;
@@ -482,12 +482,12 @@ onUnload(() => {
 
     .row-name {
       font-size: 28rpx;
-      color: #161823;
+      color: var(--text-primary);
     }
 
     .row-hash {
       font-size: 32rpx;
-      color: #161823;
+      color: var(--text-primary);
       font-weight: 700;
     }
   }
@@ -500,13 +500,13 @@ onUnload(() => {
 
     .row-value {
       font-size: 26rpx;
-      color: #161823;
+      color: var(--text-primary);
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
 
       &.placeholder {
-        color: #9aa3af;
+        color: var(--text-hint);
       }
     }
   }
@@ -527,14 +527,14 @@ onUnload(() => {
 
   text {
     font-size: 24rpx;
-    color: #333;
+    color: var(--text-primary);
   }
 
   &.active {
-    background: #ffeff5;
+    background: var(--bg-icon-soft);
 
     text {
-      color: #ff5e9c;
+      color: var(--color-primary-text);
     }
   }
 }

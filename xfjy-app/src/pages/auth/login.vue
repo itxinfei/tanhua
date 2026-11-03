@@ -5,8 +5,8 @@
     <view class="deco-heart deco-2 float" aria-hidden="true" />
     <view class="deco-heart deco-3 float" aria-hidden="true" />
 
-    <!-- 品牌区 -->
-    <view class="brand">
+    <!-- 品牌区：padding-top 动态避让状态栏/刘海/挖孔（custom 导航页必须） -->
+    <view class="brand" :style="{ paddingTop: statusBarHeight + 90 + 'px' }">
       <!-- logo 与紧随其后的 app-name 文字语义重复，标为装饰避免重复朗读 -->
       <image lazy-load class="logo" src="/static/logo/logo-icon-transparent.png" mode="aspectFit" aria-hidden="true" />
       <text class="app-name">心飞交友</text>
@@ -40,13 +40,15 @@
             placeholder-class="placeholder"
             :aria-labelledby="CODE_LABEL_ID"
           />
-          <button
+          <a11y-button
+            variant="ghost"
+            shape="default"
             class="code-btn"
             :disabled="countdown > 0 || !phoneValid"
-            @click="handleSendCode"
+            @tap="handleSendCode"
           >
             {{ countdown > 0 ? `${countdown}s` : "获取验证码" }}
-          </button>
+          </a11y-button>
         </view>
       </view>
 
@@ -69,16 +71,16 @@
         </text>
       </a11y-button>
 
-      <!-- 登录按钮 -->
-      <button
-        class="login-btn btn-feedback"
+      <!-- 登录按钮：统一主按钮（primary + block），loading/disabled 由组件接管 -->
+      <a11y-button
+        variant="primary"
+        block
+        :loading="logging"
         :disabled="!canLogin || logging"
-      :loading="logging"
-        :class="{ disabled: !canLogin || logging }"
-        @click="handleLogin"
+        @tap="handleLogin"
       >
-        {{ logging ? '登录中...' : '登录 / 注册' }}
-      </button>
+        {{ logging ? "登录中..." : "登录 / 注册" }}
+      </a11y-button>
     </view>
   </view>
 </template>
@@ -94,6 +96,9 @@ const PHONE_LABEL_ID = "login-phone-label";
 const CODE_LABEL_ID = "login-code-label";
 
 const userStore = useUserStore();
+
+/** 状态栏高度（px）：custom 导航页需动态避让刘海/挖孔，兜底 44（iOS 刘海屏典型值） */
+const statusBarHeight = uni.getWindowInfo?.().statusBarHeight || 44;
 
 /** 验证码倒计时总时长（秒） */
 const COUNTDOWN_SECONDS = 60;
@@ -181,7 +186,7 @@ async function handleLogin() {
 <style lang="scss" scoped>
 .login-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, var(--color-primary-deep) 0%, var(--color-primary) 30%, #f5f5f5 60%);
+  background: linear-gradient(180deg, var(--color-primary-deep) 0%, var(--color-primary) 30%, var(--bg-page) 60%);
   padding: 0 60rpx;
   display: flex;
   flex-direction: column;
@@ -231,7 +236,7 @@ async function handleLogin() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 180rpx;
+  /* padding-top 由 :style 动态设置（statusBarHeight + 90px），避让刘海/挖孔 */
   padding-bottom: 80rpx;
 
   .logo {
@@ -243,7 +248,7 @@ async function handleLogin() {
   .app-name {
     font-size: 48rpx;
     font-weight: bold;
-    color: #fff;
+    color: var(--text-inverse);
     margin-top: 24rpx;
   }
 
@@ -301,23 +306,10 @@ async function handleLogin() {
     flex: 1;
   }
 
+  /* 视觉样式（描边/字号/禁用态）由 a11y-button variant=ghost 统一提供，此处只管布局宽度 */
   .code-btn {
     width: 220rpx;
-    height: 88rpx;
-    line-height: 88rpx;
-    text-align: center;
-    font-size: 26rpx;
-    color: var(--color-primary);
-    border: 2rpx solid var(--color-primary);
-    border-radius: 16rpx;
-    background: var(--bg-card);
-    padding: 0;
-
-    &[disabled] {
-      color: var(--text-hint);
-      border-color: var(--border-light);
-      background: var(--bg-sub);
-    }
+    flex-shrink: 0;
   }
 }
 
@@ -342,7 +334,7 @@ async function handleLogin() {
     }
 
     .check-icon {
-      color: #fff;
+      color: var(--text-inverse);
       font-size: 24rpx;
     }
   }
@@ -357,22 +349,4 @@ async function handleLogin() {
   }
 }
 
-.login-btn {
-  width: 100%;
-  height: 96rpx;
-  line-height: 96rpx;
-  text-align: center;
-  background: var(--gradient-brand-h);
-  color: #fff;
-  font-size: 34rpx;
-  font-weight: bold;
-  border-radius: 48rpx;
-  border: none;
-  box-shadow: 0 12rpx 32rpx rgba(255, 94, 156, 0.35);
-
-  &.disabled {
-    opacity: 0.5;
-    box-shadow: none;
-  }
-}
 </style>

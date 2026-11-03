@@ -261,6 +261,56 @@ public class Neo4jClient implements AutoCloseable {
     }
 
     /**
+     * 查询二度好友并附带共同好友数（社交信号强度来源）。
+     *
+     * <p>与 {@link #findSecondDegreeFriends(Long, int)} 同查询逻辑，但额外返回每个二度好友的
+     * 共同好友数，供 {@code RecommendScoringService} 将社交关系强度归一化为 0~1 的社交信号分，
+     * 进而并入选混合评分公式（权重 w-social），让社交关系影响排序分值。</p>
+     *
+     * @param userId 当前用户 ID
+     * @param limit  返回数量上限
+     * @return Map&lt;二度好友用户ID, 共同好友数&gt;（按共同好友数降序），失败返回空 Map
+     */
+    public Map<Long, Integer> findSecondDegreeFriendsWithCommon(Long userId, int limit) {
+        if (userId == null || limit <= 0) {
+            return Collections.emptyMap();
+        }
+        ensureDriver();
+        if (!isAvailable()) {
+            return Collections.emptyMap();
+        }
+        try (Session session = driver.session()) {
+            Map<String, Object> params = new HashMap<>();
+            params.put("userId", userId);
+            params.put("limit", limit);
+
+            Result result = session.run(new Query(
+                    "MATCH (u:User {userId: $userId})-[:FRIEND]-()-[:FRIEND]-(reco:User) "
+                            + "WHERE reco.userId <> $userId "
+                            + "  AND NOT (u)-[:FRIEND]-(reco) "
+                            + "RETURN reco.userId AS friendId, COUNT(*) AS commonFriends "
+                            + "ORDER BY commonFriends DESC "
+                            + "LIMIT $limit",
+                    params));
+
+            Map<Long, Integer> secondDegree = new HashMap<>();
+            while (result.hasNext()) {
+                var record = result.next();
+                var friendIdValue = record.get("friendId");
+                var commonValue = record.get("commonFriends");
+                if (!friendIdValue.isNull() && !commonValue.isNull()) {
+                    secondDegree.put(friendIdValue.asLong(), commonValue.asInt());
+                }
+            }
+            LOGGER.debug("Neo4j 二度好友(含共同好友)查询完成, userId={}, 返回 {} 条", userId, secondDegree.size());
+            return secondDegree;
+        } catch (Exception e) {
+            LOGGER.warn("Neo4j 二度好友(含共同好友)查询失败,降级空召回, userId={}, 原因: {}", userId, e.getMessage());
+            return Collections.emptyMap();
+        }
+    }
+
+    /**
      * 查询共同好友（两个用户之间的共同好友列表）。
      *
      * @param userId1 用户1 ID

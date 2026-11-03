@@ -54,10 +54,11 @@ function activeTabIndex(route: string): number {
   return TABS.findIndex((t) => t.prefixes.some((p) => route.startsWith(p)));
 }
 
-/** 与原生 tabbar 对齐：把 --window-bottom 写到所有页面 body 上 */
+/** 与原生 tabbar 对齐：把 --window-bottom / --tab-bar-height 写到所有页面 body 上 */
 function applyWindowBottom(value: string): void {
   document.querySelectorAll("uni-page-body").forEach((el) => {
     (el as HTMLElement).style.setProperty("--window-bottom", value);
+    (el as HTMLElement).style.setProperty("--tab-bar-height", value);
   });
 }
 

@@ -6,7 +6,7 @@
       <view class="deco-circle deco-1 float" aria-hidden="true" />
       <view class="deco-circle deco-2 float" aria-hidden="true" />
       <a11y-button class="user-row" label="编辑个人资料" @tap="goProfile">
-        <image lazy-load class="avatar" :src="userInfo?.avatar || '/static/logo/logo-icon-transparent.png'" mode="aspectFill" aria-hidden="true" />
+        <image lazy-load class="avatar" :src="resolveAvatar(userInfo?.avatar)" mode="aspectFill" aria-hidden="true" />
         <view class="user-info">
           <view class="name-row">
             <text class="nickname">{{ userInfo?.nickname || '未设置昵称' }}</text>
@@ -55,6 +55,7 @@
       v-for="(group, groupIndex) in menuGroups"
       :key="groupIndex"
       class="menu-group"
+      :style="{ flexGrow: group.length }"
     >
       <a11y-button
         v-for="item in group"
@@ -82,6 +83,7 @@ import MatchPopup from "@/components/match-popup.vue";
 import A11yButton from "@/components/a11y-button.vue";
 import { useUserStore } from "@/store/user";
 import { getRelationCounts, FRIEND_TYPE, type RelationCounts } from "@/api/mine";
+import { resolveAvatar } from "@/utils/avatar";
 
 const userStore = useUserStore();
 const userInfo = computed(() => userStore.userInfo);
@@ -97,6 +99,7 @@ const counts = ref<RelationCounts>({
   eachLoveCount: 0,
   loveCount: 0,
   fanCount: 0,
+  visitorCount: 0,
 });
 
 /** 菜单项配置（表驱动：图标/文案/色块颜色/点击行为） */
@@ -112,13 +115,13 @@ const socialMenuItems: MenuItemConfig[] = [
   {
     uniIcon: "compose",
     label: "编辑资料",
-    color: "#ff5e9c",
+    color: "var(--color-primary)",
     action: () => goPage("/pages/mine/profile"),
   },
   {
     uniIcon: "contact",
     label: "我的好友",
-    color: "#4a90d9",
+    color: "var(--info-blue)",
     action: () => goFriends(FRIEND_TYPE.MUTUAL),
   },
   {
@@ -130,13 +133,13 @@ const socialMenuItems: MenuItemConfig[] = [
   {
     uniIcon: "heart-filled",
     label: "我喜欢",
-    color: "#ff5e9c",
+    color: "var(--color-primary)",
     action: () => goFriends(FRIEND_TYPE.FOLLOW),
   },
   {
     uniIcon: "person",
     label: "粉丝",
-    color: "#4cd964",
+    color: "var(--success)",
     action: () => goFriends(FRIEND_TYPE.FANS),
   },
 ];
@@ -146,19 +149,19 @@ const settingsMenuItems: MenuItemConfig[] = [
   {
     uniIcon: "close",
     label: "黑名单",
-    color: "#999999",
+    color: "var(--text-hint-weak)",
     action: () => goPage("/pages/mine/blacklist"),
   },
   {
     uniIcon: "headphones",
     label: "在线客服",
-    color: "#ff5e9c",
+    color: "var(--color-primary)",
     action: () => goPage("/pages/kefu/index"),
   },
   {
     uniIcon: "gear",
     label: "设置",
-    color: "#666666",
+    color: "var(--text-secondary)",
     action: () => goPage("/pages/mine/settings"),
   },
 ];
@@ -212,6 +215,9 @@ onShow(() => {
   min-height: calc(100vh - var(--window-bottom, 0px));
   background: var(--bg-sub);
   padding-bottom: calc(var(--window-bottom, 0px) + 24rpx);
+  /* 纵向 flex：让菜单组吃掉 header/vip 之外的全部剩余高度，避免底部大片留白 */
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
@@ -220,6 +226,7 @@ onShow(() => {
   border-radius: 0 0 40rpx 40rpx;
   position: relative;
   overflow: hidden;
+  flex-shrink: 0;
 
   /* 漂浮装饰圆 */
   .deco-circle {
@@ -269,12 +276,12 @@ onShow(() => {
         .nickname {
           font-size: 36rpx;
           font-weight: bold;
-          color: #fff;
+          color: var(--text-inverse);
         }
 
         .verified {
           font-size: 20rpx;
-          color: #fff;
+          color: var(--text-inverse);
           background: rgba(255, 255, 255, 0.3);
           padding: 2rpx 12rpx;
           border-radius: 16rpx;
@@ -282,7 +289,7 @@ onShow(() => {
 
         .vip-badge {
           font-size: 20rpx;
-          color: #ffd700;
+          color: var(--gold);
           background: rgba(0, 0, 0, 0.25);
           padding: 2rpx 12rpx;
           border-radius: 16rpx;
@@ -334,7 +341,7 @@ onShow(() => {
       .stat-num {
         font-size: 36rpx;
         font-weight: bold;
-        color: #fff;
+        color: var(--text-inverse);
       }
 
       /* 22rpx 小字 + 半透明不达标 → 提至 0.95 */
@@ -353,7 +360,8 @@ onShow(() => {
   justify-content: space-between;
   margin: 16rpx 32rpx;
   padding: 20rpx 32rpx;
-  background: linear-gradient(135deg, #1a1a2e, #2c2c2c, #4a3b2a);
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--bg-deep), #2c2c2c, #4a3b2a);
   border-radius: 24rpx;
   border: 2rpx solid rgba(255, 215, 0, 0.6);
   box-shadow: 0 8rpx 32rpx rgba(255, 215, 0, 0.15);
@@ -370,7 +378,7 @@ onShow(() => {
     .vip-title {
       font-size: 30rpx;
       font-weight: bold;
-      color: #ffd700;
+      color: var(--gold);
       display: block;
     }
 
@@ -384,7 +392,7 @@ onShow(() => {
 
   .vip-arrow {
     font-size: 36rpx;
-    color: #ffd700;
+    color: var(--gold);
   }
 }
 
@@ -393,11 +401,21 @@ onShow(() => {
   background: var(--bg-card);
   border-radius: 24rpx;
   overflow: hidden;
+  /* flexGrow 内联绑定为组内项数（5/3），保证两组内每个菜单项分到的高度一致；
+     大屏时与菜单行一起拉伸铺满，小屏时由 menu-item 的 min-height 保底 */
+  display: flex;
+  flex-direction: column;
+  flex-basis: 0;
 
   .menu-item {
     display: flex;
     align-items: center;
-    padding: 20rpx 32rpx;
+    /* 高度由 flex 均分决定：垂直不再用 padding 撑高，仅保留左右内边距 */
+    flex: 1 1 0;
+    /* 保底热区 88rpx（≈44px@375，WCAG 2.5.5 / 项目规范），小屏可滚动 */
+    min-height: 88rpx;
+    padding: 0 32rpx;
+    box-sizing: border-box;
     border-bottom: 1rpx solid var(--border-faint);
 
     &:last-child {
@@ -416,7 +434,7 @@ onShow(() => {
 
     .menu-icon {
       font-size: 32rpx;
-      color: #fff;
+      color: var(--text-inverse);
       line-height: 1;
     }
 

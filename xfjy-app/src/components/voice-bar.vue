@@ -103,7 +103,7 @@ void stopVoice;
   transition: background 0.2s ease;
 
   &.playing {
-    background: var(--color-primary-soft, #ffeff5);
+    background: var(--color-primary-soft, var(--bg-icon-soft));
   }
 
   .voice-icon {

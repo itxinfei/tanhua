@@ -35,12 +35,13 @@ public class AdminTokenInterceptor implements HandlerInterceptor {
 
         // Sa-Token 从请求头读取并校验token（未登录返回null，未抛异常）
         Object loginId = StpUtil.getLoginIdDefaultNull();
-        if (loginId == null) {
+        // 命名空间隔离：只接受 "admin-" 前缀的 loginId，C 端 user token 在此直接拒绝
+        if (loginId == null || !loginId.toString().startsWith("admin-")) {
             response.setStatus(401); //未登录
             return false;
         }
 
-        Admin admin = this.adminService.queryAdminById(Long.valueOf(loginId.toString()));
+        Admin admin = this.adminService.queryAdminById(Long.valueOf(loginId.toString().substring("admin-".length())));
         if (admin == null || "DISABLED".equals(admin.getStatus())) {
             response.setStatus(401);
             return false;

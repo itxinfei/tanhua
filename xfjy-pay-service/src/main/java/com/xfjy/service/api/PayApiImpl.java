@@ -143,29 +143,22 @@ public class PayApiImpl implements PayApi {
         }
         long total = this.payOrderMapper.selectCount(wrapper);
 
+        // 汇总指标（已支付数/待支付数/总金额）只受日期范围限制，不受 status 筛选影响，
+        // 始终反映全局概况；status 筛选仅作用于上面的 total。
         QueryWrapper<PayOrder> paidWrapper = new QueryWrapper<>();
         applyDateRange(paidWrapper, startDate, endDate);
         paidWrapper.eq("status", "PAID");
-        if (StringUtils.isNotBlank(status)) {
-            paidWrapper.eq("status", status);
-        }
         long paidCount = this.payOrderMapper.selectCount(paidWrapper);
 
         QueryWrapper<PayOrder> pendingWrapper = new QueryWrapper<>();
         applyDateRange(pendingWrapper, startDate, endDate);
         pendingWrapper.eq("status", "PENDING");
-        if (StringUtils.isNotBlank(status)) {
-            pendingWrapper.eq("status", status);
-        }
         long pendingCount = this.payOrderMapper.selectCount(pendingWrapper);
 
         QueryWrapper<PayOrder> amountWrapper = new QueryWrapper<>();
         applyDateRange(amountWrapper, startDate, endDate);
         amountWrapper.eq("status", "PAID")
                 .select("COALESCE(SUM(amount), 0) AS total_amount");
-        if (StringUtils.isNotBlank(status)) {
-            amountWrapper.eq("status", status);
-        }
         List<Map<String, Object>> maps = this.payOrderMapper.selectMaps(amountWrapper);
         long totalAmount = 0L;
         if (maps != null && !maps.isEmpty()) {
@@ -183,11 +176,13 @@ public class PayApiImpl implements PayApi {
     }
 
     private void applyDateRange(QueryWrapper<PayOrder> wrapper, String startDate, String endDate) {
+        // created 列为 datetime，必须传 Date 对象而非毫秒戳（long），否则 MySQL 隐式转换导致范围比较错误
         if (StringUtils.isNotBlank(startDate)) {
-            wrapper.ge("created", java.sql.Date.valueOf(startDate).getTime());
+            wrapper.ge("created", java.sql.Date.valueOf(startDate));
         }
         if (StringUtils.isNotBlank(endDate)) {
-            wrapper.le("created", java.sql.Date.valueOf(endDate).getTime() + 86399999L);
+            // endDate 当天 23:59:59.999
+            wrapper.le("created", new java.util.Date(java.sql.Date.valueOf(endDate).getTime() + 86399999L));
         }
     }
 

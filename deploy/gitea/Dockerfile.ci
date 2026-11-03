@@ -1,7 +1,9 @@
 # ============================================================
 # 心飞交友 CI 镜像（Gitea Actions runner 拉起的 job 容器）
 #
-# 需包含：JDK 25、Maven 3.9、Node 22、ssh 客户端、git、docker CLI + compose 插件。
+# 需包含：JDK 25、Maven 3.9.16、Node 22.23.4 LTS、ssh 客户端、git、docker CLI + compose 插件。
+# Node 版本为本仓库唯一真源之一（与根 .nvmrc、前端 engines 对齐）；升级时三处同改，
+# 并在服务器重新构建本镜像，workflow 内不再用 n 临时升级。
 # 工作流用 container 显式指定本镜像（见 .gitea/workflows/deploy.yml），
 # runner 只需挂载宿主 docker.sock 即可拉起它（镜像须在宿主机构建）。
 #
@@ -24,7 +26,7 @@
 # ============================================================
 FROM docker.m.daocloud.io/library/eclipse-temurin:25-jdk-jammy
 
-ARG NODE_VERSION=22.11.0
+ARG NODE_VERSION=22.23.4
 ARG MAVEN_VERSION=3.9.16
 
 # JDK 25 由基底镜像自带（/opt/java/openjdk）

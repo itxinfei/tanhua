@@ -78,7 +78,7 @@ Gitea Actions 在 Gitea 仓库收到「push」时触发。Gitee 是主仓，所�
 | 服务 | xfjy-jenkins 容器 | xfjy-gitea + xfjy-act-runner 容器 |
 | 流水线定义 | `Jenkinsfile` | `.gitea/workflows/deploy.yml` |
 | 触发 | Gitee webhook（原未配） | Gitee webhook → Gitea 镜像同步/dispatch |
-| 工具 | 全局工具 jdk25/maven39/node22 | CI 镜像 `xfjy/ci:latest` 内置（含 docker-cli） |
+| 工具 | 全局工具 jdk25/maven39/node22 | CI 镜像 `xfjy/ci:latest` 内置 **JDK 25 / Maven 3.9.16 / Node 22.23.4 LTS**（含 docker-cli）。版本锁定以 `deploy/gitea/Dockerfile.ci` 的 ARG 与根 `.nvmrc` 为唯一真源（两处必须一致），详见 `AGENTS.md §1`，禁止在 workflow 内用 `n` 临时切版本 |
 | 部署产物 | jar 经 SSH 投递 + `nohup java -jar` | 构建 Docker 镜像并 `docker compose up -d` 运行容器 |
 | 前端 | 不部署（本地跑） | admin/h5 打成 nginx 容器（:5174/:5173） |
 | 资源占用 | 重（JVM + 插件） | 轻（Go 二进制 + 按需拉起 job 容器） |

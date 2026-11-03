@@ -8,6 +8,7 @@ import { getToken } from "@/utils/request";
 import { loginIM, isIMLoggedIn, onMatchReceived } from "@/utils/wukongim";
 import { useMatchStore } from "@/store/match";
 import { useUserStore } from "@/store/user";
+import { resolveAvatar } from "@/utils/avatar";
 
 onLaunch(() => {
   // 安装全局登录路由守卫（需先于任何页面导航）
@@ -17,9 +18,19 @@ onLaunch(() => {
   installGlobalTabbar();
   // #endif
   // 启动兜底：冷启动落在非登录页且无 token 时，重定向到登录页
+  // 开发环境 mock：跳过 token 检查，便于本地调试
   const pages = getCurrentPages();
   const current = pages.length ? pages[pages.length - 1].route : "";
-  if (!getToken() && current && !current.startsWith("pages/auth/login")) {
+  // 开发环境判断：localhost / 127.0.0.1 视为开发环境，跳过登录重定向
+  const isDev =
+    typeof location !== "undefined" &&
+    (location.hostname === "localhost" || location.hostname === "127.0.0.1");
+  if (
+    !getToken() &&
+    current &&
+    !current.startsWith("pages/auth/login") &&
+    !isDev
+  ) {
     uni.reLaunch({ url: "/pages/auth/login" });
   }
 
@@ -29,7 +40,7 @@ onLaunch(() => {
     matchStore.showMatchPopup({
       userId: event.from,
       nickname: event.nickname,
-      avatar: event.avatar || "/static/logo/logo-icon-transparent.png",
+      avatar: resolveAvatar(event.avatar),
     });
   });
 });
@@ -53,9 +64,10 @@ onShow(() => {
 /* uview-plus 样式 */
 @use "uview-plus/index.scss" as *;
 
-/* ===== CSS 变量（品牌色：玫红 + 紫系，与后台管理 xfjy-admin 对齐；深色模式 WIP：变量层已就绪，页面硬编码色待逐步迁移到变量引用） ===== */
+/* ===== CSS 变量（品牌色：暖玫红 + 珊瑚系，与后台管理 xfjy-admin 对齐；紫色保留为辅助色；深色模式 WIP：变量层已就绪，页面硬编码色待逐步迁移到变量引用） ===== */
 page {
-  --color-primary: #ff5e9c;
+  --color-primary: #fe3c72;
+  --color-coral: #ff655b;
   --color-primary-deep: #b13bff;
   --color-primary-violet: #8a5cf6;
   --color-primary-soft: #ff8fb1;
@@ -66,8 +78,8 @@ page {
   --border: #e0e0e0;
   --border-faint: #f5f5f5;
   --text-hint-weak: #999999;
-  --gradient-brand: linear-gradient(135deg, #b13bff, #ff5e9c);
-  --gradient-brand-h: linear-gradient(90deg, #b13bff, #ff5e9c);
+  --gradient-brand: linear-gradient(135deg, #fe3c72, #ff655b);
+  --gradient-brand-h: linear-gradient(90deg, #fe3c72, #ff655b);
   --bg-page: #f5f5f5;
   --bg-card: #ffffff;
   --bg-icon-soft: #ffeff5;
@@ -77,6 +89,49 @@ page {
   --text-hint: #767676;
   --text-hint-strong: #595959;
   --border-color: #f0f0f0;
+
+  /* 危险操作色（删除/注销/举报等危险按钮） */
+  --color-danger: #e5484d;
+  /* 成功态（认证/操作成功反馈） */
+  --success: #4cd964;
+  /* 信息蓝（性别男选中、超级喜欢星等） */
+  --info-blue: #4a90d9;
+  --info-blue-soft: #6bb0f5;
+  /* VIP 金（会员皇冠/标签/渐变） */
+  --gold: #ffd700;
+  --gold-soft: #ffb347;
+  --gold-light: #fff5c0;
+  /* VIP 页固定深色体系（有意恒暗，亮/暗模式同值，不随主题变） */
+  --bg-deep: #1a1a2e;
+  --bg-deep-grad: #2c2c54;
+  /* 深色品牌按钮上的反色文字（恒白，不随暗色模式变） */
+  --text-inverse: #ffffff;
+  /* 主按钮投影（跟随主色 #fe3c72） */
+  --shadow-primary: 0 8rpx 24rpx rgba(254, 60, 114, 0.35);
+
+  /* ===== 间距刻度（全站 margin/padding/gap 只能取以下档位；存量 12/20/36/40 等就近归并） ===== */
+  --space-xs: 8rpx;
+  --space-sm: 16rpx;
+  --space-md: 24rpx;
+  --space-lg: 32rpx;
+  --space-xl: 48rpx;
+  --space-2xl: 64rpx;
+
+  /* ===== 字号刻度（基准 28rpx，与 page font-size 对齐） ===== */
+  --fs-xs: 22rpx;
+  --fs-sm: 24rpx;
+  --fs-base: 28rpx;
+  --fs-md: 30rpx;
+  --fs-lg: 32rpx;
+  --fs-xl: 36rpx;
+  --fs-2xl: 44rpx;
+
+  /* ===== 圆角刻度（输入框 md / 卡片 lg / 弹窗 xl / 胶囊 pill） ===== */
+  --radius-sm: 8rpx;
+  --radius-md: 16rpx;
+  --radius-lg: 24rpx;
+  --radius-xl: 32rpx;
+  --radius-pill: 999rpx;
 
   /* 骨架屏：统一占位块样式令牌（灰底闪光 + 暗色变体），全站复用 */
   --skel-bg: linear-gradient(90deg, #efefef 25%, #f5f5f5 50%, #efefef 75%);
@@ -103,8 +158,8 @@ page {
     --border: #3f3f3f;
     --border-faint: #333333;
     --text-hint-weak: #8c8c8c;
-    --gradient-brand: linear-gradient(135deg, #9b5cf6, #f9578f);
-    --gradient-brand-h: linear-gradient(90deg, #9b5cf6, #f9578f);
+    --gradient-brand: linear-gradient(135deg, #f9578f, #ff7a6b);
+    --gradient-brand-h: linear-gradient(90deg, #f9578f, #ff7a6b);
     --bg-page: #1a1a1a;
     --bg-card: #2c2c2c;
     --bg-icon-soft: #3a2a30;
@@ -113,6 +168,9 @@ page {
     --text-hint: #8c8c8c;
     --text-hint-strong: #a6a6a6;
     --border-color: #3a3a3a;
+    /* 暗色下危险色提亮一档，保证暗底对比度 */
+    --color-danger: #ff6b6b;
+    --shadow-primary: 0 8rpx 24rpx rgba(249, 87, 143, 0.3);
     --skel-bg: var(--skel-bg-dark);
   }
 }
@@ -120,7 +178,12 @@ page {
 /* 安全区域 */
 .safe-area-bottom {
   padding-bottom: constant(safe-area-inset-bottom);
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-area-top {
+  padding-top: constant(safe-area-inset-top);
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 /* #ifdef H5 */

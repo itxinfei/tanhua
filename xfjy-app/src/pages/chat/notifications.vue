@@ -13,7 +13,7 @@
       <empty-state v-if="list.length === 0" icon="notification" title="暂无通知" desc="有人喜欢你时会在这里提醒你" />
       <a11y-button v-for="item in list" :key="item.id" class="notice-item shadow-card btn-feedback" :label="noticeLabel(item)" @tap="goDetail(item)">
         <view class="avatar-wrap">
-          <image class="avatar" :src="item.avatar || '/static/logo/logo-icon-transparent.png'" mode="aspectFill" lazy-load :aria-label="`${item.nickname} 的头像`" />
+          <image class="avatar" :src="resolveAvatar(item.avatar)" mode="aspectFill" lazy-load :aria-label="`${item.nickname} 的头像`" />
           <!-- 类型徽章为纯图标，语义已由 desc 文本（赞了你的动态等）承载，避免重复朗读 -->
           <view class="type-badge" :style="{ background: typeMeta.color }" aria-hidden="true"><uni-icons :type="typeMeta.uniIcon" size="18" color="#fff"></uni-icons></view>
         </view>
@@ -42,6 +42,7 @@ import {
   type MessageAnnouncement,
 } from "@/api/chat";
 import { checkBenefit } from "@/api/mine";
+import { resolveAvatar } from "@/utils/avatar";
 
 /** 页面展示模型（统一映射后端两种消息结构） */
 interface NoticeItem {
@@ -58,11 +59,11 @@ const chatStore = useChatStore();
 /** 通知类型元数据（图标+颜色，与会话列表 NOTICE_META 保持一致） */
 const TYPE_META: Record<string, { uniIcon: string; color: string }> = {
   like: { uniIcon: "heart-filled", color: "var(--color-primary)" },
-  comment: { uniIcon: "chatbubble", color: "#4a90d9" },
+  comment: { uniIcon: "chatbubble", color: "var(--info-blue)" },
   love: { uniIcon: "star-filled", color: "var(--color-primary)" },
-  announcement: { uniIcon: "notification", color: "#4cd964" },
+  announcement: { uniIcon: "notification", color: "var(--success)" },
   visitors: { uniIcon: "eye", color: "var(--color-primary-violet)" },
-  fans: { uniIcon: "person", color: "#ff8fb1" },
+  fans: { uniIcon: "person", color: "var(--color-primary-soft)" },
 };
 
 /** 页面标题映射 */
@@ -207,7 +208,7 @@ onPullDownRefresh(async () => {
 .notice-item { display: flex; align-items: center; padding: 24rpx; background: var(--bg-card); border-radius: 24rpx; margin-bottom: 16rpx;
   .avatar-wrap { position: relative; flex-shrink: 0;
     .avatar { width: 88rpx; height: 88rpx; border-radius: 50%; background: var(--bg-sub); border: 3rpx solid var(--bg-icon-soft); }
-    .type-badge { position: absolute; bottom: -4rpx; right: -4rpx; width: 36rpx; height: 36rpx; border-radius: 50%; border: 3rpx solid #fff; display: flex; align-items: center; justify-content: center; font-size: 18rpx; color: #fff; }
+    .type-badge { position: absolute; bottom: -4rpx; right: -4rpx; width: 36rpx; height: 36rpx; border-radius: 50%; border: 3rpx solid var(--text-inverse); display: flex; align-items: center; justify-content: center; font-size: 18rpx; color: var(--text-inverse); }
   }
   .info { flex: 1; margin-left: 20rpx;
     .nickname { font-size: 28rpx; font-weight: bold; color: var(--text-primary); display: block; }
@@ -220,9 +221,9 @@ onPullDownRefresh(async () => {
 
 /* VIP 权益锁定状态 */
 .locked-state { display: flex; flex-direction: column; align-items: center; padding: 160rpx 48rpx 80rpx;
-  .locked-icon { width: 120rpx; height: 120rpx; border-radius: 50%; background: linear-gradient(135deg, #ffd700, #ffb347); display: flex; align-items: center; justify-content: center; font-size: 56rpx; margin-bottom: 24rpx; box-shadow: 0 8rpx 24rpx rgba(255, 179, 71, 0.35); }
+  .locked-icon { width: 120rpx; height: 120rpx; border-radius: 50%; background: linear-gradient(135deg, var(--gold), var(--gold-soft)); display: flex; align-items: center; justify-content: center; font-size: 56rpx; margin-bottom: 24rpx; box-shadow: 0 8rpx 24rpx rgba(255, 179, 71, 0.35); }
   .locked-title { font-size: 32rpx; color: var(--text-primary); font-weight: bold; }
   .locked-desc { font-size: 24rpx; color: var(--text-hint); margin-top: 12rpx; text-align: center; }
-  .locked-btn { margin-top: 40rpx; width: 320rpx; height: 80rpx; line-height: 80rpx; background: linear-gradient(90deg, #ffd700, #ffb347); color: #1a1a2e; font-size: 28rpx; font-weight: bold; border-radius: 40rpx; border: none; }
+  .locked-btn { margin-top: 40rpx; width: 320rpx; height: 80rpx; line-height: 80rpx; background: linear-gradient(90deg, var(--gold), var(--gold-soft)); color: var(--bg-deep); font-size: 28rpx; font-weight: bold; border-radius: 40rpx; border: none; }
 }
 </style>

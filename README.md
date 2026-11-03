@@ -40,27 +40,27 @@
 
 | 领域 | 技术选型 | 核心优势 |
 |------|----------|----------|
-| **后端框架** | Spring Boot 4.1.1 + JDK 25 + Spring Cloud 2025.1 | 最新 LTS 全栈，**3 年保修**，JVM 性能 +GC 停滞大幅改善，`jakarta.*` 命名空间标准化 |
-| **微服务生态** | Spring Cloud Alibaba 2025.1 (Nacos 3.x + Sentinel 2.5) | 国产云原生全家桶，**服务注册/配置/限流一站式**，社区活跃、文档极佳 |
-| **服务网关** | Spring Cloud Gateway 4.3 + WebFlux | 响应式非阻塞，**高并发下比 Zuul 2 更省资源**，限流/跨域/路由统一收口 |
-| **认证鉴权** | Sa-Token 1.46.0（spring-boot4-starter） | **注解式鉴权**比 Spring Security 简化 80%，SSO + 一体化会话，Redis 分布式存储 |
+| **后端框架** | Spring Boot 4.1.1 + JDK 25 + Spring Cloud 2025.1 | 当前主线版本，JVM 性能与 GC 表现改善，`jakarta.*` 命名空间标准化 |
+| **微服务生态** | Spring Cloud Alibaba 2025.1（Nacos 3.0.0 服务发现，未启用配置中心） | 服务注册/发现由 Nacos 承担，配置集中在各模块本地 `application.yml`，便于小团队运维 |
+| **服务网关** | Spring Cloud Gateway（WebFlux 版，`spring-cloud-starter-gateway-server-webflux`） | 响应式非阻塞，限流/跨域/路由统一收口，唯一对外端口 8090 |
+| **认证鉴权** | Sa-Token 1.46.0（spring-boot4-starter；Redis 会话存储仅 sso 引入） | 用于登录态与 Token 签发/校验（`StpUtil.login/logout/getLoginIdByToken`），业务鉴权由自研拦截器链（`TokenInterceptor`、`AdminTokenInterceptor`、`XInternalTokenInterceptor`）实现 |
 | **持久层** | MyBatis-Plus 3.5.17 (spring-boot4-starter) + MySQL 8.0 | JDK 25/SB4 完美适配，CRUD 提效 50%，**`@LoadBalanced` 替代硬编码** |
-| **文档数据库** | MongoDB 8.0 + spring-data-mongodb (SB4 托管) | 动态/评论/消息/行为日志**灵活 Schema**，水平扩展友好 |
-| **搜索引擎** | Elasticsearch 9.x + spring-data-elasticsearch | **Elastic Geo 精准地理检索**，附近的人 <50ms，替代 MySQL geo 函数 |
-| **缓存** | Redis 7.x + Spring Cache + Lettuce | **会话 + 缓存 + 限流 + 地理索引**四合一，集群/哨兵可热切 |
-| **消息队列** | RocketMQ 5.x (rocketmq-spring-boot-starter 2.3.6) | **分布式事务消息**，行为评分异步解耦，Exactly-Once 保障 |
+| **文档数据库** | MongoDB 7（compose `mongo:7`）+ spring-data-mongodb (SB4 托管) | 动态/评论/消息/行为日志**灵活 Schema**，水平扩展友好 |
+| **搜索引擎** | Elasticsearch 9.4.5 + spring-data-elasticsearch | **Elastic Geo 精准地理检索**，附近的人 <50ms，替代 MySQL geo 函数 |
+| **缓存** | Redis 7（compose `redis:7-alpine`）+ Spring Cache + Lettuce | 会话 + 缓存 + 网关限流计数 + 用户级风控计数 |
+| **消息队列** | RocketMQ 5.3.1 (rocketmq-spring-boot-starter 2.3.6) | 行为评分异步解耦（circle/video 生产、recommend 消费），削峰填谷 |
 | **对象存储** | MinIO (S3 兼容) | 可本地可上云，**视频/图片上传成本降低 90%**（vs 阿里云 OSS） |
 | **即时通讯** | WuKongIM（开源 Apache-2.0, 自托管 WS 长连接） + LiveKit SFU（WebRTC 1v1） | **商业 SDK 全替换**，无授权费、连接数/消息存储无限扩展 |
 | **向量数据库** | Qdrant（纯 REST，point id = userId 免映射） | 双塔 embedding **召回友互惠加分**，fallback 零损失降级 |
 | **图数据库** | Neo4j 5.x（Bolt 协议原生驱动） | **二度好友共同喜欢数**排序召回，社交扩展场景核心 |
 | **AI 模型** | PyTorch 双塔（权重共享 + BPR Loss + L2 归一化） | **特征自动工程**（64 维 Embedding，可 `--mock`），全流程国产化 |
-| **密码安全** | spring-security-crypto (BCrypt) | **12 轮自适应盐值**，MD5 已下线，暴力破解成本提升 $10^{12}$ 倍 |
-| **服务发现** | `@LoadBalanced RestClient.Builder` | **20 万连接数自动负载均衡**，远优于 Dubbo 单连接 |
-| **限流** | Gateway IP 限流 + Sentinel + Redis 用户级风控 | **双层防线**：网关 IP + 用户 ID 双重频率保护，防刷更安全 |
-| **监控** | Spring Boot Actuator + Micrometer | **health / info / metrics** 全生命周期贴合 K8s 健康探针 |
-| **代码质量** | Lombok + commons-io/lang3 + 全局 Result 异常体系 | 模板代码 -30%，统一业务异常，全局异常兜底零遗漏 |
+| **密码安全** | spring-security-crypto (BCrypt，默认强度 10) | 密码哈希替代 MD5，盐值内置于哈希串 |
+| **服务发现** | `@LoadBalanced RestClient.Builder` | 通过 `lb://` 服务名做负载均衡（`HttpServiceProxyConfig`） |
+| **限流** | Gateway IP 限流（`RateLimitGlobalFilter`，Redis 计数，5 次/60s）+ 服务内用户级风控（`RiskControlService`，Redis 固定窗口） | **双层防线**：网关 IP + 用户 ID 双重频率保护，防刷更安全 |
+| **监控** | Spring Boot Actuator + Micrometer（仅 server 模块引入） | 暴露 `health / info / metrics` 三类端点，贴合 K8s 健康探针 |
+| **代码质量** | Lombok + commons-io/commons-lang3 + 全局 Result 异常体系 | 模板代码 -30%，统一业务异常，全局异常兜底 |
 | **部署运维** | Git Tag 语义版本 + Gitea Actions | **一键回滚** + 增量编译，增量部署 10 秒级完成 |
-| ****敏感词引擎** | **houbb/sensitive-word（**DFA 自动机 + 多音字/繁简/字符混淆变体） ** | **三级定级（直接拒绝 / 星号替换 / 进人工队列） **，词库变更热刷新，99.9% 词库覆盖率** |
+| **敏感词引擎** | houbb/sensitive-word（DFA 自动机 + 多音字/繁简/字符混淆变体） | 三级定级（直接拒绝 / 星号替换 / 进人工队列），词库变更热刷新 |
 
 ### 🌐 前端矩阵
 
@@ -183,7 +183,7 @@ flowchart TB
         M6[(MinIO)]
         M7[(Qdrant 向量库)]
         M8[(Neo4j 图数据库)]
-        M9[ Nacos 3.x 服务注册 + 配置中心]
+        M9[ Nacos 3.x 服务注册]
         M10[WuKongIM :5200 WS]
         M11[LiveKit :7880 SFU]
     end
@@ -222,39 +222,44 @@ flowchart TB
 | 层 | 机制 | 工具 |
 |----|------|------|
 | **网络边界** | TLS 终止于 Nginx + 仅 8090 对外 | docker-compose 移除域服务端口映射 |
-| **域服务鉴权** | X-Internal-Token（ Gateway → Server → 8 域） | HandlerInterceptor + Spring @Value |
-| **API 限流** | IP 维度:token+user 维度 | SLARateLimiter + Sentinel |
-| **用户风控** | Redis 滑动窗口 60s 计数器 | RiskControlService |
+| **域服务鉴权** | X-Internal-Token（Gateway 注入 + server 调用域服务时注入） | `InternalTokenFilter` / `HttpServiceProxyConfig` 注入，8 个域服务用 `XInternalTokenInterceptor` + `@Value` 校验 |
+| **API 限流** | IP 维度 + 用户维度 | `RateLimitGlobalFilter`（Redis）+ `RiskControlService`（Redis） |
+| **用户风控** | Redis 固定窗口 60s 计数器 | RiskControlService |
 | **内容合规** | 文本 DFA + 图片/视频先发后审 | houbb sensitive-word + tb_review |
-| **恶意注册** | Sa-Token 设备指纹 + Redis 计数 | 注册防刷 |
-| **密码存储** | BCrypt 12 轮自适应盐值 | spring-security-crypto |
+| **恶意注册** | 设备指纹（Redis Set）+ Redis 计数 | 注册防刷 |
+| **密码存储** | BCrypt（默认强度 10） | spring-security-crypto |
 | **SQL 注入** | MyBatis 参数化查询 + @Select 注解 | MyBatis-Plus |
 | **XSS 防御** | 全局 Result DTO + Jackson Escape | Spring WebMvc |
-| **审计日志** | GMT 时间戳 + X-Request-Id 链路 | Filter + SLF4J Logan |
+| **审计日志** | GMT 时间戳 + 请求链路 | Filter + SLF4J（logback） |
 
 ---
 
 ## 🚢 部署运维
 
-### 服务端口（**仅 8090 对外映射**）
+### 服务端口（开发/测试环境）
 
-| 服务 | :Port | 映射宿主 | 职责 |
+> `deploy/docker-compose.app.yml` 当前为内网开发/测试编排：**所有服务端口都映射到宿主机并放行防火墙**；
+> 生产部署应收敛为仅 8090 对外（域服务只走容器网络）。
+
+| 服务 | :Port | 宿主映射 | 职责 |
 |------|-------|----------|------|
-| xfjy-gateway | :8090 | ✅ **唯一对外** | 路由 + 限流 + 跨域 + InternalToken 透传 |
-| xfjy-sso | :18080 | ❌ 仅 Docker 内网 | Sa-Token 认证 |
-| xfjy-server | :18081 | ❌ 仅 Docker 内网 | BFF 编排 + 推荐评分 + Qdrant + Neo4j |
-| xfjy-user-service | :18090 | ❌ 仅 Docker 内网 | 用户关系 CRUD |
-| xfjy-match-service | :18082 | ❌ 仅 Docker 内网 | 探花匹配评分 |
-| xfjy-circle-service | :18084 | ❌ 仅 Docker 内网 | 圈子动态发布 → RocketMQ |
-| xfjy-video-service | :18085 | ❌ 仅 Docker 内网 | 小视频流 → RocketMQ |
-| xfjy-message-service | :18086 | ❌ 仅 Docker 内网 | WuKongIM Token + LiveKit Token |
-| xfjy-pay-service | :18089 | ❌ 仅 Docker 内网 | VIP 权益 CRUD |
-| xfjy-recommend | — | — | MQ 消费者（无监听端口） |
-| xfjy-elasticsearch | — | — | ES HTTP 检索接口（无监听端口） |
+| xfjy-gateway | :8090 | ✅ `8090:8090` 对外 | 路由 + 限流 + 跨域 + InternalToken 透传 |
+| xfjy-sso | :18080 | ⚠ 内网放行 | Sa-Token 认证 |
+| xfjy-server | :18081 | ⚠ 内网放行 | BFF 编排 + 推荐评分 + Qdrant + Neo4j |
+| xfjy-user-service | :18090 | ⚠ 内网放行 | 用户关系 CRUD |
+| xfjy-match-service | :18082 | ⚠ 内网放行 | 探花匹配评分 |
+| xfjy-circle-service | :18084 | ⚠ 内网放行 | 圈子动态发布 → RocketMQ |
+| xfjy-video-service | :18085 | ⚠ 内网放行 | 小视频流 → RocketMQ |
+| xfjy-message-service | :18086 | ⚠ 内网放行 | WuKongIM Token + LiveKit Token |
+| xfjy-pay-service | :18089 | ⚠ 内网放行 | VIP 权益 CRUD |
+| xfjy-recommend | :18087 | ⚠ 内网放行（未走网关） | MQ 消费者 + 推荐评分 |
+| xfjy-elasticsearch | :18088 | ⚠ 内网放行（未走网关） | ES HTTP 检索接口 |
 
 ### CI/CD 流水线
 
 > 平台基线（2026-11-02 升级）：**Gitea 28.3.0 + Gitea Runner 5.2.4**，Docker 部署于 192.168.20.133（compose 见 `deploy/docker-compose.gitea.yml`）；Actions 历史运行记录设为永久保留（`RUN_RETENTION_DAYS=0`）。
+>
+> ⚠️ **Runner 5.x 必须关闭 `container.sweep`**：5.x 起每个 job 经 docker socket proxy 创建容器，job 结束默认按 label 强删这些容器（`sweep` 不设即为 true）。本项目 job 用 `docker compose` 部署的是**常驻微服务**，不关闭会在部署收尾把 11 个后端容器全部误删（2026-11-02 run#119 事故）。`deploy/gitea/config.yaml` 已固定 `container.sweep: false`（官方说明：jobs deploy services to the runner Docker daemon 时必须关），改动后需 `docker compose -f deploy/docker-compose.gitea.yml restart runner` 生效。
 
 手动运行（Actions → Run workflow）的输入项全部为**下拉选择**：
 
@@ -346,11 +351,10 @@ xfjy/
 │   ├── manage.sh                  # 本地开发 1 键部署脚本
 │   └── .env.example               # 环境变量模板（env 全外置）
 │
-├── docs/                       # 📄 需求文档 · 架构全景 · 部署手册
-│   ├── 需求文档.md
-│   ├── 功能就绪矩阵.md
-│   ├── 技术约束.md
-│   ├── 技术栈架构全景.html
+├── docs/                       # 📄 需求文档 · 图标规范 · 归档
+│   ├── 需求文档/               # 00 导航 + 01 需求 + 02 约束 + 03 规范 + PRD
+│   ├── archive/                # 已失效文档（22/23/旧 CLAUDE.md）
+│   ├── icon-icons.md           # 图标规范
 │   └── logo/
 │
 └── scripts/
@@ -365,7 +369,7 @@ xfjy/
 
 | 变量 | 说明 | 工具 |
 |------|------|------|
-| `NACOS_SERVER_ADDR / USERNAME / PASSWORD` | 服务注册 + 配置中心 | Nacos 3.x |
+| `NACOS_SERVER_ADDR / USERNAME / PASSWORD` | 服务注册 | Nacos 3.x |
 | `MYSQL_*` | 关系数据库 | MySQL 8.0 |
 | `REDIS_*` | 缓存 + 会话 + 限流 | Redis 7.x |
 | `MONGODB_URI` | 文档数据库 | MongoDB 8.0 |
@@ -408,11 +412,11 @@ mysql -u root -p --default-character-set=utf8mb4 xfjy < scripts/xfjy.sql
 git clone gitea@yourhost:itxinfei/xfjy.git && cd xfjy
 
 # 3. 后端一键部署（自动解析 git tag）
-./manage.sh deploy
+bash deploy/manage.sh deploy all
 
 # 4. 前端热更新
-cd xfjy-admin && npm run dev    # 管理后台 http://localhost:5173
-cd xfjy-app && npm run dev:h5   # C 端 H5 http://localhost:5172
+cd xfjy-admin && npm run dev    # 管理后台 http://localhost:5174
+cd xfjy-app && npm run dev:h5   # C 端 H5 http://localhost:5173
 ```
 
 ### 开发工具链
@@ -423,8 +427,8 @@ cd xfjy-app && npm run dev:h5   # C 端 H5 http://localhost:5172
 | HBuilderX | uni-app 开发 + 多端预览 |
 | VS Code | Vue3 / 管理后台开发 |
 | DataGrip / DBeaver | 数据库建模 |
-| Postman / Apifox | 接口调试 9,024 个 |
-| Python 3.11 + PyTorch | 双塔模型训练 |
+| Postman / Apifox | 接口调试 |
+| Python + PyTorch（`xfjy-recsys/train`） | 双塔模型训练 |
 | Docker Desktop | 中间件容器编排 |
 
 ---
@@ -433,10 +437,11 @@ cd xfjy-app && npm run dev:h5   # C 端 H5 http://localhost:5172
 
 | 端点 | 路径 | 说明 |
 |------|------|------|
-| 健康检查 | `GET /actuator/health` | DB + Redis + Mongo + ES 组件状态 |
+| 健康检查 | `GET /actuator/health` | 数据源 + Redis 等组件状态（`show-details: when-authorized`） |
 | 应用信息 | `GET /actuator/info` | 构建时间、Git commit、版本 |
 | 运行时指标 | `GET /actuator/metrics` | JVM + HTTP + 连接池 + 自定义业务指标 |
-| Prometheus | `GET /actuator/prometheus` | 时序指标（可接 Grafana） |
+
+> 当前 `management.endpoints.web.exposure.include` 仅含 `health,info,metrics`，**未暴露 Prometheus 端点**（未引入 `micrometer-registry-prometheus`）。
 
 ```bash
 curl http://127.0.0.1:18081/actuator/health
@@ -447,11 +452,14 @@ curl http://127.0.0.1:18081/actuator/health
 
 ## 📄 文档
 
-- 📋 [需求文档](docs/需求文档.md) — 产品功能全覆盖
-- ✅ [功能就绪矩阵](docs/功能就绪矩阵.md) — 开发实时进度
-- 🔒 [技术约束](docs/技术约束.md) — 架构规则 + 现状违反清单
-- 🖥️ [技术栈架构全景](docs/技术栈架构全景.html) — 网页版交互架构图
+- 🧭 [需求文档导航](docs/需求文档/00-需求文档导航总纲.md) — 索引与冲突解决记录
+- 📋 [需求文档](docs/需求文档/01-需求文档.md) — 产品功能全覆盖
+- 🔒 [技术约束](docs/需求文档/02-技术约束.md) — 架构规则 + 现状违反清单
+- ✅ [AGENTS.md](AGENTS.md) — 面向所有 AI 工具的唯一规则真源
 - 🗄️ 数据库脚本：`scripts/xfjy.sql`（全量表结构 + 初始数据）
+
+> 原 `docs/功能就绪矩阵.md`、`docs/技术栈架构全景.html` 已失效：前者归档为
+> `docs/archive/23-功能就绪矩阵.md`，后者无对应替代文件。
 
 ---
 

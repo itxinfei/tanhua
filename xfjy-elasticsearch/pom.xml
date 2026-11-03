@@ -16,6 +16,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+        <!-- SpringDoc OpenAPI：自动生成接口文档 + Swagger UI -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        </dependency>
                 <!-- Nacos 服务注册与发现（地址/凭据见 application.yml 环境变量占位） -->
         <dependency>
             <groupId>com.alibaba.cloud</groupId>

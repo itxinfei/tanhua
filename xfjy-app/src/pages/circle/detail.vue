@@ -149,10 +149,13 @@ onLoad((options: any) => {
     }
   }
 }
-.comment-bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 16rpx; padding: 16rpx 24rpx; background: var(--bg-card); box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.05);
-  .comment-input { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; }
-  .send-btn { flex-shrink: 0; height: 72rpx; padding: 0 36rpx; display: flex; align-items: center; justify-content: center; border-radius: 36rpx; background: var(--gradient-brand);
-    text { font-size: 28rpx; color: #fff; }
+.comment-bar { position: fixed; left: 0; right: 0; bottom: var(--tab-bar-height, 0px); display: flex; align-items: center; gap: 16rpx; padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom, 0px)); background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(20px); box-shadow: 0 -8rpx 32rpx rgba(0, 0, 0, 0.08);
+  .comment-input { flex: 1; height: 76rpx; background: var(--bg-sub); border-radius: 38rpx; padding: 0 28rpx; font-size: 28rpx; border: 2rpx solid transparent; transition: border-color 0.2s ease;
+    &:focus { border-color: var(--color-primary); background: var(--bg-card); }
+  }
+  .send-btn { flex-shrink: 0; height: 76rpx; padding: 0 40rpx; display: flex; align-items: center; justify-content: center; border-radius: 38rpx; background: var(--gradient-brand); box-shadow: var(--shadow-primary); transition: transform 0.2s ease;
+    &:active { transform: scale(0.95); }
+    text { font-size: 28rpx; color: var(--text-inverse); font-weight: 600; }
   }
 }
 </style>

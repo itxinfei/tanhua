@@ -24,7 +24,8 @@
       <text class="group-title">通知设置</text>
       <view class="item" v-for="s in notificationSettings" :key="s.key">
         <text class="label">{{ s.label }}</text>
-        <switch :checked="s.value" :aria-label="s.label" color="var(--color-primary)" @change="toggleNotification(s.key, $event)" />
+        <!-- 服务端配置加载完成前禁用，避免拨动默认值覆盖服务端 -->
+        <switch :checked="s.value" :disabled="!settingsLoaded" :aria-label="s.label" color="var(--color-primary)" @change="toggleNotification(s.key, $event)" />
       </view>
     </view>
 
@@ -50,8 +51,10 @@
       </a11y-button>
     </view>
 
-    <!-- 退出登录 -->
-    <button class="logout-btn" @click="handleLogout">退出登录</button>
+    <!-- 退出登录（a11y-button 全站按钮单一真源，loading 防重复点击） -->
+    <a11y-button class="logout-btn" label="退出登录" :loading="logoutLoading" @tap="handleLogout">
+      <text>退出登录</text>
+    </a11y-button>
 
     <!-- 注销账号（破坏性操作：需可聚焦 + 语义化 + 足够对比度） -->
     <a11y-button class="delete-account" label="注销账号" @tap="handleDeleteAccount">
@@ -216,14 +219,21 @@ function showAbout() {
   uni.showModal({ title: '心飞交友', content: '版本 v1.0.0\n心飞为你飞，遇见对的人', showCancel: false });
 }
 
+/** 退出登录中状态（signOutAll 含 IM 登出，可能耗时，期间阻断重复点击） */
+const logoutLoading = ref(false);
+
 function handleLogout() {
   uni.showModal({
     title: '退出登录',
     content: '确定要退出登录吗？',
-    success: (res) => {
-      if (res.confirm) {
+    success: async (res) => {
+      if (!res.confirm) return;
+      logoutLoading.value = true;
+      try {
         // 全量清理：业务 store + IM（WuKongIM） + token，避免换账号登录后残留上一账号状态
-        userStore.signOutAll();
+        await userStore.signOutAll();
+      } finally {
+        logoutLoading.value = false;
       }
     },
   });
@@ -312,14 +322,15 @@ function inputDeleteCode() {
 }
 
 .logout-btn {
-  margin: 16rpx 0 0; height: 88rpx; line-height: 88rpx;
-  background: var(--bg-card); color: #ff3b30; font-size: 30rpx; font-weight: 500;
-  border-radius: 44rpx; border: none;
+  margin: 16rpx 0 0; height: 88rpx;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-card); color: var(--color-danger); font-size: 30rpx; font-weight: 500;
+  border-radius: 44rpx;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 }
 
 /* 破坏性操作：#ccc（≈1.6:1）改为深红并保证触摸目标 ≥24px */
 .delete-account { text-align: center; padding: 32rpx; min-height: 48rpx;
-  text { font-size: 26rpx; color: #c62828; }
+  text { font-size: 26rpx; color: var(--color-danger); }
 }
 </style>

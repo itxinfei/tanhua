@@ -88,7 +88,9 @@ export interface PublishParam {
 
 /**
  * 发布动态（含图片上传）
- * 对接后端: POST /movements（multipart/form-data）
+ * 对接后端:
+ * - 纯文字（无图片）：POST /movements（application/json）→ saveMovementsJson
+ * - 含图片：POST /movements（multipart/form-data）→ saveMovements
  *
  * @param param 文字内容、位置、经纬度、本地图片路径列表
  */
@@ -99,9 +101,13 @@ export function publishMovement(param: PublishParam): Promise<void> {
     longitude: param.longitude,
     latitude: param.latitude,
   };
-  // 修改点：打通话题标签。后端 POST /movements 需新增 tags 字段接收（逗号分隔，落库 Movement.tags）
+  // 打通话题标签。后端 POST /movements 需新增 tags 字段接收（逗号分隔，落库 Movement.tags）
   if (param.tags && param.tags.length > 0) {
     formData.tags = param.tags.join(",");
+  }
+  // 纯文字发布走 JSON 接口（规避 uni.uploadFile 空文件数组在 H5 下立即失败的问题）
+  if (!param.imagePaths || param.imagePaths.length === 0) {
+    return post<void>("/movements", formData);
   }
   return upload<void>("/movements", param.imagePaths, "imageContent", formData);
 }

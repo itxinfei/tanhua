@@ -75,15 +75,15 @@
           </view>
           <view class="action-row">
             <a11y-button class="action btn-feedback" :label="item.hasLiked ? '取消点赞，当前 ' + (item.likeCount || 0) + ' 赞' : '点赞，当前 ' + (item.likeCount || 0) + ' 赞'" @tap="handleLike(item)">
-              <uni-icons class="action-icon" :class="{ liked: item.hasLiked, 'heart-beat': item.hasLiked }" :type="item.hasLiked ? 'heart-filled' : 'heart'" :color="item.hasLiked ? 'var(--color-primary-text)' : 'var(--text-hint)'" size="18"></uni-icons>
+              <view class="action-icon" :class="{ liked: item.hasLiked, 'heart-beat': item.hasLiked, 'i-ph-heart-fill': item.hasLiked, 'i-ph-heart': !item.hasLiked }" aria-hidden="true" />
               <text class="count">{{ item.likeCount || '' }}</text>
             </a11y-button>
             <a11y-button class="action btn-feedback" :label="'查看评论，共 ' + (item.commentCount || 0) + ' 条'" @tap="goDetail(item)">
-              <uni-icons class="action-icon" type="chatbubble" color="var(--text-hint)" size="18"></uni-icons>
+              <view class="action-icon i-ph-chat-circle-dots" aria-hidden="true" />
               <text class="count">{{ item.commentCount || '' }}</text>
             </a11y-button>
             <a11y-button class="action btn-feedback" :label="item.hasLoved ? '取消心动' : '心动'" @tap="handleLove(item)">
-              <uni-icons class="action-icon" :class="{ loved: item.hasLoved }" :type="item.hasLoved ? 'star-filled' : 'star'" :color="item.hasLoved ? 'var(--color-primary-text)' : 'var(--text-hint)'" size="18"></uni-icons>
+              <view class="action-icon" :class="{ loved: item.hasLoved, 'i-ph-star-fill': item.hasLoved, 'i-ph-star': !item.hasLoved }" aria-hidden="true" />
             </a11y-button>
           </view>
         </view>
@@ -97,7 +97,7 @@
         <a11y-button class="notice-item btn-feedback" v-for="item in noticeItems" :key="item.type" :label="item.unread > 0 ? item.label + '，' + item.unread + ' 条未读' : item.label" @tap="goNotifications(item.type)">
           <view class="notice-icon-wrap">
             <view class="notice-icon-bg" :style="{ background: item.color }">
-              <uni-icons class="notice-icon" :type="item.uniIcon" size="22" color="#fff"></uni-icons>
+              <view class="notice-icon" :class="item.iconClass" aria-hidden="true" />
             </view>
             <view v-if="item.unread > 0" class="badge pulse" aria-hidden="true">{{ item.unread > 99 ? '99+' : item.unread }}</view>
           </view>
@@ -252,11 +252,11 @@ interface ChatListItem extends Contact {
   unreadCount: number;
 }
 
-const NOTICE_META: Record<NoticeType, { uniIcon: string; label: string; color: string }> = {
-  like: { uniIcon: "heart-filled", label: "喜欢", color: "var(--color-primary)" },
-  comment: { uniIcon: "chatbubble", label: "评论", color: "#4a90d9" },
-  love: { uniIcon: "star-filled", label: "心动", color: "var(--color-primary)" },
-  announcement: { uniIcon: "notification", label: "公告", color: "#4cd964" },
+const NOTICE_META: Record<NoticeType, { iconClass: string; label: string; color: string }> = {
+  like: { iconClass: "i-ph-heart-fill", label: "喜欢", color: "var(--color-primary)" },
+  comment: { iconClass: "i-ph-chat-circle-dots", label: "评论", color: "var(--info-blue)" },
+  love: { iconClass: "i-ph-star-fill", label: "心动", color: "var(--color-primary)" },
+  announcement: { iconClass: "i-ph-bell", label: "公告", color: "var(--success)" },
 };
 
 const chatList = ref<ChatListItem[]>([]);
@@ -264,7 +264,7 @@ const chatList = ref<ChatListItem[]>([]);
 const noticeItems = computed(() =>
   (Object.keys(NOTICE_META) as NoticeType[]).map((type) => ({
     type,
-    uniIcon: NOTICE_META[type].uniIcon,
+    iconClass: NOTICE_META[type].iconClass,
     label: NOTICE_META[type].label,
     color: NOTICE_META[type].color,
     unread: chatStore.noticeUnreads[type],
@@ -402,11 +402,11 @@ onShareAppMessage(() => ({
     line-height: 30rpx;
     text-align: center;
     font-size: 20rpx;
-    color: #fff;
+    color: var(--text-inverse);
     background: var(--gradient-brand);
     border-radius: 15rpx;
     padding: 0 8rpx;
-    border: 2rpx solid #fff;
+    border: 2rpx solid var(--text-inverse);
   }
 }
 
@@ -584,7 +584,7 @@ onShareAppMessage(() => ({
 
       .notice-icon {
         font-size: 36rpx;
-        color: #fff;
+        color: var(--text-inverse);
         line-height: 1;
       }
 
@@ -597,11 +597,11 @@ onShareAppMessage(() => ({
         line-height: 32rpx;
         text-align: center;
         font-size: 20rpx;
-        color: #fff;
+        color: var(--text-inverse);
         background: var(--gradient-brand);
         border-radius: 16rpx;
         padding: 0 8rpx;
-        border: 2rpx solid #fff;
+        border: 2rpx solid var(--text-inverse);
       }
     }
 
@@ -641,9 +641,9 @@ onShareAppMessage(() => ({
       right: 2rpx;
       width: 24rpx;
       height: 24rpx;
-      background: #4cd964;
+      background: var(--success);
       border-radius: 50%;
-      border: 4rpx solid #fff;
+      border: 4rpx solid var(--text-inverse);
     }
 
     .chat-info {
@@ -681,7 +681,7 @@ onShareAppMessage(() => ({
           line-height: 32rpx;
           text-align: center;
           font-size: 20rpx;
-          color: #fff;
+          color: var(--text-inverse);
           background: var(--gradient-brand);
           border-radius: 16rpx;
           padding: 0 8rpx;

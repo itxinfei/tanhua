@@ -1,5 +1,6 @@
 -- 协议管理表（由同步脚本从 agreement_init.sql 同步，勿手改）
 USE xfjy;
+SET NAMES utf8mb4;
 
 -- 协议管理表（心飞交友）
 -- 对应实体 com.xfjy.server.pojo.Agreement

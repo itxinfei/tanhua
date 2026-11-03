@@ -91,7 +91,7 @@ onLoad((query: any) => {
 .title {
   font-size: 34rpx;
   font-weight: bold;
-  color: #303133;
+  color: var(--text-primary);
   text-align: center;
   padding: 32rpx 32rpx 16rpx;
 }
@@ -106,7 +106,7 @@ onLoad((query: any) => {
   display: block;
   font-size: 28rpx;
   line-height: 1.8;
-  color: #606266;
+  color: var(--text-secondary);
   margin-bottom: 20rpx;
   text-align: justify;
 }

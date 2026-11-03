@@ -47,7 +47,7 @@ x-common-env: &common-env
   # RocketMQ（circle/video/recommend 生产消费，name-server 指向宿主映射端口）
   ROCKETMQ_NAME_SERVER: ${ROCKETMQ_NAME_SERVER:-192.168.20.133:9876}
   # match-service 调 xfjy-elasticsearch 服务的 HTTP 接口（区别于 ES 中间件 9200）
-  ES_SERVER_URL: ${ES_SERVER_URL:-http://192.168.20.133:18088/es/}
+  ES_SERVER_URL: ${ES_SERVER_URL:-http://192.168.20.133:18088/}
   # MinIO 对象存储（视频/图片上传，凭证留空则上传功能快速失败）
   MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://192.168.20.133:9000}
   MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-}

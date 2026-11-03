@@ -184,7 +184,12 @@ public class PayService {
      * 等级取本次套餐等级与当前等级的较高者。
      */
     private void openVip(Long userId, VipPackage vipPackage, Date now) {
-        UserVip current = this.queryVipRecord(userId);
+        // 悲观锁：SELECT ... FOR UPDATE 锁住已有行（或间隙锁防止并发插入），
+        // 保证同一用户并发支付时顺延计算串行执行，避免"付两份钱只顺延一次"。
+        // 本方法在 confirmPay 的 @Transactional 事务内调用，行锁持续到事务提交。
+        LambdaQueryWrapper<UserVip> lockWrapper = new LambdaQueryWrapper<>();
+        lockWrapper.eq(UserVip::getUserId, userId).last("FOR UPDATE");
+        UserVip current = this.userVipMapper.selectOne(lockWrapper);
         Date baseTime = now;
         int level = vipPackage.getLevel();
         if (current != null && current.getExpireTime() != null && now.before(current.getExpireTime())) {

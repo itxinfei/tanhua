@@ -6,6 +6,9 @@
         <text class="city-name">{{ currentCity }}</text>
         <text class="arrow" aria-hidden="true">▾</text>
       </a11y-button>
+      <a11y-button class="locate-btn" label="重新定位" @tap="relocate">
+        <text aria-hidden="true">◎</text>
+      </a11y-button>
       <a11y-button class="filter-btn" label="查看附近的人" @tap="goNearby">
         <text>附近</text>
       </a11y-button>
@@ -99,6 +102,18 @@
 
     <!-- 匹配成功弹窗（全局组件，由 match store 驱动；同步匹配与 IM 匹配消息共用） -->
     <MatchPopup />
+
+    <!-- 城市选择底部选择器 -->
+    <a11y-picker
+      :visible="cityPickerVisible"
+      title="选择城市"
+      :options="CITY_OPTIONS"
+      :model-value="currentCity"
+      :show-input="true"
+      input-placeholder="请输入城市名称"
+      @update:visible="cityPickerVisible = $event"
+      @confirm="onCityConfirm"
+    />
   </view>
 </template>
 
@@ -114,6 +129,7 @@ import { checkBenefit, recordBenefitUsage } from "@/api/mine";
 import { useUserStore } from "@/store/user";
 import MatchPopup from "@/components/match-popup.vue";
 import A11yButton from "@/components/a11y-button.vue";
+import A11yPicker from "@/components/a11y-picker.vue";
 import { info, fail } from "@/utils/ux";
 
 const matchStore = useMatchStore();
@@ -158,25 +174,152 @@ const systemStore = useSystemStore();
 /** 顶部城市：读取 system store（本地持久化，默认北京）；
  *  坐标→城市名的逆地理编码需地图服务 key，接入后改为定位结果 */
 const currentCity = computed(() => systemStore.currentCity);
-/** 城市选择暂未上线，点击给出明确提示（避免死交互） */
-function openCityPicker() {
-  info("城市选择功能即将上线");
+
+/** 城市选项列表（支持手动输入） */
+const CITY_OPTIONS = [
+  { value: "北京", label: "北京" },
+  { value: "上海", label: "上海" },
+  { value: "广州", label: "广州" },
+  { value: "深圳", label: "深圳" },
+  { value: "杭州", label: "杭州" },
+  { value: "成都", label: "成都" },
+  { value: "武汉", label: "武汉" },
+  { value: "西安", label: "西安" },
+  { value: "南京", label: "南京" },
+  { value: "重庆", label: "重庆" },
+  { value: "苏州", label: "苏州" },
+  { value: "天津", label: "天津" },
+  { value: "长沙", label: "长沙" },
+  { value: "郑州", label: "郑州" },
+  { value: "青岛", label: "青岛" },
+  { value: "大连", label: "大连" },
+  { value: "厦门", label: "厦门" },
+  { value: "合肥", label: "合肥" },
+  { value: "昆明", label: "昆明" },
+  { value: "珠海", label: "珠海" },
+] as const;
+
+/** 城市选择器状态 */
+const cityPickerVisible = ref(false);
+
+function openCityPicker(): void {
+  cityPickerVisible.value = true;
+}
+
+/** 重新定位：清除手动选择标记，触发自动定位覆盖当前城市 */
+function relocate(): void {
+  uni.removeStorageSync(CITY_MANUAL_KEY);
+  syncLocation();
+  info("正在重新定位...");
+}
+
+/** 城市选择确认：更新 system store（持久化）+ 标记为手动选择，后续定位不再自动覆盖 */
+function onCityConfirm(city: string): void {
+  systemStore.setCity(city);
+  uni.setStorageSync(CITY_MANUAL_KEY, true);
+  info(`已切换到 ${city}`);
 }
 
 /**
- * 定位同步：获取当前坐标并上报后端（写入 ES），供「附近的人」检索。
- * 此前整条上报链路从未被调用，导致附近的人搜不到本用户。
- * 授权拒绝/非 https 环境静默跳过，下次进入重试。
+ * 主要城市坐标表（WGS84 近似经纬度），用于根据定位坐标自动匹配最近城市。
+ * 覆盖一二线及强三线，非列表内城市保持用户已选值或默认北京。
+ */
+const CITY_COORDS: readonly { name: string; lng: number; lat: number }[] = [
+  { name: "北京", lng: 116.407, lat: 39.904 },
+  { name: "上海", lng: 121.473, lat: 31.230 },
+  { name: "广州", lng: 113.264, lat: 23.129 },
+  { name: "深圳", lng: 114.057, lat: 22.543 },
+  { name: "杭州", lng: 120.155, lat: 30.274 },
+  { name: "成都", lng: 104.066, lat: 30.572 },
+  { name: "武汉", lng: 114.305, lat: 30.593 },
+  { name: "西安", lng: 108.948, lat: 34.263 },
+  { name: "南京", lng: 118.796, lat: 32.060 },
+  { name: "重庆", lng: 106.551, lat: 29.563 },
+  { name: "苏州", lng: 120.585, lat: 31.299 },
+  { name: "天津", lng: 117.201, lat: 39.084 },
+  { name: "长沙", lng: 112.938, lat: 28.228 },
+  { name: "郑州", lng: 113.625, lat: 34.747 },
+  { name: "青岛", lng: 120.382, lat: 36.067 },
+  { name: "大连", lng: 121.614, lat: 38.914 },
+  { name: "厦门", lng: 118.089, lat: 24.479 },
+  { name: "合肥", lng: 117.227, lat: 31.820 },
+  { name: "昆明", lng: 102.833, lat: 24.880 },
+  { name: "珠海", lng: 113.576, lat: 22.271 },
+  { name: "福州", lng: 119.296, lat: 26.074 },
+  { name: "济南", lng: 117.120, lat: 36.651 },
+  { name: "哈尔滨", lng: 126.534, lat: 45.803 },
+  { name: "沈阳", lng: 123.431, lat: 41.805 },
+  { name: "长春", lng: 125.324, lat: 43.886 },
+  { name: "石家庄", lng: 114.514, lat: 38.042 },
+  { name: "太原", lng: 112.549, lat: 37.857 },
+  { name: "南昌", lng: 115.858, lat: 28.683 },
+  { name: "贵阳", lng: 106.630, lat: 26.647 },
+  { name: "南宁", lng: 108.366, lat: 22.817 },
+  { name: "兰州", lng: 103.834, lat: 36.061 },
+  { name: "海口", lng: 110.199, lat: 20.044 },
+  { name: "乌鲁木齐", lng: 87.617, lat: 43.792 },
+  { name: "呼和浩特", lng: 111.751, lat: 40.841 },
+  { name: "银川", lng: 106.230, lat: 38.487 },
+  { name: "西宁", lng: 101.778, lat: 36.617 },
+  { name: "拉萨", lng: 91.132, lat: 29.660 },
+  { name: "无锡", lng: 120.311, lat: 31.491 },
+  { name: "佛山", lng: 113.122, lat: 23.029 },
+  { name: "东莞", lng: 113.751, lat: 23.021 },
+  { name: "宁波", lng: 121.550, lat: 29.874 },
+];
+
+/** 城市匹配半径（km）：在此半径内认为定位到该城市，超出则不自动切换 */
+const CITY_MATCH_RADIUS_KM = 80;
+
+/** 本地存储键：是否已手动选择城市 */
+const CITY_MANUAL_KEY = "xfjy_city_manual";
+
+/** 计算两个坐标点之间的球面距离（Haversine 公式，单位 km） */
+function haversineKm(lng1: number, lat1: number, lng2: number, lat2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/** 根据坐标匹配最近的城市名；不在任何城市半径内返回 null */
+function matchNearestCity(lng: number, lat: number): string | null {
+  let nearest: { name: string; dist: number } | null = null;
+  for (const city of CITY_COORDS) {
+    const dist = haversineKm(lng, lat, city.lng, city.lat);
+    if (!nearest || dist < nearest.dist) {
+      nearest = { name: city.name, dist };
+    }
+  }
+  return nearest && nearest.dist <= CITY_MATCH_RADIUS_KM ? nearest.name : null;
+}
+
+/**
+ * 定位同步：获取当前坐标 → 自动匹配最近城市（仅未手动选择时）→ 上报后端（写入 ES）。
+ * 首次进入自动定位城市；用户手动选择城市后不再自动覆盖。
  */
 function syncLocation(): void {
   uni.getLocation({
     type: "wgs84",
     success: (res) => {
+      // 自动定位城市（仅未手动选择过时覆盖）
+      const isManual = uni.getStorageSync(CITY_MANUAL_KEY);
+      if (!isManual) {
+        const matched = matchNearestCity(res.longitude, res.latitude);
+        if (matched && matched !== systemStore.currentCity) {
+          systemStore.setCity(matched);
+        }
+      }
+
       systemStore
         .updateLocation({
           longitude: res.longitude,
           latitude: res.latitude,
-          // 无逆地理服务，地址描述以坐标串占位
           addrStr: `${res.longitude.toFixed(6)},${res.latitude.toFixed(6)}`,
         })
         .catch(() => {});
@@ -530,7 +673,7 @@ onShareAppMessage(() => ({
     .city-name {
       font-size: 32rpx;
       font-weight: bold;
-      color: #fff;
+      color: var(--text-inverse);
     }
 
     .arrow {
@@ -541,7 +684,7 @@ onShareAppMessage(() => ({
 
   .filter-btn {
     font-size: 28rpx;
-    color: #fff;
+    color: var(--text-inverse);
     background: rgba(255, 255, 255, 0.18);
     border: 1rpx solid rgba(255, 255, 255, 0.35);
     padding: 8rpx 24rpx;
@@ -596,13 +739,13 @@ onShareAppMessage(() => ({
       .nickname {
         font-size: 40rpx;
         font-weight: bold;
-        color: #fff;
+        color: var(--text-inverse);
       }
 
       .age {
         font-size: 24rpx;
         font-weight: bold;
-        color: #fff;
+        color: var(--text-inverse);
         background: rgba(255, 94, 142, 0.85);
         padding: 2rpx 16rpx;
         border-radius: 16rpx;
@@ -651,7 +794,7 @@ onShareAppMessage(() => ({
 
       .tag {
         font-size: 22rpx;
-        color: #fff;
+        color: var(--text-inverse);
         /* 卡片拖拽期间 backdrop-filter 会逐帧重算模糊导致卡顿，改用半透底近似毛玻璃观感 */
         background: rgba(255, 255, 255, 0.24);
         border: 1rpx solid rgba(255, 255, 255, 0.35);
@@ -674,15 +817,15 @@ onShareAppMessage(() => ({
 
     &.like {
       right: 40rpx;
-      color: #4cd964;
-      border-color: #4cd964;
+      color: var(--success);
+      border-color: var(--success);
       transform: rotate(15deg);
     }
 
     &.nope {
       left: 40rpx;
-      color: #ff3b30;
-      border-color: #ff3b30;
+      color: var(--color-danger);
+      border-color: var(--color-danger);
       transform: rotate(-15deg);
     }
   }
@@ -714,8 +857,8 @@ onShareAppMessage(() => ({
       width: 88rpx;
       height: 88rpx;
       background: var(--bg-card);
-      color: #f6b93b;
-      border: 4rpx solid #f6b93b;
+      color: var(--gold-soft);
+      border: 4rpx solid var(--gold-soft);
       box-shadow: 0 6rpx 20rpx rgba(246, 185, 59, 0.25);
     }
 
@@ -723,8 +866,8 @@ onShareAppMessage(() => ({
       width: 100rpx;
       height: 100rpx;
       background: var(--bg-card);
-      color: #ff3b30;
-      border: 4rpx solid #ff3b30;
+      color: var(--color-danger);
+      border: 4rpx solid var(--color-danger);
       box-shadow: 0 6rpx 20rpx rgba(255, 59, 48, 0.25);
     }
 
@@ -732,8 +875,8 @@ onShareAppMessage(() => ({
       width: 88rpx;
       height: 88rpx;
       background: var(--bg-card);
-      color: #4dabf7;
-      border: 4rpx solid #4dabf7;
+      color: var(--info-blue-soft);
+      border: 4rpx solid var(--info-blue-soft);
       box-shadow: 0 6rpx 20rpx rgba(77, 171, 247, 0.25);
     }
 
@@ -741,16 +884,16 @@ onShareAppMessage(() => ({
       width: 100rpx;
       height: 100rpx;
       background: var(--bg-card);
-      color: #4cd964;
-      border: 4rpx solid #4cd964;
+      color: var(--success);
+      border: 4rpx solid var(--success);
       box-shadow: 0 6rpx 20rpx rgba(76, 217, 100, 0.3);
     }
 
     &.boost {
       width: 88rpx;
       height: 88rpx;
-      background: linear-gradient(135deg, #8a5cf6, #b13bff);
-      color: #fff;
+      background: linear-gradient(135deg, var(--color-primary-violet), var(--color-primary-deep));
+      color: var(--text-inverse);
       box-shadow: 0 6rpx 20rpx rgba(138, 92, 246, 0.4);
     }
   }

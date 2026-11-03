@@ -27,6 +27,14 @@ spring:
   cache:
     type: redis
 
+# SpringDoc OpenAPI 接口文档（启动后访问 /swagger-ui.html）
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
 # MyBatis Plus
 mybatis-plus:
   global-config:
@@ -66,6 +74,7 @@ xfjy:
       w-geo: 0.3         # 地理距离权重
       w-profile: 0.2     # 画像相似度权重
       w-recip: 0.2       # T4 互惠匹配权重（cosine²双向相似度，Qdrant 无 embedding 时自动降级）
+      w-social: 0.25     # P2 社交信号权重（二度好友 socialScore 维度，无社交候选时自动降级）
       geo-decay-km: 50   # 距离衰减常数(km)，距离=该值时geo分=0.5
     filter:
       opposite-sex: true # 异性过滤开关（已喜欢排除始终生效）
@@ -79,13 +88,16 @@ xfjy:
     port: 6333
     collection: user_embedding
     vector-size: 64
-  # Neo4j 图数据库（P2 二度好友推荐，不可用时自动降级空召回）
+  # Neo4j 图数据库（P2 二度好友推荐）。enabled=true 时 Neo4jClient 通过 Bolt 驱动真实读写图数据；
+  # 实例不可达时所有方法自动降级空召回/默认值，不阻断主链路。
   neo4j:
-    enabled: false
-    # bolt 协议 Neo4j Java Driver 配置（原有 uri 仅 HTTP 管理台）
+    enabled: true
+    # Bolt 协议 Neo4j Java Driver 端点（Neo4jClient 使用）
     bolt-uri: bolt://192.168.20.133:7687
+    # HTTP REST 事务端点（GraphRecommendService 使用，拼接 /db/neo4j/tx/commit）
+    uri: http://192.168.20.133:7474
     username: neo4j
-    password: itxinfei123456
+    password: ${NEO4J_PASSWORD:itxinfei123456}
   # 极光推送 JPush（凭证环境变量外置，留空走 mock 模式仅打日志不实际推送）
   jpush:
     app-key: 
@@ -106,7 +118,7 @@ sa-token:
 # 内部服务鉴权 Token（与域服务保持一致，调用域服务时自动注入 X-Internal-Token 头）
 internal:
   auth:
-    tokens: -xfjy-internal-dev-token-change-in-prod
+    tokens: ${INTERNAL_AUTH_TOKENS:-xfjy-internal-dev-token-change-in-prod}
 
 # Spring Boot Actuator 运行状态监控
 management:

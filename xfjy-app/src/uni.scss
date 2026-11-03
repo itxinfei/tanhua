@@ -18,10 +18,16 @@
 /* 颜色变量 */
 
 /* 行为相关颜色 */
-$uni-color-primary: #ff5e9c;
+$uni-color-primary: #fe3c72; // 主色：暖调玫红（Tinder hot pink 同系），白字对比度 3.44，仅用于大号/粗体按钮文字
+$uni-color-coral: #ff655b; // 珊瑚红橙，主渐变终点
+$uni-color-primary-deep: #c2185b; // 主色深变体：浅底小字/小图标用（对比度 ≥4.5）
 $uni-color-success: #4cd964;
 $uni-color-warning: #f0ad4e;
 $uni-color-error: #dd524d;
+
+/* 主品牌渐变：玫红 → 珊瑚（替代旧的紫→粉渐变） */
+$uni-gradient-primary: linear-gradient(135deg, #fe3c72, #ff655b);
+$uni-gradient-primary-h: linear-gradient(90deg, #fe3c72, #ff655b);
 
 /* 文字基本颜色 */
 $uni-text-color: #333; // 基本色

@@ -17,6 +17,10 @@ export interface UserInfo {
   vip: boolean; // 会员
   photoAlbum: string[]; // 照片墙
   completeness: number; // 资料完整度 0-100
+  /** 以下三项登录响应可能缺省，编辑资料/拉取资料后补全 */
+  height?: string;
+  education?: string;
+  profession?: string;
 }
 
 export const useUserStore = defineStore("user", () => {
@@ -84,6 +88,16 @@ export const useUserStore = defineStore("user", () => {
   async function fetchUserInfo(): Promise<void> {
     const profile = await getUserProfile();
     if (!profile) return;
+    // photoAlbum 后端为 JSON 数组字符串，解析失败保留本地旧值
+    let album: string[] = userInfo.value?.photoAlbum || [];
+    if (profile.photoAlbum) {
+      try {
+        const parsed = JSON.parse(profile.photoAlbum);
+        if (Array.isArray(parsed)) album = parsed;
+      } catch {
+        // 非法 JSON 不覆盖本地
+      }
+    }
     userInfo.value = {
       id: profile.id ?? userInfo.value?.id ?? 0,
       nickname: profile.nickname || userInfo.value?.nickname || "",
@@ -94,8 +108,11 @@ export const useUserStore = defineStore("user", () => {
       signature: profile.signature || userInfo.value?.signature || "",
       verified: userInfo.value?.verified || false,
       vip: userInfo.value?.vip || false,
-      photoAlbum: userInfo.value?.photoAlbum || [],
+      photoAlbum: album,
       completeness: userInfo.value?.completeness || 0,
+      height: profile.height || userInfo.value?.height || "",
+      education: profile.education || userInfo.value?.education || "",
+      profession: profile.profession || userInfo.value?.profession || "",
     };
   }
 

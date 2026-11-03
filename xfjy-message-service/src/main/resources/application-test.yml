@@ -1,6 +1,2 @@
-# 测试环境——环信配置与默认一致，预留覆盖入口
-huanxin:
-  appkey: xfjy#xfjy
-  client-id: TODO_CLIENT_ID
-  client-secret: TODO_CLIENT_SECRET
-  rest-host: https://a1.easemob.com
+# 测试环境 profile 覆盖入口
+# 环信通道已下线，如需覆盖默认配置在下方追加

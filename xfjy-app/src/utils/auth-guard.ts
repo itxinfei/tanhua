@@ -20,6 +20,14 @@ function checkLogin(url: string): boolean {
   if (isWhiteListed(url)) return true;
   if (getToken()) return true;
 
+  // 开发环境 mock：localhost / 127.0.0.1 视为开发环境，允许无 token 导航
+  if (
+    typeof location !== "undefined" &&
+    (location.hostname === "localhost" || location.hostname === "127.0.0.1")
+  ) {
+    return true;
+  }
+
   uni.showToast({ title: "请先登录", icon: "none" });
   // 统一 reLaunch，清空页面栈避免未登录页面残留在返回栈里
   uni.reLaunch({ url: LOGIN_PAGE });

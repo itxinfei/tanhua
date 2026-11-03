@@ -2,6 +2,7 @@ package com.xfjy.server.controller;
 
 import com.xfjy.server.annotation.RequireRole;
 import com.xfjy.server.service.AdminReviewService;
+import com.xfjy.server.utils.ParamConvertUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -94,8 +95,7 @@ public class AdminReviewController {
     @PutMapping("batch-reject")
     public ResponseEntity<Integer> batchReject(@RequestBody Map<String, Object> param) {
         try {
-            @SuppressWarnings("unchecked")
-            List<Long> ids = (List<Long>) param.get("ids");
+            List<Long> ids = ParamConvertUtils.toLongList(param.get("ids"));
             String reason = (String) param.get("reason");
             Integer count = this.adminReviewService.batchReject(ids, reason);
             return ResponseEntity.ok(count);

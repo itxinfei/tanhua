@@ -2,6 +2,7 @@ package com.xfjy.server.controller;
 
 import com.xfjy.server.annotation.RequireRole;
 import com.xfjy.server.service.AdminReportService;
+import com.xfjy.server.utils.ParamConvertUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -84,8 +85,7 @@ public class AdminReportController {
     @PutMapping("batch-handle")
     public ResponseEntity<Integer> batchHandle(@RequestBody Map<String, Object> param) {
         try {
-            @SuppressWarnings("unchecked")
-            List<Long> ids = (List<Long>) param.get("ids");
+            List<Long> ids = ParamConvertUtils.toLongList(param.get("ids"));
             String result = (String) param.get("result");
             String note = (String) param.get("note");
             int count = 0;

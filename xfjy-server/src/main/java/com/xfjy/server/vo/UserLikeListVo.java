@@ -18,5 +18,6 @@ public class UserLikeListVo {
     private String education;
     private Integer marriage; //婚姻状态（0未婚 1已婚
     private Integer matchRate; //匹配度
+    private Long visitTime; //来访时间（仅 type=4 谁看过我时有值，毫秒时间戳）
 
 }

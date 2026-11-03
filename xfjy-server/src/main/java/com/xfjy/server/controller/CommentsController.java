@@ -4,6 +4,7 @@ import com.xfjy.server.service.CommentsService;
 import com.xfjy.server.service.ContentReviewService;
 import com.xfjy.server.service.MovementsService;
 import com.xfjy.server.service.RiskControlService;
+import com.xfjy.server.utils.ParamConvertUtils;
 import com.xfjy.server.utils.UserThreadLocal;
 import com.xfjy.server.vo.PageResult;
 import com.xfjy.server.vo.TextDetectResult;
@@ -48,7 +49,7 @@ public class CommentsController {
                                                         @RequestParam(value = "page", defaultValue = "1") Integer page,
                                                         @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize) {
         try {
-            PageResult pageResult = this.commentsService.queryCommentsList(publishId, page, pageSize);
+            PageResult pageResult = this.commentsService.queryCommentsList(publishId, page, ParamConvertUtils.capPageSize(pageSize, 10, 100));
             if (null != pageResult) {
                 return ResponseEntity.ok(pageResult);
             }

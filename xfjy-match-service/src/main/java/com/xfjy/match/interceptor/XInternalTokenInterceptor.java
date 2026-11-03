@@ -8,7 +8,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+import java.util.Arrays;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 内部服务鉴权拦截器 — 校验 X-Internal-Token 请求头。
@@ -27,7 +29,10 @@ public class XInternalTokenInterceptor implements HandlerInterceptor {
     public XInternalTokenInterceptor(@Value("${internal.auth.tokens:}") String tokens) {
         this.validTokens = tokens == null || tokens.isBlank()
                 ? Set.of()
-                : Set.of(tokens.split(","));
+                : Arrays.stream(tokens.split(","))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .collect(Collectors.toUnmodifiableSet());
     }
 
     @Override

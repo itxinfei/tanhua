@@ -292,8 +292,8 @@ onUnmounted(() => {
   margin: 24rpx 24rpx 0; padding: 16rpx 24rpx;
   background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary)); border-radius: 20rpx;
   box-shadow: 0 4rpx 16rpx rgba(255, 94, 156, 0.25);
-  .vip-crown { font-size: 28rpx; color: #fff; }
-  .vip-text { font-size: 24rpx; color: #fff; letter-spacing: 1rpx; font-weight: 500; }
+  .vip-crown { font-size: 28rpx; color: var(--text-inverse); }
+  .vip-text { font-size: 24rpx; color: var(--text-inverse); letter-spacing: 1rpx; font-weight: 500; }
 }
 
 .welcome-tip { display: flex; justify-content: center; margin: 24rpx 0;
@@ -308,21 +308,21 @@ onUnmounted(() => {
 
 .msg-item { display: flex; align-items: flex-start; margin-bottom: 28rpx; gap: 16rpx;
   &.mine { flex-direction: row-reverse; }
-  .avatar { width: 76rpx; height: 76rpx; border-radius: 16rpx; flex-shrink: 0; background: #eee; }
+  .avatar { width: 76rpx; height: 76rpx; border-radius: 16rpx; flex-shrink: 0; background: var(--border-light); }
   .agent-avatar { width: 76rpx; height: 76rpx; border-radius: 16rpx; flex-shrink: 0; background: var(--bg-icon-soft); display: flex; align-items: center; justify-content: center; font-size: 40rpx; }
   .bubble-wrap { display: flex; align-items: center; gap: 12rpx; max-width: 70%;
     &.mine { flex-direction: row-reverse; }
   }
   .status-loading { width: 28rpx; height: 28rpx; border: 3rpx solid var(--border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
-  .status-failed { width: 36rpx; height: 36rpx; border-radius: 50%; background: #ff3b30; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    text { font-size: 24rpx; color: #fff; font-weight: bold; line-height: 1; }
+  .status-failed { width: 36rpx; height: 36rpx; border-radius: 50%; background: var(--color-danger); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    text { font-size: 24rpx; color: var(--text-inverse); font-weight: bold; line-height: 1; }
   }
   .bubble { position: relative; max-width: 70%; padding: 20rpx 24rpx; border-radius: 24rpx; background: var(--bg-card); font-size: 28rpx; line-height: 1.5; color: var(--text-primary); box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
     &::before { content: ""; position: absolute; top: 24rpx; width: 0; height: 0; border-top: 10rpx solid transparent; border-bottom: 10rpx solid transparent; }
     &:not(.mine) { border-top-left-radius: 6rpx;
       &::before { left: -14rpx; border-right: 14rpx solid var(--bg-card); }
     }
-    &.mine { background: var(--color-primary); color: #fff; border-top-right-radius: 6rpx;
+    &.mine { background: var(--color-primary); color: var(--bg-card); border-top-right-radius: 6rpx;
       &::before { right: -14rpx; border-left: 14rpx solid var(--color-primary); }
     }
   }
@@ -345,7 +345,7 @@ onUnmounted(() => {
 }
 /* 发送按钮：禁用态仅 opacity 会让对比度跌破阈值 → 改用不透明深灰背景（WCAG 1.4.1 不依赖单一视觉线索） */
 .send-btn { padding: 0 36rpx; height: 72rpx; background: var(--color-primary); border-radius: 36rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4rpx 14rpx rgba(255, 94, 156, 0.3);
-  text { color: #fff; font-size: 28rpx; font-weight: 500; }
-  &.disabled { background: #c7c7c7; box-shadow: none; }
+  text { color: var(--text-inverse); font-size: 28rpx; font-weight: 500; }
+  &.disabled { background: var(--border); box-shadow: none; }
 }
 </style>

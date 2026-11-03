@@ -3,6 +3,7 @@ package com.xfjy.server.controller;
 import com.xfjy.server.annotation.RequireRole;
 import com.xfjy.server.service.AdminUserService;
 import com.xfjy.server.pojo.User;
+import com.xfjy.server.utils.ParamConvertUtils;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,7 +80,7 @@ public class AdminUserController {
             @RequestParam(required = false) String endDate,
             HttpServletResponse response) throws IOException {
         try {
-            List<User> users = this.adminUserService.exportUsers(keyword, gender, status, startDate, endDate);
+            List<Map<String, Object>> users = this.adminUserService.exportUsers(keyword, gender, status, startDate, endDate);
 
             response.setContentType("text/csv; charset=UTF-8");
             response.setHeader("Content-Disposition", "attachment; filename=users.csv");
@@ -88,17 +89,19 @@ public class AdminUserController {
             // CSV 头
             writer.println("用户ID,手机号,昵称,性别,年龄,城市,状态,注册时间");
 
-            // 数据行
-            for (User user : users) {
-                String created = user.getCreated() != null ? new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(user.getCreated()) : "";
+            // 数据行（字段来自 buildUserItem：已合并 UserInfo 的昵称/性别/年龄/城市）
+            java.text.DateFormat fmt = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            for (Map<String, Object> user : users) {
+                Object createdAt = user.get("createdAt");
+                String created = createdAt instanceof java.util.Date ? fmt.format((java.util.Date) createdAt) : "";
                 writer.println(String.join(",",
-                    String.valueOf(user.getId()),
-                    user.getMobile(),
-                    user.getMobile(), // 昵称需要查 UserInfo，导出简化为手机号
-                    "", // 性别
-                    "", // 年龄
-                    "", // 城市
-                    user.getStatus(),
+                    csvSafe(user.get("id")),
+                    csvSafe(user.get("mobile")),
+                    csvSafe(user.get("nickname")),
+                    csvSafe(user.get("gender")),
+                    csvSafe(user.get("age")),
+                    csvSafe(user.get("city")),
+                    csvSafe(user.get("status")),
                     created
                 ));
             }
@@ -163,8 +166,7 @@ public class AdminUserController {
     @PutMapping("/batch-freeze")
     public ResponseEntity<Map<String, Object>> batchFreezeUser(@RequestBody Map<String, Object> body) {
         try {
-            @SuppressWarnings("unchecked")
-            List<Long> userIds = (List<Long>) body.get("userIds");
+            List<Long> userIds = ParamConvertUtils.toLongList(body.get("userIds"));
             String reason = (String) body.get("reason");
             Map<String, Object> result = this.adminUserService.batchFreezeUser(userIds, reason);
             return ResponseEntity.ok(result);
@@ -180,8 +182,7 @@ public class AdminUserController {
     @PutMapping("/batch-unfreeze")
     public ResponseEntity<Map<String, Object>> batchUnfreezeUser(@RequestBody Map<String, Object> body) {
         try {
-            @SuppressWarnings("unchecked")
-            List<Long> userIds = (List<Long>) body.get("userIds");
+            List<Long> userIds = ParamConvertUtils.toLongList(body.get("userIds"));
             Map<String, Object> result = this.adminUserService.batchUnfreezeUser(userIds);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
@@ -222,5 +223,15 @@ public class AdminUserController {
             LOGGER.error("接口处理异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    /**
+     * CSV 单元格安全转换：null 转空串，逗号/换行替换为空格避免破坏 CSV 结构
+     */
+    private static String csvSafe(Object value) {
+        if (value == null) {
+            return "";
+        }
+        return String.valueOf(value).replace(",", " ").replace("\n", " ").replace("\r", "");
     }
 }

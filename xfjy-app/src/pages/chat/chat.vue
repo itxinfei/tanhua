@@ -130,8 +130,8 @@ const EMOJI_LIST: string[] = [
 interface QuickAction { uniIcon: string; label: string; bg: string; handler: () => void; }
 const QUICK_ACTIONS: QuickAction[] = [
   { uniIcon: "image", label: "图片", bg: "var(--color-primary)", handler: chooseImage },
-  { uniIcon: "camera", label: "拍照", bg: "#4a90d9", handler: () => showTodoToast("拍照") },
-  { uniIcon: "location", label: "位置", bg: "#4cd964", handler: chooseLocation },
+  { uniIcon: "camera", label: "拍照", bg: "var(--info-blue)", handler: () => showTodoToast("拍照") },
+  { uniIcon: "location", label: "位置", bg: "var(--success)", handler: chooseLocation },
   { uniIcon: "person", label: "名片", bg: "var(--color-primary-violet)", handler: chooseCardContact },
 ];
 
@@ -582,21 +582,21 @@ onUnmounted(() => {
 
 .msg-item { display: flex; align-items: flex-start; margin-bottom: 28rpx; gap: 16rpx;
   &.mine { flex-direction: row-reverse; }
-  .avatar { width: 76rpx; height: 76rpx; border-radius: 16rpx; flex-shrink: 0; background: #eee; }
+  .avatar { width: 76rpx; height: 76rpx; border-radius: 16rpx; flex-shrink: 0; background: var(--border-light); }
   .bubble-wrap { display: flex; align-items: center; gap: 12rpx; max-width: 480rpx;
     &.mine { flex-direction: row-reverse; }
   }
   .status-loading { width: 28rpx; height: 28rpx; border: 3rpx solid var(--border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
-  .status-failed { width: 32rpx; height: 32rpx; border-radius: 50%; background: #ff4d4f; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    .failed-icon { font-size: 22rpx; color: #fff; font-weight: bold; line-height: 1; }
+  .status-failed { width: 32rpx; height: 32rpx; border-radius: 50%; background: var(--color-danger); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    .failed-icon { font-size: 22rpx; color: var(--text-inverse); font-weight: bold; line-height: 1; }
   }
   .bubble { position: relative; padding: 20rpx 24rpx; border-radius: 20rpx; background: var(--bg-card); font-size: 28rpx; line-height: 1.5; color: var(--text-primary); box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
     /* 气泡尾巴 */
     &::before { content: ""; position: absolute; top: 28rpx; width: 0; height: 0; border-top: 10rpx solid transparent; border-bottom: 10rpx solid transparent; }
     &:not(.mine) { border-top-left-radius: 6rpx;
-      &::before { left: -16rpx; border-right: 16rpx solid #fff; }
+      &::before { left: -16rpx; border-right: 16rpx solid var(--text-inverse); }
     }
-    &.mine { background: var(--gradient-brand); color: #fff; border-top-right-radius: 6rpx;
+    &.mine { background: var(--gradient-brand); color: var(--bg-card); border-top-right-radius: 6rpx;
       &::before { right: -16rpx; border-left: 16rpx solid var(--color-primary); }
     }
     .msg-image { max-width: 360rpx; border-radius: 12rpx; display: block; }
@@ -644,11 +644,11 @@ onUnmounted(() => {
   &.focus { background: var(--bg-card); box-shadow: 0 0 0 3rpx rgba(255, 94, 142, 0.35); }
 }
 .voice-btn { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; display: flex; align-items: center; justify-content: center; font-size: 28rpx; color: var(--text-secondary); transition: all 0.15s;
-  &:active { background: #e8e8e8; transform: scale(0.98); }
+  &:active { background: var(--border); transform: scale(0.98); }
 }
 
 /* ===== 底部面板 ===== */
-.panel { height: 380rpx; background: #f7f7f7; border-top: 1rpx solid var(--border-light); animation: slideUp 0.2s ease-out; overflow: hidden; }
+.panel { height: 380rpx; background: var(--bg-page); border-top: 1rpx solid var(--border-light); animation: slideUp 0.2s ease-out; overflow: hidden; }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
 .emoji-panel .emoji-scroll { height: 100%; }

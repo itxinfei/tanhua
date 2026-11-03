@@ -1,8 +1,10 @@
 package com.xfjy.server.controller;
 
+import com.xfjy.server.pojo.User;
 import com.xfjy.server.service.ContentReviewService;
 import com.xfjy.server.service.MovementsService;
 import com.xfjy.server.service.RiskControlService;
+import com.xfjy.server.utils.ParamConvertUtils;
 import com.xfjy.server.utils.UserThreadLocal;
 import com.xfjy.server.vo.Movements;
 import com.xfjy.server.vo.MovementPublishParam;
@@ -99,7 +101,7 @@ public class MovementsController {
     public ResponseEntity<PageResult> queryPublishList(@RequestParam(value = "page", defaultValue = "1") Integer page,
                                                        @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize) {
         try {
-            PageResult pageResult = this.movementsService.queryUserPublishList(page, pageSize);
+            PageResult pageResult = this.movementsService.queryUserPublishList(page, ParamConvertUtils.capPageSize(pageSize, 10, 100));
             return ResponseEntity.ok(pageResult);
         } catch (Exception e) {
             LOGGER.error("接口处理异常", e);
@@ -118,7 +120,7 @@ public class MovementsController {
     public ResponseEntity<PageResult> queryRecommendPublishList(@RequestParam(value = "page", defaultValue = "1") Integer page,
                                                                 @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize) {
         try {
-            PageResult pageResult = this.movementsService.queryRecommendPublishList(page, pageSize);
+            PageResult pageResult = this.movementsService.queryRecommendPublishList(page, ParamConvertUtils.capPageSize(pageSize, 10, 100));
             return ResponseEntity.ok(pageResult);
         } catch (Exception e) {
             LOGGER.error("接口处理异常", e);
@@ -225,7 +227,7 @@ public class MovementsController {
                                                      @RequestParam(value = "page", defaultValue = "1") Integer page,
                                                      @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize) {
         try {
-            PageResult pageResult = this.movementsService.searchMovementsByTag(tag, page, pageSize);
+            PageResult pageResult = this.movementsService.searchMovementsByTag(tag, page, ParamConvertUtils.capPageSize(pageSize, 10, 100));
             return ResponseEntity.ok(pageResult);
         } catch (Exception e) {
             LOGGER.error("接口处理异常", e);
@@ -273,16 +275,24 @@ public class MovementsController {
     }
 
     /**
-     * 自己的所有动态
+     * 自己的所有动态（userId 可选，不传则查当前登录用户）
      *
      * @return
      */
     @GetMapping("all")
     public ResponseEntity<PageResult> queryAlbumList(@RequestParam(value = "page", defaultValue = "1") Integer page,
                                                      @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize,
-                                                     @RequestParam(value = "userId") Long userId) {
+                                                     @RequestParam(value = "userId", required = false) Long userId) {
         try {
-            PageResult pageResult = this.movementsService.queryAlbumList(userId, page, pageSize);
+            // userId 未传时取当前登录用户
+            if (userId == null) {
+                User currentUser = UserThreadLocal.get();
+                if (currentUser == null || currentUser.getId() == null) {
+                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+                }
+                userId = currentUser.getId();
+            }
+            PageResult pageResult = this.movementsService.queryAlbumList(userId, page, ParamConvertUtils.capPageSize(pageSize, 10, 100));
             return ResponseEntity.ok(pageResult);
         } catch (Exception e) {
             LOGGER.error("接口处理异常", e);

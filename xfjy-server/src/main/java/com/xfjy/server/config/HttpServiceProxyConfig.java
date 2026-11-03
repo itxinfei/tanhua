@@ -25,10 +25,12 @@ import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.support.HttpRequestWrapper;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.support.RestClientAdapter;
 import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 import org.springframework.web.util.UriComponentsBuilder;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.net.URI;
@@ -46,7 +48,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * - 用户关系服务（xfjy-user-service，18090）：好友/喜欢/访客 + 用户资料
  * - 圈子动态服务（xfjy-circle-service，18084）：动态/评论/时间线
  * - 小视频服务（xfjy-video-service，18085）：视频/关注作者
- * - 消息/IM服务（xfjy-message-service，18086）：环信集成——好友注册/消息下发
+ * - 消息/IM服务（xfjy-message-service，18086）：WuKongIM 集成——好友注册/消息下发
  * - 支付服务（xfjy-pay-service，18089）：VIP 套餐/订单/会员状态
  */
 @Configuration
@@ -54,6 +56,9 @@ public class HttpServiceProxyConfig {
 
     /** LoadBalancer 增强的 RestClient.Builder，通过 lb:// 协议自动服务发现与负载均衡；不可用时为 null */
     private final RestClient.Builder loadBalancedBuilder;
+
+    /** 容器 JsonMapper（Boot 自动配置，已应用 JacksonConfig 的 ObjectId 模块）；不可用时为 null */
+    private final ObjectProvider<JsonMapper> jsonMapperProvider;
 
     /** 服务发现客户端（Nacos），LoadBalancer 不可用时的轮询兜底 */
     private final DiscoveryClient discoveryClient;
@@ -65,6 +70,7 @@ public class HttpServiceProxyConfig {
     private final java.util.Map<String, String> staticUrls = new java.util.HashMap<>();
 
     public HttpServiceProxyConfig(@LoadBalanced ObjectProvider<RestClient.Builder> loadBalancedBuilderProvider,
+                                  ObjectProvider<JsonMapper> jsonMapperProvider,
                                   ObjectProvider<DiscoveryClient> discoveryClientProvider,
                                   @Value("${internal.auth.tokens:}") String internalAuthTokens,
                                   @Value("${xfjy.match.service.url:}") String matchUrl,
@@ -75,6 +81,7 @@ public class HttpServiceProxyConfig {
                                   @Value("${xfjy.pay.service.url:}") String payUrl,
                                   @Value("${xfjy.elasticsearch.service.url:}") String elasticsearchUrl) {
         this.loadBalancedBuilder = loadBalancedBuilderProvider.getIfAvailable();
+        this.jsonMapperProvider = jsonMapperProvider;
         this.discoveryClient = discoveryClientProvider.getIfAvailable();
         // 取第一个 token（逗号分隔时取 primary）
         this.internalAuthToken = internalAuthTokens != null && !internalAuthTokens.isBlank()
@@ -130,6 +137,28 @@ public class HttpServiceProxyConfig {
     }
 
     /**
+     * 新建 RestClient.Builder，并使用容器 JsonMapper 的 JSON 转换器。
+     * RestClient.builder() 静态工厂的默认转换器不共享容器 JsonMapper，
+     * 不显式挂载时 ObjectId 会被序列化成 {"timestamp":...}，故此处统一覆盖为容器实例。
+     */
+    private RestClient.Builder newBuilder() {
+        return useContainerJsonMapper(RestClient.builder());
+    }
+
+    private RestClient.Builder useContainerJsonMapper(RestClient.Builder builder) {
+        return applyContainerJsonMapper(builder, this.jsonMapperProvider.getIfAvailable());
+    }
+
+    /** 用容器 JsonMapper 替换 JSON 转换器（含 JacksonConfig 注册的 ObjectId 模块）；JsonMapper 为 null 时保持默认转换器 */
+    static RestClient.Builder applyContainerJsonMapper(RestClient.Builder builder, JsonMapper jsonMapper) {
+        if (jsonMapper != null) {
+            builder.configureMessageConverters(converters -> converters.withJsonConverter(
+                    new JacksonJsonHttpMessageConverter(jsonMapper)));
+        }
+        return builder;
+    }
+
+    /**
      * 构建代理工厂。
      * 优先使用 @LoadBalanced RestClient.Builder 通过 lb:// 协议实现服务发现与负载均衡；
      * LoadBalancer 不可用时回退 DiscoveryClient + AtomicInteger 轮询；
@@ -141,7 +170,7 @@ public class HttpServiceProxyConfig {
         // 1. 静态 URL 优先（本地开发/指定地址场景）
         String staticUrl = staticUrls.get(serviceId);
         if (staticUrl != null) {
-            var builder = RestClient.builder().baseUrl(staticUrl);
+            var builder = newBuilder().baseUrl(staticUrl);
             if (!this.internalAuthToken.isEmpty()) {
                 builder.defaultHeader("X-Internal-Token", this.internalAuthToken);
             }
@@ -152,7 +181,7 @@ public class HttpServiceProxyConfig {
         }
         // 2. LoadBalancer 服务发现
         if (this.loadBalancedBuilder != null) {
-            var builder = this.loadBalancedBuilder.clone()
+            var builder = useContainerJsonMapper(this.loadBalancedBuilder.clone())
                     .baseUrl("lb://" + serviceId);
             if (!this.internalAuthToken.isEmpty()) {
                 builder.defaultHeader("X-Internal-Token", this.internalAuthToken);
@@ -164,7 +193,7 @@ public class HttpServiceProxyConfig {
         }
         // 3. DiscoveryClient 轮询兜底
         if (this.discoveryClient != null) {
-            var builder = RestClient.builder()
+            var builder = newBuilder()
                     .requestInterceptor(new ServiceInstanceInterceptor(serviceId, this.discoveryClient));
             if (!this.internalAuthToken.isEmpty()) {
                 builder.defaultHeader("X-Internal-Token", this.internalAuthToken);

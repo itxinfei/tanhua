@@ -71,9 +71,8 @@ public class MyServletRequestWrapper extends HttpServletRequestWrapper {
 
         @Override
         public boolean isReady() {
-            // This implementation will never block
-            // We also never need to call the readListener from this method, as this method will never return false
-            return isFinished();
+            // 数据已全部缓存在内存，永远可读、不会阻塞
+            return true;
         }
 
         @Override
@@ -85,13 +84,9 @@ public class MyServletRequestWrapper extends HttpServletRequestWrapper {
                 throw new IllegalArgumentException("listener has been set");
             }
             this.listener = listener;
-            if (!isFinished()) {
-                try {
-                    listener.onAllDataRead();
-                } catch (IOException e) {
-                    listener.onError(e);
-                }
-            } else {
+            // 仅当数据已全部读完时立即回调 onAllDataRead；
+            // 未读完时等 read() 读到最后一个字节后再回调，避免容器误认为读取完成而丢弃请求体
+            if (isFinished()) {
                 try {
                     listener.onAllDataRead();
                 } catch (IOException e) {

@@ -37,10 +37,12 @@ public class UserController {
      * <p>风控：同手机号 60s 内最多 1 次，同 IP 60s 内最多 10 次，超限 429</p>
      */
     @PostMapping("/user/sendCode")
-    public ResponseEntity<Void> sendCode(@RequestBody Map<String, String> body, HttpServletRequest request) {
+    public ResponseEntity<Map<String, Object>> sendCode(@RequestBody Map<String, String> body, HttpServletRequest request) {
         String phone = body.get("phone");
         if (phone == null || !phone.matches("^1[3-9]\\d{9}$")) {
-            return ResponseEntity.badRequest().build();
+            Map<String, Object> fail = new HashMap<>();
+            fail.put("message", "请输入正确的手机号");
+            return ResponseEntity.badRequest().body(fail);
         }
         if (!this.loginLimitService.allowByIp(resolveClientIp(request))
                 || !this.loginLimitService.allowSendCode(phone)) {
@@ -63,13 +65,19 @@ public class UserController {
             return ResponseEntity.status(429).build();
         }
         if (!this.loginLimitService.allowByPhone(phone)) {
-            return ResponseEntity.status(423).build();
+            // 账号锁定：body 携带 message，前端展示精确文案（request 层 423 分支）
+            Map<String, Object> locked = new HashMap<>();
+            locked.put("message", "连续失败次数过多，账号已暂时锁定，请 15 分钟后重试");
+            return ResponseEntity.status(423).body(locked);
         }
         Map<String, Object> result = this.userService.loginVerification(phone, body.get("code"));
         if (result == null) {
             // 登录失败（验证码错误/已注销），计入失败次数；已注销不暴露账号状态
             this.loginLimitService.recordLoginFailure(phone);
-            return ResponseEntity.status(401).build();
+            // 携带 message：前端 401 分支区分「验证码错误」（展示文案）与「token 过期」（登出跳登录页）
+            Map<String, Object> fail = new HashMap<>();
+            fail.put("message", "验证码错误或已过期");
+            return ResponseEntity.status(401).body(fail);
         }
         if ("FROZEN".equals(result.get("error"))) {
             // 已封禁：403 + 封禁原因（FR-AUTH-01 验收口径），不计入验证码失败次数
@@ -100,10 +108,11 @@ public class UserController {
      *
      * <p>风控：同 IP 60s 内最多 10 次（429）</p>
      * <p>状态码：200 成功 / 400 格式错 / 401 token 失效 / 403 验证码错误 / 409 手机号已被占用</p>
+     * <p>400/403/409 在 body 携带 message，前端 request 层直接展示；401 不带 message（走前端登出流程）</p>
      * <p>注意：验证码错误用 403 而非 401，避免前端 401 拦截器强制跳登录页</p>
      */
     @PutMapping("/user/phone")
-    public ResponseEntity<Void> changePhone(@RequestBody Map<String, String> body, HttpServletRequest request) {
+    public ResponseEntity<Map<String, Object>> changePhone(@RequestBody Map<String, String> body, HttpServletRequest request) {
         if (!this.loginLimitService.allowByIp(resolveClientIp(request))) {
             return ResponseEntity.status(429).build();
         }
@@ -112,7 +121,9 @@ public class UserController {
         String code = body.get("code");
         if (newPhone == null || !newPhone.matches("^1[3-9]\\d{9}$")
                 || code == null || !code.matches("^\\d{6}$")) {
-            return ResponseEntity.badRequest().build();
+            Map<String, Object> fail = new HashMap<>();
+            fail.put("message", "请输入正确的手机号或 6 位验证码");
+            return ResponseEntity.badRequest().body(fail);
         }
 
         // 解析登录态（Sa-Token 未配 token-prefix，手动剥 Bearer，与 server 侧 TokenInterceptor 一致）
@@ -121,16 +132,21 @@ public class UserController {
             return ResponseEntity.status(401).build();
         }
         Object loginId = StpUtil.getLoginIdByToken(authHeader.substring(7));
-        if (loginId == null) {
+        // 命名空间隔离：只接受 "user-" 前缀，后台 admin token 在此直接拒绝
+        if (loginId == null || !loginId.toString().startsWith("user-")) {
             return ResponseEntity.status(401).build();
         }
 
-        int result = this.userService.changePhone(Long.valueOf(loginId.toString()), newPhone, code);
+        int result = this.userService.changePhone(Long.valueOf(loginId.toString().substring("user-".length())), newPhone, code);
         if (result == 1) {
-            return ResponseEntity.status(403).build();
+            Map<String, Object> fail = new HashMap<>();
+            fail.put("message", "验证码错误，请重新输入");
+            return ResponseEntity.status(403).body(fail);
         }
         if (result == 2) {
-            return ResponseEntity.status(409).build();
+            Map<String, Object> fail = new HashMap<>();
+            fail.put("message", "该手机号已被其他用户注册");
+            return ResponseEntity.status(409).body(fail);
         }
         return ResponseEntity.ok().build();
     }

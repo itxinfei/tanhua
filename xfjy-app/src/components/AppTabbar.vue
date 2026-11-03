@@ -3,42 +3,42 @@
        单一数据源：config/tab-config.ts；视觉规格：BEM + CSS 语义变量（见 style） -->
   <view class="app-tabbar" role="tablist" aria-label="主导航">
     <view class="app-tabbar__inner">
-      <a11y-button
-        v-for="(tab, i) in TABS"
-        :key="tab.pagePath"
-        class="app-tabbar__item btn-feedback"
-        role="tab"
-        :checked="active === i"
-        :label="`切换到${tab.text}`"
-        @tap="go(tab)"
-      >
-        <image
-          class="app-tabbar__icon"
-          :src="active === i ? tab.iconActive : tab.icon"
-          mode="aspectFit"
-          aria-hidden="true"
-        />
-        <text
-          class="app-tabbar__label"
-          :class="{ 'app-tabbar__label--active': active === i }"
-        >{{ tab.text }}</text>
-      </a11y-button>
-
-      <!-- 居中发布键（第 3 位，5 等分布局）：品牌色圆形底 + 白色加号 -->
-      <a11y-button
-        class="app-tabbar__item app-tabbar__mid btn-feedback"
-        role="tab"
-        :checked="active === -1"
-        :label="active === -1 ? '当前在发布页' : '打开发布'"
-        @tap="goPublish"
-      >
-        <view class="app-tabbar__plus" aria-hidden="true">
-          <view class="app-tabbar__plus-circle">
-            <view class="app-tabbar__plus-h"></view>
-            <view class="app-tabbar__plus-v"></view>
+      <template v-for="(tab, i) in TABS" :key="tab.pagePath">
+        <!-- 发布键插入在第 3 个 tab 之前（i === 2），布局：匹配 | 圈子 | [+] | 视频 | 我的 -->
+        <a11y-button
+          v-if="i === 2"
+          class="app-tabbar__item app-tabbar__mid btn-feedback"
+          role="tab"
+          :checked="active === -1"
+          :label="active === -1 ? '当前在发布页' : '打开发布'"
+          @tap="goPublish"
+        >
+          <view class="app-tabbar__plus" aria-hidden="true">
+            <view class="app-tabbar__plus-circle">
+              <view class="app-tabbar__plus-h"></view>
+              <view class="app-tabbar__plus-v"></view>
+            </view>
           </view>
-        </view>
-      </a11y-button>
+        </a11y-button>
+        <a11y-button
+          class="app-tabbar__item btn-feedback"
+          role="tab"
+          :checked="active === i"
+          :label="`切换到${tab.text}`"
+          @tap="go(tab)"
+        >
+          <image
+            class="app-tabbar__icon"
+            :src="active === i ? tab.iconActive : tab.icon"
+            mode="aspectFit"
+            aria-hidden="true"
+          />
+          <text
+            class="app-tabbar__label"
+            :class="{ 'app-tabbar__label--active': active === i }"
+          >{{ tab.text }}</text>
+        </a11y-button>
+      </template>
     </view>
   </view>
 </template>
@@ -76,8 +76,8 @@ function goPublish(): void {
    图标为主的入口 2.8 倍（28px/10px），符合 uniapp skill 规范（2~2.4 倍） */
 .app-tabbar {
   /* 局部定义 CSS 变量：tabbar 挂在 body 上（不在 page 内），无法继承 App.vue page 级别的变量 */
-  --color-primary: #ff5e9c;
-  --text-secondary: #666666;
+  --color-primary: var(--color-primary);
+  --text-secondary: var(--text-secondary);
 
   position: fixed;
   left: 0;
@@ -88,7 +88,7 @@ function goPublish(): void {
   align-items: stretch;
   box-sizing: border-box;
   min-height: 50px;
-  background: #ffffff;
+  background: var(--bg-card);
   padding-bottom: env(safe-area-inset-bottom);
 
   /* 顶部品牌色发丝线（对标抖音） */
@@ -140,7 +140,6 @@ function goPublish(): void {
       position: relative;
       width: 44px;
       height: 44px;
-      margin-top: -16px; /* 上浮，覆盖发丝线，形成半浮效果 */
     }
 
     .app-tabbar__plus-circle {
@@ -161,7 +160,7 @@ function goPublish(): void {
       top: 50%;
       left: 50%;
       border-radius: 2px;
-      background: #ffffff;
+      background: var(--bg-card);
       transform: translate(-50%, -50%);
     }
 
@@ -182,7 +181,7 @@ function goPublish(): void {
   .app-tabbar {
     /* 暗色模式变量值与 App.vue page 级别保持一致 */
     --color-primary: #ff8eb9;
-    --text-secondary: #aaaaaa;
+    --text-secondary: var(--text-secondary);
 
     background: rgba(26, 26, 26, 0.82);
     box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.35);

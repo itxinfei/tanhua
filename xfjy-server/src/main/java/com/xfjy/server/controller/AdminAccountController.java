@@ -124,7 +124,7 @@ public class AdminAccountController {
             Boolean success = this.adminAccountService.resetPassword(id, param.get("newPassword"));
             if (Boolean.TRUE.equals(success)) {
                 // 重置密码后强制该账号已有会话失效，需使用新密码重新登录
-                StpUtil.logout(id);
+                StpUtil.logout("admin-" + id);
                 return ResponseEntity.ok().build();
             }
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();

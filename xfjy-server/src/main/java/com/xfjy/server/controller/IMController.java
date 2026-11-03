@@ -2,7 +2,8 @@ package com.xfjy.server.controller;
 
 import com.xfjy.server.service.IMService;
 import com.xfjy.server.utils.NoAuthorization;
-import com.xfjy.server.vo.HuanXinUser;
+import com.xfjy.server.utils.ParamConvertUtils;
+import com.xfjy.server.vo.ImCredential;
 import com.xfjy.server.vo.PageResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,8 +30,8 @@ public class IMController {
      * 随 HuanXinController 删除后由本端点接替（网关未路由 /huanxin/**）。</p>
      */
     @GetMapping("im/credential")
-    public ResponseEntity<HuanXinUser> getImCredential() {
-        HuanXinUser credential = this.imService.getImCredential();
+    public ResponseEntity<ImCredential> getImCredential() {
+        ImCredential credential = this.imService.getImCredential();
         if (credential.getToken() == null) {
             // IM 通道不可用：不返回半成品凭证，前端按降级处理
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
@@ -91,7 +92,7 @@ public class IMController {
     public ResponseEntity<PageResult> queryContactsList(@RequestParam(value = "page", defaultValue = "1") Integer page,
                                                         @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize,
                                                         @RequestParam(value = "keyword", required = false) String keyword) {
-        PageResult pageResult = this.imService.queryContactsList(page, pageSize, keyword);
+        PageResult pageResult = this.imService.queryContactsList(page, ParamConvertUtils.capPageSize(pageSize, 10, 100), keyword);
         return ResponseEntity.ok(pageResult);
     }
 
@@ -105,7 +106,7 @@ public class IMController {
     @GetMapping("likes")
     public ResponseEntity<PageResult> queryMessageLikeList(@RequestParam(value = "page", defaultValue = "1") Integer page,
                                                            @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize) {
-        PageResult pageResult = this.imService.queryMessageLikeList(page, pageSize);
+        PageResult pageResult = this.imService.queryMessageLikeList(page, ParamConvertUtils.capPageSize(pageSize, 10, 100));
         return ResponseEntity.ok(pageResult);
     }
 
@@ -119,7 +120,7 @@ public class IMController {
     @GetMapping("comments")
     public ResponseEntity<PageResult> queryMessageCommentList(@RequestParam(value = "page", defaultValue = "1") Integer page,
                                                               @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize) {
-        PageResult pageResult = this.imService.queryMessageCommentList(page, pageSize);
+        PageResult pageResult = this.imService.queryMessageCommentList(page, ParamConvertUtils.capPageSize(pageSize, 10, 100));
         return ResponseEntity.ok(pageResult);
     }
 
@@ -133,7 +134,7 @@ public class IMController {
     @GetMapping("loves")
     public ResponseEntity<PageResult> queryMessageLoveList(@RequestParam(value = "page", defaultValue = "1") Integer page,
                                                            @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize) {
-        PageResult pageResult = this.imService.queryMessageLoveList(page, pageSize);
+        PageResult pageResult = this.imService.queryMessageLoveList(page, ParamConvertUtils.capPageSize(pageSize, 10, 100));
         return ResponseEntity.ok(pageResult);
     }
 
@@ -148,7 +149,7 @@ public class IMController {
     @NoAuthorization
     public ResponseEntity<PageResult> queryMessageAnnouncementList(@RequestParam(value = "page", defaultValue = "1") Integer page,
                                                                    @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize) {
-        PageResult pageResult = this.imService.queryMessageAnnouncementList(page, pageSize);
+        PageResult pageResult = this.imService.queryMessageAnnouncementList(page, ParamConvertUtils.capPageSize(pageSize, 10, 100));
         return ResponseEntity.ok(pageResult);
     }
 

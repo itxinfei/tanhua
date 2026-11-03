@@ -112,6 +112,7 @@
 		{
 			"path": "pages/mine/friends",
 			"style": {
+				"navigationStyle": "custom",
 				"navigationBarTitleText": "好友关系"
 			}
 		},

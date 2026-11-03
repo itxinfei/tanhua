@@ -1,4 +1,4 @@
-import { get, post, put, del, upload } from "@/utils/request";
+import { get, post, put, del, upload, BASE_URL } from "@/utils/request";
 import type { PageResult, PageParam } from "@/api/circle";
 
 /** 关系列表类型 */
@@ -35,6 +35,7 @@ export interface RelationCounts {
   eachLoveCount: number;
   loveCount: number;
   fanCount: number;
+  visitorCount: number;
 }
 
 /** 用户设置（后端 SettingsVo 结构） */
@@ -102,11 +103,75 @@ export interface PicUploadResult {
  * 上传单张图片（头像/照片墙等通用）
  * 对接后端: POST /upload/image（multipart/form-data）
  *
+ * H5 环境：uni.chooseImage 返回 blob: URL，uni.uploadFile 在 H5 下可能无法正确处理，
+ * 因此 H5 下使用 fetch + FormData 方式上传，确保 blob 文件能正确发送。
+ *
  * @param filePath 本地临时文件路径（uni.chooseImage 的 tempFilePaths[0]）
  * @returns PicUploadResult，status=done 时 name 为 MinIO URL
  */
-export function uploadImage(filePath: string): Promise<PicUploadResult> {
+export async function uploadImage(filePath: string): Promise<PicUploadResult> {
+  // H5 环境：使用 fetch + FormData 上传 blob 文件
+  if (typeof window !== "undefined" && filePath.startsWith("blob:")) {
+    const token = uni.getStorageSync("xfjy_token") || "";
+    const formData = new FormData();
+
+    // 从 blob URL 获取文件对象
+    const response = await fetch(filePath);
+    const blob = await response.blob();
+
+    // 从 URL 或响应头推断文件类型，默认 image/jpeg
+    const mimeType = blob.type || "image/jpeg";
+    const ext = mimeType.split("/")[1] || "jpeg";
+    const filename = `upload_${Date.now()}.${ext}`;
+
+    formData.append("file", blob, filename);
+
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${BASE_URL}/upload/image`, {
+      method: "POST",
+      headers,
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`上传失败: ${res.status} ${errorText}`);
+    }
+
+    const body = await res.json();
+    if (body.code !== undefined && body.code !== 200) {
+      throw new Error(body.message || "上传失败");
+    }
+
+    return body.data as PicUploadResult;
+  }
+
+  // 非 H5 环境（App/小程序）：使用 uni.uploadFile
   return upload<PicUploadResult>("/upload/image", [filePath], "file");
+}
+
+/**
+ * 关系列表行（后端 UserLikeListVo 结构，在 UserProfile 基础上补充关系字段）
+ */
+export type FriendUser = UserProfile & {
+  /** 来访时间（毫秒时间戳，仅「谁看过我」tab 有值） */
+  visitTime?: number;
+};
+
+/** 喜欢粉丝的结果（后端 MatchResultVo 结构） */
+export interface MatchResult {
+  /** 是否配对成功（对方也喜欢我） */
+  matched: boolean;
+  /** 配对成功的对方简要信息（仅 matched=true 时有值） */
+  user?: {
+    id: string;
+    nickname: string;
+    avatar: string;
+  };
 }
 
 /**
@@ -129,8 +194,8 @@ export function getFriendList(
   type: string,
   params: PageParam,
   nickname?: string
-): Promise<PageResult<UserProfile>> {
-  return get<PageResult<UserProfile>>(`/users/friends/${type}`, {
+): Promise<PageResult<FriendUser>> {
+  return get<PageResult<FriendUser>>(`/users/friends/${type}`, {
     ...params,
     nickname,
   });
@@ -145,11 +210,11 @@ export function cancelLike(userId: string): Promise<void> {
 }
 
 /**
- * 关注粉丝（反向喜欢）
+ * 关注粉丝（反向喜欢）；返回是否配对成功及对方信息
  * 对接后端: POST /users/fans/{uid}
  */
-export function followFan(userId: string): Promise<void> {
-  return post<void>(`/users/fans/${userId}`);
+export function followFan(userId: string): Promise<MatchResult> {
+  return post<MatchResult>(`/users/fans/${userId}`);
 }
 
 /**

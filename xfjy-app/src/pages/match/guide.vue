@@ -12,7 +12,7 @@
       <a11y-button class="avatar-picker" label="更换头像" @tap="chooseAvatar">
         <image lazy-load
           class="avatar"
-          :src="form.avatar || '/static/logo/logo-icon-transparent.png'"
+          :src="resolveAvatar(form.avatar)"
           mode="aspectFill"
           aria-hidden="true"
         />
@@ -101,6 +101,7 @@ import A11yButton from "@/components/a11y-button.vue";
 import A11yRadioGroup from "@/components/a11y-radio-group.vue";
 import { updateUserProfile } from "@/api/mine";
 import { success, info } from "@/utils/ux";
+import { resolveAvatar } from "@/utils/avatar";
 
 /** 表单字段唯一 id：用于 aria-labelledby 建立程序化标签关联（WCAG 1.3.1 / 3.3.2） */
 const nicknameLabelId = "guide-nickname-label";
@@ -200,7 +201,7 @@ function handleSkip(): void {
 
 .progress-bar {
   height: 8rpx;
-  background: #e0e0e0;
+  background: var(--border);
   border-radius: 4rpx;
   margin-bottom: 16rpx;
   position: relative;
@@ -291,7 +292,7 @@ function handleSkip(): void {
 
     &.active {
       background: var(--gradient-brand);
-      color: #fff;
+      color: var(--text-inverse);
       border-color: var(--color-primary);
       box-shadow: 0 4rpx 14rpx rgba(255, 94, 142, 0.3);
     }
@@ -301,7 +302,7 @@ function handleSkip(): void {
 .submit-btn {
   margin-top: 48rpx;
   background: var(--gradient-brand-h);
-  color: #fff;
+  color: var(--text-inverse);
   font-size: 32rpx;
   font-weight: bold;
   height: 88rpx;

@@ -9,29 +9,35 @@
       @refresherrefresh="onRefresh"
       @scrolltolower="loadMore"
     >
-      <empty-state v-if="userList.length === 0 && !loading" title="黑名单为空" desc="被拉黑的用户将无法与你互动" />
-
-      <!-- 行容器：信息区与操作按钮分离，避免可聚焦控件嵌套 -->
-      <view v-for="user in userList" :key="user.id" class="user-row">
-        <view class="user-item shadow-card">
-          <image
-            class="user-avatar"
-            :src="user.avatar || '/static/logo/logo-icon-transparent.png'"
-            mode="aspectFill"
-            lazy-load
-            :aria-label="`${user.nickname || '未设置昵称'} 的头像`"
-          />
-          <view class="user-info">
-            <text class="user-nickname">{{ user.nickname || '未设置昵称' }}</text>
-            <text class="user-meta">
-              {{ user.gender === 'man' ? '男' : '女' }} · {{ user.age || '—' }}岁
-            </text>
-          </view>
-        </view>
-        <a11y-button class="action-btn btn-feedback" :label="`将 ${user.nickname || '该用户'} 移出黑名单`" @tap="handleRemove(user.id)">
-          <text>移除</text>
+      <!-- 首屏加载失败：错误态 + 重试，避免误显示「黑名单为空」 -->
+      <view v-if="loadError && userList.length === 0 && !loading" class="error-state">
+        <text class="error-text">加载失败，请检查网络后重试</text>
+        <a11y-button variant="ghost" label="重试加载黑名单" @tap="loadList">
+          <text>重试</text>
         </a11y-button>
       </view>
+
+      <empty-state v-if="!loadError && userList.length === 0 && !loading" title="黑名单为空" desc="被拉黑的用户将无法与你互动" />
+
+      <!-- 通用用户列表行：主体信息 + 右侧操作按钮 -->
+      <user-list-item
+        v-for="user in userList"
+        :key="user.id"
+        :avatar="resolveAvatar(user.avatar)"
+        :nickname="user.nickname"
+        :meta="`${user.gender === 'man' ? '男' : user.gender === 'woman' ? '女' : '未知'} · ${user.age || '—'}岁`"
+      >
+        <template #action>
+          <a11y-button
+            variant="ghost"
+            size="sm"
+            :label="`将 ${user.nickname || '该用户'} 移出黑名单`"
+            @tap="handleRemove(user.id)"
+          >
+            <text>移除</text>
+          </a11y-button>
+        </template>
+      </user-list-item>
 
       <view v-if="loading" class="loading-tip">
         <text>加载中...</text>
@@ -47,12 +53,14 @@
 import { ref, onMounted } from "vue";
 import EmptyState from "@/components/empty-state.vue";
 import A11yButton from "@/components/a11y-button.vue";
+import UserListItem from "@/components/user-list-item.vue";
 import {
   getBlacklist,
   removeFromBlacklist,
   type UserProfile,
 } from "@/api/mine";
 import { success } from "@/utils/ux";
+import { resolveAvatar } from "@/utils/avatar";
 
 /** 默认分页大小 */
 const DEFAULT_PAGE_SIZE = 10;
@@ -61,6 +69,8 @@ const userList = ref<UserProfile[]>([]);
 const currentPage = ref(1);
 const hasMore = ref(true);
 const loading = ref(false);
+/** 首屏加载失败标记（展示错误态，避免误显示空态） */
+const loadError = ref(false);
 /** 下拉刷新中状态（驱动 scroll-view refresher） */
 const refreshing = ref(false);
 
@@ -72,11 +82,15 @@ onMounted(() => {
 async function loadList(): Promise<void> {
   if (loading.value) return;
   loading.value = true;
+  loadError.value = false;
   try {
     const result = await getBlacklist({ page: 1, pagesize: DEFAULT_PAGE_SIZE });
     userList.value = result.items || [];
     currentPage.value = 1;
     hasMore.value = (result.items?.length || 0) >= DEFAULT_PAGE_SIZE;
+  } catch {
+    loadError.value = true;
+    // 错误提示由 request 封装统一处理
   } finally {
     loading.value = false;
   }
@@ -120,12 +134,31 @@ async function handleRemove(userId: string): Promise<void> {
       try {
         await removeFromBlacklist(userId);
         userList.value = userList.value.filter((user) => user.id !== userId);
+        // 当前页被清空且后面还有页时回退上一页，避免误现空态
+        if (userList.value.length === 0 && hasMore.value && currentPage.value > 1) {
+          await loadPrevPage();
+        }
         success("已移除");
       } catch {
         // 错误提示由 request 封装统一处理
       }
     },
   });
+}
+
+/** 回退加载上一页（整页替换） */
+async function loadPrevPage(): Promise<void> {
+  currentPage.value -= 1;
+  loading.value = true;
+  try {
+    const result = await getBlacklist({ page: currentPage.value, pagesize: DEFAULT_PAGE_SIZE });
+    userList.value = result.items || [];
+    hasMore.value = (result.items?.length || 0) >= DEFAULT_PAGE_SIZE;
+  } catch {
+    // 错误提示由 request 封装统一处理
+  } finally {
+    loading.value = false;
+  }
 }
 </script>
 
@@ -137,60 +170,12 @@ async function handleRemove(userId: string): Promise<void> {
 
 .list-scroll {
   height: 100%;
+  /* 与 friends 页对齐：防止内部宽卡片撑破容器导致右侧留白丢失 */
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
   padding: 20rpx 24rpx;
-}
-
-.user-row { display: flex; align-items: center; gap: 16rpx; margin-top: 16rpx;
-  &:first-child { margin-top: 0; }
-}
-
-  .user-item {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    background: var(--bg-card);
-    border-radius: 20rpx;
-    padding: 24rpx;
-
-  .user-avatar {
-    width: 96rpx;
-    height: 96rpx;
-    border-radius: 50%;
-    background: var(--bg-sub);
-  }
-
-  .user-info {
-    flex: 1;
-    margin-left: 24rpx;
-
-    .user-nickname {
-      font-size: 30rpx;
-      color: var(--text-primary);
-      font-weight: bold;
-      display: block;
-    }
-
-    /* #999 → #767676 */
-    .user-meta {
-      font-size: 24rpx;
-      color: var(--text-hint);
-      margin-top: 8rpx;
-      display: block;
-    }
-  }
-}
-
-/* 触摸目标 ≥24px */
-.action-btn {
-  font-size: 24rpx;
-  padding: 16rpx 32rpx;
-  min-height: 48rpx;
-  border-radius: 28rpx;
-  /* #ff5e9c on #ffeff5 ≈2.6:1 不达标 → 提深至 #c2185b（≈5.4:1） */
-  color: var(--color-primary-text);
-  background: var(--bg-icon-soft);
-  font-weight: 500;
-  flex-shrink: 0;
 }
 
 .loading-tip {
@@ -201,6 +186,19 @@ async function handleRemove(userId: string): Promise<void> {
   /* #ccc → #767676 */
   text {
     font-size: 24rpx;
+    color: var(--text-hint);
+  }
+}
+
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24rpx;
+  padding: 120rpx 0;
+
+  .error-text {
+    font-size: 26rpx;
     color: var(--text-hint);
   }
 }

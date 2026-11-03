@@ -74,8 +74,8 @@ public class KefuController {
     }
 
     /**
-     * GET /kefu/agent — 获取人工客服环信账号 ID（需登录）
-     * 前端用该账号 ID 与客服建立环信单聊会话
+     * GET /kefu/agent — 获取人工客服 IM 账号 ID（需登录）
+     * 前端用该账号 ID 与客服建立 IM 单聊会话
      */
     @GetMapping("agent")
     public ResponseEntity getAgent() {

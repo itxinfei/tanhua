@@ -234,17 +234,8 @@ jobs:
             echo "[增量] 无前端变更，跳过前端构建"
             exit 0
           fi
-          # runner 容器自带 Node 22.11.0，不满足 rolldown/sass-embedded 原生二进制包的
-          # engines >=22.12.0 要求，npm ci 会静默跳过这些 optionalDependencies，导致构建报
-          # "Cannot find module '@rolldown/binding-linux-x64-gnu'"。
-          # 用 n 升级到 22.14.0 LTS（npmmirror 镜像加速，约 10-20s）。
-          # 镜像 Node 装在 /opt/node（PATH 优先于 /usr/local/bin），n 默认装 /usr/local
-          # 会被忽略，须指定 N_PREFIX=/opt/node 原位覆盖。
-          export N_NODE_MIRROR=https://npmmirror.com/mirrors/node
-          export N_PREFIX=/opt/node
-          npm install -g n --no-audit --no-fund --prefer-offline
-          n 22.14.0
-          hash -r
+          # Node 由 CI 镜像内置（deploy/gitea/Dockerfile.ci ARG NODE_VERSION=22.23.4），
+          # 满足 rolldown/sass-embedded 原生二进制包 engines >=22.12，无需 job 内 n 升级。
           echo "[前端] Node 版本: $(node --version)"
           echo "[前端] 受影响工程: ${FRONTEND_AFFECTED}"
           PIDS=""

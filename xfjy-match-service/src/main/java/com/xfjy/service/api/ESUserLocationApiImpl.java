@@ -40,7 +40,8 @@ public class ESUserLocationApiImpl implements ESUserLocationApi {
     private RestTemplate restTemplate;
 
     // 修改点：ES 地址配置化，未配置时回退本地默认（与 application-local.yml 保持一致）
-    @Value("${es.server.url:http://127.0.0.1:18088/es/}")
+    // ES 服务（xfjy-elasticsearch）无 context-path，地址应以 / 结尾，如 http://127.0.0.1:18088/
+    @Value("${es.server.url:http://127.0.0.1:18088/}")
     private String esServerUrl;
 
     @Override
@@ -50,7 +51,7 @@ public class ESUserLocationApiImpl implements ESUserLocationApi {
                                      @RequestParam("latitude") Double latitude,
                                      @RequestParam("address") String address) {
         try {
-            String url = this.esServerUrl + "user/location";
+            String url = this.esServerUrl + "api/es-user-location/updateUserLocation";
             Map<String, Object> param = new HashMap<>();
             param.put("userId", userId);
             param.put("longitude", longitude);
@@ -78,7 +79,7 @@ public class ESUserLocationApiImpl implements ESUserLocationApi {
     @Override
     @GetMapping("/queryByUserId")
     public UserLocationVo queryByUserId(@RequestParam("userId") Long userId) {
-        String url = this.esServerUrl + "user/location/" + userId;
+        String url = this.esServerUrl + "api/es-user-location/queryByUserId?userId=" + userId;
         ResponseEntity<String> responseEntity;
         try {
             responseEntity = this.restTemplate.getForEntity(url, String.class);
@@ -96,14 +97,20 @@ public class ESUserLocationApiImpl implements ESUserLocationApi {
             JsonNode jsonNode = MAPPER.readTree(body);
 
             UserLocationVo userLocationVo = new UserLocationVo();
-            userLocationVo.setLatitude(jsonNode.get("location").get("lat").asDouble());
-            userLocationVo.setLongitude(jsonNode.get("location").get("lon").asDouble());
+            // path() 安全访问：字段缺失返回 MissingNode 而非 null，避免链式 NPE
+            JsonNode location = jsonNode.path("location");
+            if (location.isMissingNode() || !location.has("lat") || !location.has("lon")) {
+                log.warn("ES location field missing, userId={}", userId);
+                return null;
+            }
+            userLocationVo.setLatitude(location.path("lat").asDouble());
+            userLocationVo.setLongitude(location.path("lon").asDouble());
             userLocationVo.setUserId(userId);
-            userLocationVo.setAddress(jsonNode.get("address").asText());
+            userLocationVo.setAddress(jsonNode.path("address").asText(""));
             userLocationVo.setId(userId.toString());
-            userLocationVo.setCreated(jsonNode.get("created").asLong());
-            userLocationVo.setUpdated(jsonNode.get("updated").asLong());
-            userLocationVo.setLastUpdated(jsonNode.get("lastUpdated").asLong());
+            userLocationVo.setCreated(jsonNode.path("created").asLong(0));
+            userLocationVo.setUpdated(jsonNode.path("updated").asLong(0));
+            userLocationVo.setLastUpdated(jsonNode.path("lastUpdated").asLong(0));
 
             return userLocationVo;
 
@@ -119,19 +126,11 @@ public class ESUserLocationApiImpl implements ESUserLocationApi {
     public List<UserLocationVo> queryUserFromLocation(@RequestParam("longitude") Double longitude,
                                                       @RequestParam("latitude") Double latitude,
                                                       @RequestParam("range") Integer range) {
-        String url = this.esServerUrl + "user/location/list";
-        Map<String, Object> param = new HashMap<>();
-        param.put("longitude", longitude);
-        param.put("latitude", latitude);
-        param.put("distance", range);
+        // ES Controller 端点为 GET /api/es-user-location/queryUserFromLocation?longitude=&latitude=&range=
+        String url = this.esServerUrl + "api/es-user-location/queryUserFromLocation?longitude=" + longitude
+                + "&latitude=" + latitude + "&range=" + range;
         try {
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-
-            HttpEntity<String> httpEntity = new HttpEntity<>(MAPPER.writeValueAsString(param), headers);
-
-            ResponseEntity<String> responseEntity = this.restTemplate.postForEntity(url, httpEntity, String.class);
+            ResponseEntity<String> responseEntity = this.restTemplate.getForEntity(url, String.class);
             if (responseEntity.getStatusCode().value() != 200) {
                 return null;
             }
@@ -142,15 +141,21 @@ public class ESUserLocationApiImpl implements ESUserLocationApi {
             List<UserLocationVo> result = new ArrayList<>();
 
             for (JsonNode node : jsonNode) {
+                // path() 安全访问：location 缺失的脏数据跳过，避免链式 NPE 中断整批结果
+                JsonNode location = node.path("location");
+                if (location.isMissingNode() || !location.has("lat") || !location.has("lon")) {
+                    log.warn("ES location field missing in nearby list, userId={}", node.path("userId").asLong(0));
+                    continue;
+                }
                 UserLocationVo userLocationVo = new UserLocationVo();
-                userLocationVo.setLatitude(node.get("location").get("lat").asDouble());
-                userLocationVo.setLongitude(node.get("location").get("lon").asDouble());
-                userLocationVo.setUserId(node.get("userId").asLong());
-                userLocationVo.setAddress(node.get("address").asText());
-                userLocationVo.setId(userLocationVo.getUserId().toString());
-                userLocationVo.setCreated(node.get("created").asLong());
-                userLocationVo.setUpdated(node.get("updated").asLong());
-                userLocationVo.setLastUpdated(node.get("lastUpdated").asLong());
+                userLocationVo.setLatitude(location.path("lat").asDouble());
+                userLocationVo.setLongitude(location.path("lon").asDouble());
+                userLocationVo.setUserId(node.path("userId").asLong(0));
+                userLocationVo.setAddress(node.path("address").asText(""));
+                userLocationVo.setId(String.valueOf(userLocationVo.getUserId()));
+                userLocationVo.setCreated(node.path("created").asLong(0));
+                userLocationVo.setUpdated(node.path("updated").asLong(0));
+                userLocationVo.setLastUpdated(node.path("lastUpdated").asLong(0));
                 result.add(userLocationVo);
             }
 

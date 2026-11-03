@@ -2,8 +2,10 @@ package com.xfjy.server.controller;
 
 import com.xfjy.server.pojo.User;
 import com.xfjy.server.service.UsersService;
+import com.xfjy.server.utils.ParamConvertUtils;
 import com.xfjy.server.utils.UserThreadLocal;
 import com.xfjy.server.vo.CountsVo;
+import com.xfjy.server.vo.MatchResultVo;
 import com.xfjy.server.vo.PageResult;
 import com.xfjy.server.vo.SettingsVo;
 import com.xfjy.server.vo.UserInfoVo;
@@ -46,7 +48,7 @@ public class UsersController {
     public ResponseEntity<UserInfoVo> queryUserInfo(@RequestParam(value = "userID", required = false) String userID,
                                                     @RequestParam(value = "huanxinID", required = false) String huanxinID) {
         try {
-            //用户第一次接收到环信推来的信息，不带用户信息
+            //用户第一次接收到 IM 推来的信息，不带用户信息
             //资料未完善时返回空壳对象（200），由前端引导完善；只有真正异常才回 500
             UserInfoVo userInfoVo = this.usersService.queryUserInfo(userID, huanxinID);
             return ResponseEntity.ok(userInfoVo);
@@ -109,7 +111,7 @@ public class UsersController {
                                                     @RequestParam(value = "nickname", required = false) String nickname) {
         try {
             page = Math.max(1, page);
-            PageResult pageResult = this.usersService.queryLikeList(Integer.valueOf(type), page, pageSize, nickname);
+            PageResult pageResult = this.usersService.queryLikeList(Integer.valueOf(type), page, ParamConvertUtils.capPageSize(pageSize, 10, 100), nickname);
             return ResponseEntity.ok(pageResult);
         } catch (Exception e) {
             LOGGER.error("接口处理异常", e);
@@ -141,10 +143,10 @@ public class UsersController {
      * @return
      */
     @PostMapping("fans/{uid}")
-    public ResponseEntity<Void> likeFan(@PathVariable("uid") Long userId){
+    public ResponseEntity<MatchResultVo> likeFan(@PathVariable("uid") Long userId){
         try {
-            this.usersService.likeFan(userId);
-            return ResponseEntity.ok(null);
+            MatchResultVo matchResultVo = this.usersService.likeFan(userId);
+            return ResponseEntity.ok(matchResultVo);
         } catch (Exception e) {
             LOGGER.error("接口处理异常", e);
         }

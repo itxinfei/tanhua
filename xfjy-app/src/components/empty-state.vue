@@ -27,7 +27,7 @@ withDefaults(
     dark?: boolean;
   }>(),
   {
-    iconColor: "#767676",
+    iconColor: "var(--text-hint)",
     overlay: false,
     dark: false,
   }

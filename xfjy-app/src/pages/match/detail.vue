@@ -15,7 +15,7 @@
 
     <!-- 返回按钮（毛玻璃）：纯符号必须提供 aria-label，否则读屏只播符号名 -->
     <a11y-button class="back-btn glass" :style="{ top: statusBarHeight + 8 + 'px' }" label="返回上一页" @tap="goBack">
-      <text>‹</text>
+      <view class="i-ph-arrow-left" aria-hidden="true" />
     </a11y-button>
 
     <!-- 照片计数 -->
@@ -355,18 +355,18 @@ onLoad(async (options: any) => {
   .photo { width: 100%; height: 100%; }
 }
 
-.back-btn { position: absolute; left: 24rpx; width: 64rpx; height: 64rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 44rpx; z-index: 10; }
+.back-btn { position: absolute; left: 24rpx; width: 64rpx; height: 64rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--text-inverse); font-size: 44rpx; z-index: 10; }
 
-.more-btn { position: absolute; right: 24rpx; width: 64rpx; height: 64rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 40rpx; z-index: 10; }
+.more-btn { position: absolute; right: 24rpx; width: 64rpx; height: 64rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--text-inverse); font-size: 40rpx; z-index: 10; }
 
-.photo-count { position: absolute; right: 24rpx; top: 780rpx; padding: 6rpx 20rpx; border-radius: 20rpx; font-size: 22rpx; color: #fff; z-index: 10; }
+.photo-count { position: absolute; right: 24rpx; top: 780rpx; padding: 6rpx 20rpx; border-radius: 20rpx; font-size: 22rpx; color: var(--text-inverse); z-index: 10; }
 
 /* ===== 资料卡 ===== */
 .info-card { margin: -40rpx 24rpx 0; background: var(--bg-card); border-radius: 32rpx; padding: 36rpx 32rpx; position: relative; }
 
 .name-row { display: flex; align-items: center; gap: 16rpx;
-  .nickname { font-size: 42rpx; font-weight: bold; color: #222; }
-  .age-badge { background: var(--gradient-brand); color: #fff; font-size: 24rpx; padding: 4rpx 16rpx; border-radius: 16rpx; }
+  .nickname { font-size: 42rpx; font-weight: bold; color: var(--text-primary); }
+  .age-badge { background: var(--gradient-brand); color: var(--bg-card); font-size: 24rpx; padding: 4rpx 16rpx; border-radius: 16rpx; }
 }
 
 /* 缘分值进度条 */
@@ -393,12 +393,12 @@ onLoad(async (options: any) => {
 .question-section { margin-top: 32rpx;
   .question-item { display: flex; align-items: flex-start; gap: 16rpx; padding: 18rpx 0; border-bottom: 1rpx solid var(--border-faint);
     &:last-child { border-bottom: none; }
-    .q-index { width: 36rpx; height: 36rpx; border-radius: 50%; background: var(--gradient-brand); color: #fff; font-size: 22rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2rpx; }
-    .question { font-size: 26rpx; color: #555; line-height: 1.5; }
+    .q-index { width: 36rpx; height: 36rpx; border-radius: 50%; background: var(--gradient-brand); color: var(--bg-card); font-size: 22rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2rpx; }
+    .question { font-size: 26rpx; color: var(--text-hint-strong); line-height: 1.5; }
   }
 }
 
-.section-title { font-size: 30rpx; font-weight: bold; display: block; margin-bottom: 12rpx; color: #222; }
+.section-title { font-size: 30rpx; font-weight: bold; display: block; margin-bottom: 12rpx; color: var(--text-primary); }
 
 /* ===== TA的动态 ===== */
 .movements-card { margin: 24rpx 24rpx 0; background: var(--bg-card); border-radius: 32rpx; padding: 32rpx; }
@@ -414,16 +414,17 @@ onLoad(async (options: any) => {
 }
 
 /* ===== 底部操作栏 ===== */
-.action-bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; align-items: center; gap: 36rpx; padding: 24rpx 0; background: var(--bg-card); box-shadow: 0 -4rpx 24rpx rgba(0, 0, 0, 0.06); }
+.action-bar { position: fixed; left: 0; right: 0; bottom: var(--tab-bar-height, 0px); display: flex; justify-content: center; align-items: center; gap: 40rpx; padding: 28rpx 0; background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(20px); box-shadow: 0 -8rpx 32rpx rgba(0, 0, 0, 0.08); }
 
-.action { border-radius: 50%; display: flex; align-items: center; justify-content: center;
+.action { border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+  &:active { transform: scale(0.92); }
   /* 次按钮：不喜欢 / 打招呼 */
-  &.small { width: 88rpx; height: 88rpx; font-size: 36rpx;
-    &.dislike { background: var(--bg-card); color: #ff3b30; border: 4rpx solid #ff3b30; }
-    &.chat { background: linear-gradient(135deg, #4a90d9, #6bb0f5); color: #fff; box-shadow: 0 6rpx 18rpx rgba(74, 144, 217, 0.35); }
+  &.small { width: 96rpx; height: 96rpx; font-size: 38rpx;
+    &.dislike { background: var(--bg-card); color: var(--color-danger); border: 4rpx solid var(--color-danger); box-shadow: 0 4rpx 16rpx rgba(255, 59, 48, 0.15); }
+    &.chat { background: linear-gradient(135deg, var(--info-blue), var(--info-blue-soft)); color: #fff; box-shadow: 0 6rpx 20rpx rgba(74, 144, 217, 0.4); }
   }
   /* 主按钮：超级喜欢 / 喜欢 */
-  &.super-like { width: 100rpx; height: 100rpx; font-size: 46rpx; background: var(--gradient-brand); color: #fff; box-shadow: 0 8rpx 22rpx rgba(177, 59, 255, 0.4); }
-  &.like { width: 110rpx; height: 110rpx; font-size: 52rpx; background: var(--gradient-brand); color: #fff; box-shadow: 0 8rpx 24rpx rgba(255, 94, 142, 0.4); }
+  &.super-like { width: 108rpx; height: 108rpx; font-size: 48rpx; background: linear-gradient(135deg, var(--gold), var(--gold-soft)); color: #fff; box-shadow: 0 8rpx 28rpx rgba(255, 179, 71, 0.5); }
+  &.like { width: 120rpx; height: 120rpx; font-size: 56rpx; background: var(--gradient-brand); color: var(--bg-card); box-shadow: 0 10rpx 32rpx rgba(254, 60, 114, 0.45); }
 }
 </style>

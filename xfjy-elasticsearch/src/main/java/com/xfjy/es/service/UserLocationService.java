@@ -75,7 +75,10 @@ public class UserLocationService {
                 Map<String, Object> map = new HashMap<>();
                 map.put("lastUpdated", ul.getUpdated());
                 map.put("updated", System.currentTimeMillis());
-                map.put("address", address);
+                // address 为 null 时跳过，避免清空 ES 中已存储的地址
+                if (address != null) {
+                    map.put("address", address);
+                }
                 Map<String, Object> geoMap = new HashMap<>();
                 geoMap.put("lat", latitude);
                 geoMap.put("lon", longitude);

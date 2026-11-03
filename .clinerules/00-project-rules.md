@@ -18,7 +18,9 @@ Copilot / Serena / Trae）开工前必须读完本文件。
 ## 1. 技术栈锁定（禁止擅自升级或替换）
 | 项 | 版本/选型 | 禁止 |
 |---|---|---|
-| JDK | 25（`<java.version>25</java.version>`） | 降级到 17/21 |
+| JDK | 25（`<java.version>25</java.version>`；CI 镜像 `eclipse-temurin:25-jdk-jammy`、运行 `25-jre-jammy`，本地 JDK 25） | 降级到 17/21 |
+| Node | **22.23.4 LTS**。唯一真源仅两处：`deploy/gitea/Dockerfile.ci` 的 ARG `NODE_VERSION` 与根 `.nvmrc`（值必须一致）；本地用 nvm/fnm 按 `.nvmrc` 切换；前端 `engines.node>=22.12.0` 仅表能力下限 | 升到 23/24 及以上或降级到 22.12 以下；在 workflow/job 内用 `n` 临时切版本（版本必须烤进 CI 镜像）；改版本不同步这两处 |
+| Maven | **3.9.16**（`deploy/gitea/Dockerfile.ci` ARG `MAVEN_VERSION`；本地 3.9.x） | 另引 mvnw 或其它版本造成分叉 |
 | Spring Boot | 4.1.1（父 POM 统一管理） | 3.x；引入 `spring-boot-starter-security` |
 | Spring Cloud / Alibaba | 2025.1.3 / 2025.1.0.0 | 混用其他 BOM |
 | 持久层 | MyBatis-Plus 3.5.17（`mybatis-plus-spring-boot4-starter` + `jsqlparser`） | JPA/Hibernate |
@@ -33,6 +35,8 @@ Copilot / Serena / Trae）开工前必须读完本文件。
 | 禁止引入 | H2、Dubbo、Feign、Sentinel、Knife4j | — |
 
 校验：`rg -n "sentinel|dubbo|feign|knife4j|spring-boot-starter-security" --glob "pom.xml"` → 0
+校验：`rg -n "N_NODE_MIRROR|n 2[0-9]+\.|N_PREFIX" .gitea/workflows` → 0（workflow 内禁止临时切 Node）；
+`rg -n "NODE_VERSION=" deploy/gitea/Dockerfile.ci` 的值必须等于 `cat .nvmrc`（22.23.4）
 
 ## 2. 模块、端口与分层
 - Maven 聚合 12 个模块（根 `pom.xml`）：`xfjy-gateway`、`xfjy-sso`、`xfjy-user-service`、
@@ -47,7 +51,7 @@ Copilot / Serena / Trae）开工前必须读完本文件。
   Controller 不写业务逻辑，Service 不拼 HTTP 响应。
 - DTO 只用于入参，VO 只用于出参，实体不得直接作为接口出参。
 
-校验：`rg -n "<module>" pom.xml` → 12（新增模块必须同步本表与端口表）
+校验：`rg -c "\s*<module>" pom.xml` → 12（新增模块必须同步本表与端口表）
 
 ## 3. 数据归属（一张表/一个集合只能有一个写入方）
 - MySQL：写入方以 `02` CONST-ARCH-004 表为准；BFF 禁止新增持久化表。
@@ -69,9 +73,11 @@ Copilot / Serena / Trae）开工前必须读完本文件。
 校验：`rg -L "@RequireRole" --glob "Admin*Controller.java" xfjy-server/src/main/java`（存量 1 处豁免）
 
 ## 5. 接口契约
-- 统一响应体 `com.xfjy.server.response.Result<T>{code,message,data}`；下载/SSE/Actuator 除外。
-- 新增接口必须返回 `Result<T>`；**禁止新增** `ResponseEntity<Map>` / `ResponseEntity<List>`，
-  禁止裸返回实体。存量 `ResponseEntity` 逐步迁移，不在本次强制整改范围。
+- 响应形态（2026-11-03 裁决，与现状一致）：Controller 返回 `ResponseEntity<VO>`（既有形态，
+  存量 55 处，见 §11）；错误/异常响应由 `GlobalExceptionHandler` 统一写
+  `com.xfjy.server.response.Result<T>{code,message,data}`；下载/SSE/Actuator 除外。
+  禁止裸返回实体；**禁止新增** `ResponseEntity<Map>` / `ResponseEntity<List>`（存量 43 处，见 §11）。
+  前端 `utils/request.ts` 对两种形态均兼容（`body.code !== undefined` 宽松判断），新增接口不得依赖该兼容层做双形态。
 - 错误码：成功 `200`；业务错误段 `1000 用户 / 2000 内容 / 3000 支付 / 4000 后台`。
   HTTP 状态码与 `code` 分离：`401` 未登录、`402` 需付费、`403` 无权限、`404` 不存在、`409` 冲突。
 - `GlobalExceptionHandler` 已实现且唯一：
@@ -81,9 +87,12 @@ Copilot / Serena / Trae）开工前必须读完本文件。
   拦截器仍直接 `setStatus(401/403)` 且不写响应体，属既有形态，不在本次整改范围。
 - 业务异常只用 `BusinessException(code,message)`；禁止新增第二个 `@RestControllerAdvice`；
   禁止 Controller 内 `catch(Exception)` 后手写状态码。
-- 分页入参 `page` / `pageSize`（默认 1 / 10，上限 100）；禁止 `pagesize` / `page_size` / `size`。
+- 分页入参 `page` / `pageSize`（默认 1 / 10，上限 100）；禁止 `pagesize` / `page_size` / `size`
+  （存量 `pagesize` 33 处见 §11，随重构迁移）。
 - 分页出参 `com.xfjy.service.vo.PageInfo{total,pageNum,pageSize,records}`。
-- 时间 `yyyy-MM-dd HH:mm:ss`（`Asia/Shanghai`）；金额用 `BigDecimal`，禁止 `double`。
+- 时间 `yyyy-MM-dd HH:mm:ss`（`Asia/Shanghai`）；例外：列表出参中需前端二次格式化的时间字段
+  允许毫秒时间戳 `Long`，字段名以 `Time` 结尾并在 VO 注释中说明（如 `visitTime`）。
+  金额用 `BigDecimal`，禁止 `double`。
 
 校验：`git diff -- '*/controller/*.java' | rg "^\+.*(ResponseEntity<(Map|List)|catch\s*\(Exception)"` → 0
 
@@ -108,6 +117,8 @@ Copilot / Serena / Trae）开工前必须读完本文件。
 - 图标只用 UnoCSS Icons + Phosphor：`i-ph-*`；禁止新增 `uni-icons`、禁止回退字体图标。
 - 按钮必须使用 `a11y-button` 组件（`src/components/a11y-button.vue`，全站按钮单一真源）；禁止新增原生 `<button>` 或给普通 `<view>` 绑 `@tap/@click` 模拟按钮（返回键等也须用它，最小热区 88rpx 见上条），存量原生按钮随重构迁移。
 - 可点击元素最小热区 **88rpx**；触摸目标另需满足无障碍基线（对比度 ≥4.5:1）。
+  例外：`a11y-button size="sm"`（56rpx）仅限列表行内紧凑操作（取消/喜欢/移除等），
+  且该行主体必须可点击进详情作为主热区；独立功能按钮（提交、确认、退出等）禁止用 `sm`。
 - 移动端单手好用为第一前提：页面/卡片左右边距必须**对称**，禁止单侧贴边；任何元素不得
   溢出视口，页面禁止出现横向滚动（滚动容器 `overflow-x: hidden`），内容超高时只允许纵向滚动。
 - 块级/卡片元素统一 `box-sizing: border-box`，`width:100%` 时 padding 必须计入宽度；
@@ -120,6 +131,8 @@ Copilot / Serena / Trae）开工前必须读完本文件。
 - tabBar 配置只有两处：`pages.json` 的 `tabBar.list`（编译期，MP 端）与
   `xfjy-app/src/config/tab-config.ts`（H5 自绘用）；两者无法自动联动，改 tab 项必须同步，
   禁止在任何页面内再起第三套 tabbar。
+  tabbar 定制图形为 `xfjy-app/scripts/gen-icons.mjs` 生成的 PNG（原 `gen-tabbar-icons.py` 已删除废弃），
+  禁止手工改图；改图标必须重跑脚本。
 - 新增通用样式进 `uni.scss` 或全局 class，禁止复制粘贴。
 
 ### 7.2 xfjy-admin（Vue 3 + Element Plus + SCSS）视觉约束
@@ -143,7 +156,9 @@ Copilot / Serena / Trae）开工前必须读完本文件。
 - 视觉验收：每页 1280/1440 各截图一次，与 `src/views/user/index.vue` 并排比对
   标题字号/卡片圆角/按钮高度；`npm run lint:style` 新增代码零 warning。
 
-校验：`git diff -- 'xfjy-app/src/**' | rg "^\+.*(uni-icons|#fe3c72|#ff5e9c)"` → 0；
+校验（`git diff HEAD` 覆盖已暂存改动；排除 token 定义文件，其内的 `#fe3c72` 为合法定义；
+CSS 变量定义行 `--color-…: #…` 与注释行不计命中）：
+`git diff HEAD -- 'xfjy-app/src/**' ':(exclude)xfjy-app/src/App.vue' ':(exclude)xfjy-app/src/uni.scss' | rg "^\+.*(uni-icons|#fe3c72|#ff5e9c)"` → 0；
 `npm run lint:style --prefix xfjy-admin 2>&1 | rg "✖"` → 0（新增代码）
 
 ## 8. 提交与文档
@@ -157,7 +172,8 @@ Copilot / Serena / Trae）开工前必须读完本文件。
 
 ## 9. 完成定义（唯一验收清单）
 1. `mvn -q -DskipTests compile` 通过（改动模块及其下游）。
-2. 前端改动：`npm run build` 与类型检查通过（脚本名以 `package.json` 为准）。
+2. 前端改动：`xfjy-app` 跑 `npm run build:h5` + `npm run type-check`；
+   `xfjy-admin` 跑 `npm run build` + `npm run lint:style`。脚本名以各 `package.json` 为准。
 3. 本文件 §1–§8 的「校验」命令无**新增**命中；存量走下方豁免清单。
 4. 接口改动附 curl/示例响应，字段与 §5 一致。
 5. 数据改动说明写入方与回滚方式；跨服务改动附调用链。
@@ -174,13 +190,17 @@ Copilot / Serena / Trae）开工前必须读完本文件。
 | 文档导航 | `00-需求文档导航总纲.md` |
 | 规则入口（工具适配） | `docs/agent-rules/00-index.md` → `docs/agent-rules/tool-matrix.md` → 本文件 |
 
-## 11. 存量违规豁免（2026-11-03 实测，新增行仍受约束）
+## 11. 存量违规豁免（2026-11-03 二次实测，新增行仍受约束）
 | 项 | 存量 | 处理 |
 |---|---|---|
-| `ResponseEntity<Map|List>`（xfjy-server） | 45 处 | 新增禁止，存量随重构迁移 |
+| `ResponseEntity<Map|List>`（xfjy-server） | 43 处 | 新增禁止，存量随重构迁移 |
 | Controller 内 `catch(Exception)` | 146 处 | 新增禁止 |
 | `uni-icons`（xfjy-app/src） | 33 处 / 11 文件（按 `<uni-icons` 组件实例化计数） | 冻结，禁止新增 |
-| 页面硬编码 `#fe3c72` | 11 处 | 新增禁止 |
+| 页面硬编码 `#fe3c72` | 14 处（含 `mine/index.vue` 菜单色 3 处） | 新增禁止，存量随 token 收口迁移 |
+| 原生 `<button>`（xfjy-app/src） | 6 处（`components/error-boundary.vue` 2、`components/match-popup.vue` 2、`pages/chat/notifications.vue`、`pages/match/guide.vue` 各 1；`mine/change-phone`、`mine/verify`、`mine/settings` 已迁移 `a11y-button`） | 冻结，禁止新增，随重构迁移 `a11y-button`（独立功能按钮不得用 `sm`，见 §7.1） |
+| `ResponseEntity<VO>` 裸 VO 返回（xfjy-server controller） | 55 处 | **裁决为既有形态而非违规**（2026-11-03）：§5 已按现状改写；约束仅为「禁止裸返回实体、禁止新增 `ResponseEntity<Map\|List>`」 |
+| 分页入参 `pagesize`（xfjy-server 存量接口） | 33 处 | 新增必须 `pageSize`（§5），存量随重构迁移，迁移时前后端需同改 |
+| 非主色硬编码 hex（xfjy-app/src，含 token 定义文件） | `#fff` 69、`#767676` 23、`#ffd700` 16、`#ccc` 12、`#ff3b30` 11、`#4cd964` 11、`#4a90d9` 7、`#1a1a2e` 7 等 | 冻结，新增禁止；`App.vue`/`uni.scss` 为 token 合法定义处；随 token 补充（如 `--text-inverse`、语义色变量）逐步收口 |
 | `/admin/**` 缺 `@RequireRole` | 1 处（`AdminController`） | **免登录入口 + 自身账户维护**，不补注解。依据：`AdminController` 仅 `POST admin/login`、`GET admin/info`、`PUT admin/password`、`POST admin/logout`、`PUT admin/profile`；`WebConfig` L28-30 已将 `/admin/login` 从 `AdminTokenInterceptor` 排除，其余路由依赖拦截器填充的 `AdminThreadLocal`，非业务控制器。 |
 | `xfjy-admin` 硬编码颜色（除 404 插画 4 处外） / 魔法间距 | 0 / 14 条（13 条 6px 间距 + 1 条侧栏折叠态内距，2026-11-03 收口后实测，原 26 / 38） | 新增禁止；颜色统一走 `--xfjy-*` token（本轮补充 `--xfjy-success-tint` / `--xfjy-danger-tint` / `--xfjy-primary-tint`，取值与替换前 hex 完全相同）。`npm run lint:style` 目标 **0 warning**，`npm run lint:style:gate` 不得超过 `xfjy-admin/stylelint-baseline.json` 基线（当前 total=0）；历史：65 → 43 → 19 → 0 |
 | `xfjy-admin` 6px 间距豁免（13 条，另有侧栏折叠态 1 条，合计 14 条 `declaration-property-value-disallowed-list` 豁免） | `movement.vue` L386、`video.vue` L344（内联统计项分隔）；`kefu/workbench.vue` L422 聊天气泡内距、L448 语音图标对齐；`login/index.vue` L469 标题副文案；`review/index.vue` L543 键帽、L675 结论标签组、L754 横向滚动条留白；`report/index.vue` L472-473 头像与文字间距、L477-478 标签与昵称分隔（`.target-name`）、L569-570 横向滚动条留白；`user/detail.vue` L850 头像文字；`sensitive/index.vue` L59 敏感词标签间距（`.hit-word`） | 均为图标/文字对齐或滚动条留白类视觉微调，改 4px 或 8px 会破坏对齐；已用行级 `declaration-property-value-disallowed-list` disable 并注明理由，**禁止新增** |

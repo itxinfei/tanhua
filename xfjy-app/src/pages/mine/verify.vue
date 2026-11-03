@@ -11,14 +11,16 @@
       <view class="form-card">
         <view class="form-item">
           <text :id="realNameLabelId" class="form-label">真实姓名</text>
-          <input v-model="realName" placeholder="请输入真实姓名" placeholder-class="ph" aria-label="真实姓名" :aria-labelledby="realNameLabelId" />
+          <input v-model="realName" maxlength="20" placeholder="请输入真实姓名" placeholder-class="ph" aria-label="真实姓名" :aria-labelledby="realNameLabelId" />
         </view>
         <view class="form-item">
           <text :id="idCardLabelId" class="form-label">身份证号</text>
           <input v-model="idCard" maxlength="18" placeholder="18位身份证号" placeholder-class="ph" aria-label="身份证号" :aria-labelledby="idCardLabelId" />
         </view>
       </view>
-      <button class="submit-btn" :disabled="submitting" @click="submit">提交认证</button>
+      <a11y-button class="submit-btn" variant="primary" block label="提交实名认证" :loading="submitting" :disabled="submitting" @tap="submit">
+        <text>提交认证</text>
+      </a11y-button>
     </template>
   </view>
 </template>
@@ -59,6 +61,11 @@ async function submit() {
     info('请输入真实姓名');
     return;
   }
+  // 对齐后端 2-20 位限制，避免过前端后收到通用 400 文案
+  if (name.length > 20) {
+    info('姓名不超过 20 个字符');
+    return;
+  }
   if (!/^\d{17}[\dXx]$/.test(card)) {
     info('身份证号格式不正确');
     return;
@@ -87,11 +94,10 @@ async function submit() {
   }
 }
 .ph { color: var(--text-hint); }
-.submit-btn { margin-top: 60rpx; background: var(--color-primary); color: #fff; font-size: 30rpx; border-radius: 48rpx; height: 88rpx; line-height: 88rpx;
-  &[disabled] { opacity: 0.6; }
-}
+/* 提交按钮：a11y-button primary 变体（品牌渐变），仅补外边距与宽度 */
+.submit-btn { margin-top: 60rpx; }
 .verified-card { background: var(--bg-card); border-radius: 24rpx; padding: 80rpx 32rpx; text-align: center; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
-  .verified-icon { display: block; width: 96rpx; height: 96rpx; line-height: 96rpx; margin: 0 auto 24rpx; border-radius: 50%; background: var(--color-primary); color: #fff; font-size: 48rpx; }
+  .verified-icon { display: block; width: 96rpx; height: 96rpx; line-height: 96rpx; margin: 0 auto 24rpx; border-radius: 50%; background: var(--color-primary); color: var(--bg-card); font-size: 48rpx; }
   .verified-text { font-size: 30rpx; color: var(--text-primary); }
 }
 </style>

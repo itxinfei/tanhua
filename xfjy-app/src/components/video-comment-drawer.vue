@@ -1,5 +1,4 @@
 <template>
-  <!-- 评论抽屉：补齐 dialog 语义、Esc 关闭、打开时移入焦点、关闭后归还焦点 -->
   <a11y-dialog class="drawer-mask" :visible="visible" title="评论" @close="close">
     <view class="drawer-panel">
       <view class="drawer-header">
@@ -24,7 +23,11 @@
             :label="c.hasLiked === 1 ? `已点赞，共 ${c.likeCount} 个赞，点击取消点赞` : `点赞，共 ${c.likeCount} 个赞`"
             @tap="toggleLike(c)"
           >
-            <uni-icons class="like-icon" :type="c.hasLiked === 1 ? 'heart-filled' : 'heart'" size="32" :color="c.hasLiked === 1 ? 'var(--color-primary-text)' : 'var(--text-hint)'"></uni-icons>
+            <view
+              class="like-icon"
+              :class="c.hasLiked === 1 ? 'i-ph-heart-fill liked' : 'i-ph-heart'"
+              aria-hidden="true"
+            />
             <text class="like-count">{{ c.likeCount > 0 ? formatCount(c.likeCount) : '' }}</text>
           </a11y-button>
         </view>
@@ -32,7 +35,6 @@
         <view v-else-if="!hasMore && list.length > 0" class="load-more">没有更多了</view>
       </scroll-view>
       <view class="input-bar">
-        <!-- placeholder 不算 label，需显式 aria-label -->
         <input v-model="text" placeholder="说点什么..." placeholder-class="ph" confirm-type="send" aria-label="评论内容" @confirm="send" />
         <a11y-button class="send-btn" :class="{ active: text.trim() }" @tap="send">
           <text>发送</text>
@@ -53,10 +55,6 @@ import type { Comment } from "@/api/circle";
 const props = defineProps<{ visible: boolean; videoId: string }>();
 const emit = defineEmits<{ (e: "close"): void; (e: "commented"): void }>();
 
-/**
- * 后端部分日期字符串含异常分隔符（如 "2026年10月31??19:22"），
- * 在前端兜底清洗：将连续问号替换为空格，去除多余空白
- */
 function formatDate(value?: string): string {
   if (!value) return "";
   return value.replace(/\?+/g, " ").replace(/\s+/g, " ").trim();
@@ -72,7 +70,6 @@ const text = ref("");
 
 const hasMore = computed(() => page.value < pages.value);
 
-/** 请求代际令牌：reload 递增，在途旧请求返回时丢弃，避免关开后重开列表错乱 */
 let loadToken = 0;
 
 watch(() => props.visible, (v) => { if (v && props.videoId) reload(); });
@@ -98,7 +95,6 @@ async function load() {
     pages.value = res.pages || 1;
     total.value = res.counts || 0;
   } catch {
-    // request 层统一 toast；失败页码回退，hasMore 恢复可重试
     if (token === loadToken && targetPage > 1) page.value = targetPage - 1;
   } finally {
     if (token === loadToken) loading.value = false;
@@ -111,10 +107,8 @@ async function loadMore() {
   await load();
 }
 
-/** 发送中标记（防连点重复发评论） */
 const sending = ref(false);
 
-/** 点赞 / 取消点赞：计数以接口返回的最新值为准 */
 async function toggleLike(c: Comment) {
   try {
     if (c.hasLiked === 1) {
@@ -131,7 +125,6 @@ async function toggleLike(c: Comment) {
   }
 }
 
-/** 发送评论，成功后刷新列表 */
 async function send() {
   const content = text.value.trim();
   if (!content || !props.videoId || sending.value) return;
@@ -154,29 +147,31 @@ async function send() {
 .drawer-mask { position: fixed; left: 0; top: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 999; display: flex; align-items: flex-end; }
 .drawer-panel { width: 100%; height: 70vh; background: var(--bg-card); border-radius: 32rpx 32rpx 0 0; display: flex; flex-direction: column; animation: slideUp 0.25s ease; }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-.drawer-header { display: flex; align-items: center; justify-content: space-between; padding: 24rpx 32rpx; border-bottom: 1rpx solid var(--border-faint);
-  .drawer-title { font-size: 30rpx; font-weight: 600; color: var(--text-primary); }
-  .drawer-close { font-size: 40rpx; color: var(--text-hint); padding: 0 12rpx; min-height: 48rpx; line-height: 1; }
+.drawer-header { display: flex; align-items: center; justify-content: space-between; padding: var(--space-md) var(--space-lg); border-bottom: 1rpx solid var(--border-faint);
+  .drawer-title { font-size: var(--fs-md); font-weight: 600; color: var(--text-primary); }
+  .drawer-close { font-size: 40rpx; color: var(--text-hint); padding: 0 var(--space-sm); min-height: 48rpx; line-height: 1; }
 }
-.comment-list { flex: 1; padding: 0 32rpx; }
-.empty { text-align: center; color: var(--text-hint); font-size: 26rpx; padding: 80rpx 0; }
-.comment-item { display: flex; padding: 24rpx 0; border-bottom: 1rpx solid var(--border-faint);
-  .avatar { width: 72rpx; height: 72rpx; border-radius: 50%; flex-shrink: 0; background: #eee; }
-  .avatar-ph { display: flex; align-items: center; justify-content: center; font-size: 28rpx; color: #fff; background: var(--color-primary); }
+.comment-list { flex: 1; padding: 0 var(--space-lg); }
+.empty { text-align: center; color: var(--text-hint); font-size: var(--fs-base); padding: 80rpx 0; }
+.comment-item { display: flex; padding: var(--space-md) 0; border-bottom: 1rpx solid var(--border-faint);
+  .avatar { width: 72rpx; height: 72rpx; border-radius: 50%; flex-shrink: 0; background: var(--bg-icon-soft); }
+  .avatar-ph { display: flex; align-items: center; justify-content: center; font-size: var(--fs-xl); color: var(--text-inverse); background: var(--color-primary); }
   .comment-body { flex: 1; margin-left: 20rpx; display: flex; flex-direction: column;
-    .nickname { font-size: 26rpx; color: var(--text-hint-strong); }
-    .content { font-size: 28rpx; color: var(--text-primary); margin: 8rpx 0; word-break: break-all; }
-    .date { font-size: 22rpx; color: var(--text-hint); }
+    .nickname { font-size: var(--fs-base); color: var(--text-hint-strong); }
+    .content { font-size: var(--fs-base); color: var(--text-primary); margin: var(--space-xs) 0; word-break: break-all; }
+    .date { font-size: var(--fs-xs); color: var(--text-hint); }
   }
-  .like-box { display: flex; flex-direction: column; align-items: center; padding: 8rpx 0 0 16rpx;
-    .like-icon { font-size: 32rpx; }
-    .like-count { font-size: 22rpx; color: var(--text-hint); margin-top: 4rpx; }
+  .like-box { display: flex; flex-direction: column; align-items: center; padding: var(--space-xs) 0 0 16rpx;
+    .like-icon { width: 32rpx; height: 32rpx; color: var(--text-hint);
+      &.liked { color: var(--color-primary); }
+    }
+    .like-count { font-size: var(--fs-xs); color: var(--text-hint); margin-top: 4rpx; }
   }
 }
-.load-more { text-align: center; color: var(--text-hint); font-size: 24rpx; padding: 24rpx 0; }
-.input-bar { display: flex; align-items: center; padding: 16rpx 24rpx; padding-bottom: calc(16rpx + env(safe-area-inset-bottom)); border-top: 1rpx solid var(--border-faint); background: var(--bg-card);
-  input { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; }
-  .send-btn { margin-left: 20rpx; font-size: 28rpx; color: var(--text-hint); min-height: 48rpx; &.active { color: var(--color-primary-text); } }
+.load-more { text-align: center; color: var(--text-hint); font-size: var(--fs-sm); padding: var(--space-md) 0; }
+.input-bar { display: flex; align-items: center; padding: var(--space-sm) var(--space-md); padding-bottom: calc(var(--space-sm) + env(safe-area-inset-bottom)); border-top: 1rpx solid var(--border-faint); background: var(--bg-card);
+  input { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; padding: 0 28rpx; font-size: var(--fs-base); }
+  .send-btn { margin-left: 20rpx; font-size: var(--fs-base); color: var(--text-hint); min-height: 48rpx; &.active { color: var(--color-primary); font-weight: 600; } }
 }
 .ph { color: var(--text-hint); }
 </style>

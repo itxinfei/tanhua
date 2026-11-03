@@ -2,6 +2,7 @@ package com.xfjy.sso.service;
 
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.xfjy.sso.mapper.UserMapper;
 import com.xfjy.sso.pojo.User;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -36,12 +37,11 @@ public class UserService {
     /** 验证码连续错误次数上限，达到即作废该码（NFR-SEC-10） */
     private static final int CODE_FAIL_LIMIT = 5;
     /**
-     * 开发用万能验证码（未接入短信服务商时本地联调使用）。
-     *
-     * <p><b>安全债（用户拍板保留，11.7-15）</b>：命中此码可登录任意手机号，
-     * 上线前必须移除或改为环境开关；每次命中打 WARN 日志便于排查。</p>
+     * 测试账号固定验证码：仅 user 表 ID=1 的手机号可用此码，其他手机号必须使用真实短信验证码。
      */
-    private static final String DEV_MASTER_CODE = "123456";
+    private static final String TEST_USER_FIXED_CODE = "123456";
+    /** 测试账号用户ID（用户指定，该手机号专用于联调测试） */
+    private static final Long TEST_USER_ID = 1L;
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UserService.class);
@@ -60,11 +60,17 @@ public class UserService {
         }
         String key = CODE_KEY_PREFIX + phone;
         String failKey = CODE_FAIL_KEY_PREFIX + phone;
-        if (DEV_MASTER_CODE.equals(code)) {
-            LOGGER.warn("使用开发万能验证码登录，phone={}（该码上线前必须移除）", phone);
-            redisTemplate.delete(key);
-            redisTemplate.delete(failKey);
-            return true;
+        if (TEST_USER_FIXED_CODE.equals(code)) {
+            // 仅测试账号（ID=1）允许固定验证码；其他手机号必须走真实短信验证码
+            QueryWrapper<User> qw = new QueryWrapper<>();
+            qw.eq("mobile", phone).select("id");
+            User existing = this.userMapper.selectOne(qw);
+            if (existing != null && TEST_USER_ID.equals(existing.getId())) {
+                LOGGER.warn("测试账号使用固定验证码登录，phone={}", phone);
+                redisTemplate.delete(key);
+                redisTemplate.delete(failKey);
+                return true;
+            }
         }
         String cached = redisTemplate.opsForValue().get(key);
         if (cached == null) {
@@ -142,7 +148,9 @@ public class UserService {
         }
 
         // Sa-Token 签发 token（会话存 Redis，所有服务共享校验）
-        StpUtil.login(user.getId());
+        // loginId 加 "user-" 前缀，与后台 AdminTokenInterceptor 的 "admin-" 命名空间隔离，防止跨端会话串号
+        // 注意：Sa-Token 的 loginId 不允许包含冒号（会抛 SaTokenException），故用连字符
+        StpUtil.login("user-" + user.getId());
 
         Map<String, Object> result = new HashMap<>();
         result.put("token", StpUtil.getTokenValue());
@@ -161,10 +169,11 @@ public class UserService {
             return null;
         }
         Object loginId = StpUtil.getLoginIdByToken(token);
-        if (loginId == null) {
+        // 命名空间隔离：只接受 "user-" 前缀的 loginId，后台 admin token 在此直接拒绝
+        if (loginId == null || !loginId.toString().startsWith("user-")) {
             return null;
         }
-        User user = this.userMapper.selectById(Long.valueOf(loginId.toString()));
+        User user = this.userMapper.selectById(Long.valueOf(loginId.toString().substring("user-".length())));
         //已注销(DELETED)或已封禁(FROZEN)的用户，token 立即失效
         if (user == null || !"NORMAL".equals(user.getStatus())) {
             return null;
@@ -197,14 +206,19 @@ public class UserService {
             return 2;
         }
 
-        // 更新当前用户手机号
-        User user = this.userMapper.selectById(userId);
-        if (user == null || !"NORMAL".equals(user.getStatus())) {
-            return 1;
+        // 原子更新：WHERE 中用 NOT EXISTS 再次排除并发占用，
+        // 防止两个用户同时换绑同一手机号时 check-then-act 竞态导致双占
+        UpdateWrapper<User> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.eq("id", userId)
+                .eq("status", "NORMAL")
+                .apply("NOT EXISTS (SELECT 1 FROM tb_user u2 WHERE u2.mobile = {0} AND u2.id != {1})", newPhone, userId)
+                .set("mobile", newPhone)
+                .set("updated", new java.util.Date());
+        int updated = this.userMapper.update(null, updateWrapper);
+        if (updated == 0) {
+            // 并发场景下手机号被他人抢先占用，或用户状态已变更
+            return 2;
         }
-        user.setMobile(newPhone);
-        user.setUpdated(new java.util.Date());
-        this.userMapper.updateById(user);
         return 0;
     }
 }

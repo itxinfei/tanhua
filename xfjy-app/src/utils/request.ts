@@ -51,6 +51,13 @@ let redirectingToLogin = false;
  * userStore 用动态 import，避免 request.ts ← store 的循环依赖
  */
 export function handleUnauthorized(): void {
+  // 开发环境 mock：localhost / 127.0.0.1 不清除 token、不重定向，便于本地调试
+  if (
+    typeof location !== "undefined" &&
+    (location.hostname === "localhost" || location.hostname === "127.0.0.1")
+  ) {
+    return;
+  }
   removeToken();
   if (redirectingToLogin) return;
   redirectingToLogin = true;
@@ -112,8 +119,24 @@ function request<T = any>(options: RequestOptions): Promise<T> {
 
         // HTTP 状态码处理
         if (res.statusCode === 401) {
+          // 登录接口 401=验证码错误（后端携带 message）：只提示不登出；
+          // token 过期（无 body）才走统一登出流程
+          const msg = (res.data as any)?.message;
+          if (msg) {
+            uni.showToast({ title: msg, icon: "none", duration: 3000 });
+            reject(new Error(msg));
+            return;
+          }
           handleUnauthorized();
           reject(new Error("登录已过期，请重新登录"));
+          return;
+        }
+
+        // 423 账号锁定（登录连续失败 5 次）
+        if (res.statusCode === 423) {
+          const msg = (res.data as any)?.message || "账号已暂时锁定，请稍后再试";
+          uni.showToast({ title: msg, icon: "none", duration: 3000 });
+          reject(new Error(msg));
           return;
         }
 
@@ -135,10 +158,11 @@ function request<T = any>(options: RequestOptions): Promise<T> {
           return;
         }
 
-        // 400 内容审核拒发
+        // 400 参数/格式错误：优先展示后端携带的 message（如换绑手机号格式错）
         if (res.statusCode === 400) {
-          uni.showToast({ title: "操作失败，请检查输入内容", icon: "none" });
-          reject(new Error("请求参数校验失败"));
+          const msg = (res.data as any)?.message || "操作失败，请检查输入内容";
+          uni.showToast({ title: msg, icon: "none" });
+          reject(new Error(msg));
           return;
         }
 
@@ -147,6 +171,14 @@ function request<T = any>(options: RequestOptions): Promise<T> {
           const reason = (res.data as any)?.reason || (res.data as any)?.message;
           uni.showToast({ title: reason || "没有操作权限", icon: "none", duration: 3000 });
           reject(new Error(reason || "无权限"));
+          return;
+        }
+
+        // 409 资源冲突（如换绑手机号已被占用）
+        if (res.statusCode === 409) {
+          const msg = (res.data as any)?.message || "数据冲突，请重试";
+          uni.showToast({ title: msg, icon: "none", duration: 3000 });
+          reject(new Error(msg));
           return;
         }
 
@@ -251,15 +283,18 @@ export function upload<T = any>(
           reject(new Error("操作过于频繁"));
           return;
         }
-        // 400 内容审核拒发
+        // 400 参数/格式错误：优先展示后端携带的 message（与 request 函数对齐）
         if (res.statusCode === 400) {
-          uni.showToast({ title: "操作失败，请检查输入内容", icon: "none" });
-          reject(new Error("请求参数校验失败"));
+          const msg = (res.data as any)?.message || "操作失败，请检查输入内容";
+          uni.showToast({ title: msg, icon: "none" });
+          reject(new Error(msg));
           return;
         }
+        // 403 权限/账号状态错误：优先展示后端携带的 reason/message（与 request 函数对齐）
         if (res.statusCode === 403) {
-          uni.showToast({ title: "没有操作权限", icon: "none" });
-          reject(new Error("无权限"));
+          const msg = (res.data as any)?.reason || (res.data as any)?.message || "没有操作权限";
+          uni.showToast({ title: msg, icon: "none", duration: 3000 });
+          reject(new Error(msg));
           return;
         }
         if (res.statusCode >= 400) {

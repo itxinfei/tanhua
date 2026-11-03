@@ -123,19 +123,22 @@ function statusClass(status: number): string {
 
 .form-card {
   background: var(--bg-card);
-  border-radius: 20rpx;
+  border-radius: 24rpx;
   padding: 32rpx 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 
   .form-title {
     font-size: 32rpx;
     color: var(--text-primary);
     font-weight: bold;
     display: block;
+    padding-left: 16rpx;
+    border-left: 6rpx solid var(--color-primary);
   }
 
   .form-content {
     margin-top: 24rpx;
-    background: #f9f9f9;
+    background: var(--bg-sub);
     border-radius: 16rpx;
     padding: 20rpx;
 
@@ -161,7 +164,7 @@ function statusClass(status: number): string {
 
   .contact-input {
     margin-top: 20rpx;
-    background: #f9f9f9;
+    background: var(--bg-sub);
     border-radius: 16rpx;
     padding: 20rpx;
     font-size: 28rpx;
@@ -174,9 +177,10 @@ function statusClass(status: number): string {
     border-radius: 44rpx;
     text-align: center;
     padding: 22rpx 0;
+    box-shadow: 0 8rpx 24rpx rgba(255, 94, 156, 0.35);
 
     text {
-      color: #fff;
+      color: var(--text-inverse);
       font-size: 30rpx;
       font-weight: 500;
     }
@@ -196,7 +200,8 @@ function statusClass(status: number): string {
     color: var(--text-primary);
     font-weight: bold;
     display: block;
-    padding: 8rpx;
+    padding: 8rpx 8rpx 8rpx 16rpx;
+    border-left: 6rpx solid var(--color-primary);
   }
 
   .empty-tip {
@@ -212,9 +217,10 @@ function statusClass(status: number): string {
 
 .history-item {
   background: var(--bg-card);
-  border-radius: 20rpx;
+  border-radius: 24rpx;
   padding: 24rpx;
   margin-top: 16rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 
   .item-header {
     display: flex;
@@ -263,7 +269,7 @@ function statusClass(status: number): string {
     background: var(--bg-icon-soft);
     border-radius: 12rpx;
 
-    /* 原 #ff5e9c 在 #ffeff5 底上仅约 2.5:1，提深至 ≥4.5:1 */
+    /* 主色 #fe3c72 在 #ffeff5 底上仅约 3.1:1，提深至 ≥4.5:1 */
     .reply-label {
       font-size: 24rpx;
       color: var(--color-primary-text);

@@ -39,8 +39,8 @@ public class AdminKefuController {
     // ==================== 客服工作台 ====================
 
     /**
-     * GET /admin/kefu/agent/credential — 获取客服环信登录凭证
-     * 前端工作台用 username+token 登录环信 SDK，接收/回复用户消息
+     * GET /admin/kefu/agent/credential — 获取客服 IM 登录凭证
+     * 前端工作台用 username+token 登录 IM SDK，接收/回复用户消息
      */
     @GetMapping("agent/credential")
     public ResponseEntity getAgentCredential() {
@@ -55,7 +55,7 @@ public class AdminKefuController {
     /**
      * POST /admin/kefu/users/info — 批量查询用户基础信息
      * body: { userIds: [1, 2, 3] }
-     * 工作台会话列表用 conversationId（环信 username = userId）查昵称/头像
+     * 工作台会话列表用 conversationId（IM username = userId）查昵称/头像
      */
     @PostMapping("users/info")
     public ResponseEntity queryUsersInfo(@RequestBody Map<String, Object> body) {

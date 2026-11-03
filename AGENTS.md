@@ -16,7 +16,9 @@ Copilot / Serena / Trae）开工前必须读完本文件。
 ## 1. 技术栈锁定（禁止擅自升级或替换）
 | 项 | 版本/选型 | 禁止 |
 |---|---|---|
-| JDK | 25（`<java.version>25</java.version>`） | 降级到 17/21 |
+| JDK | 25（`<java.version>25</java.version>`；CI 镜像 `eclipse-temurin:25-jdk-jammy`、运行 `25-jre-jammy`，本地 JDK 25） | 降级到 17/21 |
+| Node | **22.23.4 LTS**。唯一真源仅两处：`deploy/gitea/Dockerfile.ci` 的 ARG `NODE_VERSION` 与根 `.nvmrc`（值必须一致）；本地用 nvm/fnm 按 `.nvmrc` 切换；前端 `engines.node>=22.12.0` 仅表能力下限 | 升到 23/24 及以上或降级到 22.12 以下；在 workflow/job 内用 `n` 临时切版本（版本必须烤进 CI 镜像）；改版本不同步这两处 |
+| Maven | **3.9.16**（`deploy/gitea/Dockerfile.ci` ARG `MAVEN_VERSION`；本地 3.9.x） | 另引 mvnw 或其它版本造成分叉 |
 | Spring Boot | 4.1.1（父 POM 统一管理） | 3.x；引入 `spring-boot-starter-security` |
 | Spring Cloud / Alibaba | 2025.1.3 / 2025.1.0.0 | 混用其他 BOM |
 | 持久层 | MyBatis-Plus 3.5.17（`mybatis-plus-spring-boot4-starter` + `jsqlparser`） | JPA/Hibernate |
@@ -31,6 +33,8 @@ Copilot / Serena / Trae）开工前必须读完本文件。
 | 禁止引入 | H2、Dubbo、Feign、Sentinel、Knife4j | — |
 
 校验：`rg -n "sentinel|dubbo|feign|knife4j|spring-boot-starter-security" --glob "pom.xml"` → 0
+校验：`rg -n "N_NODE_MIRROR|n 2[0-9]+\.|N_PREFIX" .gitea/workflows` → 0（workflow 内禁止临时切 Node）；
+`rg -n "NODE_VERSION=" deploy/gitea/Dockerfile.ci` 的值必须等于 `cat .nvmrc`（22.23.4）
 
 ## 2. 模块、端口与分层
 - Maven 聚合 12 个模块（根 `pom.xml`）：`xfjy-gateway`、`xfjy-sso`、`xfjy-user-service`、

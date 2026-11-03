@@ -61,7 +61,9 @@ onUnmounted(() => {
 <style scoped>
 .network-bar {
   position: fixed;
-  top: 0;
+  /* 避让状态栏/刘海/挖孔：custom 页面 env 返回状态栏高度，原生导航栏页面返回 0 不影响 */
+  top: constant(safe-area-inset-top);
+  top: env(safe-area-inset-top, 0px);
   left: 0;
   right: 0;
   z-index: 9999;

@@ -75,11 +75,20 @@ public class QuanZiMsgConsumer implements RocketMQListener<String> {
                 case 1: {
                     int score = 0;
                     Publish publish = this.mongoTemplate.findById(new ObjectId(publishId), Publish.class);
+                    if (publish == null) {
+                        // 动态可能已被删除，跳过评分避免 NPE
+                        LOGGER.warn("动态不存在, publishId={}, 跳过发动态评分", publishId);
+                        recommendQuanZi.setScore(0d);
+                        break;
+                    }
                     int length = StringUtils.length(publish.getText());
 
-                    if (length > 0 && length <= 50) {
+                    // 空文本 0 分；1-50 字 1 分；51-100 字 2 分；100 字以上 3 分
+                    if (length == 0) {
+                        score = 0;
+                    } else if (length <= 50) {
                         score = 1;
-                    } else if (length > 50 && length <= 100) {
+                    } else if (length <= 100) {
                         score = 2;
                     } else {
                         score = 3;
@@ -134,7 +143,7 @@ public class QuanZiMsgConsumer implements RocketMQListener<String> {
             this.userFeatureService.recordBehavior(userId, "quanzi:" + type, recommendQuanZi.getScore(), date);
 
         } catch (Exception e) {
-            LOGGER.error("消息处理失败! msg = " + msg);
+            LOGGER.error("消息处理失败! msg = " + msg, e);
         }
 
     }

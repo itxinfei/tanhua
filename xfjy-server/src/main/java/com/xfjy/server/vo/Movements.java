@@ -19,6 +19,7 @@ public class Movements {
     private String textContent; //文字内容
     private String[] imageContent; //图片内容
     private String distance; //距离
+    private String location; //发布位置名称（对应 Publish.locationName）
     private String createDate; //发布时间 如 10分钟前
     private Integer likeCount; //点赞数
     private Integer commentCount; //评论数
