@@ -30,6 +30,11 @@ public class PageInfo<T> implements java.io.Serializable {
     private Integer pageSize;
 
     /**
+     * 总页数
+     */
+    private Integer pages;
+
+    /**
      * 数据列表
      */
     private List<T> records = Collections.emptyList();
