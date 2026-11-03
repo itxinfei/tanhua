@@ -65,6 +65,8 @@ target/
 # scripts目录整体忽略（本地调试脚本），仅保留需入库的初始化SQL
 !/scripts/init-kefu.sql
 !/scripts/init-push.sql
+# 规则入口同步校验脚本需入库（CI 与全员复用）
+!/scripts/sync-agent-rules.ps1
 
 # 本地测试用图片（接口验证产物，不入库）
 /test-img.jpg
@@ -126,3 +128,10 @@ _fix_wukongim.js
 _fix_wukongim.py
 _nl_test.txt
 .qoder/
+
+# Playwright 视觉回归产物（基线图 tests/visual/*-snapshots 需提交，产物不入库）
+xfjy-admin/test-results/
+xfjy-admin/playwright-report/
+
+# E2E 环境变量模板（不含凭证，需入库）
+!xfjy-admin/.env.e2e.example
