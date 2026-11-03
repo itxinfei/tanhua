@@ -123,7 +123,9 @@ jobs:
           # 必须 npm ci 严格按 lock 落地整棵树：npm install 重算时会偶发漏装
           # peerDependencies（pinia4 的 @vue/devtools-api 非根直接依赖），致 vite 构建
           # 报 Rolldown failed to resolve import。与 deploy.yml 前端构建命令保持一致。
-          npm ci --legacy-peer-deps --prefer-offline --no-audit --no-fund
+          npm ci --legacy-peer-deps --no-audit --no-fund
+          # 强制重建原生绑定（rolldown/vite 的 platform-specific 包在跨环境缓存时可能缺失）
+          npm rebuild --no-audit --no-fund
           npx vue-tsc --noEmit
           echo "[OK] xfjy-admin 类型检查通过"
 

@@ -245,13 +245,15 @@ jobs:
               xfjy-admin)
                 echo "[前端] xfjy-admin 构建中..."
                 ( cd xfjy-admin \
-                  && npm ci --legacy-peer-deps --prefer-offline --no-audit --no-fund \
+                  && npm ci --legacy-peer-deps --no-audit --no-fund \
+                  && npm rebuild --no-audit --no-fund \
                   && npm run build ) > /tmp/build-admin.log 2>&1 &
                 PIDS="$PIDS $!" ;;
               xfjy-h5)
                 echo "[前端] xfjy-app(H5) 构建中..."
                 ( cd xfjy-app \
-                  && npm ci --legacy-peer-deps --prefer-offline --no-audit --no-fund \
+                  && npm ci --legacy-peer-deps --no-audit --no-fund \
+                  && npm rebuild --no-audit --no-fund \
                   && npm run build:h5 ) > /tmp/build-h5.log 2>&1 &
                 PIDS="$PIDS $!" ;;
             esac
