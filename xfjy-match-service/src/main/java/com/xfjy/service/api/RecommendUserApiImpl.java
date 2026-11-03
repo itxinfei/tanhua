@@ -59,8 +59,14 @@ public class RecommendUserApiImpl implements RecommendUserApi {
         Query query = Query.query(criteria).with(pageable);
         List<RecommendUser> recommendUsers = this.mongoTemplate.find(query, RecommendUser.class);
 
-        // 说明：数据总条数，暂时不提供，如果需要的话再提供
-        return new PageInfo<>(0, pageNum, pageSize, recommendUsers);
+        // 说明：数据总条数、总页数暂时不提供，如果需要的话再提供
+        PageInfo<RecommendUser> pageInfo = new PageInfo<>();
+        pageInfo.setTotal(0);
+        pageInfo.setPageNum(pageNum);
+        pageInfo.setPageSize(pageSize);
+        pageInfo.setPages(0);
+        pageInfo.setRecords(recommendUsers);
+        return pageInfo;
     }
 
     @Override
@@ -74,6 +80,8 @@ public class RecommendUserApiImpl implements RecommendUserApi {
         if (null == recommendUser) {
             return 0;
         }
-        return recommendUser.getScore();
+        // getScore() 返回 Double，为 null 时自动拆箱会抛 NPE
+        Double score = recommendUser.getScore();
+        return score == null ? 0 : score;
     }
 }
