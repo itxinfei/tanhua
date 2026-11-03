@@ -9,6 +9,7 @@ import com.xfjy.service.pojo.UserInfo;
 import com.xfjy.service.vo.UserInfoQueryParam;
 import com.xfjy.server.mapper.FAQMapper;
 import com.xfjy.server.mapper.FeedbackMapper;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -119,6 +120,9 @@ public class KefuService {
         UserInfoQueryParam queryParam = new UserInfoQueryParam();
         queryParam.setUserIds(userIds);
         List<UserInfo> userInfoList = this.userInfoApi.queryUserInfoList(queryParam);
+        if (CollectionUtils.isEmpty(userInfoList)) {
+            return new ArrayList<>();
+        }
         return userInfoList.stream().map(info -> {
             Map<String, Object> map = new HashMap<>();
             map.put("userId", info.getUserId());

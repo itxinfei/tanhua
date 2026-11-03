@@ -179,11 +179,13 @@ public class IMService {
             List<UserInfo> userInfoList = this.userInfoApi.queryUserInfoList(queryParam);
 
             // 按 userId（业务ID）配对，资料表自增主键 id 不是用户ID
-            for (Long friendId : friendIds) {
-                for (UserInfo userInfo : userInfoList) {
-                    if (userInfo.getUserId() != null && userInfo.getUserId().longValue() == friendId.longValue()) {
-                        contactsList.add(toContacts(userInfo));
-                        break;
+            if (!CollectionUtils.isEmpty(userInfoList)) {
+                for (Long friendId : friendIds) {
+                    for (UserInfo userInfo : userInfoList) {
+                        if (userInfo.getUserId() != null && userInfo.getUserId().longValue() == friendId.longValue()) {
+                            contactsList.add(toContacts(userInfo));
+                            break;
+                        }
                     }
                 }
             }
@@ -253,9 +255,14 @@ public class IMService {
         List<UserInfo> userInfoList = this.userInfoApi.queryUserInfoList(queryParam);
 
         List<MessageLike> messageLikeList = new ArrayList<>();
+        if (CollectionUtils.isEmpty(userInfoList)) {
+            pageResult.setItems(messageLikeList);
+            return pageResult;
+        }
         for (Comment record : records) {
             for (UserInfo userInfo : userInfoList) {
-                if (userInfo.getUserId().longValue() == record.getUserId().longValue()) {
+                if (userInfo.getUserId() != null && record.getUserId() != null
+                        && userInfo.getUserId().longValue() == record.getUserId().longValue()) {
 
                     MessageLike messageLike = new MessageLike();
                     messageLike.setId(record.getId().toHexString());

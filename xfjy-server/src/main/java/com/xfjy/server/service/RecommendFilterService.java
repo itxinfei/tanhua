@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -82,9 +83,9 @@ public class RecommendFilterService {
                     records.size(), filtered.size(), likedIds.size(), finalTargetSex != null);
             return filtered;
         } catch (Exception e) {
-            // 过滤失败不阻断推荐链路，返回原列表
+            // 过滤失败不阻断推荐链路，返回原列表（null 兜底为空列表）
             LOGGER.error("召回过滤失败,返回未过滤列表, currentUserId={}", currentUserId, e);
-            return records;
+            return records != null ? records : new ArrayList<>();
         }
     }
 

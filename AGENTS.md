@@ -167,7 +167,8 @@ Copilot / Serena / Trae）开工前必须读完本文件。
 - 验证失败：修问题后**新建一笔提交**，不得 `--amend`、不得 `--no-verify`。
 - 提交信息用 Conventional Commits：`feat|fix|refactor|docs|test|chore(scope): 描述`。
 - 一个 PR 只做一件事；禁止混入全仓格式化、依赖升级、无关重命名。
-- 禁止提交 `_` 前缀临时脚本、`node_modules`、`dist`、日志、`.env`、本地 board。
+- **仓库收录白名单**：Gitee 只收录「必须的代码和必要的文件」，`.gitignore` 为唯一准绳（说明见 `docs/仓库收录白名单.md`）；CLI 工具规则入口仅本地生效，**禁止入库**——`.trae`、`.cursor`、`.windsurf`、`.clinerules`、`.roo`、`.continue`、`.junie`、`.qoder`、`.serena`、`.joycode`、`.github/copilot-instructions.md`、`.aider.conf.yml`、`GEMINI.md`、`CONVENTIONS.md`；新增目录/文件类型须先在白名单登记再提交；禁止提交 `_` 前缀临时脚本、截图产物、`node_modules`、`dist`、`target`、日志、`.env`、本地 board。
+- 白名单抽查：`git ls-files | rg '^\.(trae|cursor|windsurf|clinerules|roo|continue|junie|qoder|serena|joycode)/'`、`git ls-files | rg '^(GEMINI\.md|CONVENTIONS\.md|\.aider\.conf\.yml|\.github/copilot-instructions\.md)$'` → 均须 0 命中；`git ls-files | git check-ignore --no-index --stdin` → 无输出。
 - 技术栈/中间件/CI 变更必须同步本文件 §1 与 `CHANGELOG.md` 顶部。
 - 规则只改本文件；不得直接改各工具副本。
 

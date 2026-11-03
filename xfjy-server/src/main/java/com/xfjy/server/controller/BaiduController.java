@@ -46,6 +46,8 @@ public class BaiduController {
             if (bool) {
                 return ResponseEntity.ok(null);
             }
+            // ES 位置服务不可用（连接失败/超时）属于下游不可用，不是服务端内部错误
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
         } catch (NumberFormatException e) {
             LOGGER.warn("经纬度格式非法: {}", param, e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();

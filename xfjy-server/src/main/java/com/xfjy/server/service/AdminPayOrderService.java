@@ -61,6 +61,9 @@ public class AdminPayOrderService {
                                        String startDate, String endDate) {
         Map<String, Object> result = this.payApi.queryOrderPage(1, EXPORT_MAX_SIZE,
                 orderNo, status, userId);
+        if (result == null) {
+            return new java.util.ArrayList<>();
+        }
         Object listObj = result.get("list");
         if (listObj instanceof List) {
             return (List<PayOrder>) listObj;

@@ -85,16 +85,18 @@ public class VideoApiImpl implements VideoApi {
     @GetMapping("/queryVideoList")
     public PageInfo<Video> queryVideoList(@RequestParam("page") Integer page,
                                           @RequestParam("pageSize") Integer pageSize) {
-        Pageable pageable = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Order.desc("created")));
+        int p = (page == null || page < 1) ? 1 : page;
+        int size = (pageSize == null || pageSize < 1) ? 10 : pageSize;
+        Pageable pageable = PageRequest.of(p - 1, size, Sort.by(Sort.Order.desc("created")));
         Query query = new Query().with(pageable);
         List<Video> videos = this.mongoTemplate.find(query, Video.class);
         PageInfo<Video> pageInfo = new PageInfo<>();
         pageInfo.setRecords(videos);
-        pageInfo.setPageNum(page);
-        pageInfo.setPageSize(pageSize);
+        pageInfo.setPageNum(p);
+        pageInfo.setPageSize(size);
         long total = this.mongoTemplate.count(new Query(), Video.class);
         pageInfo.setTotal((int) total);
-        pageInfo.setPages(pageSize > 0 ? (int) ((total + pageSize - 1) / pageSize) : 0);
+        pageInfo.setPages(size > 0 ? (int) ((total + size - 1) / size) : 0);
         return pageInfo;
     }
 
@@ -225,24 +227,27 @@ public class VideoApiImpl implements VideoApi {
     public PageInfo<Video> queryVideoListByUserIds(@RequestParam("userIds") List<Long> userIds,
                                                   @RequestParam("page") Integer page,
                                                   @RequestParam("pageSize") Integer pageSize) {
+        int p = (page == null || page < 1) ? 1 : page;
+        int size = (pageSize == null || pageSize < 1) ? 10 : pageSize;
         if (userIds == null || userIds.isEmpty()) {
             PageInfo<Video> empty = new PageInfo<>();
             empty.setRecords(new java.util.ArrayList<>());
-            empty.setPageNum(page);
-            empty.setPageSize(pageSize);
+            empty.setPageNum(p);
+            empty.setPageSize(size);
             empty.setTotal(0);
+            empty.setPages(0);
             return empty;
         }
-        Pageable pageable = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Order.desc("created")));
+        Pageable pageable = PageRequest.of(p - 1, size, Sort.by(Sort.Order.desc("created")));
         Query query = Query.query(Criteria.where("userId").in(userIds)).with(pageable);
         List<Video> videos = this.mongoTemplate.find(query, Video.class);
         PageInfo<Video> pageInfo = new PageInfo<>();
         pageInfo.setRecords(videos);
-        pageInfo.setPageNum(page);
-        pageInfo.setPageSize(pageSize);
+        pageInfo.setPageNum(p);
+        pageInfo.setPageSize(size);
         long total = this.mongoTemplate.count(Query.query(Criteria.where("userId").in(userIds)), Video.class);
         pageInfo.setTotal((int) total);
-        pageInfo.setPages(pageSize > 0 ? (int) ((total + pageSize - 1) / pageSize) : 0);
+        pageInfo.setPages(size > 0 ? (int) ((total + size - 1) / size) : 0);
         return pageInfo;
     }
 
@@ -282,16 +287,18 @@ public class VideoApiImpl implements VideoApi {
     @GetMapping("/queryLocationVideoList")
     public PageInfo<Video> queryLocationVideoList(@RequestParam("page") Integer page,
                                                    @RequestParam("pageSize") Integer pageSize) {
-        Pageable pageable = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Order.desc("created")));
+        int p = (page == null || page < 1) ? 1 : page;
+        int size = (pageSize == null || pageSize < 1) ? 10 : pageSize;
+        Pageable pageable = PageRequest.of(p - 1, size, Sort.by(Sort.Order.desc("created")));
         Query query = Query.query(Criteria.where("locationName").ne(null)).with(pageable);
         List<Video> videos = this.mongoTemplate.find(query, Video.class);
         PageInfo<Video> pageInfo = new PageInfo<>();
         pageInfo.setRecords(videos);
-        pageInfo.setPageNum(page);
-        pageInfo.setPageSize(pageSize);
+        pageInfo.setPageNum(p);
+        pageInfo.setPageSize(size);
         long total = this.mongoTemplate.count(Query.query(Criteria.where("locationName").ne(null)), Video.class);
         pageInfo.setTotal((int) total);
-        pageInfo.setPages(pageSize > 0 ? (int) ((total + pageSize - 1) / pageSize) : 0);
+        pageInfo.setPages(size > 0 ? (int) ((total + size - 1) / size) : 0);
         return pageInfo;
     }
 }

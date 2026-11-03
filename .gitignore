@@ -1,140 +1,116 @@
-# Created by .ignore support plugin (hsz.mobi)
-### Java template
-# Compiled class file
-*.class
+# =====================================================================
+# 仓库收录白名单（2026-11-03 裁定）
+# 规则：Gitee 只收录「必须的代码和必要的文件」；其余一律不入库。
+# 写法：先 `*` 忽略一切，再逐条 `!` 放行；`!` 必须父目录在前，否则子文件无法恢复。
+# 说明文档：docs/仓库收录白名单.md（以本文件为准）
+# 换行：LF（Windows 下也必须保持 LF）
+# =====================================================================
 
-# Log file
-*.log
+# 1) 默认忽略一切（覆盖所有 CLI 工具专属目录：.trae/.cursor/.windsurf/
+#    .clinerules/.roo/.continue/.junie/.qoder/.serena/.joycode 等）
+*
+!*/
 
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
-*.jar
-*.war
-*.nar
-*.ear
-*.zip
-*.tar.gz
-*.rar
-
-# virtual machine crash logs
-hs_err_pid*
-
-### 敏感配置文件——禁止提交到仓库 ###
-# MinIO对象存储凭证（真实key仅本地保留，模板文件 minio.properties.example 可提交）
-**/minio.properties
-
-# 本地环境配置（可含真实密码，通过环境变量注入）
-**/application-local.yml
-**/application-local.yaml
-
-# 环境变量文件
-**/.env
-**/.env.*
-!**/.env.example
-# 后台前端构建用的公开配置（不含密钥），需要随代码提交
-!xfjy-admin/.env.development
-!xfjy-admin/.env.production
-
-# 密钥/证书文件
-**/*.pem
-**/*.p12
-**/*.keystore
-**/*.key
-**/*.jks
-
-# 含密钥/凭证命名的文件
-**/*secret*
-**/*credential*
-**/secrets.yml
-
-# 例外：IM 凭证 VO 类（非密钥文件，是数据传输对象）
-!xfjy-server/src/main/java/com/xfjy/server/vo/ImCredential.java
-
-# 例外：项目规则文档不受通配规则影响
-!.joycode/
-!.joycode/**
-
-*.iml
+# 2) 全局排除（防止 `!*/` 之后被误放行）
+node_modules/
+dist/
+dist-ssr/
 target/
+*.class
+*.log
+*.iml
 .idea/
-/.idea
-/.joycode
-/scripts/*
-# scripts目录整体忽略（本地调试脚本），仅保留需入库的初始化SQL
+.vscode/
+*.tsbuildinfo
+**/test-results/
+**/playwright-report/
+
+# 3) 根级必要文件（GEMINI.md / CONVENTIONS.md / .aider.conf.yml 属工具入口，不放行）
+!/.gitignore
+!/.gitattributes
+!/.dockerignore
+!/.env.example
+!/.nvmrc
+!/LICENSE
+!/README.md
+!/CHANGELOG.md
+!/AGENTS.md
+!/CLAUDE.md
+!/pom.xml
+
+# 4) CI（.github 只放行 workflows；copilot-instructions.md 属工具入口，禁止入库）
+!/.gitea/workflows/**
+!/.github/workflows/**
+
+# 5) 仓库级脚本（一次性调试脚本仍被 `*` 忽略）
 !/scripts/init-kefu.sql
 !/scripts/init-push.sql
-# 规则入口同步校验脚本需入库（CI 与全员复用）
 !/scripts/sync-agent-rules.ps1
 
-# 本地测试用图片（接口验证产物，不入库）
-/test-img.jpg
+# 6) 文档与部署
+!/docs/**
+!/deploy/**
 
-# 本地测试登录凭证（含明文密码，禁止入库）
-/admin-login.json
-# 本地测试素材目录（头像/视频，体积大，禁止入库）
-/test-assets/
+# 7) 后端/微服务源码与构建描述
+!/xfjy-*/pom.xml
+!/xfjy-*/README.md
+!/xfjy-*/src/**
 
-# ===== 开源项目：内部开发文档不公开 =====
-docs/剩余任务实施计划.md
-docs/项目体检报告.md
-docs/升级任务计划.md
-docs/推荐引擎重构需求文档.md
-docs/功能就绪矩阵.md
-docs/项目重构规划.md
-docs/心飞为你飞.jpg
-# SQL 脚本不入库（统一放 scripts/ 本地管理）
-docs/*.sql
+# 8) xfjy-admin（截图产物、.vscode 不放行）
+!/xfjy-admin/src/**
+!/xfjy-admin/public/**
+!/xfjy-admin/index.html
+!/xfjy-admin/package.json
+!/xfjy-admin/package-lock.json
+!/xfjy-admin/vite.config.ts
+!/xfjy-admin/tsconfig.json
+!/xfjy-admin/tsconfig.app.json
+!/xfjy-admin/tsconfig.node.json
+!/xfjy-admin/eslint.config.mjs
+!/xfjy-admin/stylelint.config.mjs
+!/xfjy-admin/stylelint-baseline.json
+!/xfjy-admin/scripts/stylelint-gate.mjs
+!/xfjy-admin/tests/visual/**
+!/xfjy-admin/playwright.config.ts
+!/xfjy-admin/.env.e2e.example
+!/xfjy-admin/.env.development
+!/xfjy-admin/.env.production
+!/xfjy-admin/.gitignore
+!/xfjy-admin/README.md
 
-# ===== 根目录临时文件与操作日志 =====
-hist-*.txt
-port-check.txt
-verify.txt
-filter-branch*.log
-gc.log
-push.log
-stash-pop.log
-mvn-*.log
+# 9) xfjy-app（截图、temp_*.json、_ 前缀脚本不放行）
+!/xfjy-app/src/**
+!/xfjy-app/index.html
+!/xfjy-app/package.json
+!/xfjy-app/package-lock.json
+!/xfjy-app/pnpm-lock.yaml
+!/xfjy-app/vite.config.mts
+!/xfjy-app/tsconfig.json
+!/xfjy-app/shims-uni.d.ts
+!/xfjy-app/uno.config.ts
+!/xfjy-app/eslint.config.mjs
+!/xfjy-app/stylelint.config.cjs
+!/xfjy-app/.gitignore
+!/xfjy-app/scripts/gen-icons.mjs
 
-# Python 编译缓存
+# 10) xfjy-recsys（训练代码入库；output/ 模型产物不入库）
+!/xfjy-recsys/README.md
+!/xfjy-recsys/requirements.txt
+!/xfjy-recsys/train/**
+
+# 11) 安全/产物兜底（必须放在所有 `!` 之后，覆盖上面的放行）
 __pycache__/
 *.pyc
-
-# ===== CI 构建上下文暂存目录（由 deploy/ci/stage-artifacts.sh 生成） =====
-# 内含 fat jar（约 70MB/个），不入库
-deploy/build/
-
-# ===== AI 工具本地工作目录（个人开发环境，不入库） =====
-.serena/
-.workbuddy/
-.atomcode/
-.playwright-cli/
-.playwright-mcp/
-# 多 agent 任务看板（认领/产出过程记录，见 .claude/board/README.md）
-.claude/board/
-
-# ===== 部署临时目录与备份文件 =====
-deploy/tmp_sync/
-deploy/manage.sh.bak*
+**/.env
+docs/*.sql
 *.bak
-
-# 本地 npm 配置（无敏感信息但属个人环境）
-.npmrc
-
-# CatPaw AI 工具临时文件
-_bt_test.txt
-_fix_wukongim.js
-_fix_wukongim.py
-_nl_test.txt
-.qoder/
-
-# Playwright 视觉回归产物（基线图 tests/visual/*-snapshots 需提交，产物不入库）
-xfjy-admin/test-results/
-xfjy-admin/playwright-report/
-
-# E2E 环境变量模板（不含凭证，需入库）
-!xfjy-admin/.env.e2e.example
+deploy/tmp_sync/
+**/minio.properties
+**/application-local.yml
+**/application-local.yaml
+**/*.pem
+**/*.p12
+**/*.key
+**/*.jks
+**/*.keystore
+deploy/build/

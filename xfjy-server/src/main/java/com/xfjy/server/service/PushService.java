@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xfjy.server.mapper.UserDeviceMapper;
 import com.xfjy.server.pojo.Settings;
 import com.xfjy.server.pojo.UserDevice;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,7 +74,7 @@ public class PushService {
 
             // 2. 查询目标用户绑定的设备
             List<UserDevice> devices = this.listDevicesByUserId(targetUserId);
-            if (devices.isEmpty()) {
+            if (CollectionUtils.isEmpty(devices)) {
                 LOGGER.debug("推送跳过：用户{}未绑定设备", targetUserId);
                 return;
             }
@@ -118,7 +119,7 @@ public class PushService {
 
             // 2. 查询目标用户绑定的设备
             List<UserDevice> devices = this.listDevicesByUserId(targetUserId);
-            if (devices.isEmpty()) {
+            if (CollectionUtils.isEmpty(devices)) {
                 LOGGER.debug("推送跳过：用户{}未绑定设备", targetUserId);
                 return;
             }
@@ -163,7 +164,7 @@ public class PushService {
 
             // 2. 查询目标用户绑定的设备
             List<UserDevice> devices = this.listDevicesByUserId(targetUserId);
-            if (devices.isEmpty()) {
+            if (CollectionUtils.isEmpty(devices)) {
                 LOGGER.debug("推送跳过：用户{}未绑定设备", targetUserId);
                 return;
             }

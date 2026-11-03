@@ -1,4 +1,0 @@
-# Aider 项目配置：会话启动时把 CONVENTIONS.md 读入上下文
-# CONVENTIONS.md 由 AGENTS.md 生成（scripts/sync-agent-rules.ps1），本文件只做指向
-read:
-  - CONVENTIONS.md

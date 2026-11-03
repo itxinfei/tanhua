@@ -147,17 +147,19 @@ public class UserLikeApiImpl implements UserLikeApi {
     }
 
     private PageInfo<UserLike> queryList(Query query, Integer page, Integer pageSize){
-        PageRequest pageRequest = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Order.desc("created")));
+        int p = (page == null || page < 1) ? 1 : page;
+        int size = (pageSize == null || pageSize < 1) ? 10 : pageSize;
+        PageRequest pageRequest = PageRequest.of(p - 1, size, Sort.by(Sort.Order.desc("created")));
         query.with(pageRequest); //分页
         List<UserLike> userLikeList = this.mongoTemplate.find(query, UserLike.class);
 
         PageInfo<UserLike> pageInfo = new PageInfo<>();
-        pageInfo.setPageNum(page);
-        pageInfo.setPageSize(pageSize);
+        pageInfo.setPageNum(p);
+        pageInfo.setPageSize(size);
         // 计算总数：用相同条件但不带分页的 count 查询
         long total = this.mongoTemplate.count(query, UserLike.class);
         pageInfo.setTotal((int) total);
-        pageInfo.setPages(pageSize > 0 ? (int) ((total + pageSize - 1) / pageSize) : 0);
+        pageInfo.setPages(size > 0 ? (int) ((total + size - 1) / size) : 0);
         pageInfo.setRecords(userLikeList);
 
         return pageInfo;

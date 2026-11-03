@@ -55,18 +55,20 @@ public class VisitorsApiImpl implements VisitorsApi {
     public PageInfo<Visitors> topVisitor(@RequestParam("userId") Long userId,
                                          @RequestParam("page") Integer page,
                                          @RequestParam("pageSize") Integer pageSize) {
-        Pageable pageable = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Order.desc("date")));
+        int p = (page == null || page < 1) ? 1 : page;
+        int size = (pageSize == null || pageSize < 1) ? 10 : pageSize;
+        Pageable pageable = PageRequest.of(p - 1, size, Sort.by(Sort.Order.desc("date")));
         Query query = Query.query(Criteria.where("userId").is(userId)).with(pageable);
         List<Visitors> visitorsList = this.queryVisitorsList(query);
 
         PageInfo<Visitors> pageInfo = new PageInfo<>();
 
         pageInfo.setRecords(visitorsList);
-        pageInfo.setPageSize(pageSize);
-        pageInfo.setPageNum(page);
+        pageInfo.setPageSize(size);
+        pageInfo.setPageNum(p);
         long total = this.mongoTemplate.count(Query.query(Criteria.where("userId").is(userId)), Visitors.class);
         pageInfo.setTotal((int) total);
-        pageInfo.setPages(pageSize > 0 ? (int) ((total + pageSize - 1) / pageSize) : 0);
+        pageInfo.setPages(size > 0 ? (int) ((total + size - 1) / size) : 0);
 
         return pageInfo;
     }

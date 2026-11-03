@@ -171,8 +171,20 @@ const MAX_VOICE_DURATION_MS = 60000;
 /** 有效语音最短时长（ms），过短视为误触 */
 const MIN_VOICE_DURATION_MS = 1000;
 
-/** 录音管理器（单例） */
-const recorderManager = uni.getRecorderManager();
+/**
+ * 录音管理器（单例）。
+ * H5 下 uni.getRecorderManager 不受支持：调用会告警并返回 undefined，
+ * 因此必须先做能力检测，缺失能力时保持 null，所有调用点统一用可选链保护。
+ */
+function createRecorderManager(): UniApp.RecorderManager | null {
+  try {
+    const manager = typeof uni.getRecorderManager === "function" ? uni.getRecorderManager() : null;
+    return manager && typeof manager.onStop === "function" ? manager : null;
+  } catch {
+    return null;
+  }
+}
+const recorderManager = createRecorderManager();
 /** 正在播放的语音消息 id（空=无） */
 const playingVoiceId = ref("");
 /** 音频播放上下文（同一时刻仅一个） */
@@ -190,10 +202,14 @@ function onRecorderStop(res: any): void {
   if (!res.tempFilePath) return;
   pushMessage("voice", res.tempFilePath, { duration: Math.round(duration / 1000) });
 }
-recorderManager.onStop(onRecorderStop);
+recorderManager?.onStop(onRecorderStop);
 
 /** 语音按钮按下：开始录音 */
 function onVoiceStart(): void {
+  if (!recorderManager) {
+    info("当前环境不支持录音");
+    return;
+  }
   isVoicePressing.value = true;
   voiceStartAt = Date.now();
   try {
@@ -350,6 +366,10 @@ function insertEmoji(emoji: string): void {
 
 /** 切换语音/文字输入模式 */
 function toggleVoiceMode(): void {
+  if (!recorderManager) {
+    info("当前环境不支持录音");
+    return;
+  }
   isVoiceMode.value = !isVoiceMode.value;
   activePanel.value = "none";
 }
@@ -363,7 +383,7 @@ function togglePanel(panel: PanelType): void {
 /** 语音按钮松开：停止录音，onStop 回调中上传发送 */
 function onVoiceEnd(): void {
   isVoicePressing.value = false;
-  recorderManager.stop();
+  recorderManager?.stop();
 }
 
 /** 选位置并发送（uni.chooseLocation；平台不支持时给出提示） */
@@ -559,7 +579,7 @@ onLoad(async (options: any) => {
 onUnmounted(() => {
   // 注销录音回调：否则离页后 stop/onStop 链可能在新实例注册后重复触发
   // （offStop 运行时存在，但 @dcloudio/types 的 RecorderManager 声明缺该方法）
-  (recorderManager as any).offStop?.(onRecorderStop);
+  (recorderManager as any)?.offStop?.(onRecorderStop);
   if (unregisterMessage) {
     unregisterMessage();
     unregisterMessage = null;

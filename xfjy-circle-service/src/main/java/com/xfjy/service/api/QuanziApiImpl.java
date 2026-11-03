@@ -184,7 +184,9 @@ public class QuanziApiImpl implements QuanZiApi {
                                               @RequestParam(value = "page", required = false) Integer page,
                                               @RequestParam(value = "pageSize", required = false) Integer pageSize) {
 
-        Pageable pageable = PageRequest.of(safePage(page) - 1, pageSize, Sort.by(Sort.Order.desc("date")));
+        int p = safePage(page);
+        int size = (pageSize == null || pageSize < 1) ? 10 : pageSize;
+        Pageable pageable = PageRequest.of(p - 1, size, Sort.by(Sort.Order.desc("date")));
         Query query = new Query().with(pageable);
 
         String tableName = "quanzi_time_line_";
@@ -210,13 +212,12 @@ public class QuanziApiImpl implements QuanZiApi {
 
         // 封装分页对象
         PageInfo<Publish> pageInfo = new PageInfo<>();
-        pageInfo.setPageNum(page);
-        pageInfo.setPageSize(pageSize);
-        // 计算总数：先查时间线总数，再按当前页实际查出的 publish 数量推算
-        // （MongoDB 分页下精确总数需额外 count 查询，这里用时间线总数作为上限）
+        pageInfo.setPageNum(p);
+        pageInfo.setPageSize(size);
+        // 计算总数：用时间线总数（时间线是分页的依据，records 是关联查出的 publish）
         long total = this.mongoTemplate.count(new Query(), TimeLine.class, tableName);
         pageInfo.setTotal((int) total);
-        pageInfo.setPages(pageSize > 0 ? (int) ((total + pageSize - 1) / pageSize) : 0);
+        pageInfo.setPages(size > 0 ? (int) ((total + size - 1) / size) : 0);
         pageInfo.setRecords(publishList);
 
         return pageInfo;
@@ -476,7 +477,9 @@ public class QuanziApiImpl implements QuanZiApi {
                                               @RequestParam(value = "page", required = false) Integer page,
                                               @RequestParam(value = "pageSize", required = false) Integer pageSize) {
 
-        PageRequest pageRequest = PageRequest.of(safePage(page) - 1, pageSize, Sort.by(Sort.Order.asc("created")));
+        int p = safePage(page);
+        int size = (pageSize == null || pageSize < 1) ? 10 : pageSize;
+        PageRequest pageRequest = PageRequest.of(p - 1, size, Sort.by(Sort.Order.asc("created")));
 
         Query query = Query.query(Criteria.where("publishId").is(new ObjectId(publishId))
                 .and("commentType").is(2)).with(pageRequest);
@@ -487,9 +490,9 @@ public class QuanziApiImpl implements QuanZiApi {
         long total = this.mongoTemplate.count(Query.query(Criteria.where("publishId").is(new ObjectId(publishId))
                 .and("commentType").is(2)), Comment.class);
         pageInfo.setTotal((int) total);
-        pageInfo.setPages(pageSize > 0 ? (int) ((total + pageSize - 1) / pageSize) : 0);
-        pageInfo.setPageSize(pageSize);
-        pageInfo.setPageNum(page);
+        pageInfo.setPages(size > 0 ? (int) ((total + size - 1) / size) : 0);
+        pageInfo.setPageSize(size);
+        pageInfo.setPageNum(p);
         pageInfo.setRecords(commentList);
 
         return pageInfo;
@@ -509,7 +512,9 @@ public class QuanziApiImpl implements QuanZiApi {
                                                     @RequestParam(value = "page", required = false) Integer page,
                                                     @RequestParam(value = "pageSize", required = false) Integer pageSize) {
 
-        PageRequest pageRequest = PageRequest.of(safePage(page) - 1, pageSize, Sort.by(Sort.Order.desc("created")));
+        int p = safePage(page);
+        int size = (pageSize == null || pageSize < 1) ? 10 : pageSize;
+        PageRequest pageRequest = PageRequest.of(p - 1, size, Sort.by(Sort.Order.desc("created")));
         Query query = new Query(Criteria
                 .where("publishUserId").is(userId)
                 .and("commentType").is(type)).with(pageRequest);
@@ -517,14 +522,14 @@ public class QuanziApiImpl implements QuanZiApi {
         List<Comment> commentList = this.mongoTemplate.find(query, Comment.class);
 
         PageInfo<Comment> pageInfo = new PageInfo<>();
-        pageInfo.setPageNum(page);
-        pageInfo.setPageSize(pageSize);
+        pageInfo.setPageNum(p);
+        pageInfo.setPageSize(size);
         pageInfo.setRecords(commentList);
         long total = this.mongoTemplate.count(new Query(Criteria
                 .where("publishUserId").is(userId)
                 .and("commentType").is(type)), Comment.class);
         pageInfo.setTotal((int) total);
-        pageInfo.setPages(pageSize > 0 ? (int) ((total + pageSize - 1) / pageSize) : 0);
+        pageInfo.setPages(size > 0 ? (int) ((total + size - 1) / size) : 0);
         return pageInfo;
     }
 
@@ -533,14 +538,16 @@ public class QuanziApiImpl implements QuanZiApi {
     public PageInfo<Publish> queryAlbumList(@RequestParam(value = "userId", required = false) Long userId,
                                             @RequestParam(value = "page", required = false) Integer page,
                                             @RequestParam(value = "pageSize", required = false) Integer pageSize) {
+        int p = safePage(page);
+        int size = (pageSize == null || pageSize < 1) ? 10 : pageSize;
         PageInfo<Publish> pageInfo = new PageInfo<>();
-        pageInfo.setPageNum(page);
-        pageInfo.setPageSize(pageSize);
+        pageInfo.setPageNum(p);
+        pageInfo.setPageSize(size);
         long total = this.mongoTemplate.count(new Query(), Album.class, "quanzi_album_" + userId);
         pageInfo.setTotal((int) total);
-        pageInfo.setPages(pageSize > 0 ? (int) ((total + pageSize - 1) / pageSize) : 0);
+        pageInfo.setPages(size > 0 ? (int) ((total + size - 1) / size) : 0);
 
-        Pageable pageable = PageRequest.of(safePage(page) - 1, pageSize, Sort.by(Sort.Order.desc("created")));
+        Pageable pageable = PageRequest.of(p - 1, size, Sort.by(Sort.Order.desc("created")));
         Query query = new Query().with(pageable);
         List<Album> albumList = this.mongoTemplate.find(query, Album.class, "quanzi_album_" + userId);
 
@@ -827,14 +834,16 @@ public class QuanziApiImpl implements QuanZiApi {
         Criteria criteria = Criteria.where("tags").is(tag);
         long total = this.mongoTemplate.count(Query.query(criteria), Publish.class);
 
-        Pageable pageable = PageRequest.of(safePage(page) - 1, pageSize, Sort.by(Sort.Order.desc("created")));
+        int p = safePage(page);
+        int size = (pageSize == null || pageSize < 1) ? 10 : pageSize;
+        Pageable pageable = PageRequest.of(p - 1, size, Sort.by(Sort.Order.desc("created")));
         List<Publish> records = this.mongoTemplate.find(Query.query(criteria).with(pageable), Publish.class);
 
         PageInfo<Publish> pageInfo = new PageInfo<>();
-        pageInfo.setPageNum(page);
-        pageInfo.setPageSize(pageSize);
+        pageInfo.setPageNum(p);
+        pageInfo.setPageSize(size);
         pageInfo.setTotal((int) total);
-        pageInfo.setPages(pageSize > 0 ? (int) ((total + pageSize - 1) / pageSize) : 0);
+        pageInfo.setPages(size > 0 ? (int) ((total + size - 1) / size) : 0);
         pageInfo.setRecords(records);
         return pageInfo;
     }

@@ -86,11 +86,14 @@ public class CommentsService {
             comments.setAudioUrl(record.getAudioUrl());
             comments.setDuration(record.getDuration());
 
-            for (UserInfo userInfo : userInfoList) {
-                if(record.getUserId().longValue() == userInfo.getUserId().longValue()){
-                    comments.setNickname(userInfo.getNickName());
-                    comments.setAvatar(userInfo.getLogo());
-                    break;
+            if (!CollectionUtils.isEmpty(userInfoList)) {
+                for (UserInfo userInfo : userInfoList) {
+                    if (userInfo != null && record.getUserId() != null
+                            && record.getUserId().longValue() == userInfo.getUserId().longValue()) {
+                        comments.setNickname(userInfo.getNickName());
+                        comments.setAvatar(userInfo.getLogo());
+                        break;
+                    }
                 }
             }
 

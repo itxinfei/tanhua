@@ -39,8 +39,26 @@ export interface VoiceRecorder {
   cancel: () => void;
 }
 
+/** 取录音管理器；H5 下该能力不存在（uni.getRecorderManager 会返回 undefined），返回 null */
+function getRecorderManager(): UniApp.RecorderManager | null {
+  try {
+    const manager = typeof uni.getRecorderManager === "function" ? uni.getRecorderManager() : null;
+    return manager && typeof manager.onStop === "function" ? manager : null;
+  } catch {
+    return null;
+  }
+}
+
 export function createVoiceRecorder(callbacks: VoiceRecorderCallbacks): VoiceRecorder {
-  const manager = uni.getRecorderManager();
+  const manager = getRecorderManager();
+  if (!manager) {
+    // 能力缺失时降级为空实现，避免调用方拿到 undefined 后崩溃
+    return {
+      start: () => callbacks.onError?.("当前环境不支持录音"),
+      stop: () => {},
+      cancel: () => {},
+    };
+  }
   let recording = false;
   let cancelled = false;
   let startedAt = 0;

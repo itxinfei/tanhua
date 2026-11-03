@@ -333,7 +333,16 @@ public class VideoService {
         Map<String, Long> likeCountMap = new java.util.HashMap<>();
         for (int i = 0; i < likeKeys.size(); i++) {
             String val = likeValues != null && i < likeValues.size() ? likeValues.get(i) : null;
-            likeCountMap.put(likeKeys.get(i), val != null ? Long.parseLong(val) : 0L);
+            long count = 0L;
+            if (val != null) {
+                try {
+                    count = Long.parseLong(val);
+                } catch (NumberFormatException e) {
+                    // 脏数据（非数字）按 0 处理，避免整页排序失败
+                    count = 0L;
+                }
+            }
+            likeCountMap.put(likeKeys.get(i), count);
         }
         records.sort((a, b) -> Long.compare(
                 likeCountMap.getOrDefault("QUANZI_COMMENT_LIKE_" + b.getId().toHexString(), 0L),

@@ -329,6 +329,9 @@ public class AdminDashboardService {
                     likes = new HashMap<>();
                     comments = new HashMap<>();
                 }
+                // RPC 降级可能返回 null，统一兜底为空 Map
+                if (likes == null) likes = new HashMap<>();
+                if (comments == null) comments = new HashMap<>();
                 final Map<String, Long> likeCounts = likes;
                 final Map<String, Long> commentCounts = comments;
 

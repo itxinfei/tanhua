@@ -271,9 +271,13 @@ public class MovementsService {
         queryParam.setUserIds(userIds);
         List<UserInfo> userInfoList = this.userInfoApi.queryUserInfoList(queryParam);
 
+        if (CollectionUtils.isEmpty(userInfoList)) {
+            return movementsList;
+        }
         for (Movements movements : movementsList) {
             for (UserInfo userInfo : userInfoList) {
-                if (movements.getUserId().longValue() == userInfo.getUserId().longValue()) {
+                if (userInfo != null && movements.getUserId() != null
+                        && movements.getUserId().longValue() == userInfo.getUserId().longValue()) {
 
                     // 修改点：动态级话题标签优先（发布页勾选）；无则回退作者资料标签（兼容历史动态）
                     String[] movementTags = movementTagsMap.get(movements.getId());
@@ -437,8 +441,12 @@ public class MovementsService {
             //按照数量查询
             visitors = this.visitorsApi.topVisitor(user.getId(), 6);
         } else {
-            //按照时间查询
-            visitors = this.visitorsApi.topVisitor(user.getId(), Long.valueOf(data));
+            //按照时间查询（脏数据按数量查询兜底）
+            try {
+                visitors = this.visitorsApi.topVisitor(user.getId(), Long.valueOf(data));
+            } catch (NumberFormatException e) {
+                visitors = this.visitorsApi.topVisitor(user.getId(), 6);
+            }
         }
 
         if(CollectionUtils.isEmpty(visitors)){
@@ -455,10 +463,13 @@ public class MovementsService {
         List<UserInfo> userInfoList = this.userInfoApi.queryUserInfoList(queryParam);
 
         List<VisitorsVo> result = new ArrayList<>();
-
+        if (CollectionUtils.isEmpty(userInfoList)) {
+            return result;
+        }
         for (Visitors visitor : visitors) {
             for (UserInfo userInfo : userInfoList) {
-                if(visitor.getVisitorUserId().longValue() == userInfo.getUserId().longValue()){
+                if (userInfo != null && visitor.getVisitorUserId() != null
+                        && visitor.getVisitorUserId().longValue() == userInfo.getUserId().longValue()){
                     VisitorsVo visitorsVo = new VisitorsVo();
 
                     visitorsVo.setAge(userInfo.getAge());
