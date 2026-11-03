@@ -82,17 +82,15 @@ import { useUserStore } from "@/store/user";
 import { getAgentApi } from "@/api/kefu";
 import { getVipStatus } from "@/api/mine";
 import {
-  loginIMDirect,
+  ensureSelfIM,
   onMessageReceived,
   sendTextMessage,
   getChatHistory,
-  logoutIM,
   type ReceivedMessage,
 } from "@/utils/wukongim";
 import { fail } from "@/utils/ux";
+import { resolveAvatar, DEFAULT_AVATAR } from "@/utils/avatar";
 
-/** 默认头像 */
-const DEFAULT_AVATAR = "/static/logo/logo-icon-transparent.png";
 /** 时间分隔线最小间隔（分钟） */
 const TIME_GAP_MINUTES = 5;
 /** 快捷问题预设（与 FAQ 种子数据呼应，引导首次提问） */
@@ -208,7 +206,7 @@ async function deliver(msg: Message): Promise<void> {
 let unregisterMessage: (() => void) | null = null;
 
 onLoad(async () => {
-  myAvatar.value = userStore.userInfo?.avatar || DEFAULT_AVATAR;
+  myAvatar.value = resolveAvatar(userStore.userInfo?.avatar);
 
   // 查询 VIP 状态（exclusive_service 专属客服标识，失败静默不阻断）
   try {
@@ -221,8 +219,9 @@ onLoad(async () => {
     const agent = await getAgentApi();
     agentId.value = agent.agentId;
 
-    // 2. WuKongIM 直连登录
-    const ok = await loginIMDirect(agentId.value);
+    // 2. 以「用户本人」身份连接 WuKongIM（消息发给客服账号 kefu0001）；
+    //    严禁以客服身份登录——会顶掉 admin 工作台且消息 from_uid 错乱
+    const ok = await ensureSelfIM();
     if (!ok) return;
 
     // 3. 先注册消息到达回调再拉历史：历史是最后一次性赋值的，
@@ -290,10 +289,11 @@ onUnmounted(() => {
 .chat-room { height: 100vh; display: flex; flex-direction: column; background: var(--bg-sub); }
 
 .vip-banner { display: flex; align-items: center; justify-content: center; gap: 8rpx;
-  margin: 24rpx 24rpx 0; padding: 16rpx 0;
-  background: linear-gradient(90deg, #2b1a0e, #4a3220); border-radius: 16rpx;
-  .vip-crown { font-size: 28rpx; }
-  .vip-text { font-size: 24rpx; color: #e8c88a; letter-spacing: 1rpx; }
+  margin: 24rpx 24rpx 0; padding: 16rpx 24rpx;
+  background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary)); border-radius: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(255, 94, 156, 0.25);
+  .vip-crown { font-size: 28rpx; color: #fff; }
+  .vip-text { font-size: 24rpx; color: #fff; letter-spacing: 1rpx; font-weight: 500; }
 }
 
 .welcome-tip { display: flex; justify-content: center; margin: 24rpx 0;
@@ -310,20 +310,20 @@ onUnmounted(() => {
   &.mine { flex-direction: row-reverse; }
   .avatar { width: 76rpx; height: 76rpx; border-radius: 16rpx; flex-shrink: 0; background: #eee; }
   .agent-avatar { width: 76rpx; height: 76rpx; border-radius: 16rpx; flex-shrink: 0; background: var(--bg-icon-soft); display: flex; align-items: center; justify-content: center; font-size: 40rpx; }
-  .bubble-wrap { display: flex; align-items: center; gap: 12rpx; max-width: 480rpx;
+  .bubble-wrap { display: flex; align-items: center; gap: 12rpx; max-width: 70%;
     &.mine { flex-direction: row-reverse; }
   }
   .status-loading { width: 28rpx; height: 28rpx; border: 3rpx solid var(--border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
   .status-failed { width: 36rpx; height: 36rpx; border-radius: 50%; background: #ff3b30; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     text { font-size: 24rpx; color: #fff; font-weight: bold; line-height: 1; }
   }
-  .bubble { position: relative; padding: 20rpx 24rpx; border-radius: 20rpx; background: var(--bg-card); font-size: 28rpx; line-height: 1.5; color: var(--text-primary); box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
-    &::before { content: ""; position: absolute; top: 28rpx; width: 0; height: 0; border-top: 10rpx solid transparent; border-bottom: 10rpx solid transparent; }
+  .bubble { position: relative; max-width: 70%; padding: 20rpx 24rpx; border-radius: 24rpx; background: var(--bg-card); font-size: 28rpx; line-height: 1.5; color: var(--text-primary); box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+    &::before { content: ""; position: absolute; top: 24rpx; width: 0; height: 0; border-top: 10rpx solid transparent; border-bottom: 10rpx solid transparent; }
     &:not(.mine) { border-top-left-radius: 6rpx;
-      &::before { left: -16rpx; border-right: 16rpx solid #fff; }
+      &::before { left: -14rpx; border-right: 14rpx solid var(--bg-card); }
     }
-    &.mine { background: var(--gradient-brand); color: #fff; border-top-right-radius: 6rpx;
-      &::before { right: -16rpx; border-left: 16rpx solid var(--color-primary); }
+    &.mine { background: var(--color-primary); color: #fff; border-top-right-radius: 6rpx;
+      &::before { right: -14rpx; border-left: 14rpx solid var(--color-primary); }
     }
   }
 }
@@ -334,7 +334,7 @@ onUnmounted(() => {
 
 .quick-bar { background: var(--bg-sub); border-bottom: 1rpx solid var(--border-light); }
 .quick-list { display: flex; gap: 16rpx; padding: 16rpx 20rpx; }
-/* 快捷问题 chip：#ff5e9c on #fff ≈2.6:1 → #c2185b */
+/* 快捷问题 chip：#fe3c72 on #fff ≈3.4:1 → #c2185b */
 .quick-chip { flex-shrink: 0; background: var(--bg-card); border: 1rpx solid var(--color-primary-mist); border-radius: 32rpx; padding: 14rpx 28rpx; min-height: 48rpx;
   text { font-size: 24rpx; color: var(--color-primary-text); white-space: nowrap; }
 }
@@ -344,8 +344,8 @@ onUnmounted(() => {
   &.focus { background: var(--bg-card); box-shadow: 0 0 0 3rpx rgba(255, 94, 142, 0.35); }
 }
 /* 发送按钮：禁用态仅 opacity 会让对比度跌破阈值 → 改用不透明深灰背景（WCAG 1.4.1 不依赖单一视觉线索） */
-.send-btn { padding: 0 36rpx; height: 72rpx; background: var(--color-primary); border-radius: 36rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+.send-btn { padding: 0 36rpx; height: 72rpx; background: var(--color-primary); border-radius: 36rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4rpx 14rpx rgba(255, 94, 156, 0.3);
   text { color: #fff; font-size: 28rpx; font-weight: 500; }
-  &.disabled { background: #c7c7c7; }
+  &.disabled { background: #c7c7c7; box-shadow: none; }
 }
 </style>

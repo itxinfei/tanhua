@@ -34,7 +34,7 @@ public class KefuService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KefuService.class);
 
-    /** 固定客服环信账号（客服侧通过环信 Console 或后续工作台登录回复） */
+    /** 固定客服 IM 账号（admin 工作台以该账号连接 WuKongIM 回复用户） */
     private static final String KEFU_AGENT_ID = "kefu0001";
 
     @Autowired
@@ -49,15 +49,22 @@ public class KefuService {
     @Autowired
     private UserInfoApi userInfoApi;
 
+    @Autowired
+    private SysConfigService sysConfigService;
+
     /** IM token 派生盐，与用户账号一致（见 {@code IMService#getImCredential}） */
     @Value("${im.token-salt:_xfjy}")
     private String imTokenSalt;
 
+    /** IM 长连接地址，与 {@code IMService} 共用同一配置项（IM_WS_URL 可覆盖） */
+    @Value("${im.ws-url:ws://192.168.20.133:5200}")
+    private String imWsUrl;
+
     /**
-     * 获取人工客服环信账号 ID
-     * 首次调用时在环信侧幂等注册客服账号（密码规则与用户账号一致：md5(账号 + 盐)）
+     * 获取人工客服 IM 账号 ID
+     * 首次调用时在 IM 通道（WuKongIM）幂等注册客服账号（密码规则与用户账号一致：md5(账号 + 盐)）
      *
-     * @return 客服环信账号 ID
+     * @return 客服 IM 账号 ID
      */
     public String getAgentId() {
         String password = DigestUtils.md5Hex(KEFU_AGENT_ID + this.imTokenSalt);
@@ -66,7 +73,7 @@ public class KefuService {
             if (registered) {
                 LOGGER.info("[客服] 客服账号已就绪: {}", KEFU_AGENT_ID);
             } else {
-                LOGGER.warn("[客服] 客服账号注册失败（环信不可用），仍返回账号ID: {}", KEFU_AGENT_ID);
+                LOGGER.warn("[客服] 客服账号注册失败（IM 通道不可用），仍返回账号ID: {}", KEFU_AGENT_ID);
             }
         } catch (Exception e) {
             LOGGER.error("[客服] 客服账号注册异常: {}", KEFU_AGENT_ID, e);
@@ -75,15 +82,17 @@ public class KefuService {
     }
 
     /**
-     * 获取客服环信登录凭证（admin 工作台专用）
-     * 幂等注册客服账号后换取用户级 token，前端 SDK 用 username+token 登录
+     * 获取客服 IM 登录凭证（admin 工作台专用）
+     * 幂等注册客服账号后换取用户级 token，前端 SDK 用 username+token+wsUrl 直连 WuKongIM
      *
-     * @return {username, token}；环信不可用时 token 为 null
+     * @return {username, token, wsUrl, provider}；IM 通道不可用时 token 为 null
      */
     public Map<String, String> getAgentCredential() {
         String password = DigestUtils.md5Hex(KEFU_AGENT_ID + this.imTokenSalt);
         Map<String, String> credential = new HashMap<>();
         credential.put("username", KEFU_AGENT_ID);
+        credential.put("wsUrl", this.imWsUrl);
+        credential.put("provider", this.sysConfigService.getImProvider());
         try {
             this.huanXinApi.registerUser(KEFU_AGENT_ID, password);
             String token = this.huanXinApi.getUserToken(KEFU_AGENT_ID, password);
@@ -98,7 +107,7 @@ public class KefuService {
     /**
      * 批量查询用户基础信息（admin 工作台会话列表展示昵称/头像）
      *
-     * <p>环信 username 即 userId 字符串，工作台拿会话 conversationId 即可查询。</p>
+     * <p>IM uid 即 userId 字符串，工作台拿会话 conversationId 即可查询。</p>
      *
      * @param userIds 用户ID列表
      * @return [{userId, nickname, logo}] 列表，入参为空返回空列表

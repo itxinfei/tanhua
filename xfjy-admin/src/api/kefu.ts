@@ -86,13 +86,19 @@ export function deleteFaqApi(id: number) {
   return request.delete(`/admin/kefu/faq/${id}`)
 }
 
-/** 客服环信登录凭证（工作台 SDK 登录用） */
+/** 客服 IM 登录凭证（工作台 WuKongIM SDK 直连用） */
 export interface KefuCredential {
+  /** 客服 IM 账号（固定 kefu0001） */
   username: string
+  /** 服务端派生的 IM token；IM 通道不可用时为 null */
   token: string | null
+  /** IM 长连接地址（ws://host:5200） */
+  wsUrl: string
+  /** IM 通道标识：wukongim / huanxin */
+  provider?: string
 }
 
-/** 获取客服环信登录凭证 */
+/** 获取客服 IM 登录凭证 */
 export function getAgentCredentialApi() {
   return request.get<any, KefuCredential>('/admin/kefu/agent/credential')
 }
@@ -104,7 +110,7 @@ export interface KefuUserInfo {
   logo: string | null
 }
 
-/** 批量查询用户基础信息（环信 username = userId，conversationId 即对端 userId） */
+/** 批量查询用户基础信息（IM uid = userId，conversationId 即对端 userId） */
 export function getKefuUsersInfoApi(userIds: number[]) {
   return request.post<any, KefuUserInfo[]>('/admin/kefu/users/info', { userIds })
 }

@@ -9,7 +9,7 @@
         </view>
         <!-- 单条消息 -->
         <view :id="'msg-' + msg.id" class="msg-item" :class="{ mine: msg.isMine }">
-          <image lazy-load v-if="!msg.isMine" class="avatar" :src="msg.avatar || DEFAULT_AVATAR" mode="aspectFill" :aria-label="`${nickname} 的头像`" />
+          <image lazy-load v-if="!msg.isMine" class="avatar" :src="resolveAvatar(msg.avatar)" mode="aspectFill" :aria-label="`${nickname} 的头像`" />
           <view class="bubble-wrap" :class="{ mine: msg.isMine }">
             <!-- 发送中转圈：纯状态动画，对读屏隐藏 -->
             <view v-if="msg.isMine && msg.status === 'sending'" class="status-loading" aria-hidden="true" />
@@ -37,7 +37,7 @@
               </a11y-button>
               <!-- 名片：点击跳转对方主页 -->
               <a11y-button v-else-if="msg.type === 'card'" class="msg-card" :label="`查看 ${msg.content} 的个人名片`" @tap="openCard(msg)">
-                <image lazy-load class="card-avatar" :src="msg.extra?.avatar || DEFAULT_AVATAR" mode="aspectFill" aria-hidden="true" />
+                <image lazy-load class="card-avatar" :src="resolveAvatar(msg.extra?.avatar)" mode="aspectFill" aria-hidden="true" />
                 <view class="card-info">
                   <text class="card-name">{{ msg.content }}</text>
                   <text class="card-hint">个人名片</text>
@@ -45,7 +45,7 @@
               </a11y-button>
             </view>
           </view>
-          <image lazy-load v-if="msg.isMine" class="avatar" :src="msg.avatar || DEFAULT_AVATAR" mode="aspectFill" aria-label="我的头像" />
+          <image lazy-load v-if="msg.isMine" class="avatar" :src="resolveAvatar(msg.avatar)" mode="aspectFill" aria-label="我的头像" />
         </view>
       </template>
     </scroll-view>
@@ -106,9 +106,7 @@ import { useUserStore } from "@/store/user";
 import { uploadChatImage, uploadChatAudio, getContacts } from "@/api/chat";
 import { getUserProfile } from "@/api/mine";
 import {
-  loginIMDirect,
-  loginIM,
-  logoutIM,
+  ensureSelfIM,
   onMessageReceived,
   sendTextMessage,
   sendStructuredMessage,
@@ -116,9 +114,8 @@ import {
   type ReceivedMessage,
 } from "@/utils/wukongim";
 import { info, fail } from "@/utils/ux";
+import { resolveAvatar, DEFAULT_AVATAR } from "@/utils/avatar";
 
-/** 默认头像路径 */
-const DEFAULT_AVATAR = "/static/logo/logo-icon-transparent.png";
 /** 时间分隔线最小间隔（分钟） */
 const TIME_GAP_MINUTES = 5;
 
@@ -495,7 +492,7 @@ onLoad(async (options: any) => {
   uni.setNavigationBarTitle({ title: nickname.value });
 
   // 当前用户头像
-  myAvatar.value = userStore.userInfo?.avatar || DEFAULT_AVATAR;
+  myAvatar.value = resolveAvatar(userStore.userInfo?.avatar);
 
   // 拉对方资料补头像
   if (userId.value) {
@@ -514,7 +511,8 @@ onLoad(async (options: any) => {
 
   // WuKongIM 直连登录 → 注册消息接收 → 拉历史
   try {
-    const ok = await loginIMDirect(String(userId.value));
+    // 以「当前登录用户本人」身份连接（历史问题：曾以对方身份登录导致顶号、自发自收）
+    const ok = await ensureSelfIM();
     if (ok) {
         // 先注册消息到达回调再拉历史：历史是最后一次性赋值的，
         // 在途实时消息先进 pending 缓冲，避免注册晚于拉取导致消息丢失

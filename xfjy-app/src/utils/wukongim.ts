@@ -15,6 +15,10 @@ import {
   Message,
   MessageText,
   Channel,
+  SyncOptions,
+  PullMode,
+  ConnectStatus,
+  type Conversation,
 } from "wukongimjssdk";
 import { BASE_URL, get } from "./request";
 
@@ -95,6 +99,185 @@ function wsAddr(wsUrl?: string): string {
   } catch {
     return "ws://127.0.0.1:5200";
   }
+}
+
+/**
+ * 由 WS 地址推导 WuKongIM HTTP API 基址：
+ * ws(s)://host:5200 → http(s)://host:5001（会话/历史同步回调走 HTTP API）
+ */
+function imApiBase(wsUrl?: string): string {
+  try {
+    const url = new URL(wsUrl || wsAddr());
+    url.protocol = url.protocol === "wss:" ? "https:" : "http:";
+    if (url.port === "5200") {
+      url.port = "5001";
+    }
+    return url.origin;
+  } catch {
+    return "http://192.168.20.133:5001";
+  }
+}
+
+/** UTF-8 字节数组转字符串（手写解码，兼容 App/小程序无 TextDecoder 的环境） */
+function utf8BytesToString(bytes: Uint8Array): string {
+  let out = "";
+  let i = 0;
+  while (i < bytes.length) {
+    const b1 = bytes[i++];
+    if (b1 < 0x80) {
+      out += String.fromCharCode(b1);
+      continue;
+    }
+    const b2 = bytes[i++] & 0x3f;
+    if (b1 < 0xe0) {
+      out += String.fromCharCode(((b1 & 0x1f) << 6) | b2);
+      continue;
+    }
+    const b3 = bytes[i++] & 0x3f;
+    if (b1 < 0xf0) {
+      out += String.fromCharCode(((b1 & 0x0f) << 12) | (b2 << 6) | b3);
+      continue;
+    }
+    const b4 = bytes[i++] & 0x3f;
+    let cp = ((b1 & 0x07) << 18) | (b2 << 12) | (b3 << 6) | b4;
+    cp -= 0x10000;
+    out += String.fromCharCode(0xd800 + (cp >> 10), 0xdc00 + (cp & 0x3ff));
+  }
+  return out;
+}
+
+/** WuKongIM API 返回的 payload（Base64）解码为 UTF-8 文本 */
+function decodePayloadText(base64: string): string {
+  if (!base64) return "";
+  try {
+    return utf8BytesToString(new Uint8Array(uni.base64ToArrayBuffer(base64)));
+  } catch {
+    return "";
+  }
+}
+
+/** WuKongIM 原始消息 JSON 转 SDK Message（content 还原为 MessageText，与实时消息路径一致） */
+function rawToSdkMessage(raw: Record<string, unknown>, channel: Channel): Message {
+  const msg = new Message();
+  msg.channel = channel;
+  msg.messageID = String(raw.message_id ?? "");
+  msg.messageSeq = Number(raw.message_seq ?? 0);
+  msg.clientMsgNo = String(raw.client_msg_no ?? "");
+  msg.fromUID = String(raw.from_uid ?? "");
+  msg.timestamp = Number(raw.timestamp ?? 0); // WuKongIM 时间戳为秒
+  msg.content = new MessageText(decodePayloadText(String(raw.payload ?? "")));
+  return msg;
+}
+
+/** 以 Promise 封装 uni.request */
+function postJson<T>(url: string, data: Record<string, unknown>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url,
+      method: "POST",
+      data,
+      success: (res) => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(res.data as T);
+        } else {
+          reject(new Error(`WuKongIM HTTP ${res.statusCode}`));
+        }
+      },
+      fail: (err) => reject(err),
+    });
+  });
+}
+
+/**
+ * 注入 SDK 数据同步回调（会话列表 + 频道历史消息，均走 WuKongIM HTTP API）
+ * wukongimjssdk 不内置 HTTP 实现，不注入则 conversationManager.sync()/syncMessages 直接抛错
+ */
+function setupProvider(apiBase: string): void {
+  const sdk = WKSDK.shared();
+  const uid = () => sdk.config.uid;
+
+  // 最近会话列表：POST /conversation/sync，msg_count=1 携带最后一条消息
+  sdk.config.provider.syncConversationsCallback = async (): Promise<Conversation[]> => {
+    const list = await postJson<Record<string, unknown>[]>(`${apiBase}/conversation/sync`, {
+      uid: uid(),
+      msg_count: 1,
+    });
+    return (Array.isArray(list) ? list : [])
+      .filter((raw) => Number(raw.channel_type) === ChannelTypePerson)
+      .map((raw) => {
+        const channel = sdk.newChannel(String(raw.channel_id ?? ""), ChannelTypePerson);
+        const conversation = sdk.conversationManager.createEmptyConversation(channel);
+        const recents = Array.isArray(raw.recents) ? raw.recents : [];
+        if (recents.length > 0) {
+          const last = recents[0] as Record<string, unknown>;
+          conversation.lastMessage = rawToSdkMessage(last, channel);
+          conversation.timestamp = Number(last.timestamp ?? 0);
+        }
+        return conversation;
+      });
+  };
+
+  // 频道历史消息：POST /channel/messagesync，pullMode=Up + seq=0 由服务端返回最新一页
+  // 响应为 {start_message_seq, end_message_seq, more, messages:[...]} 包装对象
+  sdk.config.provider.syncMessagesCallback = async (channel, opts): Promise<Message[]> => {
+    const resp = await postJson<{ messages?: Record<string, unknown>[] }>(
+      `${apiBase}/channel/messagesync`,
+      {
+        login_uid: uid(),
+        channel_id: channel.channelID,
+        channel_type: channel.channelType,
+        limit: opts.limit || 20,
+        pull_mode: opts.pullMode ?? PullMode.Up,
+        start_message_seq: opts.startMessageSeq || 0,
+        end_message_seq: opts.endMessageSeq || 0,
+      }
+    );
+    return (Array.isArray(resp?.messages) ? resp.messages : []).map((raw) =>
+      rawToSdkMessage(raw, channel)
+    );
+  };
+}
+
+/**
+ * 发起连接并等待鉴权结果（不再"connect 完即视为在线"）
+ * @returns 超时时间内进入 Connected 返回 true；ConnectFail 或 5s 超时返回 false
+ */
+function connectAndWait(): Promise<boolean> {
+  const sdk = WKSDK.shared();
+  const connectManager = sdk.connectManager;
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (ok: boolean): void => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      connectManager.removeConnectStatusListener(listener);
+      resolve(ok);
+    };
+    const timer = setTimeout(() => finish(connectManager.connected()), 5000);
+    const listener = (status: ConnectStatus): void => {
+      if (status === ConnectStatus.Connected) {
+        finish(true);
+      } else if (status === ConnectStatus.ConnectFail) {
+        finish(false);
+      }
+    };
+    connectManager.addConnectStatusListener(listener);
+    if (connectManager.connected()) {
+      finish(true);
+      return;
+    }
+    sdk.connect();
+  });
+}
+
+/** 被踢下线监听：同账号在其他端登录后重置本地状态，下次 ensureSelfIM 可重新连接 */
+function registerConnectionListener(): void {
+  WKSDK.shared().connectManager.addConnectStatusListener((status: ConnectStatus) => {
+    if (status === ConnectStatus.ConnectKick) {
+      isLoggedIn = false;
+    }
+  });
 }
 
 /** 从原始消息解析匹配事件（JSON 文本 {"type":"match",...}），非匹配消息返回 null */
@@ -199,7 +382,7 @@ let listenerRegistered = false;
 
 /**
  * 连接 WuKongIM（用户 ID + token）
- * 失败静默返回 false（聊天列表退化为纯联系人展示）
+ * 等待服务端鉴权结果后再返回；失败静默返回 false（聊天页按降级处理）
  */
 export async function loginIM(
   userId: string,
@@ -211,20 +394,52 @@ export async function loginIM(
   }
   try {
     const sdk = WKSDK.shared();
-    sdk.config.addr = wsAddr(wsUrl);
+    const addr = wsAddr(wsUrl);
+    sdk.config.addr = addr;
     sdk.config.uid = userId;
     sdk.config.token = token;
+    // 会话/历史 HTTP 同步回调（必须在首次 sync/syncMessages 前注入）
+    setupProvider(imApiBase(addr));
     if (!listenerRegistered) {
       registerMessageListener();
+      registerConnectionListener();
       listenerRegistered = true;
     }
-    sdk.connect();
-    isLoggedIn = true;
-    return true;
+    const ok = await connectAndWait();
+    isLoggedIn = ok;
+    return ok;
   } catch {
     isLoggedIn = false;
     return false;
   }
+}
+
+/**
+ * 确保以"当前登录用户本人"身份接入 IM（所有业务页面统一入口）
+ *
+ * 历史问题：客服页曾以客服账号、好友聊天页曾以对方账号连接，导致顶号、消息 from_uid 错乱。
+ * 本函数保证连接身份永远是当前用户：优先用后端下发凭证（盐值派生的真 token + wsUrl），
+ * 网络失败时回退本地派生直连（开发环境 WuKongIM 未开 token 校验时兜底）。
+ *
+ * @returns IM 是否就绪
+ */
+export async function ensureSelfIM(): Promise<boolean> {
+  if (isLoggedIn) {
+    return true;
+  }
+  const { useUserStore } = await import("@/store/user");
+  const uid = String(useUserStore().userInfo?.id || "");
+  if (!uid) {
+    return false;
+  }
+  const credential = await getImCredential();
+  if (credential?.token) {
+    const ok = await loginIM(uid, credential.token, credential.wsUrl);
+    if (ok) {
+      return true;
+    }
+  }
+  return loginIMDirect(uid);
 }
 
 /**
@@ -331,13 +546,31 @@ export async function sendImageMessage(to: string, url: string): Promise<boolean
 }
 
 /**
- * 拉取单聊历史消息（签名与原环信封装一致）
- * 注意：wukongimjssdk 无本地历史查询 API，完整历史漫游需后端消息接口支持；
- * 当前返回空数组，聊天页加载历史为空后按无历史记录降级，实时收发不受影响。
+ * 拉取单聊历史消息（最新一页，按时间正序）
+ * 经 SDK 的 syncMessages → syncMessagesCallback → WuKongIM HTTP /channel/messagesync，
+ * 与实时消息处于同一频道空间（channel_id=对方 uid），历史与实时天然连续。
  */
 export async function getChatHistory(
-  _conversationId: string,
-  _pageSize = 20
+  conversationId: string,
+  pageSize = 20
 ): Promise<ReceivedMessage[]> {
-  return [];
+  if (!isLoggedIn || !conversationId) {
+    return [];
+  }
+  try {
+    const sdk = WKSDK.shared();
+    const channel = sdk.newChannel(conversationId, ChannelTypePerson);
+    const opts = new SyncOptions();
+    opts.startMessageSeq = 0;
+    opts.endMessageSeq = 0;
+    opts.limit = pageSize;
+    opts.pullMode = PullMode.Up; // 上拉模式 + seq=0：服务端返回最新一页
+    const messages = await sdk.chatManager.syncMessages(channel, opts);
+    return (messages || [])
+      .map(toReceivedMessage)
+      .filter((m): m is ReceivedMessage => m !== null)
+      .sort((a, b) => (a.time || 0) - (b.time || 0));
+  } catch {
+    return [];
+  }
 }

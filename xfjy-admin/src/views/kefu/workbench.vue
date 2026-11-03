@@ -38,7 +38,7 @@
           </div>
         </div>
         <div v-if="sessions.length === 0 && !loading" class="empty-tip">暂无会话</div>
-        <div v-if="loading" class="empty-tip">连接环信中...</div>
+        <div v-if="loading" class="empty-tip">连接客服通道中...</div>
       </div>
     </div>
     <!-- 右侧聊天窗 -->
@@ -53,16 +53,16 @@
             class="msg-item"
             :class="{ mine: msg.isMine }"
           >
-            <!-- 图片消息：缩略图气泡（body 含 localUrl/thumbnailUrl 等候选地址） -->
+            <!-- 图片消息：C 端 JSON 契约 {type:'image',url}，content 即图片 URL -->
             <el-image
               v-if="msg.type === 'image'"
               class="media-bubble"
-              :src="imageUrlOf(msg)"
-              :preview-src-list="[imageUrlOf(msg)]"
+              :src="msg.content"
+              :preview-src-list="[msg.content]"
               fit="cover"
               preview-teleported
             />
-            <!-- 语音消息：占位气泡，点击播放 -->
+            <!-- 语音消息：占位气泡，点击播放（content 为语音 URL） -->
             <div
               v-else-if="msg.type === 'voice'"
               class="bubble voice-bubble"
@@ -73,10 +73,6 @@
             </div>
             <!-- 文本及其他消息 -->
             <div v-else class="bubble">{{ msg.content }}</div>
-            <!-- 已读回执：仅客服发送的消息显示（已读/未读） -->
-            <span v-if="msg.isMine" class="msg-status" :class="{ 'msg-status-read': msg.read }">
-              {{ msg.read ? '已读' : '未读' }}
-            </span>
           </div>
         </div>
         <div class="input-bar">
@@ -101,35 +97,32 @@ import { Microphone } from '@element-plus/icons-vue'
 import { getAgentCredentialApi, getKefuUsersInfoApi, type KefuUserInfo } from '@/api/kefu'
 import { useResponsive } from '@/composables/useResponsive'
 import {
-  loginEasemob,
-  logoutEasemob,
+  loginAgent,
+  logout,
   getConversations,
   onMessageReceived,
-  onMessageReadReceipts,
   sendTextMessage,
   getChatHistory,
+  markConversationRead,
   type ChatSession,
   type ReceivedMessage,
-  type ReadReceiptPayload,
-} from '@/utils/easemob'
+} from '@/utils/wukongim'
 
 // 响应式：移动端单栏 tab 切换（会话列表 / 聊天）
 const { isMobile } = useResponsive()
 const activePane = ref<'session' | 'chat'>('session')
 
-/** 客服环信账号（消息归属判断：from === agentId 为客服发送），登录后由后端凭证下发，不再硬编码 */
+/** 客服 IM 账号（消息归属判断：from === agentId 为对方用户、!== 为客服自己），登录后由后端凭证下发 */
 const agentId = ref('')
 
 interface ChatMessage {
   id: string
-  /** 环信服务端消息 ID（已读回执匹配用） */
-  msgId: string
+  /** WuKongIM 频道内消息序号 */
+  messageSeq: number
   content: string
   type: ReceivedMessage['type']
-  body: ReceivedMessage['body']
+  extra?: ReceivedMessage['extra']
   isMine: boolean
-  /** 是否已读（仅客服发送的消息有意义） */
-  read: boolean
   timestamp: number
 }
 
@@ -207,23 +200,24 @@ async function refreshSessions(): Promise<void> {
   await ensureUserInfos()
 }
 
-/** 打开会话：加载历史消息 */
+/** 打开会话：清零未读并加载历史消息 */
 async function openSession(conversationId: string): Promise<void> {
   activeId.value = conversationId
   // 移动端打开会话后自动切换到聊天 tab
   if (isMobile.value) {
     activePane.value = 'chat'
   }
+  // 设为当前打开会话（后续实时消息不计未读）并清空本地未读数
+  markConversationRead(conversationId)
   try {
     const history = await getChatHistory(conversationId)
-    messages.value = history.map((msg, i) => ({
-      id: `hist-${i}-${msg.time}`,
-      msgId: msg.msgId,
+    messages.value = history.map((msg) => ({
+      id: `hist-${msg.messageSeq}-${msg.time}`,
+      messageSeq: msg.messageSeq,
       content: msg.content,
       type: msg.type,
-      body: msg.body,
+      extra: msg.extra,
       isMine: msg.from === agentId.value,
-      read: false,
       timestamp: msg.time,
     }))
     scrollToBottom()
@@ -242,13 +236,11 @@ async function send(): Promise<void> {
     const message = await sendTextMessage(activeId.value, text)
     if (message) {
       messages.value.push({
-        id: `send-${Date.now()}`,
-        msgId: message.msgServerId || '',
+        id: `send-${message.messageSeq}-${Date.now()}`,
+        messageSeq: message.messageSeq,
         content: text,
         type: 'text',
-        body: message.body,
         isMine: true,
-        read: false,
         timestamp: Date.now(),
       })
       inputText.value = ''
@@ -264,20 +256,14 @@ async function send(): Promise<void> {
   }
 }
 
-/** 图片消息候选地址（远端消息 localUrl 为空，依次回退缩略图/大图/原图） */
-function imageUrlOf(msg: ChatMessage): string {
-  const body = msg.body as Record<string, any>
-  return body?.localUrl || body?.thumbnailUrl || body?.bigImageUrl || body?.originalImageUrl || ''
-}
-
-/** 语音时长（秒） */
+/** 语音时长（秒，来自结构化消息 extra.duration） */
 function voiceDuration(msg: ChatMessage): number {
-  return (msg.body as Record<string, any>)?.duration ?? 0
+  return Number(msg.extra?.duration ?? 0)
 }
 
-/** 播放语音（点击气泡播放；播放失败提示） */
+/** 播放语音（content 即语音 URL；播放失败提示） */
 function playVoice(msg: ChatMessage): void {
-  const url = (msg.body as Record<string, any>)?.url
+  const url = msg.type === 'voice' ? msg.content : ''
   if (!url) {
     ElMessage.warning('语音地址不可用')
     return
@@ -292,52 +278,38 @@ function playVoice(msg: ChatMessage): void {
 
 /** 消息到达回调（onUnmounted 注销） */
 let unregisterMessage: (() => void) | null = null
-/** 已读回执回调（onUnmounted 注销） */
-let unregisterReadReceipts: (() => void) | null = null
 
 onMounted(async () => {
   loading.value = true
   try {
     const credential = await getAgentCredentialApi()
-    if (!credential.token) {
-      ElMessage.warning('环信不可用，无法接入工作台')
+    if (!credential.token || !credential.wsUrl) {
+      ElMessage.warning('客服通道不可用，无法接入工作台')
       return
     }
-    const ok = await loginEasemob(credential.username, credential.token)
+    const ok = await loginAgent(credential.username, credential.token, credential.wsUrl)
     if (!ok) {
-      ElMessage.error('环信登录失败')
+      ElMessage.error('客服通道登录失败')
       return
     }
-    // 记录当前客服环信账号（由后端凭证下发），用于消息归属判断
+    // 记录当前客服 IM 账号（由后端凭证下发），用于消息归属判断
     agentId.value = credential.username
     await refreshSessions()
-    // 实时消息：当前会话追加展示，其余会话刷新未读
+    // 实时消息：当前会话追加展示，其余会话刷新会话列表（未读由 SDK 累计）
     unregisterMessage = onMessageReceived((msg: ReceivedMessage) => {
       if (msg.from === activeId.value) {
         messages.value.push({
-          id: `recv-${msg.time}`,
-          msgId: msg.msgId,
+          id: `recv-${msg.messageSeq}-${msg.time}`,
+          messageSeq: msg.messageSeq,
           content: msg.content,
           type: msg.type,
-          body: msg.body,
+          extra: msg.extra,
           isMine: false,
-          read: false,
           timestamp: msg.time,
         })
         scrollToBottom()
       }
       refreshSessions()
-    })
-
-    // 已读回执：对方已读客服发送的消息时，更新本地消息的 read 状态
-    unregisterReadReceipts = onMessageReadReceipts((payload: ReadReceiptPayload) => {
-      if (payload.conversationId !== activeId.value) return
-      const readIds = new Set(payload.messageIds)
-      for (const msg of messages.value) {
-        if (msg.isMine && msg.msgId && readIds.has(msg.msgId)) {
-          msg.read = true
-        }
-      }
     })
   } catch {
     ElMessage.error('工作台初始化失败')
@@ -351,11 +323,7 @@ onUnmounted(() => {
     unregisterMessage()
     unregisterMessage = null
   }
-  if (unregisterReadReceipts) {
-    unregisterReadReceipts()
-    unregisterReadReceipts = null
-  }
-  logoutEasemob()
+  logout()
 })
 </script>
 
@@ -480,16 +448,6 @@ onUnmounted(() => {
   user-select: none;
 }
 
-/* 已读回执标识 */
-.msg-status {
-  font-size: 11px;
-  color: var(--xfjy-text-disabled);
-  margin-top: 4px;
-}
-
-.msg-status-read {
-  color: var(--xfjy-success);
-}
 .input-bar {
   padding: 12px 20px;
   border-top: 1px solid var(--xfjy-border-light);
