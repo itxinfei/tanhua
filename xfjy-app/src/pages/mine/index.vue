@@ -51,12 +51,7 @@
     </a11y-button>
 
     <!-- 功能列表（表驱动渲染） -->
-    <view
-      v-for="(group, groupIndex) in menuGroups"
-      :key="groupIndex"
-      class="menu-group"
-      :style="{ flexGrow: group.length }"
-    >
+    <view v-for="(group, groupIndex) in menuGroups" :key="groupIndex" class="menu-group">
       <a11y-button
         v-for="item in group"
         :key="item.label"
@@ -215,9 +210,6 @@ onShow(() => {
   min-height: calc(100vh - var(--window-bottom, 0px));
   background: var(--bg-sub);
   padding-bottom: calc(var(--window-bottom, 0px) + 24rpx);
-  /* 纵向 flex：让菜单组吃掉 header/vip 之外的全部剩余高度，避免底部大片留白 */
-  display: flex;
-  flex-direction: column;
 }
 
 .header {
@@ -401,11 +393,10 @@ onShow(() => {
   background: var(--bg-card);
   border-radius: 24rpx;
   overflow: hidden;
-  /* flexGrow 内联绑定为组内项数（5/3），保证两组内每个菜单项分到的高度一致；
-     大屏时与菜单行一起拉伸铺满，小屏时由 menu-item 的 min-height 保底 */
+  /* 组内项等高：menu-item 用 flex: 1 1 0 均分；不做跨组拉伸（原 flexGrow 按项数比
+     分配剩余高度会导致内容不足时 overflow:hidden 裁切菜单项，已回退） */
   display: flex;
   flex-direction: column;
-  flex-basis: 0;
 
   .menu-item {
     display: flex;

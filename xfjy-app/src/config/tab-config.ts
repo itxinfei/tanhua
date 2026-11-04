@@ -7,7 +7,7 @@
  *  3. 原生 tabBar —— pages.json tabBar.list（编译期配置，仅 MP 端使用，H5 端由 App.vue 隐藏）
  *
  * 视觉规格（在 AppTabbar.vue 维护，与本文件常量对齐）：
- *  底栏高度 50px · 图标 28px · 文字 10px · 实色白底 · 品牌色 1px 发丝线 · 抖音式中央发布键
+ *  底栏高度 50px · 图标 28px · 文字 10px · 实色白底 · 顶部 1px 浅灰分割线 · 抖音式中央发布键
  *
  * 修改 tab 项时务必同步：本文件 + pages.json tabBar.list（两者无法自动联动）
  */

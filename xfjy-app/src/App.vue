@@ -189,7 +189,7 @@ page {
 /* #ifdef H5 */
 /* ===== 底部 tabBar（仅 H5；小程序端为原生 tabBar，由 theme.json 控制） =====
    统一视觉规格（AppTabbar.vue 单一维护，与 config/tab-config.ts 常量对齐）：
-   实色白底 · 图标 28px · 文字 10px · 品牌色 1px 发丝线 · 抖音式中央发布键 */
+   实色白底 · 图标 28px · 文字 10px · 顶部 1px 浅灰分割线 · 抖音式中央发布键 */
 
 /* 隐藏原生 tabBar：注入底栏（global-tabbar.ts 挂载 AppTabbar）接管所有页面（含 tab 页），避免双栏。
    原生 H5 midButton 渲染不可靠，统一由注入底栏提供发布加号 */
