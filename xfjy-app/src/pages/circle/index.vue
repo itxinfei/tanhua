@@ -95,7 +95,7 @@
     <!-- 消息视图（原 chat/index 内容） -->
     <view v-show="topTab === 'message'" class="tab-view">
       <view class="notice-bar">
-        <a11y-button class="notice-item" v-for="item in noticeItems" :key="item.type" :label="item.unread > 0 ? item.label + '，' + item.unread + ' 条未读' : item.label" @tap="goNotifications(item.type)">
+        <a11y-button class="notice-item" :class="{ active: noticePanelType === item.type }" v-for="item in noticeItems" :key="item.type" :label="item.unread > 0 ? item.label + '，' + item.unread + ' 条未读' : item.label" @tap="toggleNoticePanel(item.type)">
           <view class="notice-icon-wrap">
             <view class="notice-icon-bg" :style="{ background: item.color }">
               <view class="notice-icon" :class="item.iconClass" aria-hidden="true" />
@@ -106,7 +106,44 @@
         </a11y-button>
       </view>
 
-      <scroll-view scroll-y class="msg-list">
+      <!-- 通知列表面板：内联展开，不跳转页面 -->
+      <view v-if="noticePanelType" class="notice-panel">
+        <view class="notice-panel-header">
+          <text class="notice-panel-title">{{ noticePanelTitle }}</text>
+          <a11y-button class="notice-panel-close" label="关闭通知列表" @tap="closeNoticePanel">
+            <view class="i-ph-x" aria-hidden="true" />
+          </a11y-button>
+        </view>
+        <scroll-view scroll-y class="notice-panel-list">
+          <view v-if="noticeLocked" class="locked-state">
+            <view class="locked-icon"><view class="i-ph-lock" aria-hidden="true" /></view>
+            <text class="locked-title">VIP 专享权益</text>
+            <text class="locked-desc">开通会员即可查看谁喜欢你</text>
+            <a11y-button class="locked-btn" label="开通 VIP" @tap="goVip">
+              <text>开通 VIP</text>
+            </a11y-button>
+          </view>
+          <template v-else>
+            <empty-state v-if="noticeList.length === 0 && !noticeLoading" icon="notification" title="暂无通知" desc="有人喜欢你时会在这里提醒你" />
+            <view v-if="noticeLoading" class="notice-loading">加载中...</view>
+            <a11y-button v-for="item in noticeList" :key="item.id" class="notice-list-item" :label="noticeItemLabel(item)" @tap="goNoticeDetail(item)">
+              <view class="notice-avatar-wrap">
+                <image class="notice-avatar" :src="item.avatar" mode="aspectFill" lazy-load :aria-label="item.nickname + ' 的头像'" />
+                <view class="notice-type-badge" :style="{ background: noticeTypeColor }" aria-hidden="true">
+                  <view :class="noticeTypeIcon" />
+                </view>
+              </view>
+              <view class="notice-info">
+                <text class="notice-nickname">{{ item.nickname }}</text>
+                <text class="notice-desc">{{ item.desc }}</text>
+              </view>
+              <text class="notice-time">{{ item.time }}</text>
+            </a11y-button>
+          </template>
+        </scroll-view>
+      </view>
+
+      <scroll-view scroll-y class="msg-list" :class="{ 'msg-list-collapsed': noticePanelType }">
         <empty-state v-if="chatList.length === 0" title="还没有聊天" desc="去匹配页滑动，遇见新朋友吧" />
         <a11y-button
           v-for="item in chatList"
@@ -145,9 +182,11 @@ import MatchPopup from "@/components/match-popup.vue";
 import A11yButton from "@/components/a11y-button.vue";
 import { useCircleStore, CIRCLE_NEED_REFRESH_KEY } from "@/store/circle";
 import type { Movement } from "@/api/circle";
-import { getContacts, type Contact } from "@/api/chat";
+import { getContacts, getLikeMessages, getCommentMessages, getLoveMessages, getAnnouncementMessages, type Contact, type MessageLike, type MessageAnnouncement } from "@/api/chat";
 import { useChatStore, type NoticeType } from "@/store/chat";
 import { ensureSelfIM, getConversations } from "@/utils/wukongim";
+import { checkBenefit } from "@/api/mine";
+import { resolveAvatar } from "@/utils/avatar";
 
 const circleStore = useCircleStore();
 const chatStore = useChatStore();
@@ -318,7 +357,148 @@ updateTabBarBadge();
 }
 }
 
+/* ---------------- 通知面板（内联展开，不跳转页面） ---------------- */
+interface NoticeItem {
+  id: string;
+  avatar?: string;
+  nickname: string;
+  desc: string;
+  time: string;
+  userId?: number;
+}
+
+const NOTICE_PANEL_TITLES: Record<string, string> = {
+  like: "谁喜欢我",
+  comment: "评论",
+  love: "心动",
+  announcement: "公告",
+};
+const NOTICE_TYPE_COLORS: Record<string, string> = {
+  like: "var(--color-primary)",
+  comment: "var(--info-blue)",
+  love: "var(--color-primary)",
+  announcement: "var(--success)",
+};
+const NOTICE_TYPE_ICONS: Record<string, string> = {
+  like: "i-ph-heart-fill",
+  comment: "i-ph-chat-circle-dots",
+  love: "i-ph-star-fill",
+  announcement: "i-ph-bell",
+};
+const NOTICE_DESC: Record<string, string> = {
+  like: "赞了你的动态",
+  comment: "评论了你",
+  love: "喜欢了你",
+};
+const NOTICE_PAGE_SIZE = 20;
+
+const noticePanelType = ref<string>("");
+const noticeList = ref<NoticeItem[]>([]);
+const noticeLoading = ref(false);
+const noticeLocked = ref(false);
+
+const noticePanelTitle = computed(() => NOTICE_PANEL_TITLES[noticePanelType.value] || "通知");
+const noticeTypeColor = computed(() => NOTICE_TYPE_COLORS[noticePanelType.value] || "var(--color-primary)");
+const noticeTypeIcon = computed(() => NOTICE_TYPE_ICONS[noticePanelType.value] || "i-ph-bell");
+
+function mapLikeItem(msg: MessageLike, desc: string): NoticeItem {
+  return {
+    id: msg.id,
+    avatar: msg.avatar,
+    nickname: msg.nickname || "未知用户",
+    desc,
+    time: msg.createDate,
+    userId: msg.userId,
+  };
+}
+
+function mapAnnouncementItem(msg: MessageAnnouncement): NoticeItem {
+  return {
+    id: msg.id,
+    nickname: msg.title,
+    desc: msg.description,
+    time: msg.createDate,
+  };
+}
+
+/** 加载当前类型的通知列表 */
+async function loadNoticeList(type: string): Promise<boolean> {
+  if (noticeLoading.value) return false;
+  noticeLoading.value = true;
+  try {
+    const params = { page: 1, pagesize: NOTICE_PAGE_SIZE };
+
+    // 心动（谁喜欢我）需 see_who_likes 权益
+    if (type === "love") {
+      try {
+        const benefit = await checkBenefit("see_who_likes");
+        if (!benefit?.hasBenefit) {
+          noticeLocked.value = true;
+          noticeList.value = [];
+          return true;
+        }
+      } catch {
+        // 权益校验失败不阻断（降级放行）
+      }
+    }
+    noticeLocked.value = false;
+
+    if (type === "like") {
+      const res = await getLikeMessages(params);
+      noticeList.value = (res.items || []).map((m) => mapLikeItem(m, NOTICE_DESC.like));
+    } else if (type === "comment") {
+      const res = await getCommentMessages(params);
+      noticeList.value = (res.items || []).map((m) => mapLikeItem(m, NOTICE_DESC.comment));
+    } else if (type === "love") {
+      const res = await getLoveMessages(params);
+      noticeList.value = (res.items || []).map((m) => mapLikeItem(m, NOTICE_DESC.love));
+    } else if (type === "announcement") {
+      const res = await getAnnouncementMessages(params);
+      noticeList.value = (res.items || []).map(mapAnnouncementItem);
+    } else {
+      noticeList.value = [];
+    }
+    return true;
+  } catch {
+    return false;
+  } finally {
+    noticeLoading.value = false;
+  }
+}
+
+/** 切换通知面板：同一类型再次点击收起 */
+async function toggleNoticePanel(type: string): Promise<void> {
+  if (noticePanelType.value === type) {
+    noticePanelType.value = "";
+    return;
+  }
+  noticePanelType.value = type;
+  noticeList.value = [];
+  noticeLocked.value = false;
+  const ok = await loadNoticeList(type);
+  // 加载成功后才清零未读
+  if (ok) chatStore.markNoticeRead(type as NoticeType);
+}
+
+function closeNoticePanel(): void {
+  noticePanelType.value = "";
+}
+
+function goVip(): void {
+  uni.navigateTo({ url: "/pages/mine/vip" });
+}
+
+function goNoticeDetail(item: NoticeItem): void {
+  if (!item.userId) return;
+  uni.navigateTo({ url: `/pages/match/detail?id=${item.userId}` });
+}
+
+function noticeItemLabel(item: NoticeItem): string {
+  return `${item.nickname}，${item.desc}，${item.time}`;
+}
+
 function goNotifications(type: string): void {
+  // 兼容旧逻辑：如果通知面板未实现，仍跳转页面（当前已内联，此函数不再调用）
   uni.navigateTo({ url: "/pages/chat/notifications?type=" + type });
 }
 
@@ -734,5 +914,181 @@ flex-direction: column;
       }
     }
   }
+}
+
+/* 通知面板：内联展开，不跳转页面 */
+.notice-panel {
+  background: var(--bg-card);
+  border-bottom: 1rpx solid var(--border-light);
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+
+  .notice-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20rpx 32rpx;
+    border-bottom: 1rpx solid var(--border-light);
+
+    .notice-panel-title {
+      font-size: 30rpx;
+      font-weight: bold;
+      color: var(--text-primary);
+    }
+
+    .notice-panel-close {
+      width: 56rpx;
+      height: 56rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: var(--bg-sub);
+
+      .i-ph-x {
+        font-size: 28rpx;
+        color: var(--text-hint);
+      }
+    }
+  }
+
+  .notice-panel-list {
+    flex: 1;
+    min-height: 0;
+    padding: 16rpx 24rpx;
+
+    .notice-loading {
+      text-align: center;
+      padding: 40rpx;
+      color: var(--text-hint);
+      font-size: 26rpx;
+    }
+
+    .notice-list-item {
+      display: flex;
+      align-items: center;
+      padding: 20rpx 0;
+      border-bottom: 1rpx solid var(--border-faint);
+
+      &:last-child { border-bottom: none; }
+
+      .notice-avatar-wrap {
+        position: relative;
+        flex-shrink: 0;
+
+        .notice-avatar {
+          width: 80rpx;
+          height: 80rpx;
+          border-radius: 50%;
+          background: var(--bg-sub);
+          border: 2rpx solid var(--bg-icon-soft);
+        }
+
+        .notice-type-badge {
+          position: absolute;
+          bottom: -2rpx;
+          right: -2rpx;
+          width: 32rpx;
+          height: 32rpx;
+          border-radius: 50%;
+          border: 2rpx solid var(--text-inverse);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          view {
+            font-size: 16rpx;
+            color: var(--text-inverse);
+          }
+        }
+      }
+
+      .notice-info {
+        flex: 1;
+        margin-left: 20rpx;
+        min-width: 0;
+
+        .notice-nickname {
+          font-size: 28rpx;
+          font-weight: bold;
+          color: var(--text-primary);
+          display: block;
+        }
+
+        .notice-desc {
+          font-size: 24rpx;
+          color: var(--text-hint);
+          margin-top: 4rpx;
+          display: block;
+        }
+      }
+
+      .notice-time {
+        font-size: 22rpx;
+        color: var(--text-hint);
+        flex-shrink: 0;
+        margin-left: 16rpx;
+      }
+    }
+  }
+
+  .locked-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 60rpx 48rpx;
+
+    .locked-icon {
+      width: 100rpx;
+      height: 100rpx;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--gold), var(--gold-soft));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20rpx;
+
+      .i-ph-lock {
+        font-size: 48rpx;
+        color: var(--bg-deep);
+      }
+    }
+
+    .locked-title {
+      font-size: 28rpx;
+      color: var(--text-primary);
+      font-weight: bold;
+    }
+
+    .locked-desc {
+      font-size: 24rpx;
+      color: var(--text-hint);
+      margin-top: 8rpx;
+      text-align: center;
+    }
+
+    .locked-btn {
+      margin-top: 32rpx;
+      width: 280rpx;
+      height: 72rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(90deg, var(--gold), var(--gold-soft));
+      border-radius: 36rpx;
+
+      text {
+        font-size: 28rpx;
+        font-weight: bold;
+        color: var(--bg-deep);
+      }
+    }
+  }
+}
+
+.msg-list-collapsed {
+  flex: 0 0 auto;
+  max-height: 30vh;
 }
 </style>
