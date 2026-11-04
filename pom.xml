@@ -49,15 +49,6 @@
         <sensitive-word.version>0.29.5</sensitive-word.version>
     </properties>
 
-    <!--通用依赖-->
-    <dependencies>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
-
     <dependencyManagement>
         <dependencies>
             <!-- Spring Cloud BOM（Gateway 等，适配 SB 4.x） -->
@@ -86,6 +77,12 @@
             <dependency>
                 <groupId>com.baomidou</groupId>
                 <artifactId>mybatis-plus-jsqlparser</artifactId>
+                <version>${mybatis-plus.version}</version>
+            </dependency>
+            <!-- MyBatis Plus 注解（xfjy-api 契约模块 pojo 使用） -->
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-annotation</artifactId>
                 <version>${mybatis-plus.version}</version>
             </dependency>
             <!-- RocketMQ -->

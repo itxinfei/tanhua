@@ -112,3 +112,5 @@ deploy/tmp_sync/
 **/*.jks
 **/*.keystore
 deploy/build/
+# Maven 依赖树分析临时产物
+dep-tree-all.txt
