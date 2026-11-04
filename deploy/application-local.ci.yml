@@ -76,3 +76,8 @@ xfjy:
     url: http://xfjy-sso:18080
     default:
       user: 2
+  pay:
+    # 133 为内网测试环境，模拟支付是当前唯一支付通道，开启以便测试 VIP 购买流程；
+    # 生产部署通过环境变量 XFJY_PAY_MOCK_CONFIRM_ENABLED=false 覆盖关闭。
+    mock-confirm:
+      enabled: true

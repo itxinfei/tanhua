@@ -11,6 +11,7 @@ import com.xfjy.service.vo.BenefitCheckVo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,6 +36,13 @@ public class PayController {
 
     @Autowired
     private PayApi payApi;
+
+    /**
+     * 模拟支付确认开关：默认 false（生产安全），本地开发在 application-local.yml 显式开启。
+     * 关闭时 /users/vip/pay/confirm 返回 403，防止生产环境 0 元购 VIP。
+     */
+    @Value("${xfjy.pay.mock-confirm.enabled:false}")
+    private boolean mockConfirmEnabled;
 
     /**
      * 查询上架的 VIP 套餐列表
@@ -84,6 +92,10 @@ public class PayController {
      */
     @PostMapping("pay/confirm")
     public ResponseEntity<Void> confirmPay(@RequestBody Map<String, String> param) {
+        if (!this.mockConfirmEnabled) {
+            LOGGER.warn("模拟支付确认接口已关闭（xfjy.pay.mock-confirm.enabled=false），拒绝请求");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         try {
             User user = UserThreadLocal.get();
             if (user == null || user.getId() == null) {

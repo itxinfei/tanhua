@@ -105,9 +105,13 @@ xfjy:
     password: ${NEO4J_PASSWORD:itxinfei123456}
   # 极光推送 JPush（凭证环境变量外置，留空走 mock 模式仅打日志不实际推送）
   jpush:
-    app-key: 
-    master-secret: 
+    app-key:
+    master-secret:
     enabled: true
+  # 支付：模拟支付确认开关，默认 false 保证生产安全（本地开发在 application-local.yml 开启）
+  pay:
+    mock-confirm:
+      enabled: false
 
 # Sa-Token 认证鉴权（管理后台）
 sa-token:
