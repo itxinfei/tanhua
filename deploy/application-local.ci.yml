@@ -43,7 +43,10 @@ spring:
       discovery:
         server-addr: 192.168.20.133:8848
         username: nacos
-        password: 
+        password:
+        # base application.yml 默认不注册（本地裸跑避免污染共享注册中心）；
+        # CI/容器部署必须注册，否则网关无法发现 BFF、各服务也无法互相发现。
+        register-enabled: true
 
 xfjy:
   neo4j:

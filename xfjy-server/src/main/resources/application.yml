@@ -16,6 +16,11 @@ spring:
         username: nacos
         password: nacos
         namespace:
+        # 默认不注册，仅订阅（discovery 仍可用）：本地裸跑通常只起部分服务，
+        # 下游静态地址指向 127.0.0.1，注册后会被网关/其他服务轮询到并因下游不可达返回 503。
+        # CI/容器打包由 deploy/application-local.ci.yml 覆盖为 true；本地需参与服务发现时
+        # 在 application-local.yml 里显式设回 true。
+        register-enabled: false
   profiles:
     active: local
   servlet:
