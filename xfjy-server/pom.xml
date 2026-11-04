@@ -24,6 +24,11 @@
             <artifactId>xfjy-api</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- 直接使用 ObjectId（Comment/Publish 的 getId().toHexString()），不依赖 xfjy-api 的下传 -->
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>bson</artifactId>
+        </dependency>
 
         <!-- Web -->
         <dependency>

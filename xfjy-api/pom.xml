@@ -35,6 +35,11 @@
             <artifactId>spring-data-mongodb</artifactId>
             <optional>true</optional>
         </dependency>
+        <!-- 对外契约直接使用 ObjectId（MongoObjectIdModule 的序列化逻辑），故 compile 作用域、不下传 optional -->
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>bson</artifactId>
+        </dependency>
         <!-- MyBatis-Plus 注解: @TableField/@EnumValue（UserInfo/BasePojo/SexEnum 契约化所需） -->
         <dependency>
             <groupId>com.baomidou</groupId>
