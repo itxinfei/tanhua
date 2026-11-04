@@ -555,29 +555,38 @@ async function swipeOut(action: "like" | "dislike" | "superlike") {
       : FLY_DISTANCE_Y_NORMAL_RPX;
 
   // 上报滑动，互相喜欢时弹出匹配成功窗
-  try {
-    const matched = await matchStore.doSwipe(card.id, action);
-    if (matched) {
-      matchStore.showMatchPopup({
-        userId: card.id,
-        nickname: card.nickname,
-        avatar: card.avatar,
-      });
-    }
-    // 超级喜欢为 VIP 权益：先上报成功再扣次数（与 detail 页一致，避免失败白扣）
-    if (action === "superlike") {
-      const ok = await recordBenefitUsage("super_like");
-      if (!ok) {
-        info("今日超级喜欢次数已用完");
+  if (action === "dislike") {
+    // 左滑「跳过」不消耗额度、不改变推荐结果，只是异步清理可能存在的喜欢关系，
+    // 属于可补偿操作：乐观出栈 + 后台上报。若像 like 一样 await 后再决定，
+    // 后端超时/500 会把卡片弹回，用户会反复卡在同一张卡上（实测过的高频痛点）。
+    void matchStore.doSwipe(card.id, "dislike").catch(() => {
+      // 静默降级：跳过纯本地行为，服务端关系未清理不影响当前体验
+    });
+  } else {
+    try {
+      const matched = await matchStore.doSwipe(card.id, action);
+      if (matched) {
+        matchStore.showMatchPopup({
+          userId: card.id,
+          nickname: card.nickname,
+          avatar: card.avatar,
+        });
       }
+      // 超级喜欢为 VIP 权益：先上报成功再扣次数（与 detail 页一致，避免失败白扣）
+      if (action === "superlike") {
+        const ok = await recordBenefitUsage("super_like");
+        if (!ok) {
+          info("今日超级喜欢次数已用完");
+        }
+      }
+    } catch {
+      // like/superlike 涉及真实关系与额度，上报失败必须回弹，避免后端未记录却把推荐划走
+      dragX.value = 0;
+      dragY.value = 0;
+      swiping.value = false;
+      fail("操作失败，请重试");
+      return;
     }
-  } catch {
-    // 上报失败：回弹卡片并提示，避免后端未记录却把推荐划走
-    dragX.value = 0;
-    dragY.value = 0;
-    swiping.value = false;
-    fail("操作失败，请重试");
-    return;
   }
 
   // 延迟移除卡片（等待飞出动画完成）
@@ -823,20 +832,32 @@ onShareAppMessage(() => ({
   }
 
   .filter-btn {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    /* 顶栏高 88rpx，但 padding 只有 8rpx，实际热区约 40rpx，远低于规范。
-       改为整块撑满顶栏高度；max(88rpx,44px) 兜住窄屏物理下限 */
-    align-self: stretch;
-    min-height: max(88rpx, 44px);
+    /* 与 locate-btn 保持同一胶囊高度：44rpx 视觉 + 88rpx 热区 */
+    height: 44rpx;
+    min-height: 44rpx;
     box-sizing: border-box;
-    padding: 0 24rpx;
-    font-size: 28rpx;
+    padding: 0 16rpx;
+    font-size: 24rpx;
+    font-weight: 600;
     color: var(--text-inverse);
     background: rgba(255, 255, 255, 0.18);
     border: 1rpx solid rgba(255, 255, 255, 0.35);
     border-radius: 24rpx;
+
+    /* 热区扩展：44rpx 视觉高度不满足 88rpx 最小热区，用伪元素补足。
+       伪元素覆盖上下各 22rpx，透明但可点击 */
+    &::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: -22rpx;
+      bottom: -22rpx;
+    }
   }
 }
 
