@@ -592,8 +592,10 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .chat-room { height: 100vh; display: flex; flex-direction: column; background: var(--bg-sub); }
 
-/* ===== 消息列表 ===== */
-.msg-list { flex: 1; padding: 24rpx 24rpx 12rpx; }
+/* ===== 消息列表 =====
+   flex:1 必须配 min-height:0：纵向 flex 子项默认 min-height:auto，
+   消息增多时会撑破容器、把输入区挤出视口。 */
+.msg-list { flex: 1 1 auto; min-height: 0; min-width: 0; padding: 24rpx 24rpx 12rpx; overflow-y: auto; }
 
 /* #bbb on 浅灰底 ≈1.9:1 → #767676 */
 .time-divider { display: flex; justify-content: center; margin: 16rpx 0 24rpx;
@@ -603,14 +605,16 @@ onUnmounted(() => {
 .msg-item { display: flex; align-items: flex-start; margin-bottom: 28rpx; gap: 16rpx;
   &.mine { flex-direction: row-reverse; }
   .avatar { width: 76rpx; height: 76rpx; border-radius: 16rpx; flex-shrink: 0; background: var(--border-light); }
-  .bubble-wrap { display: flex; align-items: center; gap: 12rpx; max-width: 480rpx;
+  .bubble-wrap { display: flex; align-items: center; gap: 12rpx; max-width: 480rpx; min-width: 0;
     &.mine { flex-direction: row-reverse; }
   }
   .status-loading { width: 28rpx; height: 28rpx; border: 3rpx solid var(--border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
   .status-failed { width: 32rpx; height: 32rpx; border-radius: 50%; background: var(--color-danger); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     .failed-icon { font-size: 22rpx; color: var(--text-inverse); font-weight: bold; line-height: 1; }
   }
-  .bubble { position: relative; padding: 20rpx 24rpx; border-radius: 20rpx; background: var(--bg-card); font-size: 28rpx; line-height: 1.5; color: var(--text-primary); box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  /* min-width:0 + 断行：长文本/连续英文/URL 才能收在气泡内，
+     否则会撑破 flex 容器导致页面横向滚动 */
+  .bubble { position: relative; min-width: 0; overflow-wrap: anywhere; word-break: break-word; padding: 20rpx 24rpx; border-radius: 20rpx; background: var(--bg-card); font-size: 28rpx; line-height: 1.5; color: var(--text-primary); box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
     /* 气泡尾巴 */
     &::before { content: ""; position: absolute; top: 28rpx; width: 0; height: 0; border-top: 10rpx solid transparent; border-bottom: 10rpx solid transparent; }
     &:not(.mine) { border-top-left-radius: 6rpx;

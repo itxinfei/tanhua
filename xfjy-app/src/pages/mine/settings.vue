@@ -310,11 +310,11 @@ function inputDeleteCode() {
 .group { background: var(--bg-card); margin: 0 0 24rpx; padding: 8rpx 32rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   /* 分组标题原 #999（≈2.85:1）→ #767676 */
   .group-title { font-size: 24rpx; color: var(--text-hint); padding: 16rpx 0 8rpx; display: block; }
-  .item { display: flex; align-items: center; padding: 26rpx 0; border-bottom: 1rpx solid var(--border-faint);
+  .item { display: flex; align-items: center; padding: 26rpx 0; border-bottom: 1rpx solid var(--border-faint); min-width: 0;
     &:last-child { border-bottom: none; }
     .label { flex: 1; font-size: 28rpx; color: var(--text-primary); }
-    /* 副文本 #999 → #767676 */
-    .value { font-size: 26rpx; color: var(--text-hint); margin-right: 8rpx; }
+    /* 长手机号/状态文本截断，避免挤占右侧箭头 */
+    .value { font-size: 26rpx; color: var(--text-hint); margin-right: 8rpx; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .value.verified { color: var(--color-primary-text); font-weight: 500; }
     /* 箭头 #ccc → #767676 */
     .arrow { font-size: 32rpx; color: var(--text-hint); }

@@ -395,16 +395,23 @@ onUnload(() => {
   color: var(--text-hint);
 }
 
-/* ===== 横向媒体行 ===== */
+/* ===== 横向媒体行 =====
+   去掉负 margin（原先用 -28rpx 抵消父级 padding 来贴边，窄屏下会让
+   媒体行超出卡片边界）；改为容器内滚动，溢出裁切在容器内完成 */
 .media-row {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   white-space: nowrap;
-  margin: 16rpx -28rpx 8rpx;
-  padding: 8rpx 28rpx;
+  margin: 16rpx 0 8rpx;
+  padding: 8rpx 0;
 }
 
 .media-item {
   position: relative;
   display: inline-block;
+  flex-shrink: 0;
   width: 180rpx;
   height: 180rpx;
   margin-right: 16rpx;

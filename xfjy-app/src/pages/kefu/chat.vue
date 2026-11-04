@@ -300,7 +300,9 @@ onUnmounted(() => {
   text { font-size: 24rpx; color: var(--text-hint); background: rgba(0, 0, 0, 0.05); padding: 10rpx 28rpx; border-radius: 24rpx; }
 }
 
-.msg-list { flex: 1; padding: 12rpx 24rpx; }
+/* flex:1 配 min-height:0：纵向 flex 子项默认 min-height:auto，
+   消息增多时会撑破容器、把输入区挤出视口 */
+.msg-list { flex: 1 1 auto; min-height: 0; min-width: 0; padding: 12rpx 24rpx; }
 
 .time-divider { display: flex; justify-content: center; margin: 16rpx 0 24rpx;
   .time-text { font-size: 22rpx; color: var(--text-hint); background: rgba(0, 0, 0, 0.05); padding: 6rpx 24rpx; border-radius: 24rpx; }

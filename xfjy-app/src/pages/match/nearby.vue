@@ -220,7 +220,10 @@ onPullDownRefresh(async () => {
 </script>
 
 <style lang="scss" scoped>
-.nearby-page { min-height: 100vh; background: var(--bg-page); }
+/* 纵向 flex：筛选栏与定位提示固定，列表吸收剩余高度。
+   原先 .user-list 写死 calc(100vh - 112rpx)，未计入定位提示条与
+   安全区，提示出现时列表底部被裁切、小屏更明显。 */
+.nearby-page { display: flex; flex-direction: column; min-height: 100vh; background: var(--bg-page); }
 
 /* ===== 定位提示 ===== */
 .location-tip { display: flex; align-items: center; gap: 12rpx; padding: 20rpx 32rpx; background: var(--bg-icon-soft); border-bottom: 1rpx solid var(--border-faint);
@@ -239,7 +242,13 @@ onPullDownRefresh(async () => {
 }
 
 /* ===== 用户列表 ===== */
-.user-list { padding: 20rpx 24rpx; height: calc(100vh - 112rpx); }
+.user-list {
+  padding: 20rpx 24rpx;
+  /* 吸收剩余高度并允许自身滚动；min-height:0 防止内容撑破 flex 容器 */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
 
 /* 距离标签 */
 .distance-tag { margin-top: 12rpx; display: inline-flex; align-items: center; gap: 6rpx; background: var(--bg-icon-soft); border-radius: 20rpx; padding: 6rpx 16rpx;

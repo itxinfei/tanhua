@@ -115,24 +115,35 @@ onLoad((options: any) => {
 </script>
 
 <style lang="scss" scoped>
-.post-detail { min-height: 100vh; background: var(--bg-sub); padding: 20rpx 24rpx 120rpx; }
+/* border-box：padding 计入高度，避免 min-height:100vh 下超出视口 */
+.post-detail { box-sizing: border-box; min-height: 100vh; background: var(--bg-sub); padding: 20rpx 24rpx 120rpx; }
 .post-card { background: var(--bg-card); padding: 28rpx; margin-bottom: 16rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
-  .post-header { display: flex; align-items: center;
-    .avatar { width: 76rpx; height: 76rpx; border-radius: 50%; border: 3rpx solid var(--bg-icon-soft); }
-    .user-info { margin-left: 16rpx;
-      .nickname { font-size: 28rpx; font-weight: bold; display: block; color: var(--text-primary); }
+  .post-header { display: flex; align-items: center; min-width: 0;
+    .avatar { width: 76rpx; height: 76rpx; border-radius: 50%; border: 3rpx solid var(--bg-icon-soft); flex-shrink: 0; }
+    /* min-width:0：长昵称才能被约束在剩余空间内，不撑破 flex 行 */
+    .user-info { margin-left: 16rpx; flex: 1; min-width: 0;
+      .nickname { font-size: 28rpx; font-weight: bold; display: block; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       /* #ccc ≈1.6:1 → #767676 */
       .time { font-size: 22rpx; color: var(--text-hint); margin-top: 4rpx; display: block; }
     }
   }
-  .post-content { font-size: 28rpx; line-height: 1.7; margin: 20rpx 0; color: var(--text-primary); }
+  /* overflow-wrap：长文本/URL/连续英文才能断行，避免撑破卡片横向溢出 */
+  .post-content { font-size: 28rpx; line-height: 1.7; margin: 20rpx 0; color: var(--text-primary); overflow-wrap: anywhere; word-break: break-word; }
 
   /* 话题标签（发布页勾选，落库 Movement.tags） */
   .tag-row { display: flex; flex-wrap: wrap; gap: 12rpx; margin: 0 0 20rpx; }
   .tag-chip { font-size: 22rpx; color: var(--color-primary-text); background: var(--bg-icon-soft); padding: 6rpx 18rpx; border-radius: 24rpx; }
+  /* 九宫格：按容器宽度等分而非固定 rpx，避免窄屏（320px）三格 + 间距
+     超出卡片内宽导致横向溢出；aspect-ratio 保证正方形 */
   .image-grid { display: flex; flex-wrap: wrap; gap: 8rpx;
     /* 九宫格每格作为可聚焦按钮（原 image 直接 click 无键盘入口） */
-    .grid-img { width: 210rpx; height: 210rpx; border-radius: 12rpx; overflow: hidden; }
+    .grid-img {
+      flex: 1 1 calc(33.333% - 8rpx);
+      max-width: calc(33.333% - 8rpx);
+      aspect-ratio: 1 / 1;
+      border-radius: 12rpx;
+      overflow: hidden;
+    }
     .grid-img-inner { width: 100%; height: 100%; display: block; }
   }
 }
