@@ -9,6 +9,7 @@ import org.springframework.web.service.annotation.HttpExchange;
 import org.springframework.web.service.annotation.PostExchange;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * ES版用户地理位置API（原Dubbo version=2.0.0）
@@ -18,13 +19,14 @@ public interface ESUserLocationApi {
 
     /**
      * 更新用户地理位置
+     *
+     * <p>服务端（xfjy-elasticsearch）用 {@code @RequestBody Map} 接收。HTTP Interface 中
+     * 未标注注解的参数默认作为请求体传递，不能用 {@code @RequestParam}（那会把参数拼到
+     * URL query string，服务端读不到 body 会返回 400 —— 历史 bug：上报位置一直失败）。
      */
     @PostExchange("/updateUserLocation")
     @PostMapping("/updateUserLocation")
-    String updateUserLocation(@RequestParam("userId") Long userId,
-                              @RequestParam("longitude") Double longitude,
-                              @RequestParam("latitude") Double latitude,
-                              @RequestParam("address") String address);
+    String updateUserLocation(Map<String, Object> param);
 
     /**
      * 查询用户地理位置

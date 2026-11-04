@@ -9,6 +9,9 @@ import com.xfjy.server.pojo.User;
 import com.xfjy.server.utils.UserThreadLocal;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Service
 public class BaiduService {
 
@@ -24,7 +27,12 @@ public class BaiduService {
         User user = UserThreadLocal.get();
         // ES 优先写入：搜附近强依赖 ES，写入失败才整体失败
         try {
-            this.esUserLocationApi.updateUserLocation(user.getId(), longitude, latitude, address);
+            Map<String, Object> param = new HashMap<>();
+            param.put("userId", user.getId());
+            param.put("longitude", longitude);
+            param.put("latitude", latitude);
+            param.put("address", address);
+            this.esUserLocationApi.updateUserLocation(param);
         } catch (Exception e) {
             LOGGER.error("ES位置写入失败，搜附近将不可见: userId={}", user.getId(), e);
             return false;

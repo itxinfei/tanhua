@@ -2,6 +2,7 @@ package com.xfjy.service.api;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -46,17 +47,9 @@ public class ESUserLocationApiImpl implements ESUserLocationApi {
 
     @Override
     @PostMapping("/updateUserLocation")
-    public String updateUserLocation(@RequestParam("userId") Long userId,
-                                     @RequestParam("longitude") Double longitude,
-                                     @RequestParam("latitude") Double latitude,
-                                     @RequestParam("address") String address) {
+    public String updateUserLocation(@RequestBody Map<String, Object> param) {
         try {
             String url = this.esServerUrl + "api/es-user-location/updateUserLocation";
-            Map<String, Object> param = new HashMap<>();
-            param.put("userId", userId);
-            param.put("longitude", longitude);
-            param.put("latitude", latitude);
-            param.put("address", address);
 
             String requestBody = MAPPER.writeValueAsString(param);
 
@@ -67,7 +60,8 @@ public class ESUserLocationApiImpl implements ESUserLocationApi {
 
             ResponseEntity<Void> responseEntity = this.restTemplate.postForEntity(url, httpEntity, Void.class);
             if (responseEntity.getStatusCode().value() == 200) {
-                return userId.toString();
+                Object userId = param.get("userId");
+                return userId == null ? null : userId.toString();
             }
         } catch (Exception e) {
             log.error("ES user location operation failed, esServerUrl={}", esServerUrl, e);

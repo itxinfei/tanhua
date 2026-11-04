@@ -5,6 +5,7 @@ import com.xfjy.server.service.ContentReviewService;
 import com.xfjy.server.service.PushService;
 import com.xfjy.server.service.RiskControlService;
 import com.xfjy.server.service.VideoService;
+import com.xfjy.server.utils.ParamConvertUtils;
 import com.xfjy.server.utils.UserThreadLocal;
 import com.xfjy.server.vo.PageResult;
 import com.xfjy.service.api.QuanZiApi;
@@ -46,12 +47,8 @@ public class VideoController {
     @Autowired
     private PushService pushService;
 
-    /**
-     * 分页大小上限：防止超大 pagesize 拉爆列表接口（热点流候选池仅 100 条，50 已足够）
-     */
-    private int capPageSize(Integer pageSize) {
-        return (pageSize == null || pageSize <= 0) ? 10 : Math.min(pageSize, 50);
-    }
+    /** 视频分页大小上限：防止超大 pagesize 拉爆列表接口（热点流候选池仅 100 条，50 已足够） */
+    private static final int VIDEO_PAGE_MAX_SIZE = 50;
 
     /**
      * 发布小视频
@@ -96,7 +93,7 @@ public class VideoController {
             if (page <= 0) {
                 page = 1;
             }
-            PageResult pageResult = this.videoService.queryVideoList(page, capPageSize(pageSize));
+            PageResult pageResult = this.videoService.queryVideoList(page, ParamConvertUtils.capPageSize(pageSize, 10, VIDEO_PAGE_MAX_SIZE));
             if (null != pageResult) {
                 return ResponseEntity.ok(pageResult);
             }
@@ -116,7 +113,7 @@ public class VideoController {
             if (page <= 0) {
                 page = 1;
             }
-            PageResult pageResult = this.videoService.queryFollowVideoList(page, capPageSize(pageSize));
+            PageResult pageResult = this.videoService.queryFollowVideoList(page, ParamConvertUtils.capPageSize(pageSize, 10, VIDEO_PAGE_MAX_SIZE));
             if (null != pageResult) {
                 return ResponseEntity.ok(pageResult);
             }
@@ -136,7 +133,7 @@ public class VideoController {
             if (page <= 0) {
                 page = 1;
             }
-            PageResult pageResult = this.videoService.queryHotVideoList(page, capPageSize(pageSize));
+            PageResult pageResult = this.videoService.queryHotVideoList(page, ParamConvertUtils.capPageSize(pageSize, 10, VIDEO_PAGE_MAX_SIZE));
             if (null != pageResult) {
                 return ResponseEntity.ok(pageResult);
             }
@@ -156,7 +153,7 @@ public class VideoController {
             if (page <= 0) {
                 page = 1;
             }
-            PageResult pageResult = this.videoService.queryFriendVideoList(page, capPageSize(pageSize));
+            PageResult pageResult = this.videoService.queryFriendVideoList(page, ParamConvertUtils.capPageSize(pageSize, 10, VIDEO_PAGE_MAX_SIZE));
             if (null != pageResult) {
                 return ResponseEntity.ok(pageResult);
             }
@@ -176,7 +173,7 @@ public class VideoController {
             if (page <= 0) {
                 page = 1;
             }
-            PageResult pageResult = this.videoService.queryLocationVideoList(page, capPageSize(pageSize));
+            PageResult pageResult = this.videoService.queryLocationVideoList(page, ParamConvertUtils.capPageSize(pageSize, 10, VIDEO_PAGE_MAX_SIZE));
             if (null != pageResult) {
                 return ResponseEntity.ok(pageResult);
             }
