@@ -1,6 +1,7 @@
 package com.xfjy.server.controller;
 
 import com.xfjy.server.pojo.User;
+import com.xfjy.server.utils.NoAuthorization;
 import com.xfjy.server.utils.UserThreadLocal;
 import com.xfjy.service.api.PayApi;
 import com.xfjy.service.pojo.PayOrder;
@@ -45,8 +46,12 @@ public class PayController {
     private boolean mockConfirmEnabled;
 
     /**
-     * 查询上架的 VIP 套餐列表
+     * 查询上架的 VIP 套餐列表。
+     *
+     * <p>套餐为公开商品信息（不含任何用户数据），登录前即可预览，
+     * 故用 {@link NoAuthorization} 放行；其余支付接口仍需登录。
      */
+    @NoAuthorization
     @GetMapping("packages")
     public ResponseEntity<List<VipPackage>> queryPackages() {
         try {

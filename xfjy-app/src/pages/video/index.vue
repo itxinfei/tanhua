@@ -701,10 +701,10 @@ onShareAppMessage(() => ({
         left: 50%;
         bottom: -6rpx;
         transform: translateX(-50%);
-        width: 44rpx;
-        height: 6rpx;
-        border-radius: 3rpx;
-        background: var(--gradient-brand);
+        width: 48rpx;
+        height: 8rpx;
+        border-radius: var(--radius-pill);
+        background: var(--color-primary);
       }
     }
   }
@@ -934,7 +934,11 @@ onShareAppMessage(() => ({
 .video-info {
   position: absolute;
   left: var(--space-md);
-  right: 150rpx;
+  /* 右侧操作栏固定占位：不用固定 150rpx，改用 min() 兼顾宽屏
+     （窄屏下 150rpx 会吃掉约 47% 宽度，信息区被压得只剩几十字） */
+  right: min(150rpx, 20vw);
+  /* 让长昵称/文案能正常折行而不溢出 */
+  min-width: 0;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 40rpx);
   z-index: 10;
 
@@ -988,7 +992,10 @@ onShareAppMessage(() => ({
     .music-track {
       flex: 1;
       overflow: hidden;
-      width: 360rpx;
+      /* 音轨宽度跟随父容器自适应；min-width:0 允许在 flex 中收缩，
+         否则长音频名会把信息区撑破（BUG-09 收口） */
+      min-width: 0;
+      max-width: 360rpx;
 
       .music-text {
         display: inline-block;

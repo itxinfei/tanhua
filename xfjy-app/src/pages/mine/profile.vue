@@ -376,7 +376,12 @@ function editField(field: string, label: string): void {
     success: async (res) => {
       if (!res.confirm) return;
       const text = (res.content || "").trim();
-      if (!text) return;
+      // 昵称/签名不允许置空：静默 return 会让用户以为「点了没反应」，
+      // 必须给出明确提示（BUG-04 收口）
+      if (!text) {
+        fail(`${label}不能为空`);
+        return;
+      }
       const max = FIELD_MAX_LENGTH[field];
       if (text.length > max) {
         fail(`${label}最多 ${max} 个字符`);

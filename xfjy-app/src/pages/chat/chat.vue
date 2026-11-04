@@ -258,10 +258,17 @@ function scrollToBottom(): void {
   });
 }
 
+/** 单条文本消息最大长度：超长会撑破气泡布局且可能触发后端限制（BUG-07 收口） */
+const MAX_MESSAGE_LENGTH = 2000;
+
 /** 发送文字消息 */
 async function sendText(): Promise<void> {
   const text = inputText.value.trim();
   if (!text) return;
+  if (text.length > MAX_MESSAGE_LENGTH) {
+    fail(`单条消息最多 ${MAX_MESSAGE_LENGTH} 字`);
+    return;
+  }
   pushMessage("text", text);
   inputText.value = "";
   activePanel.value = "none";

@@ -21,10 +21,12 @@
           v-model="phone"
           class="input"
           type="number"
+          inputmode="numeric"
           maxlength="11"
           placeholder="请输入手机号"
           placeholder-class="placeholder"
           :aria-labelledby="PHONE_LABEL_ID"
+          @input="sanitizePhone"
         />
       </view>
 
@@ -35,10 +37,12 @@
             v-model="code"
             class="input code-input"
             type="number"
+            inputmode="numeric"
             maxlength="6"
             placeholder="请输入验证码"
             placeholder-class="placeholder"
             :aria-labelledby="CODE_LABEL_ID"
+            @input="sanitizeCode"
           />
           <a11y-button
             variant="ghost"
@@ -109,6 +113,49 @@ const MIN_CODE_LENGTH = 4;
 /** 手机号正则（中国大陆 1[3-9] 开头 11 位） */
 const PHONE_REGEX = /^1[3-9]\d{9}$/;
 
+/**
+ * 输入清洗：部分安卓机型 type="number" 仍允许输入 +、-、.、空格等字符，
+ * 只靠 maxlength 无法拦住，导致正则永远不匹配（BUG-03 收口）。
+ *
+ * 注意：uni-app H5 的 uni-input 内部对 input 事件做了 100ms 节流
+ * （uni-h5.es.js 中 triggerInputFn = throttle(..., 100)），快速连输时
+ * 中间态写回会被丢弃，仅在 @input 里同步清洗不可靠。因此采用
+ * 「防抖清洗 + 提交前兜底」：
+ *  1. 每次输入启动 150ms 定时器，停手后才写回（避开节流窗口）；
+ *  2. handleSendCode / handleLogin 提交前再强制清洗一次，确保到后端的值一定是纯数字。
+ */
+const SANITIZE_DEBOUNCE_MS = 150;
+let phoneSanitizeTimer: ReturnType<typeof setTimeout> | null = null;
+let codeSanitizeTimer: ReturnType<typeof setTimeout> | null = null;
+
+function stripNonDigits(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
+function sanitizePhone(): void {
+  if (phoneSanitizeTimer) clearTimeout(phoneSanitizeTimer);
+  phoneSanitizeTimer = setTimeout(() => {
+    phoneSanitizeTimer = null;
+    const cleaned = stripNonDigits(phone.value);
+    if (cleaned !== phone.value) phone.value = cleaned;
+  }, SANITIZE_DEBOUNCE_MS);
+}
+
+function sanitizeCode(): void {
+  if (codeSanitizeTimer) clearTimeout(codeSanitizeTimer);
+  codeSanitizeTimer = setTimeout(() => {
+    codeSanitizeTimer = null;
+    const cleaned = stripNonDigits(code.value);
+    if (cleaned !== code.value) code.value = cleaned;
+  }, SANITIZE_DEBOUNCE_MS);
+}
+
+/** 提交前兜底清洗（同步，不可绕过的最后一道） */
+function forceSanitize(): void {
+  phone.value = stripNonDigits(phone.value);
+  code.value = stripNonDigits(code.value);
+}
+
 // 表单状态
 const phone = ref("");
 const code = ref("");
@@ -128,6 +175,7 @@ const canLogin = computed(
 
 // 发送验证码
 async function handleSendCode() {
+  forceSanitize();
   if (!phoneValid.value) {
     info("请输入正确的手机号");
     return;
@@ -168,6 +216,7 @@ function openAgreement(type: 'user' | 'privacy') {
 
 // 登录
 async function handleLogin() {
+  forceSanitize();
   if (!canLogin.value) return;
   logging.value = true;
   try {

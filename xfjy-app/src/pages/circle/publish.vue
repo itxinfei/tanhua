@@ -124,6 +124,8 @@ import { success, info, fail } from "@/utils/ux";
 const MAX_CONTENT_LENGTH = 500;
 /** 图片最大数量 */
 const MAX_IMAGE_COUNT = 9;
+/** 话题最大数量：超出后不再追加，避免话题标签无限膨胀挤爆布局（BUG-08 收口） */
+const MAX_TOPIC_COUNT = 3;
 
 /** 热门话题推荐 */
 const HOT_TOPICS = ["交友日常", "心动瞬间", "周末去哪儿", "美食探店", "运动打卡", "宠物萌照"];
@@ -169,9 +171,14 @@ function toggleTopic(topic: string): void {
   const idx = selectedTopics.value.indexOf(topic);
   if (idx >= 0) {
     selectedTopics.value.splice(idx, 1);
-  } else {
-    selectedTopics.value.push(topic);
+    return;
   }
+  // 上限拦截：静默 push 会让用户以为「点了没反应」，必须提示（BUG-08 收口）
+  if (selectedTopics.value.length >= MAX_TOPIC_COUNT) {
+    fail(`最多选择 ${MAX_TOPIC_COUNT} 个话题`);
+    return;
+  }
+  selectedTopics.value.push(topic);
 }
 
 /** 选择图片 */

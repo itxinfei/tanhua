@@ -65,10 +65,10 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { onShow, onUnload } from "@dcloudio/uni-app";
 import { useUserStore } from "@/store/user";
 import A11yButton from "@/components/a11y-button.vue";
-import { getUserSettings, deleteAccount, getVerifyStatus, updateNotificationSetting } from "@/api/mine";
+import { getUserSettings, deleteAccount, getVerifyStatus, updateNotificationSetting, type NotificationSettingParam } from "@/api/mine";
 import { sendSmsCode } from "@/api/auth";
 import { success, fail, info, loading, hideLoading } from "@/utils/ux";
 
@@ -88,6 +88,19 @@ const notificationSettings = ref([
 /** 服务端通知配置是否已加载（未加载前开关只改本地、不提交，避免默认值覆盖服务端） */
 const settingsLoaded = ref(false);
 
+/**
+ * 通知开关切换（带防抖）
+ *
+ * 防抖理由：switch 原生控件在快速连点时会连续触发 @change，若无节流会产生竞态——
+ * 后发请求先返回，导致本地状态与服务端不一致（BUG-11 收口）。
+ * 策略：第一次点击立即生效并乐观更新 UI；在 DEBOUNCE_MS 内的重复点击只改 UI 不提交；
+ * 最后一次点击后再等 DEBOUNCE_MS 才真正提交（trailing 生效），保证最终态被持久化。
+ */
+const NOTIFICATION_DEBOUNCE_MS = 300;
+let notificationTimer: ReturnType<typeof setTimeout> | null = null;
+/** 待提交的最终状态：每次点击覆盖，保证 trailing 提交的是最后一次 */
+let pendingNotificationPayload: NotificationSettingParam | null = null;
+
 async function toggleNotification(key: string, e: any) {
   const s = notificationSettings.value.find(n => n.key === key);
   if (!settingsLoaded.value) {
@@ -96,21 +109,42 @@ async function toggleNotification(key: string, e: any) {
     fail("配置加载中，请稍候");
     return;
   }
+  // 乐观更新：UI 立即跟随，不等服务端
   if (s) s.value = e.detail.value;
-  // 四项开关统一持久化到 /users/notifications/setting
+
+  // 记录本次目标状态，覆盖前一次未提交的
   const find = (k: string) => notificationSettings.value.find(n => n.key === k)?.value ?? true;
-  try {
-    await updateNotificationSetting({
-      likeNotification: find('like'),
-      pinglunNotification: find('comment'),
-      gonggaoNotification: find('announcement'),
-      matchNotification: find('match'),
+  pendingNotificationPayload = {
+    likeNotification: find('like'),
+    pinglunNotification: find('comment'),
+    gonggaoNotification: find('announcement'),
+    matchNotification: find('match'),
+  };
+
+  if (notificationTimer) clearTimeout(notificationTimer);
+  notificationTimer = setTimeout(() => {
+    notificationTimer = null;
+    const payload = pendingNotificationPayload;
+    pendingNotificationPayload = null;
+    if (!payload) return;
+    updateNotificationSetting(payload).catch(() => {
+      // 持久化失败由 request 层统一 toast；回滚四项到提交前状态
+      // （回滚为乐观更新的逆操作：把当前值取反）
+      notificationSettings.value.forEach((n) => { n.value = !n.value; });
+      fail("设置保存失败，已还原");
     });
-  } catch {
-    // 持久化失败由 request 层统一 toast，回滚本地开关
-    if (s) s.value = !e.detail.value;
+  }, NOTIFICATION_DEBOUNCE_MS);
+}
+
+/** 页面卸载时清理防抖定时器，避免离页后回调触发请求 */
+function clearNotificationDebounce(): void {
+  if (notificationTimer) {
+    clearTimeout(notificationTimer);
+    notificationTimer = null;
   }
 }
+
+onUnload(clearNotificationDebounce);
 
 function goPhone() { uni.navigateTo({ url: "/pages/mine/change-phone" }); }
 function goVerify() { uni.navigateTo({ url: "/pages/mine/verify" }); }
