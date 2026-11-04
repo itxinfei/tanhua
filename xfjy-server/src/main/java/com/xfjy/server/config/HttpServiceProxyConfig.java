@@ -21,6 +21,7 @@ import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
@@ -159,6 +160,16 @@ public class HttpServiceProxyConfig {
     }
 
     /**
+     * 404 静默处理：下游域服务"查无数据返回 404"为既定设计（如 ES 地理位置查询），
+     * 静默后 HTTP Interface 代理方法返回 null，由调用侧 null 检查处理，避免 500。
+     */
+    private static RestClient.Builder applyNotFoundSilence(RestClient.Builder builder) {
+        return builder.defaultStatusHandler(
+                status -> status == HttpStatus.NOT_FOUND,
+                (request, response) -> { /* 静默 404，不抛异常 */ });
+    }
+
+    /**
      * 构建代理工厂。
      * 优先使用 @LoadBalanced RestClient.Builder 通过 lb:// 协议实现服务发现与负载均衡；
      * LoadBalancer 不可用时回退 DiscoveryClient + AtomicInteger 轮询；
@@ -170,7 +181,7 @@ public class HttpServiceProxyConfig {
         // 1. 静态 URL 优先（本地开发/指定地址场景）
         String staticUrl = staticUrls.get(serviceId);
         if (staticUrl != null) {
-            var builder = newBuilder().baseUrl(staticUrl);
+            var builder = applyNotFoundSilence(newBuilder()).baseUrl(staticUrl);
             if (!this.internalAuthToken.isEmpty()) {
                 builder.defaultHeader("X-Internal-Token", this.internalAuthToken);
             }
@@ -181,7 +192,7 @@ public class HttpServiceProxyConfig {
         }
         // 2. LoadBalancer 服务发现
         if (this.loadBalancedBuilder != null) {
-            var builder = useContainerJsonMapper(this.loadBalancedBuilder.clone())
+            var builder = applyNotFoundSilence(useContainerJsonMapper(this.loadBalancedBuilder.clone()))
                     .baseUrl("lb://" + serviceId);
             if (!this.internalAuthToken.isEmpty()) {
                 builder.defaultHeader("X-Internal-Token", this.internalAuthToken);
@@ -193,7 +204,7 @@ public class HttpServiceProxyConfig {
         }
         // 3. DiscoveryClient 轮询兜底
         if (this.discoveryClient != null) {
-            var builder = newBuilder()
+            var builder = applyNotFoundSilence(newBuilder())
                     .requestInterceptor(new ServiceInstanceInterceptor(serviceId, this.discoveryClient));
             if (!this.internalAuthToken.isEmpty()) {
                 builder.defaultHeader("X-Internal-Token", this.internalAuthToken);
