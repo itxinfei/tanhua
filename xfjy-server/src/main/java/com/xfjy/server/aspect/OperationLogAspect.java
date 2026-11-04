@@ -4,6 +4,7 @@ import com.xfjy.server.mapper.OperationLogMapper;
 import com.xfjy.server.pojo.Admin;
 import com.xfjy.server.pojo.OperationLog;
 import com.xfjy.server.utils.AdminThreadLocal;
+import com.xfjy.server.utils.OperationLogContext;
 import jakarta.servlet.http.HttpServletRequest;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -93,14 +94,17 @@ public class OperationLogAspect {
             log.setAction(resolveAction(httpMethod, methodName));
 
             // 操作对象ID：从 URI 路径末段提取
+            // detail 优先取 Service 通过 OperationLogContext 提供的字段级变更摘要，
+            // 未提供时回退为「方法名 + URI」
+            String customDetail = OperationLogContext.getDetail();
             HttpServletRequest request = getRequest();
             if (request != null) {
                 String uri = request.getRequestURI();
                 log.setTargetId(extractTargetId(uri));
                 log.setIp(resolveIp(request));
-                log.setDetail(methodName + " " + uri);
+                log.setDetail(customDetail != null ? customDetail : methodName + " " + uri);
             } else {
-                log.setDetail(methodName);
+                log.setDetail(customDetail != null ? customDetail : methodName);
             }
 
             log.setCreated(new Date());
@@ -227,6 +231,9 @@ public class OperationLogAspect {
         }
         if (lower.contains("close")) {
             return "CLOSE";
+        }
+        if (lower.contains("profile")) {
+            return "EDIT_PROFILE";
         }
         switch (httpMethod) {
             case "POST":

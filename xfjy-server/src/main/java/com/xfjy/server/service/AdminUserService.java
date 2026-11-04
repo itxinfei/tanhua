@@ -4,14 +4,23 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xfjy.service.api.WuKongImApi;
 import com.xfjy.service.api.QuanZiApi;
 import com.xfjy.service.api.UserInfoApi;
+import com.xfjy.service.enums.SexEnum;
 import com.xfjy.service.pojo.UserInfo;
 import com.xfjy.service.vo.UserInfoQueryParam;
+import com.xfjy.server.dto.AdminProfileUpdateDTO;
+import com.xfjy.server.exception.BusinessException;
+import com.xfjy.server.mapper.OperationLogMapper;
 import com.xfjy.server.mapper.ReportMapper;
 import com.xfjy.server.mapper.UserMapper;
+import com.xfjy.server.pojo.OperationLog;
 import com.xfjy.server.pojo.User;
+import com.xfjy.server.utils.OperationLogContext;
+import com.xfjy.server.vo.ProfileLogVO;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +32,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 后台用户管理服务
@@ -45,6 +55,15 @@ public class AdminUserService {
 
     @Autowired
     private QuanZiApi quanZiApi;
+
+    @Autowired
+    private OperationLogMapper operationLogMapper;
+
+    /**
+     * 照片墙 JSON 仅含普通字符串，用线程安全的默认 ObjectMapper 单例即可；
+     * 本服务容器未注册 Jackson ObjectMapper bean，故直接实例化复用。
+     */
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${admin.reset-password:123456}")
     private String resetPassword;
@@ -218,6 +237,7 @@ public class AdminUserService {
             item.put("industry", userInfo.getIndustry());
             item.put("income", userInfo.getIncome());
             item.put("marriage", userInfo.getMarriage());
+            item.put("height", userInfo.getHeight());
 
             // 照片墙：photoAlbum 是 JSON 数组字符串 ["url1","url2"]
             item.put("photos", parsePhotoAlbum(userInfo.getPhotoAlbum()));
@@ -443,6 +463,195 @@ public class AdminUserService {
         } catch (Exception e) {
             log.warn("日期解析失败: {}", dateStr);
             return 0L;
+        }
+    }
+
+    /**
+     * 客服代改用户资料。
+     *
+     * <p>tb_user_info 的唯一写入方是 user-service，此处只组装白名单字段后走 RPC
+     * （MyBatis-Plus 更新默认忽略 null，故只 set 本次提交的字段，实现部分更新）。
+     * 变更字段生成「旧值→新值」摘要，通过 {@link OperationLogContext} 交给审计切面。</p>
+     *
+     * @return true 更新成功；false 表示用户不存在（Controller 据此返回 404）
+     */
+    public boolean updateUserProfile(Long userId, AdminProfileUpdateDTO dto) {
+        User user = this.userMapper.selectById(userId);
+        if (user == null) {
+            return false;
+        }
+        UserInfo old = this.userInfoApi.queryByUserId(userId);
+
+        UserInfo info = new UserInfo();
+        info.setUserId(userId);
+        List<String> diffs = new ArrayList<>();
+
+        if (dto.getNickname() != null) {
+            String value = dto.getNickname().trim();
+            if (value.length() < 2 || value.length() > 20) {
+                throw new BusinessException("昵称长度需2-20个字符");
+            }
+            info.setNickName(value);
+            appendDiff(diffs, "昵称", old == null ? null : old.getNickName(), value);
+        }
+        if (dto.getAvatar() != null) {
+            String value = dto.getAvatar().trim();
+            info.setLogo(value);
+            String oldLogo = old == null ? "" : StringUtils.trimToEmpty(old.getLogo());
+            if (!oldLogo.equals(value)) {
+                diffs.add(value.isEmpty() ? "头像[已清空]" : "头像[已更换]");
+            }
+        }
+        if (dto.getSignature() != null) {
+            String value = dto.getSignature().trim();
+            info.setSignature(value);
+            appendDiff(diffs, "签名", old == null ? null : old.getSignature(), value);
+        }
+        if (dto.getGender() != null) {
+            SexEnum sex = "man".equalsIgnoreCase(dto.getGender()) ? SexEnum.MAN : SexEnum.WOMAN;
+            info.setSex(sex);
+            String oldGender = (old == null || old.getSex() == null) ? "" : old.getSex().toString();
+            appendDiff(diffs, "性别", oldGender, sex.toString());
+        }
+        if (dto.getCity() != null) {
+            String value = dto.getCity().trim();
+            info.setCity(value);
+            appendDiff(diffs, "城市", old == null ? null : old.getCity(), value);
+        }
+        if (dto.getHeight() != null) {
+            String value = dto.getHeight().trim();
+            info.setHeight(value);
+            appendDiff(diffs, "身高", old == null ? null : old.getHeight(), value);
+        }
+        if (dto.getEducation() != null) {
+            String value = dto.getEducation().trim();
+            info.setEdu(value);
+            appendDiff(diffs, "学历", old == null ? null : old.getEdu(), value);
+        }
+        if (dto.getProfession() != null) {
+            String value = dto.getProfession().trim();
+            info.setIndustry(value);
+            appendDiff(diffs, "行业", old == null ? null : old.getIndustry(), value);
+        }
+        if (dto.getIncome() != null) {
+            String value = dto.getIncome().trim();
+            info.setIncome(value);
+            appendDiff(diffs, "收入", old == null ? null : old.getIncome(), value);
+        }
+        if (dto.getMarriage() != null) {
+            String value = dto.getMarriage() == 1 ? "已婚" : "未婚";
+            info.setMarriage(value);
+            appendDiff(diffs, "婚姻", old == null ? null : old.getMarriage(), value);
+        }
+        if (dto.getPhotoAlbum() != null) {
+            List<String> newPhotos = parsePhotoAlbumInput(dto.getPhotoAlbum());
+            List<String> oldPhotos = old == null ? new ArrayList<>() : parsePhotoAlbum(old.getPhotoAlbum());
+            info.setPhotoAlbum(writePhotoAlbum(newPhotos));
+            if (!oldPhotos.equals(newPhotos)) {
+                diffs.add("照片墙[" + oldPhotos.size() + "张→" + newPhotos.size() + "张]");
+            }
+        }
+
+        if (diffs.isEmpty()) {
+            throw new BusinessException("未检测到资料变更");
+        }
+
+        Boolean ok = this.userInfoApi.updateUserInfoByUserId(info);
+        if (!Boolean.TRUE.equals(ok)) {
+            throw new BusinessException("资料更新失败，请稍后重试");
+        }
+        OperationLogContext.setDetail(String.join("; ", diffs));
+        return true;
+    }
+
+    /**
+     * 分页查询用户资料编辑历史（tb_operation_log 中 module=USER、action=EDIT_PROFILE 的记录）。
+     */
+    public Map<String, Object> queryProfileLogs(Long userId, Integer page, Integer pageSize) {
+        QueryWrapper<OperationLog> wrapper = new QueryWrapper<>();
+        wrapper.eq("module", "USER")
+                .eq("target_id", String.valueOf(userId))
+                .eq("action", "EDIT_PROFILE")
+                .orderByDesc("created");
+        IPage<OperationLog> logPage =
+                this.operationLogMapper.selectPage(new Page<>(page, pageSize), wrapper);
+        List<ProfileLogVO> list = logPage.getRecords().stream()
+                .map(this::toProfileLogVO)
+                .collect(Collectors.toList());
+        Map<String, Object> result = new HashMap<>();
+        result.put("total", logPage.getTotal());
+        result.put("list", list);
+        return result;
+    }
+
+    private ProfileLogVO toProfileLogVO(OperationLog log) {
+        ProfileLogVO vo = new ProfileLogVO();
+        vo.setId(log.getId());
+        vo.setOperatorId(log.getAdminId());
+        vo.setOperatorName(log.getAdminUsername());
+        vo.setDetail(log.getDetail());
+        vo.setIp(log.getIp());
+        vo.setCreatedAt(log.getCreated());
+        return vo;
+    }
+
+    /**
+     * 追加一条字段变更摘要；旧值与新值（trim 后）相同则不记录。空值统一展示为「空」。
+     */
+    private void appendDiff(List<String> diffs, String label, String oldValue, String newValue) {
+        String oldStr = oldValue == null ? "" : oldValue.trim();
+        String newStr = newValue == null ? "" : newValue.trim();
+        if (oldStr.equals(newStr)) {
+            return;
+        }
+        diffs.add(label + "[" + displayDiffValue(oldStr) + "→" + displayDiffValue(newStr) + "]");
+    }
+
+    private String displayDiffValue(String value) {
+        return value.isEmpty() ? "空" : value;
+    }
+
+    /**
+     * 解析照片墙入参 JSON 数组字符串，校验元素与张数（最多 6 张）。
+     * 空串/空白视为清空（空列表）。
+     */
+    private List<String> parsePhotoAlbumInput(String json) {
+        if (StringUtils.isBlank(json)) {
+            return new ArrayList<>();
+        }
+        List<?> raw;
+        try {
+            raw = this.objectMapper.readValue(json, new TypeReference<List<?>>() {
+            });
+        } catch (Exception e) {
+            throw new BusinessException("照片墙数据格式非法");
+        }
+        List<String> urls = new ArrayList<>();
+        for (Object item : raw) {
+            if (item == null) {
+                continue;
+            }
+            String url = String.valueOf(item).trim();
+            if (!url.isEmpty()) {
+                urls.add(url);
+            }
+        }
+        if (urls.size() > 6) {
+            throw new BusinessException("照片墙最多上传6张图片");
+        }
+        return urls;
+    }
+
+    /**
+     * 照片墙列表序列化为规范 JSON 数组字符串后落库。
+     */
+    private String writePhotoAlbum(List<String> photos) {
+        try {
+            return this.objectMapper.writeValueAsString(photos);
+        } catch (Exception e) {
+            // 元素均为普通字符串，序列化不会失败；兜底按清空处理并告警
+            log.warn("照片墙序列化失败, photos={}", photos, e);
+            return "[]";
         }
     }
 }

@@ -29,6 +29,33 @@ export interface UserDetail extends UserItem {
   industry?: string
   income?: string
   marriage?: string
+  height?: string
+  birthday?: string
+}
+
+/** 后台代改用户资料入参（字段均可选：不传=不改；空串=清空） */
+export interface AdminProfileUpdate {
+  nickname?: string
+  avatar?: string
+  signature?: string
+  gender?: string
+  city?: string
+  height?: string
+  education?: string
+  profession?: string
+  photoAlbum?: string
+  income?: string
+  marriage?: number
+}
+
+/** 资料编辑历史条目 */
+export interface ProfileLogItem {
+  id: number
+  operatorId: number
+  operatorName: string
+  detail: string
+  ip: string
+  createdAt: string
 }
 
 export interface UserQuery {
@@ -104,4 +131,14 @@ export function getUserChatMessagesApi(id: number, contactId: string, pageSize?:
 /** 导出用户列表（CSV） */
 export function exportUsersApi(params: { keyword?: string; gender?: string; status?: string; startDate?: string; endDate?: string }) {
   return request.get<any, Blob>('/admin/users/export', { params, responseType: 'blob' })
+}
+
+/** 客服代改用户资料（白名单字段部分更新） */
+export function updateUserProfileApi(id: number, data: AdminProfileUpdate) {
+  return request.put(`/admin/users/${id}/profile`, data)
+}
+
+/** 获取用户资料编辑历史 */
+export function getProfileLogsApi(id: number, params: { page: number; pageSize: number }) {
+  return request.get<any, PageResult<ProfileLogItem>>(`/admin/users/${id}/profile-logs`, { params })
 }

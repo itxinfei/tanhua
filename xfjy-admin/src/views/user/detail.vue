@@ -48,6 +48,137 @@
           </div>
         </el-tab-pane>
 
+        <!-- 资料编辑（客服代改） -->
+        <el-tab-pane label="资料编辑" name="profile-edit">
+          <div v-if="detail" v-loading="profileSaving" class="tab-content">
+            <el-form :model="profileForm" label-width="96px" class="profile-form">
+              <el-form-item label="头像">
+                <div class="avatar-edit-row">
+                  <el-upload
+                    :show-file-list="false"
+                    :http-request="uploadAvatar"
+                    accept="image/*"
+                  >
+                    <el-avatar :size="64" :src="profileForm.avatar" class="avatar-edit">
+                      <el-icon :size="28"><UserFilled /></el-icon>
+                    </el-avatar>
+                  </el-upload>
+                  <el-button v-if="profileForm.avatar" link type="danger" @click="clearAvatar">清除头像</el-button>
+                </div>
+              </el-form-item>
+
+              <el-form-item label="昵称">
+                <el-input v-model="profileForm.nickname" maxlength="20" show-word-limit style="max-width: 280px" />
+              </el-form-item>
+
+              <el-form-item label="性别">
+                <el-radio-group v-model="profileForm.gender">
+                  <el-radio value="man">男</el-radio>
+                  <el-radio value="woman">女</el-radio>
+                </el-radio-group>
+              </el-form-item>
+
+              <el-form-item label="签名">
+                <el-input
+                  v-model="profileForm.signature"
+                  type="textarea"
+                  :rows="2"
+                  maxlength="50"
+                  show-word-limit
+                  style="max-width: 420px"
+                />
+              </el-form-item>
+
+              <el-form-item label="城市">
+                <el-input v-model="profileForm.city" maxlength="20" style="max-width: 280px" placeholder="如 北京市-朝阳区" />
+              </el-form-item>
+
+              <el-form-item label="身高">
+                <el-select v-model="profileForm.height" clearable placeholder="未设置" style="width: 200px">
+                  <el-option v-for="h in heightOptions" :key="h" :label="`${h}cm`" :value="h" />
+                </el-select>
+              </el-form-item>
+
+              <el-form-item label="学历">
+                <el-select v-model="profileForm.education" clearable placeholder="未设置" style="width: 200px">
+                  <el-option v-for="e in educationOptions" :key="e" :label="e" :value="e" />
+                </el-select>
+              </el-form-item>
+
+              <el-form-item label="行业">
+                <el-select v-model="profileForm.profession" clearable filterable placeholder="未设置" style="width: 200px">
+                  <el-option v-for="p in industryOptions" :key="p" :label="p" :value="p" />
+                </el-select>
+              </el-form-item>
+
+              <el-form-item label="收入">
+                <el-input v-model="profileForm.income" maxlength="20" style="max-width: 280px" placeholder="如 15000-20000" />
+              </el-form-item>
+
+              <el-form-item label="婚姻">
+                <el-radio-group v-model="profileForm.marriage">
+                  <el-radio :value="0">未婚</el-radio>
+                  <el-radio :value="1">已婚</el-radio>
+                </el-radio-group>
+              </el-form-item>
+
+              <el-form-item label="照片墙">
+                <div class="photo-editor">
+                  <div v-for="(photo, i) in profilePhotos" :key="`${photo}-${i}`" class="photo-edit-item">
+                    <el-image
+                      :src="photo"
+                      fit="cover"
+                      preview-teleported
+                      hide-on-click-modal
+                      class="photo-edit-img"
+                      :preview-src-list="profilePhotos"
+                      :initial-index="i"
+                    />
+                    <div class="photo-remove" @click="removePhoto(i)">
+                      <el-icon :size="12"><Close /></el-icon>
+                    </div>
+                  </div>
+                  <el-upload
+                    v-if="profilePhotos.length < 6"
+                    :show-file-list="false"
+                    :http-request="uploadPhoto"
+                    accept="image/*"
+                  >
+                    <div class="photo-add"><el-icon :size="24"><Plus /></el-icon></div>
+                  </el-upload>
+                </div>
+                <div class="photo-tip">最多 6 张（当前 {{ profilePhotos.length }}/6），修改后需点击底部保存</div>
+              </el-form-item>
+
+              <el-form-item>
+                <el-button type="primary" :loading="profileSaving" @click="handleSaveProfile">保存修改</el-button>
+                <el-button @click="resetProfileForm">重置</el-button>
+              </el-form-item>
+            </el-form>
+
+            <div class="profile-log-title">资料修改记录</div>
+            <el-table :data="profileLogs" v-loading="profileLogsLoading" stripe size="small" style="width: 100%">
+              <el-table-column prop="operatorName" label="操作人" width="120" />
+              <el-table-column prop="detail" label="变更内容" min-width="220" show-overflow-tooltip />
+              <el-table-column prop="ip" label="IP" width="130" />
+              <el-table-column label="时间" width="150">
+                <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
+              </el-table-column>
+            </el-table>
+            <div v-if="profileLogs.length" class="pagination-wrapper">
+              <el-pagination
+                v-model:current-page="profileLogQuery.page"
+                v-model:page-size="profileLogQuery.pageSize"
+                :total="profileLogTotal"
+                :page-sizes="[10, 20]"
+                layout="total, prev, pager, next"
+                @current-change="loadProfileLogs"
+              />
+            </div>
+            <el-empty v-if="!profileLogs.length && !profileLogsLoading" description="暂无修改记录" :image-size="50" />
+          </div>
+        </el-tab-pane>
+
         <!-- 数据统计 -->
         <el-tab-pane label="数据统计" name="stats">
           <div v-if="detail" class="tab-content">
@@ -287,9 +418,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, nextTick } from 'vue'
+import { ref, reactive, computed, watch, nextTick, h } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { UserFilled } from '@element-plus/icons-vue'
+import { UserFilled, Close, Plus } from '@element-plus/icons-vue'
 import { useResponsive } from '@/composables/useResponsive'
 import {
   getUserDetailApi,
@@ -298,8 +429,12 @@ import {
   resetUserPasswordApi,
   getUserChatSessionsApi,
   getUserChatMessagesApi,
+  updateUserProfileApi,
+  getProfileLogsApi,
 } from '@/api/user'
-import type { UserDetail, ChatSession, ChatMessage } from '@/api/user'
+import type { UserDetail, ChatSession, ChatMessage, AdminProfileUpdate, ProfileLogItem } from '@/api/user'
+import { uploadImageApi } from '@/api/upload'
+import { formatDateTime } from '@/utils/format'
 import { getMovementPageApi, type MovementItem } from '@/api/movement'
 import { getVideoPageApi, type VideoItem } from '@/api/video'
 import { getCommentPageApi, type CommentItem } from '@/api/comment'
@@ -542,6 +677,216 @@ async function handleResetPwd() {
   }
 }
 
+// ── 资料编辑（客服代改） ──
+// 选项与 C 端 xfjy-app profile.vue 保持一致
+const heightOptions = ['150', '155', '160', '165', '170', '175', '180', '185', '190', '195']
+const educationOptions = ['高中', '大专', '本科', '硕士', '博士']
+const industryOptions = [
+  'IT/互联网', '金融', '教育', '医疗', '制造业', '服务业',
+  '文化传媒', '房地产', '公务员', '自由职业', '学生', '其他',
+]
+
+interface ProfileFormState {
+  nickname: string
+  avatar: string
+  signature: string
+  gender: string
+  city: string
+  height: string
+  education: string
+  profession: string
+  income: string
+  marriage: number | undefined
+}
+
+const profileForm = reactive<ProfileFormState>({
+  nickname: '', avatar: '', signature: '', gender: '',
+  city: '', height: '', education: '', profession: '', income: '',
+  marriage: undefined,
+})
+const profilePhotos = ref<string[]>([])
+const profileSaving = ref(false)
+const profileLogs = ref<ProfileLogItem[]>([])
+const profileLogsLoading = ref(false)
+const profileLogTotal = ref(0)
+const profileLogQuery = reactive({ page: 1, pageSize: 10 })
+
+/** 用详情数据回填编辑表单（detail 为后端当前值，也是变更对比基准） */
+function fillProfileForm() {
+  const d = detail.value
+  if (!d) return
+  profileForm.nickname = d.nickname ?? ''
+  profileForm.avatar = d.avatar ?? ''
+  profileForm.signature = d.signature ?? ''
+  profileForm.gender = d.gender === '男' ? 'man' : d.gender === '女' ? 'woman' : ''
+  profileForm.city = d.city ?? ''
+  profileForm.height = d.height ?? ''
+  profileForm.education = d.edu ?? ''
+  profileForm.profession = d.industry ?? ''
+  profileForm.income = d.income ?? ''
+  profileForm.marriage = d.marriage === '已婚' ? 1 : d.marriage === '未婚' ? 0 : undefined
+  profilePhotos.value = [...(d.photos || [])]
+}
+
+function resetProfileForm() {
+  fillProfileForm()
+}
+
+/** el-upload 自定义头像上传（走后台 /admin/upload/image） */
+async function uploadAvatar(options: { file: File }) {
+  try {
+    const res = await uploadImageApi(options.file)
+    profileForm.avatar = res.name
+    ElMessage.success('头像已上传，点击底部保存后生效')
+  } catch {
+    // request 层已统一提示
+  }
+}
+
+/** el-upload 自定义照片墙上传 */
+async function uploadPhoto(options: { file: File }) {
+  if (profilePhotos.value.length >= 6) {
+    ElMessage.warning('照片墙最多 6 张')
+    return
+  }
+  try {
+    const res = await uploadImageApi(options.file)
+    profilePhotos.value.push(res.name)
+    ElMessage.success('照片已加入，点击底部保存后生效')
+  } catch {
+    // request 层已统一提示
+  }
+}
+
+function removePhoto(index: number) {
+  profilePhotos.value.splice(index, 1)
+}
+
+function clearAvatar() {
+  profileForm.avatar = ''
+}
+
+function diffText(label: string, oldVal: string, newVal: string, out: string[]) {
+  const oldStr = (oldVal ?? '').trim()
+  const newStr = (newVal ?? '').trim()
+  if (oldStr !== newStr) {
+    out.push(`${label}：${oldStr || '（空）'} → ${newStr || '（空）'}`)
+  }
+}
+
+/** 对比表单与后端当前值，组装只含变更字段的 payload 与变更说明 */
+function buildProfilePayload(): { payload: AdminProfileUpdate; diffs: string[] } {
+  const d = detail.value as UserDetail
+  const f = profileForm
+  const payload: AdminProfileUpdate = {}
+  const diffs: string[] = []
+
+  diffText('昵称', d.nickname ?? '', f.nickname, diffs)
+  if (diffs.some(x => x.startsWith('昵称'))) payload.nickname = f.nickname
+
+  diffText('签名', d.signature ?? '', f.signature, diffs)
+  if (diffs.some(x => x.startsWith('签名'))) payload.signature = f.signature
+
+  diffText('城市', d.city ?? '', f.city, diffs)
+  if (diffs.some(x => x.startsWith('城市'))) payload.city = f.city
+
+  diffText('身高', d.height ?? '', f.height, diffs)
+  if (diffs.some(x => x.startsWith('身高'))) payload.height = f.height
+
+  diffText('学历', d.edu ?? '', f.education, diffs)
+  if (diffs.some(x => x.startsWith('学历'))) payload.education = f.education
+
+  diffText('行业', d.industry ?? '', f.profession, diffs)
+  if (diffs.some(x => x.startsWith('行业'))) payload.profession = f.profession
+
+  diffText('收入', d.income ?? '', f.income, diffs)
+  if (diffs.some(x => x.startsWith('收入'))) payload.income = f.income
+
+  const oldGender = d.gender === '男' ? 'man' : d.gender === '女' ? 'woman' : ''
+  if (oldGender !== f.gender) {
+    payload.gender = f.gender
+    diffs.push(`性别：${oldGender === 'man' ? '男' : oldGender === 'woman' ? '女' : '（空）'} → ${f.gender === 'man' ? '男' : '女'}`)
+  }
+
+  const oldMarriage = d.marriage === '已婚' ? 1 : d.marriage === '未婚' ? 0 : undefined
+  if (oldMarriage !== f.marriage) {
+    if (f.marriage !== undefined) payload.marriage = f.marriage
+    const marriageLabel = (v: number | undefined) => (v === 1 ? '已婚' : v === 0 ? '未婚' : '（空）')
+    diffs.push(`婚姻：${marriageLabel(oldMarriage)} → ${marriageLabel(f.marriage)}`)
+  }
+
+  if ((d.avatar ?? '') !== f.avatar) {
+    payload.avatar = f.avatar
+    diffs.push(f.avatar ? '头像：已更换' : '头像：已清空')
+  }
+
+  const oldAlbum = JSON.stringify(d.photos || [])
+  const newAlbum = JSON.stringify(profilePhotos.value)
+  if (oldAlbum !== newAlbum) {
+    payload.photoAlbum = newAlbum
+    diffs.push(`照片墙：${(d.photos || []).length}张 → ${profilePhotos.value.length}张`)
+  }
+
+  return { payload, diffs }
+}
+
+async function handleSaveProfile() {
+  if (!detail.value) return
+  const nickname = profileForm.nickname.trim()
+  if (nickname.length < 2 || nickname.length > 20) {
+    ElMessage.warning('昵称长度需 2-20 个字符')
+    return
+  }
+  const { payload, diffs } = buildProfilePayload()
+  if (diffs.length === 0) {
+    ElMessage.info('未检测到资料变更')
+    return
+  }
+  try {
+    await ElMessageBox.confirm(
+      h('div', { style: 'line-height: 1.9' }, [
+        '确认代用户修改以下资料？',
+        h('div', diffs.map(line => h('div', line))),
+      ]),
+      '资料变更确认',
+      { type: 'warning', confirmButtonText: '确认修改', cancelButtonText: '取消' }
+    )
+  } catch {
+    return // 取消
+  }
+  profileSaving.value = true
+  try {
+    await updateUserProfileApi(detail.value.id, payload)
+    ElMessage.success('资料已更新')
+    await loadDetail()
+    fillProfileForm()
+    profileLogQuery.page = 1
+    await loadProfileLogs()
+  } catch {
+    // 失败保留编辑内容，request 层已提示
+  } finally {
+    profileSaving.value = false
+  }
+}
+
+async function loadProfileLogs() {
+  if (!props.userId) return
+  profileLogsLoading.value = true
+  try {
+    const res = await getProfileLogsApi(props.userId, {
+      page: profileLogQuery.page,
+      pageSize: profileLogQuery.pageSize,
+    })
+    profileLogs.value = res.list || []
+    profileLogTotal.value = res.total
+  } catch {
+    profileLogs.value = []
+    profileLogTotal.value = 0
+  } finally {
+    profileLogsLoading.value = false
+  }
+}
+
 // ── 抽屉打开时加载数据，tab 切换时按需懒加载 ──
 const loadedTabs = ref<Set<string>>(new Set())
 
@@ -572,6 +917,9 @@ watch(activeTab, async (tab) => {
     await loadComments()
   } else if (tab === 'reports') {
     await loadReports()
+  } else if (tab === 'profile-edit') {
+    fillProfileForm()
+    await loadProfileLogs()
   }
 })
 </script>
@@ -881,5 +1229,84 @@ watch(activeTab, async (tab) => {
 
 .text-muted {
   color: var(--xfjy-text-disabled);
+}
+
+/* 资料编辑 */
+.profile-form {
+  max-width: 560px;
+}
+
+.avatar-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar-edit {
+  cursor: pointer;
+  border: 1px solid var(--xfjy-border);
+}
+
+.photo-editor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.photo-edit-item {
+  position: relative;
+  width: 88px;
+  height: 88px;
+}
+
+.photo-edit-img {
+  width: 88px;
+  height: 88px;
+  border-radius: var(--xfjy-radius-sm);
+}
+
+.photo-remove {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--xfjy-danger);
+  color: var(--xfjy-text-inverse);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.photo-add {
+  width: 88px;
+  height: 88px;
+  border: 1px dashed var(--xfjy-border);
+  border-radius: var(--xfjy-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--xfjy-text-secondary);
+  cursor: pointer;
+}
+
+.photo-add:hover {
+  border-color: var(--xfjy-primary);
+  color: var(--xfjy-primary);
+}
+
+.photo-tip {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--xfjy-text-secondary);
+}
+
+.profile-log-title {
+  margin: 24px 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--xfjy-text-primary);
 }
 </style>

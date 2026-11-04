@@ -1,10 +1,12 @@
 package com.xfjy.server.controller;
 
 import com.xfjy.server.annotation.RequireRole;
+import com.xfjy.server.dto.AdminProfileUpdateDTO;
 import com.xfjy.server.service.AdminUserService;
 import com.xfjy.server.pojo.User;
 import com.xfjy.server.utils.ParamConvertUtils;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -223,6 +225,28 @@ public class AdminUserController {
             LOGGER.error("接口处理异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    /**
+     * 客服代改用户资料（白名单字段部分更新），字段级变更自动记入操作日志。
+     */
+    @PutMapping("{id}/profile")
+    public ResponseEntity<Void> editUserProfile(@PathVariable("id") Long id,
+                                                 @Valid @RequestBody AdminProfileUpdateDTO dto) {
+        boolean success = this.adminUserService.updateUserProfile(id, dto);
+        return success ? ResponseEntity.ok().build()
+                : ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    }
+
+    /**
+     * 查询用户资料编辑历史（操作人、变更摘要、IP、时间）。
+     */
+    @GetMapping("{id}/profile-logs")
+    public ResponseEntity<Map<String, Object>> queryProfileLogs(
+            @PathVariable("id") Long id,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer pageSize) {
+        return ResponseEntity.ok(this.adminUserService.queryProfileLogs(id, page, pageSize));
     }
 
     /**
