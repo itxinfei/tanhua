@@ -9,6 +9,7 @@
     tabindex="-1"
     @click="handleMaskTap"
     @keydown="handleKeydown"
+    @touchmove.stop
   >
     <view class="a11y-dialog__panel" @click.stop>
       <slot />

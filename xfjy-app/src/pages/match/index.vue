@@ -20,7 +20,18 @@
       <skeleton v-if="cardList.length === 0 && loading" variant="match" />
 
       <!-- 空状态：仅加载完成且无卡片时显示（否则会与骨架/卡片叠显） -->
-      <empty-state v-if="cardList.length === 0 && !loading" title="暂无推荐" desc="稍后再来看看，缘分不期而至" />
+      <empty-state
+        v-if="cardList.length === 0 && !loading"
+        :title="exhausted ? '推荐已看完' : '暂无推荐'"
+        :desc="exhausted ? '今日候选都已滑过，点击重新加载看看有没有新面孔' : '稍后再来看看，缘分不期而至'"
+      >
+        <a11y-button
+          v-if="exhausted"
+          label="重新加载"
+          variant="primary"
+          @click="handleReload"
+        />
+      </empty-state>
 
       <!-- 卡片堆叠（从后往前渲染） -->
       <view
@@ -330,6 +341,8 @@ function syncLocation(): void {
 // 卡片数据
 const cardList = ref<TodayBest[]>([]);
 const loading = ref(false);
+/** 服务端候选已耗尽（拉取返回空）：为 true 时展示重试入口，避免滑到底后静默卡死 */
+const exhausted = ref(false);
 
 // 滑动手势状态
 const dragX = ref(0);
@@ -526,6 +539,11 @@ async function handleRewind(): Promise<void> {
     info("没有可回看的卡片");
     return;
   }
+  // 每日免费回看次数上限（store 有 rewindCount，之前未接入导致限制形同虚设）
+  if (!matchStore.canRewind()) {
+    info("今日回看次数已用完");
+    return;
+  }
   try {
     // 先回滚后端再动队列：失败时保持现状，避免前后端状态不一致
     await matchStore.undoSwipe(last.id, last.action);
@@ -538,6 +556,8 @@ async function handleRewind(): Promise<void> {
     dragX.value = 0;
     dragY.value = 0;
     lastSwipe.value = null;
+    // 计入今日回看次数（仅回滚成功后累加，失败重试不消耗）
+    matchStore.useRewind();
     info("已回看上一张");
   } catch {
     fail("回看失败，请重试");
@@ -577,7 +597,7 @@ function goNearby() {
 
 // ===== 数据加载 =====
 async function loadMoreCards() {
-  if (loading.value) return;
+  if (loading.value) return false;
   loading.value = true;
   try {
     const newCards = await getCards();
@@ -585,6 +605,34 @@ async function loadMoreCards() {
       // 按 id 去重后追加：分页间隙服务端可能重复下发同一用户
       const knownIds = new Set(cardList.value.map((card) => card.id));
       cardList.value.push(...newCards.filter((card) => !knownIds.has(card.id)));
+      exhausted.value = false;
+      return true;
+    }
+    // 服务端已无新候选：标记耗尽，避免静默卡死
+    exhausted.value = true;
+    return false;
+  } catch {
+    // 请求失败由 request 层统一 toast；保留既有 exhausted 态，避免重试入口被吞掉
+    return false;
+  } finally {
+    loading.value = false;
+  }
+}
+
+/** 候选耗尽后手动重新加载：清空已消费记录，重新从头展示 */
+async function handleReload() {
+  loading.value = true;
+  try {
+    const newCards = await getCards();
+    if (newCards && newCards.length > 0) {
+      // 重新加载不复用旧栈：旧栈已消费完，保留只会让 visibleCards 为空
+      cardList.value = [...newCards];
+      currentCardIndex.value = 0;
+      exhausted.value = false;
+      dragX.value = 0;
+      dragY.value = 0;
+    } else {
+      exhausted.value = true;
     }
   } catch {
     // 请求失败由 request 层统一 toast
@@ -622,7 +670,9 @@ onUnmounted(() => {
 });
 
 onShow(() => {
-  if (userStore.isLogin && cardList.value.length === 0) {
+  // 卡片全滑完（或本就为空）时补拉：原先只在 cardList.length===0 才加载，
+  // 而滑完时 cardList 仍含历史记录，导致用户卡在「暂无推荐」无法再加载。
+  if (userStore.isLogin && (cardList.value.length === 0 || currentCardIndex.value >= cardList.value.length)) {
     loadMoreCards();
   }
   // 刷新无限滑动权益状态（VIP unlimited_swipe，每次进入匹配页刷新一次）
