@@ -310,7 +310,7 @@ function inputDeleteCode() {
 .group { background: var(--bg-card); margin: 0 0 24rpx; padding: 8rpx 32rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   /* 分组标题原 #999（≈2.85:1）→ #767676 */
   .group-title { font-size: 24rpx; color: var(--text-hint); padding: 16rpx 0 8rpx; display: block; }
-  .item { display: flex; align-items: center; min-height: var(--row-h-md); border-bottom: 1rpx solid var(--border-faint); min-width: 0;
+  .item { display: flex; align-items: center; min-height: var(--row-h-touch-md); border-bottom: 1rpx solid var(--border-faint); min-width: 0;
     &:last-child { border-bottom: none; }
     .label { flex: 1; font-size: 28rpx; color: var(--text-primary); }
     /* 长手机号/状态文本截断，避免挤占右侧箭头 */
@@ -322,7 +322,7 @@ function inputDeleteCode() {
 }
 
 .logout-btn {
-  margin: 16rpx 0 0; min-height: var(--row-h-md);
+  margin: 16rpx 0 0; min-height: var(--row-h-touch-md);
   display: flex; align-items: center; justify-content: center;
   background: var(--bg-card); color: var(--color-danger); font-size: 30rpx; font-weight: 500;
   border-radius: 44rpx;

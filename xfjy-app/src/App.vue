@@ -134,13 +134,25 @@ page {
      背景：rpx 是相对单位（750rpx = 视口宽），窄屏会等比缩小——320px 视口下
      88rpx 仅 37.5px，低于 WCAG 2.5.5 的 44px 物理下限。因此「保底」档一律写成
      max(88rpx, 44px)：宽屏维持 rpx 比例，窄屏兜住物理热区。
-     新增可点击行高必须引用这里，禁止各页面再写死像素值。 */
-  /** 紧凑行：次级操作行/卡片内密集列表（≥44px 物理下限） */
-  --row-h-sm: max(88rpx, 44px);
-  /** 标准行：设置项、菜单项、会话行等主列表（≥48px 物理下限） */
-  --row-h-md: max(96rpx, 48px);
-  /** 宽松行：带头像/多行副标题的富列表行（≥64px 物理下限） */
-  --row-h-lg: max(128rpx, 64px);
+     新增可点击行高必须引用这里，禁止各页面再写死像素值。
+
+     「视觉行高」与「热区行高」分开两档，是本项目的关键设计约束：
+     内容密度由 --row-h-visual-* 决定（看起来多紧凑），点击区域由 --row-h-touch-*
+     决定（点起来多轻松）。二者独立取值后，「视觉紧凑 + 热区达标」不再互相牵制——
+     min-height 撑出来的部分不承载任何视觉元素，所以看得见的小、摸得着的大。 */
+  /** 紧凑行热区：次级操作行/卡片内密集列表（≥44px 物理下限） */
+  --row-h-touch-sm: max(88rpx, 44px);
+  /** 标准行热区：设置项、菜单项、会话行等主列表（≥48px 物理下限） */
+  --row-h-touch-md: max(96rpx, 48px);
+  /** 宽松行热区：带头像/多行副标题的富列表行（≥64px 物理下限） */
+  --row-h-touch-lg: max(128rpx, 64px);
+
+  /** 紧凑行视觉高：密集列表的内容高度（配 --row-h-touch-sm 使用） */
+  --row-h-visual-sm: 72rpx;
+  /** 标准行视觉高：菜单项/设置项的内容高度（配 --row-h-touch-md 使用） */
+  --row-h-visual-md: 80rpx;
+  /** 宽松行视觉高：富列表行的内容高度（配 --row-h-touch-lg 使用） */
+  --row-h-visual-lg: 104rpx;
 
   /* 骨架屏：统一占位块样式令牌（灰底闪光 + 暗色变体），全站复用 */
   --skel-bg: linear-gradient(90deg, #efefef 25%, #f5f5f5 50%, #efefef 75%);
@@ -252,13 +264,30 @@ scroll-view {
 
 /* ===== 以下为 UI 细节优化工具类 ===== */
 
-/* 按钮点击反馈：按下缩放 */
+/* 按压反馈（行级/卡片级元素的真源）
+   设计取舍：
+   1) 行级元素（菜单行、卡片、会话行）不做 scale——缩放会连带缩放边框/分隔线/圆角，
+      整行会明显「跳」，反而显得廉价。改用「背景压暗」，边界保持稳定，
+      只传递「被按下」的信号，同时给内容区增加对比。
+   2) 按钮级元素（胶囊/方块）的反馈由 a11y-button 组件自身提供（scale + 透明度），
+      此处不重复声明，避免两条规则互相覆盖导致幅度失控。
+   3) 时长 120ms 起步、150ms 回弹，落在「瞬时但有感知」区间
+      （<100ms 感知不到，>300ms 显得拖沓）。统一 ease-out，回弹更干净。
+   4) 反馈只依赖 :active，松手即回弹，不需要 JS 参与，也不会残留状态。 */
 .btn-feedback {
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  transition:
+    opacity 0.12s ease-out,
+    background-color 0.12s ease-out;
 
   &:active {
-    transform: scale(0.92);
-    opacity: 0.85;
+    opacity: 0.72;
+    background-color: var(--border-faint);
+  }
+
+  /* 若行级元素同时是 a11y-button，交给组件自身的 scale 反馈，
+     这里只补背景压暗，不再叠加缩放 */
+  &.a11y-btn:active {
+    background-color: var(--border-faint);
   }
 }
 

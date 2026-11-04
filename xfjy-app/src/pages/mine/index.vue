@@ -50,14 +50,11 @@
       <text class="vip-arrow" aria-hidden="true">›</text>
     </a11y-button>
 
-    <!-- 功能列表（表驱动渲染）：
-         剩余空间按组内项数比例分配（--grow = 组内项数），
-         因此 5 项组分 5/8、3 项组分 3/8，单行高度完全相同。 -->
+    <!-- 功能列表（表驱动渲染）：行高固定，不随组内项数与视口宽度变化 -->
     <view
       v-for="(group, groupIndex) in menuGroups"
       :key="groupIndex"
       class="menu-group"
-      :style="{ '--grow': group.length }"
     >
       <a11y-button
         v-for="item in group"
@@ -400,11 +397,10 @@ onShow(() => {
   }
 }
 
-/* 菜单组：卡片容器，纵向排布，占满页面剩余高度。
-   flex-grow 由内联 --grow（= 组内项数）驱动，剩余空间因此按「总项数」比例分配：
-   5 项组拿 5/8、3 项组拿 3/8，组内再均分 → 两组的单行高度恒等。
-   这是「行高一致」与「占满屏幕」兼得的唯一分配方式（若两组均分，项数不同必然导致
-   行高不同：390px 实测 45.8 vs 74.1）。 */
+/* 菜单组：卡片容器，纵向排布，高度由行数 × 行高决定。
+   不做剩余空间分配：390px 视口下头部+VIP 卡已占 513px，留给菜单的 281px
+   不够 8 × 48px 的紧凑行高（需 384px）——「视觉紧凑」与「占满屏幕」在小屏
+   是硬冲突，此处优先紧凑（信息密度），剩余空间保留为底部留白。 */
 .menu-group {
   margin: 0 32rpx 16rpx;
   background: var(--bg-card);
@@ -413,21 +409,14 @@ onShow(() => {
      首尾圆角改由 menu-item 自身处理 */
   display: flex;
   flex-direction: column;
-  /* basis 0 + grow 按项数比例分配剩余空间：行高一致且占满屏幕。
-     shrink 0：不允许组被压扁——子项有 min-height 不缩，组若被压会导致
-     最后一项溢出到 padding 区（768px 实测溢出 65px）。
-     min-height: calc(var(--grow) * var(--row-h-md))：当剩余空间不足时
-     组高保底为「项数 × 行高」，宁可页面滚动也不让菜单项溢出。 */
-  flex: var(--grow) 0 0;
-  min-height: calc(var(--grow) * var(--row-h-md));
 
   .menu-item {
     display: flex;
     align-items: center;
-    /* 均分本组高度：实际高度 = max(--row-h-md, 组高/项数)，
-       任何视口下都 ≥ 48px 物理下限（WCAG 2.5.5） */
-    flex: 1 1 0;
-    min-height: var(--row-h-md);
+    /* 视觉紧凑度 = 内容高度（图标 64rpx + 文字行高），约 80rpx。
+       热区由 min-height 兜住（≥48px 物理下限，WCAG 2.5.5）。
+       二者解耦后「看得见的小、摸得着的大」：撑出来的空白不承载视觉元素。 */
+    min-height: var(--row-h-touch-md);
     padding: 0 32rpx;
     box-sizing: border-box;
     border-bottom: 1rpx solid var(--border-faint);

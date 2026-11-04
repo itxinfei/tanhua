@@ -205,7 +205,7 @@ onPullDownRefresh(async () => {
 <style lang="scss" scoped>
 .notifications-page { min-height: 100vh; background: var(--bg-sub); padding: 20rpx 24rpx; }
 
-.notice-item { display: flex; align-items: center; padding: 24rpx; min-height: var(--row-h-md); box-sizing: border-box; background: var(--bg-card); border-radius: 24rpx; margin-bottom: 16rpx;
+.notice-item { display: flex; align-items: center; padding: 24rpx; min-height: var(--row-h-touch-md); box-sizing: border-box; background: var(--bg-card); border-radius: 24rpx; margin-bottom: 16rpx;
   .avatar-wrap { position: relative; flex-shrink: 0;
     .avatar { width: 88rpx; height: 88rpx; border-radius: 50%; background: var(--bg-sub); border: 3rpx solid var(--bg-icon-soft); }
     .type-badge { position: absolute; bottom: -4rpx; right: -4rpx; width: 36rpx; height: 36rpx; border-radius: 50%; border: 3rpx solid var(--text-inverse); display: flex; align-items: center; justify-content: center; font-size: 18rpx; color: var(--text-inverse); }

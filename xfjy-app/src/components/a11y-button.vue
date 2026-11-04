@@ -110,8 +110,28 @@ function handleKeydown(e: any): void {
   /* 不再使用 :focus 兜底：鼠标点击也会触发 :focus，导致点击出现色块边框；
      键盘可达性由 :focus-visible 保证（H5/APP-webview），小程序端无 outline 概念 */
 
-  &--disabled {
+  /* 按压反馈：组件级统一真源，所有变体共享。
+     transition 只写这一处，避免各变体重复声明导致行为不一致；
+     缩放幅度由 --press-scale 提供，默认变体与视觉变体共用同一机制。 */
+  transition:
+    transform 0.15s ease-out,
+    opacity 0.12s ease-out,
+    background-color 0.12s ease-out;
+
+  &:active {
+    transform: scale(var(--press-scale, 0.96));
+    opacity: 0.88;
+  }
+
+  &--disabled,
+  &--loading {
     cursor: not-allowed;
+
+    /* 禁用/加载中不响应按压，避免误导用户「可以点」 */
+    &:active {
+      transform: none;
+      opacity: 0.4;
+    }
   }
 }
 
@@ -134,11 +154,9 @@ function handleKeydown(e: any): void {
   white-space: nowrap;
   border: 2rpx solid transparent;
   border-radius: var(--radius-pill);
-  transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
-
-  &:active {
-    transform: scale(0.97);
-  }
+  /* 视觉变体（有底色/描边）按压幅度略大：带底色的按钮缩放时更易被察觉。
+     transition 已由 .a11y-btn 统一提供，此处只改幅度，不重复声明。 */
+  --press-scale: 0.94;
 }
 
 /* 紧凑尺寸：输入框内嵌按钮等 */

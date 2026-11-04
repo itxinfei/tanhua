@@ -112,7 +112,7 @@ const emit = defineEmits<{ (e: "tap-item"): void }>();
   /* 行高真源：富列表行（带头像 + 两行文字）统一走 --row-h-lg，
      与 mine/settings 的 --row-h-md、紧凑操作行的 --row-h-sm 形成三档阶梯。
      只设 min-height 不设固定 height：右侧操作按钮更高时行可自然撑开。 */
-  min-height: var(--row-h-lg);
+  min-height: var(--row-h-touch-lg);
   /* border-box + 宽度 100%：padding 计入宽度，避免卡片在 scroll-view 内撑破容器导致右侧留白丢失 */
   box-sizing: border-box;
   width: 100%;
