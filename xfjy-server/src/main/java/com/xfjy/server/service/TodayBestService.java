@@ -451,13 +451,29 @@ public class TodayBestService {
     }
 
     /**
-     * 随机生成推荐好友，保证不重复（while 循环重试，避免递归栈溢出）
+     * 随机生成推荐好友，保证不重复（while 循环重试，避免递归栈溢出）。
+     *
+     * <p>去重按 {@code userId} 而非对象相等性：{@code RecommendUser} 的 {@code equals}
+     * 含 MongoDB {@code id}，同一 userId 的多条文档互不相等，用 {@code contains} 去重无效。</p>
+     * <p>候选池可能经 {@code RecommendFilterService} 过滤后只剩 1 条文档，此时随机抽样
+     * 永不产生新对象——必须显式判空退出，否则 {@code while(true)} 死循环。</p>
      */
     private void createRecommendUser(List<RecommendUser> newRecommendUserList,
                                      List<RecommendUser> records){
+        if (CollectionUtils.isEmpty(records)) {
+            return;
+        }
+        Set<Long> chosenUserIds = newRecommendUserList.stream()
+                .map(RecommendUser::getUserId)
+                .collect(Collectors.toSet());
+        // 池内不同 userId 数不足时，随机抽样无法再产生新项，直接退出避免死循环
+        long distinctUserIds = records.stream().map(RecommendUser::getUserId).distinct().count();
+        if (distinctUserIds <= chosenUserIds.size()) {
+            return;
+        }
         while (true) {
             RecommendUser recommendUser = records.get(RandomUtils.nextInt(0, records.size()));
-            if (!newRecommendUserList.contains(recommendUser)) {
+            if (recommendUser != null && chosenUserIds.add(recommendUser.getUserId())) {
                 newRecommendUserList.add(recommendUser);
                 return;
             }
@@ -468,17 +484,14 @@ public class TodayBestService {
      * 今日滑动次数校验（兜底层，防前端绕过）
      *
      * <p>逻辑：先检查是否持有 unlimited_swipe 权益；无权益则查询 tb_swipe_log 当日实际次数。</p>
-     * <p>注意：dislike（左滑）不计入次数，只有右滑（like/superlike）才计次。</p>
+     * <p>口径（2026-11-04 裁定）：三种动作（like / dislike / superlike）统一计入每日 50 次额度——
+     * 「滑走并换成下一个用户」即消耗一次，与左右滑方向无关。前端 store/match.ts 同口径。</p>
      *
-     * @param action 动作类型（用于区分计次策略）
+     * @param action 动作类型（like / dislike / superlike，三者均计次）
      * @throws SwipeLimitException 次数用尽且无权益
      */
     private void checkSwipeLimit(String action) {
         User user = UserThreadLocal.get();
-        // dislike 不占用滑动额度
-        if ("dislike".equals(action)) {
-            return;
-        }
         try {
             BenefitCheckVo benefit = this.payApi.checkBenefit(user.getId(), "unlimited_swipe");
             if (benefit != null && Boolean.TRUE.equals(benefit.getHasBenefit())) {
@@ -598,7 +611,7 @@ public class TodayBestService {
 
     public Boolean disLikeUser(Long likeUserId) {
         User user = UserThreadLocal.get();
-        // ★ 次数校验兜底（dislike 不占额度，checkSwipeLimit 内部自动跳过）
+        // ★ 次数校验兜底：dislike 与 like/superlike 同口径计次（见 checkSwipeLimit 注释）
         checkSwipeLimit("dislike");
         Boolean deleted = this.userLikeApi.deleteUserLike(user.getId(), likeUserId);
 
@@ -606,6 +619,8 @@ public class TodayBestService {
         if (Boolean.TRUE.equals(deleted)) {
             this.graphRecommendService.removeLikeRelation(user.getId(), likeUserId);
         }
+        // ★ 滑动日志记录：dislike 也消耗额度，必须落库否则 countTodaySwipes 与额度脱钩
+        recordSwipeLog(likeUserId, "dislike", false);
         return deleted;
     }
 

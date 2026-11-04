@@ -32,7 +32,10 @@ public interface SwipeLogMapper extends BaseMapper<SwipeLog> {
                     @Param("matched") Integer matched);
 
     /**
-     * 统计今日已滑动次数（所有 action 类型均计入总次数）
+     * 统计今日已滑动次数。
+     *
+     * <p>口径：like / dislike / superlike 三种动作均计入，与 BFF checkSwipeLimit 一致
+     * （2026-11-04 裁定：滑走并换成下一个用户即消耗一次，与滑动方向无关）。</p>
      */
     @Select("SELECT COUNT(*) FROM tb_swipe_log " +
             "WHERE user_id = #{userId} AND DATE(created) = CURDATE()")
