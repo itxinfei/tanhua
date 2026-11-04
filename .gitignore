@@ -38,9 +38,8 @@ target/
 !/CLAUDE.md
 !/pom.xml
 
-# 4) CI（.github 只放行 workflows；copilot-instructions.md 属工具入口，禁止入库）
+# 4) CI（只放行 Gitea 自建 CI；GitHub 不做 CI，.github 整体忽略）
 !/.gitea/workflows/**
-!/.github/workflows/**
 
 # 5) 仓库级脚本（一次性调试脚本仍被 `*` 忽略）
 !/scripts/init-kefu.sql
