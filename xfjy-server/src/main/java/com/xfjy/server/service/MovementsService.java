@@ -236,8 +236,12 @@ public class MovementsService {
             }
 
             // 真实距离：当前用户与发布者之间的 Geo 距离
+            // 注意：viewerLocation 的经纬度是 Double 包装类型，用户可能只设了城市名未设坐标，
+            // 故必须显式判空，否则自动拆箱会抛 NullPointerException
             String distance = null;
-            if (viewerLocation != null && StringUtils.isNotEmpty(record.getLongitude())
+            if (viewerLocation != null && viewerLocation.getLatitude() != null
+                    && viewerLocation.getLongitude() != null
+                    && StringUtils.isNotEmpty(record.getLongitude())
                     && StringUtils.isNotEmpty(record.getLatitude())) {
                 try {
                     double meters = haversine(viewerLocation.getLatitude(), viewerLocation.getLongitude(),

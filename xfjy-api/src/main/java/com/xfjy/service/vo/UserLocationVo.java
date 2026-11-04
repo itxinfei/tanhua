@@ -32,8 +32,11 @@ public class UserLocationVo implements java.io.Serializable {
         userLocationVo.setLastUpdated(userLocation.getLastUpdated());
         userLocationVo.setUpdated(userLocation.getUpdated());
         userLocationVo.setUserId(userLocation.getUserId());
-        userLocationVo.setLongitude(userLocation.getLocation().getX());
-        userLocationVo.setLatitude(userLocation.getLocation().getY());
+        // location 可能为 null（历史数据仅存地址文本未存坐标），判空后跳过经纬度
+        if (userLocation.getLocation() != null) {
+            userLocationVo.setLongitude(userLocation.getLocation().getX());
+            userLocationVo.setLatitude(userLocation.getLocation().getY());
+        }
         return userLocationVo;
     }
 
