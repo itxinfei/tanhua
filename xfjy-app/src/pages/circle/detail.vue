@@ -51,7 +51,7 @@
 
     <!-- 评论输入：发送按钮 + 回车双通道（H5 浏览器/部分输入法 confirm 不可靠，仅回车会让用户以为"评论发不出去"） -->
     <view class="comment-bar safe-area-bottom">
-      <input v-model="commentText" class="comment-input" placeholder="写评论..." aria-label="写评论" confirm-type="send" @confirm="sendComment" />
+      <input v-model="commentText" class="comment-input" placeholder="写评论..." aria-label="写评论" confirm-type="send" adjust-position="false" @confirm="sendComment" />
       <a11y-button class="send-btn btn-feedback" label="发送评论" @tap="sendComment">
         <text>发送</text>
       </a11y-button>
