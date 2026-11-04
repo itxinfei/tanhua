@@ -79,9 +79,9 @@ public class VideoService {
             PicUploadResult picUploadResult = this.picUploadService.upload(picFile);
             video.setPicUrl(picUploadResult.getName());
 
-            //上传视频到 MinIO
+            //上传视频到 MinIO（流式上传，避免大视频 getBytes() 全量读入内存导致 OOM）
             String videoFilePath = getVideoFilePath(videoFile.getOriginalFilename());
-            try (java.io.InputStream in = new java.io.ByteArrayInputStream(videoFile.getBytes())) {
+            try (java.io.InputStream in = videoFile.getInputStream()) {
                 if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(minioConfig.getBucketName()).build())) {
                     minioClient.makeBucket(MakeBucketArgs.builder().bucket(minioConfig.getBucketName()).build());
                 }

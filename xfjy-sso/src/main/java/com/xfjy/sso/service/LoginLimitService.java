@@ -4,9 +4,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.Collections;
 
 /**
  * 登录防爆破限流（Redis 计数器）
@@ -36,8 +39,27 @@ public class LoginLimitService {
     private static final int IP_LIMIT = 10;
     private static final int FAIL_THRESHOLD = 5;
 
+    /**
+     * Lua 脚本：原子 INCR + 首次 EXPIRE。
+     * 防止 INCR 后进程崩溃导致 key 永不过期（IP/账号被永久限流）；
+     * ARGV[1] 为窗口秒数，仅在计数为 1（首次）时设置过期。
+     */
+    private static final DefaultRedisScript<Long> INCR_EXPIRE_SCRIPT = new DefaultRedisScript<>(
+            "local c = redis.call('INCR', KEYS[1]) if c == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end return c",
+            Long.class);
+
     @Autowired
     private StringRedisTemplate redisTemplate;
+
+    /**
+     * 原子 INCR + 首次 EXPIRE：显式 String 序列化 ARGV，防模板默认序列化污染 TTL 参数
+     *
+     * @return incr 后的计数值；Redis 异常时由调用方 catch 降级
+     */
+    private Long atomicIncrWithExpire(String key, Duration ttl) {
+        return this.redisTemplate.execute(INCR_EXPIRE_SCRIPT, RedisSerializer.string(), null,
+                Collections.singletonList(key), String.valueOf(ttl.getSeconds()));
+    }
 
     /**
      * IP 维度限流：60s 内最多 10 次
@@ -50,10 +72,7 @@ public class LoginLimitService {
         }
         try {
             String key = IP_KEY_PREFIX + ip;
-            Long count = this.redisTemplate.opsForValue().increment(key);
-            if (count != null && count == 1L) {
-                this.redisTemplate.expire(key, IP_WINDOW);
-            }
+            Long count = this.atomicIncrWithExpire(key, IP_WINDOW);
             return count == null || count <= IP_LIMIT;
         } catch (Exception e) {
             LOGGER.error("IP 限流计数失败，降级放行 ip={}", ip, e);
@@ -87,11 +106,8 @@ public class LoginLimitService {
         }
         try {
             String failKey = FAIL_KEY_PREFIX + phone;
-            Long fails = this.redisTemplate.opsForValue().increment(failKey);
-            if (fails != null && fails == 1L) {
-                // 失败计数 30 分钟后自动过期（无残留）
-                this.redisTemplate.expire(failKey, Duration.ofMinutes(30));
-            }
+            // 失败计数 30 分钟后自动过期（无残留），原子 incr+expire 防崩溃后 key 永不过期
+            Long fails = this.atomicIncrWithExpire(failKey, Duration.ofMinutes(30));
             if (fails != null && fails >= FAIL_THRESHOLD) {
                 this.redisTemplate.opsForValue().set(LOCK_KEY_PREFIX + phone, "1", LOCK_DURATION);
                 this.redisTemplate.delete(failKey);
@@ -127,10 +143,7 @@ public class LoginLimitService {
         }
         try {
             String key = CODE_LIMIT_KEY_PREFIX + phone;
-            Long count = this.redisTemplate.opsForValue().increment(key);
-            if (count != null && count == 1L) {
-                this.redisTemplate.expire(key, CODE_LIMIT_WINDOW);
-            }
+            Long count = this.atomicIncrWithExpire(key, CODE_LIMIT_WINDOW);
             return count != null && count == 1L;
         } catch (Exception e) {
             LOGGER.error("验证码发送限流计数失败，降级放行 phone={}", phone, e);

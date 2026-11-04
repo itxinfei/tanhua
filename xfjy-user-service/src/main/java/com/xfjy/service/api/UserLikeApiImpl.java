@@ -149,6 +149,8 @@ public class UserLikeApiImpl implements UserLikeApi {
     private PageInfo<UserLike> queryList(Query query, Integer page, Integer pageSize){
         int p = (page == null || page < 1) ? 1 : page;
         int size = (pageSize == null || pageSize < 1) ? 10 : pageSize;
+        // 计算总数：count 必须在 with(pageRequest) 之前，否则 limit/skip 会污染 count 结果
+        long total = this.mongoTemplate.count(query, UserLike.class);
         PageRequest pageRequest = PageRequest.of(p - 1, size, Sort.by(Sort.Order.desc("created")));
         query.with(pageRequest); //分页
         List<UserLike> userLikeList = this.mongoTemplate.find(query, UserLike.class);
@@ -156,8 +158,6 @@ public class UserLikeApiImpl implements UserLikeApi {
         PageInfo<UserLike> pageInfo = new PageInfo<>();
         pageInfo.setPageNum(p);
         pageInfo.setPageSize(size);
-        // 计算总数：用相同条件但不带分页的 count 查询
-        long total = this.mongoTemplate.count(query, UserLike.class);
         pageInfo.setTotal((int) total);
         pageInfo.setPages(size > 0 ? (int) ((total + size - 1) / size) : 0);
         pageInfo.setRecords(userLikeList);

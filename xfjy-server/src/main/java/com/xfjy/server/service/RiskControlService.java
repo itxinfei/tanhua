@@ -4,9 +4,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.Collections;
 
 /**
  * 用户级行为频率风控（Redis 固定窗口计数器）
@@ -31,6 +34,15 @@ public class RiskControlService {
     private static final String KEY_PREFIX = "XFJY_RISK_";
     private static final Duration WINDOW = Duration.ofSeconds(60);
 
+    /**
+     * Lua 脚本：原子 INCR + 首次 EXPIRE。
+     * 防止 INCR 后进程崩溃导致 key 永不过期（用户被永久限流）；
+     * ARGV[1] 为窗口秒数，仅在计数为 1（首次）时设置过期。
+     */
+    private static final DefaultRedisScript<Long> INCR_EXPIRE_SCRIPT = new DefaultRedisScript<>(
+            "local c = redis.call('INCR', KEYS[1]) if c == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end return c",
+            Long.class);
+
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
 
@@ -48,10 +60,9 @@ public class RiskControlService {
         int limit = resolveLimit(action);
         String key = KEY_PREFIX + action + "_" + userId;
         try {
-            Long count = this.redisTemplate.opsForValue().increment(key);
-            if (count != null && count == 1L) {
-                this.redisTemplate.expire(key, WINDOW);
-            }
+            // Lua 原子 INCR+EXPIRE：显式 String 序列化 ARGV（模板默认 Jdk 序列化会污染 TTL 参数）
+            Long count = this.redisTemplate.execute(INCR_EXPIRE_SCRIPT, RedisSerializer.string(), null,
+                    Collections.singletonList(key), String.valueOf(WINDOW.getSeconds()));
             return count == null || count <= limit;
         } catch (Exception e) {
             // Redis 不可用时降级放行，不阻断业务主流程
