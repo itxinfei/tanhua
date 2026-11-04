@@ -30,6 +30,12 @@ public class TokenInterceptor implements HandlerInterceptor {
     /** 在线用户心跳有效期：5 分钟无请求视为离线 */
     private static final long ONLINE_TTL_MS = 5 * 60 * 1000L;
 
+    /** 日活用户 Redis SET key 前缀（XFJY_ACTIVE_yyyyMMdd），member=userId，看板 DAU/留存唯一数据源 */
+    private static final String ACTIVE_KEY_PREFIX = "XFJY_ACTIVE_";
+
+    /** 日活 SET 保留 35 天：覆盖 30 日留存计算窗口 */
+    private static final java.time.Duration ACTIVE_TTL = java.time.Duration.ofDays(35);
+
     @Autowired
     private UserService userService;
 
@@ -67,6 +73,9 @@ public class TokenInterceptor implements HandlerInterceptor {
 
         // 在线用户心跳：更新 ZSET 中该用户的最后活跃时间戳（用于看板在线统计）
         recordOnlineHeartbeat(user.getId());
+
+        // 日活埋点：写入当日活跃用户 SET（看板 DAU 趋势与次日/3/7/30 日留存的唯一数据源）
+        recordDailyActive(user.getId());
         return true;
     }
 
@@ -96,6 +105,27 @@ public class TokenInterceptor implements HandlerInterceptor {
             this.redisTemplate.opsForZSet().add(ONLINE_KEY, String.valueOf(userId), System.currentTimeMillis());
         } catch (Exception e) {
             LOGGER.warn("在线心跳记录失败 userId={}", userId, e);
+        }
+    }
+
+    /**
+     * 日活埋点：把用户写入当日活跃 SET。
+     * 仅当该用户当天首次出现（SADD 返回 1）时刷新 TTL，把每请求开销控制为 1 次 SADD；
+     * Redis 故障只记日志，不阻断请求。
+     */
+    private void recordDailyActive(Long userId) {
+        if (userId == null) {
+            return;
+        }
+        try {
+            String key = ACTIVE_KEY_PREFIX + java.time.LocalDate.now()
+                    .format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE);
+            Long added = this.redisTemplate.opsForSet().add(key, String.valueOf(userId));
+            if (added != null && added > 0) {
+                this.redisTemplate.expire(key, ACTIVE_TTL);
+            }
+        } catch (Exception e) {
+            LOGGER.warn("日活埋点记录失败 userId={}", userId, e);
         }
     }
 

@@ -2,6 +2,7 @@ package com.xfjy.server.controller;
 
 import com.xfjy.server.annotation.RequireRole;
 import com.xfjy.server.service.AdminDashboardService;
+import com.xfjy.server.service.AdminDashboardStatsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,9 @@ public class AdminDashboardController {
 
     @Autowired
     private AdminDashboardService adminDashboardService;
+
+    @Autowired
+    private AdminDashboardStatsService adminDashboardStatsService;
 
     /**
      * 看板概览统计
@@ -152,5 +156,53 @@ public class AdminDashboardController {
             LOGGER.error("接口处理异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    /**
+     * 实时在线概览：当前在线数、今日峰值、今日活跃 DAU（看板 30s 快轮询使用）
+     */
+    @GetMapping("online-overview")
+    public Map<String, Object> onlineOverview() {
+        return this.adminDashboardStatsService.online();
+    }
+
+    /**
+     * 活跃与留存：近 N 天 DAU 序列、今日活跃、次日/3/7/30 日留存
+     */
+    @GetMapping("activity")
+    public Map<String, Object> activity(@RequestParam(defaultValue = "30") Integer days) {
+        return this.adminDashboardStatsService.activity(days);
+    }
+
+    /**
+     * 匹配统计：今日漏斗（滑动→喜欢→匹配）+ 近 N 天每日序列
+     */
+    @GetMapping("match-stats")
+    public Map<String, Object> matchStats(@RequestParam(defaultValue = "7") Integer days) {
+        return this.adminDashboardStatsService.matchStats(days);
+    }
+
+    /**
+     * 人口属性聚合：性别、年龄段、城市 TOP10
+     */
+    @GetMapping("demographics")
+    public Map<String, Object> demographics() {
+        return this.adminDashboardStatsService.demographics();
+    }
+
+    /**
+     * 收入与付费：收入概览、近 N 天订单/金额趋势、支付方式、付费率、今日 ARPPU（金额单位：分）
+     */
+    @GetMapping("revenue")
+    public Map<String, Object> revenue(@RequestParam(defaultValue = "7") Integer days) {
+        return this.adminDashboardStatsService.revenue(days);
+    }
+
+    /**
+     * 内容安全：审核与举报的存量、今日处理量、近 N 天每日序列与类型分布
+     */
+    @GetMapping("moderation")
+    public Map<String, Object> moderation(@RequestParam(defaultValue = "7") Integer days) {
+        return this.adminDashboardStatsService.moderation(days);
     }
 }

@@ -11,6 +11,7 @@ import org.springframework.web.service.annotation.HttpExchange;
 import org.springframework.web.service.annotation.PostExchange;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 用户信息契约接口（tb_user_info 由 user-service 独占，跨服务只读走 HTTP）
@@ -45,4 +46,14 @@ public interface UserInfoApi {
     @PostExchange("/updateUserInfoByUserId")
     @PostMapping("/updateUserInfoByUserId")
     Boolean updateUserInfoByUserId(@RequestBody UserInfo userInfo);
+
+    /**
+     * 后台看板：人口属性聚合（服务端 SQL 聚合，避免 BFF 全量拉取 tb_user_info）
+     *
+     * 返回 {total, male, female, genderUnknown, ageRanges:[6段], ageCounts:[...],
+     * cities:[{name,count}] 非空城市 TOP10}
+     */
+    @GetExchange("/admin/demographics")
+    @GetMapping("/admin/demographics")
+    Map<String, Object> adminDemographics();
 }

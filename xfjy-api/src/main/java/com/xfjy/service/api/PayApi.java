@@ -213,6 +213,16 @@ public interface PayApi {
     Map<String, Object> payTypeDistribution();
 
     /**
+     * 后台看板：收入概览
+     *
+     * 返回 {todayAmount, todayOrders, todayPayUsers, totalAmount, totalOrders, totalPayUsers}，
+     * 金额单位：分；付费用户按 user_id 去重，口径 status=PAID（今日按 paid_time 过滤）
+     */
+    @GetExchange("/admin/orders/revenue-overview")
+    @GetMapping("/admin/orders/revenue-overview")
+    Map<String, Object> revenueOverview();
+
+    /**
      * 后台查询全部套餐（含下架）
      */
     @GetExchange("/admin/packages/all")

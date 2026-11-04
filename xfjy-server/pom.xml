@@ -60,7 +60,6 @@
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-jsqlparser</artifactId>
-            <version>${mybatis-plus.version}</version>
         </dependency>
         <!-- MySQL驱动（SB4管理版本） -->
         <dependency>
@@ -78,6 +77,11 @@
         <dependency>
             <groupId>cn.dev33</groupId>
             <artifactId>sa-token-spring-boot4-starter</artifactId>
+        </dependency>
+        <!-- Sa-Token Redis 会话存储：管理员会话持久化，重启不掉线、多实例共享 -->
+        <dependency>
+            <groupId>cn.dev33</groupId>
+            <artifactId>sa-token-redis-jackson</artifactId>
         </dependency>
 
         <!-- Neo4j Java Driver（P2 二度好友推荐，Bolt 协议驱动，版本 5.x 兼容 SB 4 / JDK 25） -->

@@ -330,6 +330,7 @@ public class PayApiImpl implements PayApi {
         }
         List<String> dates = new ArrayList<>();
         List<Long> orderList = new ArrayList<>();
+        List<Long> amountList = new ArrayList<>();
         java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MM-dd");
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.DAY_OF_MONTH, -(days - 1));
@@ -339,16 +340,78 @@ public class PayApiImpl implements PayApi {
             endCal.add(Calendar.DAY_OF_MONTH, 1);
             Date dayEnd = endCal.getTime();
             dates.add(sdf.format(dayStart));
-            QueryWrapper<PayOrder> dayWrapper = new QueryWrapper<>();
-            dayWrapper.eq("status", "PAID")
-                    .ge("paid_time", dayStart).lt("paid_time", dayEnd);
-            orderList.add(this.payOrderMapper.selectCount(dayWrapper));
+            orderList.add(this.countPaidOrders(dayStart, dayEnd));
+            amountList.add(this.sumPaidAmount(dayStart, dayEnd));
             cal.add(Calendar.DAY_OF_MONTH, 1);
         }
         Map<String, Object> result = new HashMap<>();
         result.put("dates", dates);
         result.put("orderList", orderList);
+        // 每日已支付金额（单位：分），看板收入曲线使用
+        result.put("amountList", amountList);
         return result;
+    }
+
+    @Override
+    @GetMapping("/admin/orders/revenue-overview")
+    public Map<String, Object> revenueOverview() {
+        // 今日口径：status=PAID 且 paid_time 落在今日；累计口径：全部 PAID 订单
+        Date todayStart = java.sql.Date.valueOf(java.time.LocalDate.now());
+        QueryWrapper<PayOrder> todayWrapper = new QueryWrapper<>();
+        todayWrapper.eq("status", "PAID").ge("paid_time", todayStart);
+        long todayOrders = this.payOrderMapper.selectCount(todayWrapper);
+
+        QueryWrapper<PayOrder> todayAggWrapper = new QueryWrapper<>();
+        todayAggWrapper.eq("status", "PAID").ge("paid_time", todayStart)
+                .select("COUNT(DISTINCT user_id) AS pay_users", "COALESCE(SUM(amount), 0) AS total_amount");
+        Map<String, Object> todayAgg = this.firstAggRow(todayAggWrapper);
+
+        QueryWrapper<PayOrder> totalWrapper = new QueryWrapper<>();
+        totalWrapper.eq("status", "PAID");
+        long totalOrders = this.payOrderMapper.selectCount(totalWrapper);
+
+        QueryWrapper<PayOrder> totalAggWrapper = new QueryWrapper<>();
+        totalAggWrapper.eq("status", "PAID")
+                .select("COUNT(DISTINCT user_id) AS pay_users", "COALESCE(SUM(amount), 0) AS total_amount");
+        Map<String, Object> totalAgg = this.firstAggRow(totalAggWrapper);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("todayAmount", aggLong(todayAgg, "total_amount"));
+        result.put("todayOrders", todayOrders);
+        result.put("todayPayUsers", aggLong(todayAgg, "pay_users"));
+        result.put("totalAmount", aggLong(totalAgg, "total_amount"));
+        result.put("totalOrders", totalOrders);
+        result.put("totalPayUsers", aggLong(totalAgg, "pay_users"));
+        return result;
+    }
+
+    /** 统计区间内已支付订单数（paid_time 半开区间 [start, end)） */
+    private long countPaidOrders(Date start, Date end) {
+        QueryWrapper<PayOrder> wrapper = new QueryWrapper<>();
+        wrapper.eq("status", "PAID")
+                .ge("paid_time", start).lt("paid_time", end);
+        return this.payOrderMapper.selectCount(wrapper);
+    }
+
+    /** 汇总区间内已支付金额（单位：分） */
+    private long sumPaidAmount(Date start, Date end) {
+        QueryWrapper<PayOrder> wrapper = new QueryWrapper<>();
+        wrapper.eq("status", "PAID")
+                .ge("paid_time", start).lt("paid_time", end)
+                .select("COALESCE(SUM(amount), 0) AS total_amount");
+        return aggLong(this.firstAggRow(wrapper), "total_amount");
+    }
+
+    /** 取无 GROUP BY 聚合查询的唯一一行，表为空时返回空 Map */
+    private Map<String, Object> firstAggRow(QueryWrapper<PayOrder> wrapper) {
+        List<Map<String, Object>> rows = this.payOrderMapper.selectMaps(wrapper);
+        return rows == null || rows.isEmpty() ? Map.of() : rows.get(0);
+    }
+
+    /** 聚合列在不同驱动版本下可能返回 Long/BigInteger/BigDecimal，统一转 long */
+    private static long aggLong(Map<String, Object> row, String column) {
+        Object value = row == null ? null : row.get(column);
+        return value instanceof Number number ? number.longValue() : 0L;
     }
 
     @Override

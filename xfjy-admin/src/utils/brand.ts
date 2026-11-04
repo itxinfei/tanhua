@@ -28,12 +28,21 @@ export interface BrandColors {
   chartPrimary: string
   chartSecondary: string
   chartThird: string
+  /** 图表分类色板 8 色（与 style.css --xfjy-chart-1..8 同源，CVD 安全） */
+  chartPalette: string[]
+  success: string
+  warning: string
+  danger: string
+  /** 中性灰（未知/沙箱等无倾向分类，ECharts canvas 不识别 CSS 变量故取计算色） */
+  neutral: string
+  chartInk: string
   chartInk2: string
   chartInk3: string
   chartGrid: string
 }
 
 export function getBrandColors(): BrandColors {
+  const fallback = ['#fe3c72', '#7c3aed', '#00b894', '#f59e0b', '#3b82f6', '#ef4444', '#8b5cf6', '#10b981']
   return {
     primary: readCssVar('--xfjy-primary', '#fe3c72'),
     primaryDeep: readCssVar('--xfjy-primary-deep', '#b13bff'),
@@ -45,6 +54,12 @@ export function getBrandColors(): BrandColors {
     chartPrimary: readCssVar('--xfjy-chart-1', '#fe3c72'),    // 暖玫红
     chartSecondary: readCssVar('--xfjy-chart-2', '#7c3aed'),  // CVD 安全紫（比 #b13bff 更深）
     chartThird: readCssVar('--xfjy-chart-3', '#00b894'),      // 青绿
+    chartPalette: fallback.map((hex, i) => readCssVar(`--xfjy-chart-${i + 1}`, hex)),
+    success: readCssVar('--xfjy-success', '#00b42a'),
+    warning: readCssVar('--xfjy-warning', '#ff7d00'),
+    danger: readCssVar('--xfjy-danger', '#f53f3f'),
+    neutral: readCssVar('--xfjy-text-disabled', '#c9cdd4'),
+    chartInk: readCssVar('--xfjy-chart-ink', '#1f2329'),
     // 图表墨色/网格：与 style.css 的 --xfjy-chart-ink-* / --xfjy-chart-grid 同源
     chartInk2: readCssVar('--xfjy-chart-ink-2', '#4e5969'),
     chartInk3: readCssVar('--xfjy-chart-ink-3', '#86909c'),

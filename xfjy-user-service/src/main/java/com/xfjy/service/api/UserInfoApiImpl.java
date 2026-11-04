@@ -19,7 +19,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 用户信息契约实现（tb_user_info 由 user-service 独占）
@@ -113,6 +117,77 @@ public class UserInfoApiImpl implements UserInfoApi {
             queryWrapper.eq("city", queryParam.getCity());
         }
         return this.userInfoMapper.selectList(queryWrapper);
+    }
+
+    @Override
+    @GetMapping("/admin/demographics")
+    public Map<String, Object> adminDemographics() {
+        Map<String, Object> result = new HashMap<>();
+        result.put("total", this.userInfoMapper.selectCount(null));
+
+        // 性别分布：sex 列存 IEnum value（1男 2女 3未知），NULL 并入未知
+        long male = 0;
+        long female = 0;
+        long genderUnknown = 0;
+        QueryWrapper<UserInfo> sexWrapper = new QueryWrapper<>();
+        sexWrapper.select("sex", "COUNT(*) AS cnt").groupBy("sex");
+        List<Map<String, Object>> sexRows = this.userInfoMapper.selectMaps(sexWrapper);
+        for (Map<String, Object> row : sexRows) {
+            long cnt = toLong(row.get("cnt"));
+            Object sex = row.get("sex");
+            if (sex instanceof Number number && number.intValue() == 1) {
+                male += cnt;
+            } else if (sex instanceof Number number && number.intValue() == 2) {
+                female += cnt;
+            } else {
+                genderUnknown += cnt;
+            }
+        }
+        result.put("male", male);
+        result.put("female", female);
+        result.put("genderUnknown", genderUnknown);
+
+        // 年龄分布：分段口径与历史看板一致（18以下/18-24/25-30/31-40/41-50/50以上，age<=0 不计入）
+        QueryWrapper<UserInfo> ageWrapper = new QueryWrapper<>();
+        ageWrapper.select(
+                "COALESCE(SUM(CASE WHEN age > 0 AND age < 18 THEN 1 ELSE 0 END), 0) AS b0",
+                "COALESCE(SUM(CASE WHEN age BETWEEN 18 AND 24 THEN 1 ELSE 0 END), 0) AS b1",
+                "COALESCE(SUM(CASE WHEN age BETWEEN 25 AND 30 THEN 1 ELSE 0 END), 0) AS b2",
+                "COALESCE(SUM(CASE WHEN age BETWEEN 31 AND 40 THEN 1 ELSE 0 END), 0) AS b3",
+                "COALESCE(SUM(CASE WHEN age BETWEEN 41 AND 50 THEN 1 ELSE 0 END), 0) AS b4",
+                "COALESCE(SUM(CASE WHEN age > 50 THEN 1 ELSE 0 END), 0) AS b5");
+        List<Map<String, Object>> ageRows = this.userInfoMapper.selectMaps(ageWrapper);
+        Map<String, Object> ageRow = ageRows.isEmpty() ? Map.of() : ageRows.get(0);
+        List<Long> ageCounts = new ArrayList<>(6);
+        for (int i = 0; i < 6; i++) {
+            ageCounts.add(toLong(ageRow.get("b" + i)));
+        }
+        result.put("ageRanges", Arrays.asList("18岁以下", "18-24岁", "25-30岁", "31-40岁", "41-50岁", "50岁以上"));
+        result.put("ageCounts", ageCounts);
+
+        // 城市分布 TOP10：过滤 NULL 与空串，按人数倒序
+        QueryWrapper<UserInfo> cityWrapper = new QueryWrapper<>();
+        cityWrapper.select("city AS name", "COUNT(*) AS cnt")
+                .isNotNull("city")
+                .ne("city", "")
+                .groupBy("city")
+                .orderByDesc("cnt")
+                .last("LIMIT 10");
+        List<Map<String, Object>> cityRows = this.userInfoMapper.selectMaps(cityWrapper);
+        List<Map<String, Object>> cities = new ArrayList<>();
+        for (Map<String, Object> row : cityRows) {
+            Map<String, Object> city = new HashMap<>();
+            city.put("name", String.valueOf(row.get("name")));
+            city.put("count", toLong(row.get("cnt")));
+            cities.add(city);
+        }
+        result.put("cities", cities);
+        return result;
+    }
+
+    /** 聚合列在不同驱动版本下可能返回 Long/BigInteger/BigDecimal，统一转 long */
+    private static long toLong(Object value) {
+        return value instanceof Number number ? number.longValue() : 0L;
     }
 
     @Override

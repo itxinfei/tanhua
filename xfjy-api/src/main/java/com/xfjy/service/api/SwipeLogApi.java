@@ -7,6 +7,8 @@ import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.HttpExchange;
 import org.springframework.web.service.annotation.PostExchange;
 
+import java.util.Map;
+
 /**
  * 滑动日志服务契约（由 domain-service 实现，BFF 层通过此接口代理）
  *
@@ -41,4 +43,24 @@ public interface SwipeLogApi {
     @GetExchange("/count-today")
     @GetMapping("/count-today")
     Long countTodaySwipes(@RequestParam("userId") Long userId);
+
+    /**
+     * 后台看板：今日匹配漏斗
+     *
+     * 返回字段：swipes 总滑动数（含 dislike）、likes 右滑数（like+superlike）、
+     * superlikes 超级喜欢数、matches 匹配数（matched=1）、
+     * likeUsers 当日右滑去重用户数、matchedUsers 当日匹配去重用户数
+     */
+    @GetExchange("/admin/daily-stats/today")
+    @GetMapping("/admin/daily-stats/today")
+    Map<String, Object> adminTodayFunnel();
+
+    /**
+     * 后台看板：近 N 天每日匹配漏斗序列
+     *
+     * 返回 {dates, swipes, likes, superlikes, matches}，缺日由服务端补零
+     */
+    @GetExchange("/admin/daily-stats")
+    @GetMapping("/admin/daily-stats")
+    Map<String, Object> adminDailyStats(@RequestParam("days") Integer days);
 }
