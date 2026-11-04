@@ -25,6 +25,11 @@ public class BaiduService {
 
     public Boolean updateLocation(Double longitude, Double latitude, String address) {
         User user = UserThreadLocal.get();
+        // 未登录（拦截器漏放行或 token 解析失败）时无法归属位置，直接拒绝
+        if (user == null || user.getId() == null) {
+            LOGGER.warn("上报位置失败：未获取到登录用户");
+            return false;
+        }
         // ES 优先写入：搜附近强依赖 ES，写入失败才整体失败
         try {
             Map<String, Object> param = new HashMap<>();
