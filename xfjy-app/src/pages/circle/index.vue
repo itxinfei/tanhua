@@ -625,6 +625,9 @@ onShareAppMessage(() => ({
     display: flex;
     align-items: center;
     padding: 24rpx 32rpx;
+    /* 会话行高真源：与 mine/settings 同一档 --row-h-md */
+    min-height: var(--row-h-md);
+    box-sizing: border-box;
     border-bottom: 1rpx solid var(--border-light);
 
     .avatar-wrap {

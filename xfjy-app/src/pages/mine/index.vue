@@ -50,12 +50,11 @@
       <text class="vip-arrow" aria-hidden="true">›</text>
     </a11y-button>
 
-    <!-- 功能列表（表驱动渲染）。末组加 menu-group--tail 吸收剩余高度，占满到 tabbar -->
+    <!-- 功能列表（表驱动渲染）：行高统一走 --row-h-md，不随组内项数变化 -->
     <view
       v-for="(group, groupIndex) in menuGroups"
       :key="groupIndex"
       class="menu-group"
-      :class="{ 'menu-group--tail': groupIndex === menuGroups.length - 1 }"
     >
       <a11y-button
         v-for="item in group"
@@ -71,6 +70,11 @@
         <text class="menu-arrow" aria-hidden="true">›</text>
       </a11y-button>
     </view>
+
+    <!-- 底部弹性占位：吃掉菜单与 tabbar 之间的剩余空间，使内容视觉上占满屏幕。
+         行高已固定，剩余空间只能由占位块吸收，不能再回填给菜单行。 -->
+    <view class="menu-spacer" aria-hidden="true" />
+
     <!-- 匹配成功弹窗（全局，由 match store 驱动） -->
     <MatchPopup />
   </view>
@@ -397,32 +401,23 @@ onShow(() => {
   }
 }
 
-/* 菜单组：占满剩余高度并均分给组内项。
-   用 flex: 1 1 auto 让最后一组吸收剩余空间；group 内菜单项再按 flex:1 1 0 均分，
-   使 5 项与 3 项两组的高度都被撑满到屏幕底部（而非堆在顶部留大片空白）。 */
+/* 菜单组：卡片容器，纵向排布，高度由内容（行数 × 统一行高）决定。
+   全站行高统一引用 --row-h-md，不随组内项数、不随视口宽度变化。 */
 .menu-group {
   margin: 0 32rpx 16rpx;
   background: var(--bg-card);
   border-radius: 24rpx;
-  /* 不用 overflow:hidden：它会配合 min-height:0 把低于 min-height 的菜单项裁掉
-     （320px 实测项高仅 38px）。首尾圆角改由 menu-item 自身处理 */
+  /* 不用 overflow:hidden：它会配合 min-height:0 把低于 min-height 的菜单项裁掉。
+     首尾圆角改由 menu-item 自身处理 */
   display: flex;
   flex-direction: column;
-  /* 各组等比吸收剩余高度：grow 1 + basis 0，总高度恒等于父级可用高度，
-     不会超出视口（auto 基准会按内容高度累加，iPad 实测溢出 259px）。
-     内容本身有 min-height 保底，窄屏时自然撑开并允许页面滚动。 */
-  flex: 1 1 0;
-  min-height: 0;
 
   .menu-item {
     display: flex;
     align-items: center;
-    /* 高度由 flex 均分决定：垂直不再用 padding 撑高，仅保留左右内边距 */
-    flex: 1 1 0;
-    /* 保底热区：88rpx 是相对单位，窄屏会等比缩小（320px 视口下仅 37.5px），
-       低于 WCAG 2.5.5 的 44px 物理下限。用 max() 取「88rpx 与 44px 的较大值」，
-       宽屏维持 rpx 比例、窄屏兜住物理热区，菜单也因此能占满屏幕。 */
-    min-height: max(88rpx, 44px);
+    /* 统一行高真源：所有页面菜单/设置行共用 --row-h-md，
+       宽屏 96rpx、窄屏兜底 48px，与 a11y-button / settings 页一致 */
+    min-height: var(--row-h-md);
     padding: 0 32rpx;
     box-sizing: border-box;
     border-bottom: 1rpx solid var(--border-faint);
@@ -473,5 +468,11 @@ onShow(() => {
       color: var(--text-hint);
     }
   }
+}
+
+/* 弹性占位：flex-grow 吃掉剩余高度；内容高于视口时 shrink 到 0 不挤占滚动空间 */
+.menu-spacer {
+  flex: 1 1 0;
+  min-height: 0;
 }
 </style>
