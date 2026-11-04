@@ -111,8 +111,8 @@ Copilot / Serena / Trae）开工前必须读完本文件。
 ## 7. 前端（xfjy-app + xfjy-admin）
 
 ### 7.1 xfjy-app（uni-app + rpx）
-- `uview-plus` **必须保留**：`@dcloudio/uni-ui` 的 `uni-icons.vue` 内部 `@use "uview-plus/theme.scss"`（33 处冻结实例，见 §11），删除会导致 H5 构建失败。无 `<u-*>` 组件使用，但依赖其 scss 主题变量。
-- 不引入其它第三方 UI 组件库；组件只用 `uni-ui`（easycom `^uni-(.*)`）与 `src/components/*`。
+- `uview-plus` **已移除且禁止加回**：全仓无 `<u-*>`/`$u-` 使用；`uni-icons.vue` 本身不含该 `@use`，报错来自 `uni.scss` 被 uni-app 注入每个组件后在 `node_modules` 下无法解析包路径。
+- 不引入其它第三方 UI 组件库（含 `uview-plus`：已移除，勿再加回；其 `@use` 若写进 `uni.scss` 会被注入每个组件并在 `node_modules` 下解析失败）；组件只用 `uni-ui`（easycom `^uni-(.*)`）与 `src/components/*`。
 - 颜色只允许 `var(--color-*)`（定义在 `xfjy-app/src/App.vue`）；禁止在页面写主色字面量。
 - 主色 `--color-primary`=`#fe3c72`；浅底小字用 `--color-primary-text`=`#c2185b`（对比度 ≥4.5）。
   `--color-primary-deep` 当前值为 `#b13bff`（历史紫，与主色不同源），禁止新代码使用。
