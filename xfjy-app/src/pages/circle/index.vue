@@ -24,7 +24,7 @@
     </view>
 
     <!-- 圈子视图 -->
-    <template v-show="topTab === 'circle'">
+    <view v-show="topTab === 'circle'" class="tab-view">
       <view class="tab-bar" role="tablist" aria-label="圈子频道">
         <a11y-button
           v-for="tab in tabs"
@@ -90,10 +90,10 @@
         </view>
         <view v-if="loading" class="loading">加载中...</view>
       </scroll-view>
-    </template>
+    </view>
 
     <!-- 消息视图（原 chat/index 内容） -->
-    <template v-show="topTab === 'message'">
+    <view v-show="topTab === 'message'" class="tab-view">
       <view class="notice-bar">
         <a11y-button class="notice-item btn-feedback" v-for="item in noticeItems" :key="item.type" :label="item.unread > 0 ? item.label + '，' + item.unread + ' 条未读' : item.label" @tap="goNotifications(item.type)">
           <view class="notice-icon-wrap">
@@ -130,7 +130,7 @@
           </view>
         </a11y-button>
       </scroll-view>
-    </template>
+    </view>
 
     <MatchPopup />
   </view>
@@ -352,10 +352,18 @@ onShareAppMessage(() => ({
 
 <style lang="scss" scoped>
 .social-page {
-  height: calc(100vh - var(--window-bottom, 0px));
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-sub);
+height: calc(100vh - var(--window-bottom, 0px));
+display: flex;
+flex-direction: column;
+background: var(--bg-sub);
+}
+
+/* 圈子/消息视图容器：v-show 切换时保持状态，避免重建 */
+.tab-view {
+flex: 1;
+min-height: 0;
+display: flex;
+flex-direction: column;
 }
 
 /* 顶级分区：圈子 / 消息（custom 导航后直接贴状态栏，需自行避让） */
