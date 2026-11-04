@@ -72,7 +72,14 @@ public class CommentsService {
 
         UserInfoQueryParam queryParam = new UserInfoQueryParam();
         queryParam.setUserIds(userIds);
-        List<UserInfo> userInfoList = this.userInfoApi.queryUserInfoList(queryParam);
+        List<UserInfo> userInfoList;
+        try {
+            userInfoList = this.userInfoApi.queryUserInfoList(queryParam);
+        } catch (Exception e) {
+            // RPC 失败不应让整个评论列表 500，降级为不展示作者信息
+            LOGGER.warn("批量查询用户信息失败，评论作者信息将不展示", e);
+            userInfoList = new ArrayList<>();
+        }
 
         List<Comments> commentsList = new ArrayList<>();
         for (Comment record : records) {
@@ -88,7 +95,7 @@ public class CommentsService {
 
             if (!CollectionUtils.isEmpty(userInfoList)) {
                 for (UserInfo userInfo : userInfoList) {
-                    if (userInfo != null && record.getUserId() != null
+                    if (userInfo != null && userInfo.getUserId() != null && record.getUserId() != null
                             && record.getUserId().longValue() == userInfo.getUserId().longValue()) {
                         comments.setNickname(userInfo.getNickName());
                         comments.setAvatar(userInfo.getLogo());
@@ -97,16 +104,22 @@ public class CommentsService {
                 }
             }
 
-            String likeUserCommentKey = "QUANZI_COMMENT_LIKE_USER_" + user.getId() + "_" + comments.getId();
+            // user 可能为 null（未登录访问），用 -1 占位构造 key，保证 key 格式一致且不 NPE
+            Long viewerId = user == null ? -1L : user.getId();
+            String likeUserCommentKey = "QUANZI_COMMENT_LIKE_USER_" + viewerId + "_" + comments.getId();
             comments.setHasLiked(this.redisTemplate.hasKey(likeUserCommentKey) ? 1 : 0); //是否点赞
 
             String likeCommentKey = "QUANZI_COMMENT_LIKE_" + comments.getId();
             String value = this.redisTemplate.opsForValue().get(likeCommentKey);
+            int likeCount = 0;
             if(StringUtils.isNotEmpty(value)){
-                comments.setLikeCount(Integer.valueOf(value)); //点赞数
-            }else{
-                comments.setLikeCount(0); //点赞数
+                try {
+                    likeCount = Integer.parseInt(value);
+                } catch (NumberFormatException e) {
+                    LOGGER.warn("评论点赞数缓存非数字，兜底为0: key={}, value={}", likeCommentKey, value);
+                }
             }
+            comments.setLikeCount(likeCount); //点赞数
 
             // 层级信息：回复评论带父评论 id 与被回复人昵称（旁路，失败仅置空不阻断）
             if (record.getParentId() != null) {

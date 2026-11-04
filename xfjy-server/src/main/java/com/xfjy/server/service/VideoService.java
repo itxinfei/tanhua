@@ -124,26 +124,33 @@ public class VideoService {
 
                 List<Long> vidList = new ArrayList<>();
                 for (int i = startIndex; i <= endIndex; i++) {
-                    vidList.add(Long.valueOf(vids[i]));
-                }
-
-                List<Video> videoList = this.videoApi.queryVideoListByPids(vidList);
-                // Mongo in 查询不保证返回顺序，按推荐 Redis 列表给出的顺序重排，避免推荐排序被打乱
-                Map<Long, Video> videoById = new java.util.HashMap<>();
-                for (Video v : videoList) {
-                    videoById.put(v.getVid(), v);
-                }
-                List<Video> ordered = new ArrayList<>();
-                for (Long vid : vidList) {
-                    Video v = videoById.get(vid);
-                    if (v != null) {
-                        ordered.add(v);
+                    try {
+                        vidList.add(Long.valueOf(vids[i]));
+                    } catch (NumberFormatException e) {
+                        // Redis 推荐列表脏数据（非数字）跳过，避免整个视频列表 500
+                        LOGGER.warn("视频推荐列表含非数字项，已跳过: value={}", vids[i]);
                     }
                 }
-                pageInfo = new PageInfo<>();
-                pageInfo.setRecords(ordered);
-                pageInfo.setTotal(vids.length);
-                pageInfo.setPages((vids.length + pageSize - 1) / pageSize);
+                // 推荐项全部非法（脏数据）时回退默认列表，避免返回空列表
+                if (!vidList.isEmpty()) {
+                    List<Video> videoList = this.videoApi.queryVideoListByPids(vidList);
+                    // Mongo in 查询不保证返回顺序，按推荐 Redis 列表给出的顺序重排，避免推荐排序被打乱
+                    Map<Long, Video> videoById = new java.util.HashMap<>();
+                    for (Video v : videoList) {
+                        videoById.put(v.getVid(), v);
+                    }
+                    List<Video> ordered = new ArrayList<>();
+                    for (Long vid : vidList) {
+                        Video v = videoById.get(vid);
+                        if (v != null) {
+                            ordered.add(v);
+                        }
+                    }
+                    pageInfo = new PageInfo<>();
+                    pageInfo.setRecords(ordered);
+                    pageInfo.setTotal(vids.length);
+                    pageInfo.setPages((vids.length + pageSize - 1) / pageSize);
+                }
             }
         }
 
@@ -220,11 +227,15 @@ public class VideoService {
 
             String likeCommentKey = "QUANZI_COMMENT_LIKE_" + videoVo.getId();
             String value = this.redisTemplate.opsForValue().get(likeCommentKey);
+            int likeCount = 0;
             if(StringUtils.isNotEmpty(value)){
-                videoVo.setLikeCount(Integer.valueOf(value)); //点赞数
-            }else{
-                videoVo.setLikeCount(0); //点赞数
+                try {
+                    likeCount = Integer.parseInt(value);
+                } catch (NumberFormatException e) {
+                    LOGGER.warn("视频点赞数缓存非数字，兜底为0: key={}, value={}", likeCommentKey, value);
+                }
             }
+            videoVo.setLikeCount(likeCount); //点赞数
 
             if (!userIds.contains(record.getUserId())) {
                 userIds.add(record.getUserId());

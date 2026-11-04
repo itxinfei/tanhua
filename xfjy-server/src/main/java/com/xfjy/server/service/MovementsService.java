@@ -213,27 +213,38 @@ public class MovementsService {
                 userIds.add(record.getUserId());
             }
 
-            String likeUserCommentKey = "QUANZI_COMMENT_LIKE_USER_" + user.getId() + "_" + movements.getId();
+            // user 可能为 null（未登录访问），用 -1 占位构造 key，保证 key 格式一致且不 NPE
+            Long viewerId = user == null ? -1L : user.getId();
+            String likeUserCommentKey = "QUANZI_COMMENT_LIKE_USER_" + viewerId + "_" + movements.getId();
             movements.setHasLiked(this.redisTemplate.hasKey(likeUserCommentKey) ? 1 : 0); //是否点赞
 
             String likeCommentKey = "QUANZI_COMMENT_LIKE_" + movements.getId();
             String value = this.redisTemplate.opsForValue().get(likeCommentKey);
+            int likeCount = 0;
             if (StringUtils.isNotEmpty(value)) {
-                movements.setLikeCount(Integer.valueOf(value)); //点赞数
-            } else {
-                movements.setLikeCount(0); //点赞数
+                try {
+                    likeCount = Integer.parseInt(value);
+                } catch (NumberFormatException e) {
+                    // Redis 脏数据（非数字）兜底为 0，避免整个列表 500
+                    log.warn("点赞数缓存非数字，兜底为0: key={}, value={}", likeCommentKey, value);
+                }
             }
+            movements.setLikeCount(likeCount); //点赞数
 
-            String loveUserCommentKey = "QUANZI_COMMENT_LOVE_USER_" + user.getId() + "_" + movements.getId();
+            String loveUserCommentKey = "QUANZI_COMMENT_LOVE_USER_" + viewerId + "_" + movements.getId();
             movements.setHasLoved(this.redisTemplate.hasKey(loveUserCommentKey) ? 1 : 0); //是否喜欢
 
             String loveCommentKey = "QUANZI_COMMENT_LOVE_" + movements.getId();
             String loveValue = this.redisTemplate.opsForValue().get(loveCommentKey);
+            int loveCount = 0;
             if (StringUtils.isNotEmpty(loveValue)) {
-                movements.setLoveCount(Integer.valueOf(loveValue)); //喜欢数
-            } else {
-                movements.setLoveCount(0); //喜欢数
+                try {
+                    loveCount = Integer.parseInt(loveValue);
+                } catch (NumberFormatException e) {
+                    log.warn("喜欢数缓存非数字，兜底为0: key={}, value={}", loveCommentKey, loveValue);
+                }
             }
+            movements.setLoveCount(loveCount); //喜欢数
 
             // 真实距离：当前用户与发布者之间的 Geo 距离
             // 注意：viewerLocation 的经纬度是 Double 包装类型，用户可能只设了城市名未设坐标，
@@ -273,14 +284,21 @@ public class MovementsService {
 
         UserInfoQueryParam queryParam = new UserInfoQueryParam();
         queryParam.setUserIds(userIds);
-        List<UserInfo> userInfoList = this.userInfoApi.queryUserInfoList(queryParam);
+        List<UserInfo> userInfoList;
+        try {
+            userInfoList = this.userInfoApi.queryUserInfoList(queryParam);
+        } catch (Exception e) {
+            // RPC 失败不应让整个动态列表 500，降级为不展示作者信息
+            log.warn("批量查询用户信息失败，作者信息将不展示", e);
+            userInfoList = Collections.emptyList();
+        }
 
         if (CollectionUtils.isEmpty(userInfoList)) {
             return movementsList;
         }
         for (Movements movements : movementsList) {
             for (UserInfo userInfo : userInfoList) {
-                if (userInfo != null && movements.getUserId() != null
+                if (userInfo != null && userInfo.getUserId() != null && movements.getUserId() != null
                         && movements.getUserId().longValue() == userInfo.getUserId().longValue()) {
 
                     // 修改点：动态级话题标签优先（发布页勾选）；无则回退作者资料标签（兼容历史动态）
