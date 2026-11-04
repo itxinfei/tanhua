@@ -733,11 +733,19 @@ onShareAppMessage(() => ({
   }
 
   .filter-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* 顶栏高 88rpx，但 padding 只有 8rpx，实际热区约 40rpx，远低于规范。
+       改为整块撑满顶栏高度；max(88rpx,44px) 兜住窄屏物理下限 */
+    align-self: stretch;
+    min-height: max(88rpx, 44px);
+    box-sizing: border-box;
+    padding: 0 24rpx;
     font-size: 28rpx;
     color: var(--text-inverse);
     background: rgba(255, 255, 255, 0.18);
     border: 1rpx solid rgba(255, 255, 255, 0.35);
-    padding: 8rpx 24rpx;
     border-radius: 24rpx;
   }
 }

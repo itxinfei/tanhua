@@ -355,9 +355,12 @@ onLoad(async (options: any) => {
   .photo { width: 100%; height: 100%; }
 }
 
-.back-btn { position: absolute; left: 24rpx; width: 64rpx; height: 64rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--text-inverse); font-size: 44rpx; z-index: 10; }
+/* 悬浮在照片上的圆形按钮：88rpx 是相对单位，窄屏（320px）会等比缩到 37.5px，
+   低于 WCAG 2.5.5 的 44px 物理下限；用 max() 保底，保证任何视口都不缩。
+   a11y-button 默认 variant=default（无样式），尺寸在此自理。 */
+.back-btn { position: absolute; left: 24rpx; width: max(88rpx, 44px); height: max(88rpx, 44px); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--text-inverse); font-size: 44rpx; z-index: 10; box-sizing: border-box; }
 
-.more-btn { position: absolute; right: 24rpx; width: 64rpx; height: 64rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--text-inverse); font-size: 40rpx; z-index: 10; }
+.more-btn { position: absolute; right: 24rpx; width: max(88rpx, 44px); height: max(88rpx, 44px); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--text-inverse); font-size: 40rpx; z-index: 10; box-sizing: border-box; }
 
 .photo-count { position: absolute; right: 24rpx; top: 780rpx; padding: 6rpx 20rpx; border-radius: 20rpx; font-size: 22rpx; color: var(--text-inverse); z-index: 10; }
 
