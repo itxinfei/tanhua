@@ -24,7 +24,7 @@
     </view>
 
     <!-- 圈子视图 -->
-    <template v-if="topTab === 'circle'">
+    <template v-show="topTab === 'circle'">
       <view class="tab-bar" role="tablist" aria-label="圈子频道">
         <a11y-button
           v-for="tab in tabs"
@@ -93,7 +93,7 @@
     </template>
 
     <!-- 消息视图（原 chat/index 内容） -->
-    <template v-else>
+    <template v-show="topTab === 'message'">
       <view class="notice-bar">
         <a11y-button class="notice-item btn-feedback" v-for="item in noticeItems" :key="item.type" :label="item.unread > 0 ? item.label + '，' + item.unread + ' 条未读' : item.label" @tap="goNotifications(item.type)">
           <view class="notice-icon-wrap">

@@ -77,14 +77,16 @@ watch(() => props.visible, (v) => { if (v && props.videoId) reload(); });
 function close() { emit("close"); }
 
 async function reload() {
+  // 作废在途请求后再强发本次请求：旧请求的 finally 判定 token 不匹配、不会复位 loading，
+  // 若这里仍被 load() 的 loading 早退保护挡住，loading 将永久为 true → 列表空 + 加载卡死。
   loadToken++;
   page.value = 1;
   list.value = [];
-  await load();
+  await load(true);
 }
 
-async function load() {
-  if (loading.value) return;
+async function load(force = false) {
+  if (loading.value && !force) return;
   const token = loadToken;
   const targetPage = page.value;
   loading.value = true;

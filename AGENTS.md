@@ -131,10 +131,12 @@ Copilot / Serena / Trae）开工前必须读完本文件。
 - 同页列表/表单行的左右内边距、行高、热区保持一致；右侧固定操作区（按钮/开关/箭头）
   与左侧内容对称留白，禁止贴边。
 - 尺寸单位用 `rpx`；1px 边框、tabbar 对齐等物理像素例外并注释原因。
+- 分类条选中指示统一 `height: 8rpx` + `border-radius: var(--radius-pill)` + `background: var(--color-primary)`，宽 `48rpx`、贴 `bottom: 0`；父级高度统一 `var(--category-bar-h)`（`88rpx`=44px，真源 `src/App.vue`）。唯一例外：视频频道条沿用 `--gradient-brand`（深色画面需渐变）。禁止 6rpx/3rpx 旧值、禁止各页写死条高。
 - 禁止写死白底/黑字，必须走 CSS 变量以自动适配暗色。
 - tabBar 配置只有两处：`pages.json` 的 `tabBar.list`（编译期，MP 端）与
   `xfjy-app/src/config/tab-config.ts`（H5 自绘用）；两者无法自动联动，改 tab 项必须同步，
   禁止在任何页面内再起第三套 tabbar。
+  `xfjy-app/scripts/check-tabbar.mjs` 在 `build:h5` / `build:mp-weixin` 前自动校验两处一致，不一致直接构建失败。
   tabbar 定制图形为 `xfjy-app/scripts/gen-icons.mjs` 生成的 PNG（原 `gen-tabbar-icons.py` 已删除废弃），
   禁止手工改图；改图标必须重跑脚本。
 - 新增通用样式进 `uni.scss` 或全局 class，禁止复制粘贴。

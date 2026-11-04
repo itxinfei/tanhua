@@ -26,24 +26,8 @@
       </a11y-button>
     </view>
 
-    <!-- Tab 切换（role=tablist/tab + aria-selected） -->
-    <view class="tab-bar" role="tablist" aria-label="好友关系分类">
-      <a11y-button
-        v-for="tab in TAB_LIST"
-        :key="tab.type"
-        class="tab-item"
-        :class="{ 'tab-active': activeType === tab.type }"
-        role="tab"
-        :checked="activeType === tab.type"
-        :label="tab.label"
-        @tap="switchTab(tab.type)"
-      >
-        <text>{{ tab.label }}</text>
-      </a11y-button>
-    </view>
-
-    <!-- 搜索框 -->
-    <view class="search-bar">
+    <!-- 搜索框：列表为空时隐藏（0 条数据下搜索无意义），避免"搜了还是空"的困惑 -->
+    <view v-if="userList.length > 0 || loading" class="search-bar">
       <input
         class="search-input"
         v-model="keyword"
@@ -68,7 +52,12 @@
         :icon="emptyIcon"
         :title="emptyTitle"
         :desc="emptyDesc"
-      />
+      >
+        <!-- 空态 CTA：可点击按钮，直接去匹配页认识更多人（原为纯文本不可点） -->
+        <a11y-button class="empty-cta btn-feedback" variant="primary" label="去认识更多人" @tap="goMatch">
+          去认识更多人
+        </a11y-button>
+      </empty-state>
 
       <!-- 通用用户列表行：主体可点击进详情 + 右侧操作按钮 -->
       <user-list-item
@@ -240,17 +229,22 @@ const emptyTitle = computed(() => {
 const emptyDesc = computed(() => {
   switch (activeType.value) {
     case FRIEND_TYPE.MUTUAL:
-      return "去探花频道发现更多有缘人";
+      return "主动打个招呼，缘分就从此刻开始";
     case FRIEND_TYPE.FOLLOW:
-      return "去探花频道发现更多有缘人";
+      return "去认识更多有趣的人吧";
     case FRIEND_TYPE.FANS:
-      return "分享你的动态，吸引更多粉丝";
+      return "分享你的动态，吸引更多人关注你";
     case FRIEND_TYPE.VISITOR:
       return "完善资料，让更多人看到你";
     default:
-      return "去探花频道发现更多有缘人";
+      return "去认识更多有趣的人吧";
   }
 });
+
+/** 空态 CTA：跳到匹配 tab（tabBar 页必须用 switchTab） */
+function goMatch(): void {
+  uni.switchTab({ url: "/pages/match/index" });
+}
 
 /** 页面加载时读取传入的 type 参数 */
 onLoad((options) => {
@@ -462,21 +456,24 @@ function goChat(user: FriendUser): void {
   }
 }
 
-/* 统计条：数字在上、标签在下，选中项高亮主色 */
+/* 统计条：数字在上、标签在下，选中项高亮主色；高度统一走 --category-bar-h */
 .stats-bar {
   display: flex;
+  height: var(--category-bar-h);
   background: var(--bg-card);
-  padding: 8rpx 24rpx 0;
+  padding: 0 24rpx;
   border-bottom: 1rpx solid var(--border-light);
 
   .stat-item {
+    position: relative;
     flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 4rpx;
-    padding: 16rpx 0;
+    padding: 0;
     background: transparent;
 
     .stat-num {
@@ -496,39 +493,18 @@ function goChat(user: FriendUser): void {
       .stat-label {
         color: var(--color-primary);
       }
-    }
-  }
-}
 
-.tab-bar {
-  display: flex;
-  background: var(--bg-card);
-  border-bottom: 1rpx solid var(--border-light);
-
-  .tab-item {
-    flex: 1;
-    height: 88rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28rpx;
-    color: var(--text-secondary);
-    position: relative;
-
-    &.tab-active {
-      color: var(--color-primary);
-      font-weight: bold;
-
+      /* 选中态下划线指示：宽度 48rpx、高 8rpx（4px 栅格），圆角取 --radius-pill */
       &::after {
         content: "";
         position: absolute;
-        bottom: 0;
         left: 50%;
+        bottom: 0;
         transform: translateX(-50%);
         width: 48rpx;
-        height: 6rpx;
+        height: 8rpx;
         background: var(--color-primary);
-        border-radius: 3rpx;
+        border-radius: var(--radius-pill);
       }
     }
   }
@@ -545,6 +521,14 @@ function goChat(user: FriendUser): void {
     padding: 0 32rpx;
     font-size: 26rpx;
   }
+}
+
+/* 空态 CTA：与 empty-state 描述拉开距离，保证可点 */
+.empty-cta {
+  margin-top: 36rpx;
+  padding: 0 56rpx;
+  min-height: 76rpx;
+  border-radius: 38rpx;
 }
 
 .list-scroll {

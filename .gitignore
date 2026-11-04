@@ -77,8 +77,9 @@ target/
 !/xfjy-admin/.gitignore
 !/xfjy-admin/README.md
 
-# 9) xfjy-app（截图、temp_*.json、_ 前缀脚本不放行）
+# 9) xfjy-app（docs 下的演示截图 / GIF 已放行；temp_*.json 与 _ 前缀脚本默认不放行，按需单独白名单）
 !/xfjy-app/src/**
+!/xfjy-app/docs/**
 !/xfjy-app/index.html
 !/xfjy-app/package.json
 !/xfjy-app/package-lock.json
@@ -90,6 +91,8 @@ target/
 !/xfjy-app/stylelint.config.cjs
 !/xfjy-app/.gitignore
 !/xfjy-app/scripts/gen-icons.mjs
+!/xfjy-app/scripts/check-tabbar.mjs
+!/xfjy-app/scripts/_record-demo-gif.mjs
 
 # 10) xfjy-recsys（训练代码入库；output/ 模型产物不入库）
 !/xfjy-recsys/README.md
@@ -114,3 +117,14 @@ deploy/tmp_sync/
 deploy/build/
 # Maven 依赖树分析临时产物
 dep-tree-all.txt
+/docs/代码质量修复方法与预防指南.md
+/docs/审查记录.md
+/docs/需求文档
+/docs/AI-agent交接-品牌主色切换.md
+/docs/brand-color-preview.html
+/docs/H5-tabbar机制与全局底栏.md
+/docs/icon-icons.md
+/docs/MySQL字符集乱码诊断与修复指南.md
+/docs/PRD-我的好友关系页优化-对标探探.md
+/docs/仓库收录白名单.md
+/docs/测试报告-端到端.md
