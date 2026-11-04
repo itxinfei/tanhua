@@ -9,6 +9,8 @@ import { loginIM, isIMLoggedIn, onMatchReceived } from "@/utils/wukongim";
 import { useMatchStore } from "@/store/match";
 import { useUserStore } from "@/store/user";
 import { resolveAvatar } from "@/utils/avatar";
+import { prefetchRecommendVideos } from "@/utils/video-cache";
+import { prefetchCircleFeed } from "@/utils/feed-cache";
 
 onLaunch(() => {
   // 安装全局登录路由守卫（需先于任何页面导航）
@@ -43,6 +45,17 @@ onLaunch(() => {
       avatar: resolveAvatar(event.avatar),
     });
   });
+
+  // 视频首屏预取：后端组装 VideoVo 需跨服务查用户信息，线上约 4~5s。
+  // 冷启动时后台先拉一次「推荐」首页写缓存，用户稍后点开视频 tab 即可 0 秒出画面。
+  // 延迟 1.2s 是为了不与登录态恢复 / IM 初始化抢网络，且失败完全静默。
+  setTimeout(() => {
+    if (getToken()) prefetchRecommendVideos().catch(() => {});
+  }, 1200);
+  // 圈子动态 /movements 同样有 3~11s 波动，稍晚错峰预取，避免与视频预取抢连接
+  setTimeout(() => {
+    if (getToken()) prefetchCircleFeed().catch(() => {});
+  }, 2200);
 });
 
 onShow(() => {
@@ -129,6 +142,11 @@ page {
   --radius-lg: 24rpx;
   --radius-xl: 32rpx;
   --radius-pill: 999rpx;
+
+  /* ===== 分类条（tab / 分段条）统一高度：88rpx = 44px，4px 栅格 =====
+     真源唯一：friend 统计条 / 圈子分区条 / 圈子频道条 / 视频频道条共用；
+     新增分类条必须引用本变量，禁止各页再写死高度（下划线靠父级高度统一后 bottom: 0 对齐）。 */
+  --category-bar-h: 88rpx;
 
   /* ===== 行高 / 热区真源（全站列表行、菜单行、可点击行的唯一取值处） =====
      背景：rpx 是相对单位（750rpx = 视口宽），窄屏会等比缩小——320px 视口下
