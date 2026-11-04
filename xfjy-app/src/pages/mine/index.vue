@@ -50,8 +50,13 @@
       <text class="vip-arrow" aria-hidden="true">›</text>
     </a11y-button>
 
-    <!-- 功能列表（表驱动渲染） -->
-    <view v-for="(group, groupIndex) in menuGroups" :key="groupIndex" class="menu-group">
+    <!-- 功能列表（表驱动渲染）。末组加 menu-group--tail 吸收剩余高度，占满到 tabbar -->
+    <view
+      v-for="(group, groupIndex) in menuGroups"
+      :key="groupIndex"
+      class="menu-group"
+      :class="{ 'menu-group--tail': groupIndex === menuGroups.length - 1 }"
+    >
       <a11y-button
         v-for="item in group"
         :key="item.label"
@@ -206,10 +211,14 @@ onShow(() => {
 </script>
 
 <style lang="scss" scoped>
+/* 纵向 flex：头部与 VIP 卡固定，菜单组吸收剩余高度，保证内容较少时也占满屏幕 */
 .mine-page {
+  display: flex;
+  flex-direction: column;
   min-height: calc(100vh - var(--window-bottom, 0px));
   background: var(--bg-sub);
   padding-bottom: calc(var(--window-bottom, 0px) + 24rpx);
+  box-sizing: border-box;
 }
 
 .header {
@@ -388,29 +397,51 @@ onShow(() => {
   }
 }
 
+/* 菜单组：占满剩余高度并均分给组内项。
+   用 flex: 1 1 auto 让最后一组吸收剩余空间；group 内菜单项再按 flex:1 1 0 均分，
+   使 5 项与 3 项两组的高度都被撑满到屏幕底部（而非堆在顶部留大片空白）。 */
 .menu-group {
   margin: 0 32rpx 16rpx;
   background: var(--bg-card);
   border-radius: 24rpx;
-  overflow: hidden;
-  /* 组内项等高：menu-item 用 flex: 1 1 0 均分；不做跨组拉伸（原 flexGrow 按项数比
-     分配剩余高度会导致内容不足时 overflow:hidden 裁切菜单项，已回退） */
+  /* 不用 overflow:hidden：它会配合 min-height:0 把低于 min-height 的菜单项裁掉
+     （320px 实测项高仅 38px）。首尾圆角改由 menu-item 自身处理 */
   display: flex;
   flex-direction: column;
+  /* 各组等比吸收剩余高度：grow 1 + basis 0，总高度恒等于父级可用高度，
+     不会超出视口（auto 基准会按内容高度累加，iPad 实测溢出 259px）。
+     内容本身有 min-height 保底，窄屏时自然撑开并允许页面滚动。 */
+  flex: 1 1 0;
+  min-height: 0;
 
   .menu-item {
     display: flex;
     align-items: center;
     /* 高度由 flex 均分决定：垂直不再用 padding 撑高，仅保留左右内边距 */
     flex: 1 1 0;
-    /* 保底热区 88rpx（≈44px@375，WCAG 2.5.5 / 项目规范），小屏可滚动 */
-    min-height: 88rpx;
+    /* 保底热区：88rpx 是相对单位，窄屏会等比缩小（320px 视口下仅 37.5px），
+       低于 WCAG 2.5.5 的 44px 物理下限。用 max() 取「88rpx 与 44px 的较大值」，
+       宽屏维持 rpx 比例、窄屏兜住物理热区，菜单也因此能占满屏幕。 */
+    min-height: max(88rpx, 44px);
     padding: 0 32rpx;
     box-sizing: border-box;
     border-bottom: 1rpx solid var(--border-faint);
 
     &:last-child {
       border-bottom: none;
+    }
+
+    /* 组容器不再 overflow:hidden，圆角改由首尾项承接 */
+    &:first-child {
+      border-radius: 24rpx 24rpx 0 0;
+    }
+
+    &:last-child {
+      border-radius: 0 0 24rpx 24rpx;
+    }
+
+    &:only-child {
+      border-radius: 24rpx;
     }
 
     .menu-icon-bg {
