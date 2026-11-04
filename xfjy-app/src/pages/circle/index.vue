@@ -589,11 +589,14 @@ flex-direction: column;
     align-items: center;
     font-size: 32rpx;
     color: var(--text-hint);
-    padding: 6rpx 4rpx;
+    padding: 6rpx 24rpx;
+    border-radius: var(--radius-pill);
+    transition: background 0.2s ease, color 0.2s ease;
 
     &.active {
       color: var(--text-primary);
       font-weight: 700;
+      background: var(--bg-icon-soft);
 
       &::after {
         content: "";
@@ -631,26 +634,31 @@ flex-direction: column;
   display: flex;
   align-items: stretch;
   background: var(--bg-card);
-  padding: 0 32rpx;
+  padding: 8rpx 32rpx;
   height: var(--category-bar-h);
   position: relative;
+  gap: 16rpx;
 
   .tab-item {
     display: flex;
     align-items: center;
-    padding: 0 32rpx;
-    font-size: 30rpx;
+    justify-content: center;
+    padding: 0 24rpx;
+    font-size: 28rpx;
     color: var(--text-hint);
     position: relative;
+    border-radius: var(--radius-pill);
+    transition: background 0.2s ease, color 0.2s ease;
 
     &.active {
       color: var(--text-primary);
       font-weight: bold;
+      background: var(--bg-icon-soft);
 
       &::after {
         content: "";
         position: absolute;
-        bottom: 0;
+        bottom: -8rpx;
         left: 50%;
         transform: translateX(-50%);
         width: 48rpx;
