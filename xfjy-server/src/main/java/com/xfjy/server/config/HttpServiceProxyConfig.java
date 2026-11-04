@@ -45,6 +45,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  * 2. Spring Cloud LoadBalancer：未配置静态 URL 时通过 lb:// 协议服务发现与负载均衡
  * 3. DiscoveryClient 轮询兜底：LoadBalancer 不可用时回退 DiscoveryClient + AtomicInteger 简单轮询
  *
+ * <p>超时：RestClient 默认不设置超时（无限等待），Nacos 注册了不可达实例时请求会挂到 TCP 超时
+ * （数十秒），长时间占用 BFF 工作线程。此处为三条解析路径统一挂载
+ * {@link DownstreamRequestFactory}（连接 2s / 读取 5s），与 {@code RestTemplateConfig} 同口径。</p>
+ *
  * - 探花匹配服务（xfjy-match-service，18082）：推荐用户/地理位置/附近的人
  * - 用户关系服务（xfjy-user-service，18090）：好友/喜欢/访客 + 用户资料
  * - 圈子动态服务（xfjy-circle-service，18084）：动态/评论/时间线
@@ -143,7 +147,7 @@ public class HttpServiceProxyConfig {
      * 不显式挂载时 ObjectId 会被序列化成 {"timestamp":...}，故此处统一覆盖为容器实例。
      */
     private RestClient.Builder newBuilder() {
-        return useContainerJsonMapper(RestClient.builder());
+        return useContainerJsonMapper(RestClient.builder().requestFactory(DownstreamRequestFactory.create()));
     }
 
     private RestClient.Builder useContainerJsonMapper(RestClient.Builder builder) {
@@ -181,7 +185,7 @@ public class HttpServiceProxyConfig {
         // 1. 静态 URL 优先（本地开发/指定地址场景）
         String staticUrl = staticUrls.get(serviceId);
         if (staticUrl != null) {
-            var builder = applyNotFoundSilence(newBuilder()).baseUrl(staticUrl);
+            var builder = applyNotFoundSilence(newBuilder().requestFactory(DownstreamRequestFactory.create())).baseUrl(staticUrl);
             if (!this.internalAuthToken.isEmpty()) {
                 builder.defaultHeader("X-Internal-Token", this.internalAuthToken);
             }
@@ -192,7 +196,8 @@ public class HttpServiceProxyConfig {
         }
         // 2. LoadBalancer 服务发现
         if (this.loadBalancedBuilder != null) {
-            var builder = applyNotFoundSilence(useContainerJsonMapper(this.loadBalancedBuilder.clone()))
+            var builder = applyNotFoundSilence(useContainerJsonMapper(this.loadBalancedBuilder.clone())
+                    .requestFactory(DownstreamRequestFactory.create()))
                     .baseUrl("lb://" + serviceId);
             if (!this.internalAuthToken.isEmpty()) {
                 builder.defaultHeader("X-Internal-Token", this.internalAuthToken);
