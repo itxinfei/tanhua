@@ -61,6 +61,9 @@ onShow(() => {
 </script>
 
 <style lang="scss">
+/* uview-plus 样式 */
+@use "uview-plus/index.scss" as *;
+
 /* ===== CSS 变量（品牌色：暖玫红 + 珊瑚系，与后台管理 xfjy-admin 对齐；紫色保留为辅助色；深色模式 WIP：变量层已就绪，页面硬编码色待逐步迁移到变量引用） ===== */
 page {
   --color-primary: #fe3c72;
