@@ -62,10 +62,14 @@ public class WuKongImApiImpl implements WuKongImApi {
     /** 系统发送方（透传消息 from_uid） */
     private static final String SYSTEM_UID = "system";
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
     @Value("${wukongim.api-host:http://192.168.20.133:5001}")
     private String apiHost;
+
+    public WuKongImApiImpl(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
 
     // ==================== 契约方法 ====================
 

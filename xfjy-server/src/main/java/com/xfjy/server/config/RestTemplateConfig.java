@@ -2,31 +2,31 @@ package com.xfjy.server.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.http.converter.HttpMessageConverters;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
 
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 @Configuration
 public class RestTemplateConfig {
 
-    @Bean
-    public RestTemplate restTemplate(ClientHttpRequestFactory factory) {
-        RestTemplate restTemplate = new RestTemplate(factory);
-        // 支持中文编码
-        restTemplate.getMessageConverters().set(1, new StringHttpMessageConverter(Charset.forName("UTF-8")));
-        return restTemplate;
-    }
-
     /**
      * RestTemplate 通道的下游请求工厂，超时口径见 {@link DownstreamRequestFactory}。
      *
-     * <p>连接超时原为 5s（与读取超时同值），现统一为 2s：内网可达实例建连是毫秒级，
-     * 5s 连接超时在实例不可达时会白等，与 RestClient 通道口径不一致。
+     * <p>字符串转换器用 Spring 支持的 {@code withStringConverter} 显式覆盖为 UTF-8，
+     * 而非 {@code getMessageConverters().set(1, ...)} 硬编码索引——默认转换器顺序由
+     * {@link HttpMessageConverters} 的 classpath 探测决定，索引 1 只是当前实现细节，
+     * 属于隐式契约，框架调整顺序时会静默写错位置。</p>
      */
     @Bean
-    public ClientHttpRequestFactory simpleClientHttpRequestFactory() {
-        return DownstreamRequestFactory.create();
+    public RestTemplate restTemplate() {
+        RestTemplate restTemplate = new RestTemplate(
+                HttpMessageConverters.forClient()
+                        .registerDefaults()
+                        .withStringConverter(new StringHttpMessageConverter(StandardCharsets.UTF_8))
+                        .build());
+        restTemplate.setRequestFactory(DownstreamRequestFactory.create());
+        return restTemplate;
     }
 }
