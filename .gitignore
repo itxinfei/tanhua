@@ -128,3 +128,8 @@ dep-tree-all.txt
 /docs/PRD-我的好友关系页优化-对标探探.md
 /docs/仓库收录白名单.md
 /docs/测试报告-端到端.md
+
+# 文档目录下的运行日志 / 测试产物（截图目录曾被误生成；必须在 `!/docs/**` 放行之后才生效）
+docs/**/*.log
+docs/**/*.log.err
+docs/**/e2e-results.json
