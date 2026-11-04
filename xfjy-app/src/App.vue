@@ -175,6 +175,14 @@ page {
   }
 }
 
+/* scroll-view 统一 border-box：uni-app 默认 content-box，宽度 100% 时左右 padding
+   会额外加到宽度上，导致容器被撑破、页面横向滚动（历史 bug：圈子 feed-list 在 390
+   视口实测 407px；chat/kefu 的 msg-list、video-comment-drawer 的 comment-list 等
+   同样中招）。scroll-view 的 padding 计入宽度才是正确语义，全站统一。 */
+scroll-view {
+  box-sizing: border-box;
+}
+
 /* 安全区域 */
 .safe-area-bottom {
   padding-bottom: constant(safe-area-inset-bottom);

@@ -447,6 +447,9 @@ onShareAppMessage(() => ({
 .feed-list {
   flex: 1;
   min-height: 0;
+  /* border-box：width:100% 时左右 padding 计入宽度，否则容器被撑破导致横向滚动
+     （历史 bug：content-box 下 390 视口实测宽 407px，全设备横向溢出） */
+  box-sizing: border-box;
   padding: 16rpx;
 }
 
