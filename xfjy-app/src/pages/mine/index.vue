@@ -50,11 +50,14 @@
       <text class="vip-arrow" aria-hidden="true">›</text>
     </a11y-button>
 
-    <!-- 功能列表（表驱动渲染）：行高统一走 --row-h-md，不随组内项数变化 -->
+    <!-- 功能列表（表驱动渲染）：
+         剩余空间按组内项数比例分配（--grow = 组内项数），
+         因此 5 项组分 5/8、3 项组分 3/8，单行高度完全相同。 -->
     <view
       v-for="(group, groupIndex) in menuGroups"
       :key="groupIndex"
       class="menu-group"
+      :style="{ '--grow': group.length }"
     >
       <a11y-button
         v-for="item in group"
@@ -70,10 +73,6 @@
         <text class="menu-arrow" aria-hidden="true">›</text>
       </a11y-button>
     </view>
-
-    <!-- 底部弹性占位：吃掉菜单与 tabbar 之间的剩余空间，使内容视觉上占满屏幕。
-         行高已固定，剩余空间只能由占位块吸收，不能再回填给菜单行。 -->
-    <view class="menu-spacer" aria-hidden="true" />
 
     <!-- 匹配成功弹窗（全局，由 match store 驱动） -->
     <MatchPopup />
@@ -401,8 +400,11 @@ onShow(() => {
   }
 }
 
-/* 菜单组：卡片容器，纵向排布，高度由内容（行数 × 统一行高）决定。
-   全站行高统一引用 --row-h-md，不随组内项数、不随视口宽度变化。 */
+/* 菜单组：卡片容器，纵向排布，占满页面剩余高度。
+   flex-grow 由内联 --grow（= 组内项数）驱动，剩余空间因此按「总项数」比例分配：
+   5 项组拿 5/8、3 项组拿 3/8，组内再均分 → 两组的单行高度恒等。
+   这是「行高一致」与「占满屏幕」兼得的唯一分配方式（若两组均分，项数不同必然导致
+   行高不同：390px 实测 45.8 vs 74.1）。 */
 .menu-group {
   margin: 0 32rpx 16rpx;
   background: var(--bg-card);
@@ -411,12 +413,20 @@ onShow(() => {
      首尾圆角改由 menu-item 自身处理 */
   display: flex;
   flex-direction: column;
+  /* basis 0 + grow 按项数比例分配剩余空间：行高一致且占满屏幕。
+     shrink 0：不允许组被压扁——子项有 min-height 不缩，组若被压会导致
+     最后一项溢出到 padding 区（768px 实测溢出 65px）。
+     min-height: calc(var(--grow) * var(--row-h-md))：当剩余空间不足时
+     组高保底为「项数 × 行高」，宁可页面滚动也不让菜单项溢出。 */
+  flex: var(--grow) 0 0;
+  min-height: calc(var(--grow) * var(--row-h-md));
 
   .menu-item {
     display: flex;
     align-items: center;
-    /* 统一行高真源：所有页面菜单/设置行共用 --row-h-md，
-       宽屏 96rpx、窄屏兜底 48px，与 a11y-button / settings 页一致 */
+    /* 均分本组高度：实际高度 = max(--row-h-md, 组高/项数)，
+       任何视口下都 ≥ 48px 物理下限（WCAG 2.5.5） */
+    flex: 1 1 0;
     min-height: var(--row-h-md);
     padding: 0 32rpx;
     box-sizing: border-box;
@@ -468,11 +478,5 @@ onShow(() => {
       color: var(--text-hint);
     }
   }
-}
-
-/* 弹性占位：flex-grow 吃掉剩余高度；内容高于视口时 shrink 到 0 不挤占滚动空间 */
-.menu-spacer {
-  flex: 1 1 0;
-  min-height: 0;
 }
 </style>
