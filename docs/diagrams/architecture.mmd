@@ -1,0 +1,72 @@
+%% 心飞交友系统架构图 —— 唯一源码真源（README 只引用导出产物，请勿直接改 README 里的图）
+%% 修改本文件后必须重新导出 SVG，否则 README 仍显示旧图：
+%%   npx --yes @mermaid-js/mermaid-cli@latest -i docs/diagrams/architecture.mmd -o docs/diagrams/architecture.svg -b white
+%% 导出产物 docs/diagrams/architecture.svg 与本源文件同批提交。
+flowchart TB
+    subgraph 客户端层
+        A1[管理后台 xfjy-admin<br/>Vue3 + Element Plus + TypeScript]
+        A2[用户端 xfjy-app<br/>uni-app 多端<br/>WuKongIM SDK]
+    end
+    subgraph 入口与安全
+        B["网关 Gateway · :8090<br/>SC-Gateway WebFlux + RateLimitGlobalFilter<br/>InternalToken (GlobalFilter Order=0)"]
+        C[SSO · :18080<br/>Sa-Token + Redis<br/>验证码登录]
+    end
+    subgraph BFF 编排层
+        D[xfjy-server · :18081<br/>业务编排 + 管理后台<br/>QdrantClient + Neo4jClient<br/>SensitiveWord + RiskControl]
+    end
+    subgraph DG["域服务（X-Internal-Token 鉴权）"]
+        E1[user-service · :18090<br/>用户关系 CRUD]
+        E2[match-service · :18082<br/>探花卡片滑动]
+        E3[circle-service · :18084<br/>动态发布 → RocketMQ]
+        E4[video-service · :18085<br/>视频流 → RocketMQ]
+        E5[message-service · :18086<br/>WuKongIM Token 签发<br/>LiveKit SFU Token 签发]
+        E6[pay-service · :18089<br/>VIP 权益 CRUD]
+    end
+    subgraph AUX["辅助服务（消费者 / 检索接口）"]
+        H1[xfjy-recommend<br/>RocketMQ → MongoDB 评分]
+        H2[xfjy-elasticsearch · :18088<br/>附近的人 ES HTTP API]
+    end
+    subgraph 中间件层
+        M1[(MySQL 8.0)]
+        M2[(Redis 7.x)]
+        M3[(MongoDB 8.0)]
+        M4[(ES 9.x)]
+        M5[(RocketMQ 5.x)]
+        M6[(MinIO)]
+        M7[(Qdrant 向量库)]
+        M8[(Neo4j 图数据库)]
+        M9[ Nacos 3.x 服务注册]
+        M10[WuKongIM :5200 WS]
+        M11[LiveKit :7880 SFU]
+    end
+
+    A1 -->|HTTP/WebSocket| B
+    A2 -- "wss 5200" --> M10
+    A2 -- "wss 7880" --> M11
+    A2 -->|HTTP/WebSocket| B
+    B --> C
+    B --> D
+    B --> M2
+    D -- "@LoadBalanced + X-Internal-Token" --> E1
+    D -- "@LoadBalanced + X-Internal-Token" --> E2
+    D -- "@LoadBalanced + X-Internal-Token" --> E3
+    D -- "@LoadBalanced + X-Internal-Token" --> E4
+    D -- "@LoadBalanced + X-Internal-Token" --> E5
+    D -- "@LoadBalanced + X-Internal-Token" --> E6
+    D -- "Qdrant REST" --> M7
+    D -- "Neo4j Bolt" --> M8
+    D --> H2
+    E3 --> M5
+    E4 --> M5
+    M5 --> H1
+    H1 --> M3
+    H2 --> M4
+    E1 --> M3
+    E2 --> M3
+    E2 --> H2
+    E3 --> M3
+    E4 --> M3
+    D --> M1
+    E6 --> M1
+    D --> M2
+    D --> M6

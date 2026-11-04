@@ -32,11 +32,143 @@
 
 </div>
 
+<br/>
+
+<p align="center">一个账号，连接真实附近的 TA · 开源可自托管</p>
+
 ---
 
-## 🏆 技术亮点总览
+## 目录
 
-### 🚀 全栈前沿技术栈
+- [核心亮点](#核心亮点)
+- [数字说话](#数字说话)
+- [产品功能预览](#产品功能预览)
+- [技术亮点总览](#技术亮点总览)
+  - [后端技术栈](#后端技术栈)
+  - [前端矩阵](#前端矩阵)
+- [内容安全全景](#内容安全全景)
+- [推荐引擎](#推荐引擎)
+- [系统架构](#系统架构)
+- [安全设计矩阵](#安全设计矩阵)
+- [部署运维](#部署运维)
+- [项目结构](#项目结构)
+- [环境变量](#环境变量)
+- [快速启动](#快速启动)
+- [监控与可观测](#监控与可观测)
+- [路线图](#路线图)
+- [文档](#文档)
+- [贡献指南](#贡献指南)
+
+---
+
+<a id="核心亮点"></a>
+## 核心亮点
+
+> 覆盖陌生人社交从相识、沟通到安全合规的八大核心能力。
+
+<table>
+  <tr>
+    <td align="center" width="33%"><b>探花匹配</b><br/><span>左滑跳过 · 右滑喜欢 · 超级喜欢<br/>互喜即弹「It's a Match!」全屏庆祝层</span></td>
+    <td align="center" width="33%"><b>即时通讯</b><br/><span>WuKongIM 自托管长连接 + LiveKit 1v1 音视频<br/>零商业授权费 · 连接数无上限</span></td>
+    <td align="center" width="33%"><b>AI 智能推荐</b><br/><span>5 层召回漏斗 + 双塔向量召回<br/>+ Neo4j 二度好友关系</span></td>
+  </tr>
+  <tr>
+    <td align="center" width="33%"><b>内容安全</b><br/><span>文本 DFA 敏感词 + 图视先发后审<br/>三级定级 · 词库热刷新</span></td>
+    <td align="center" width="33%"><b>附近的人</b><br/><span>Elasticsearch Geo 500km 精准召回<br/>响应 &lt;50ms</span></td>
+    <td align="center" width="33%"><b>一套代码 12 端</b><br/><span>H5 / App / 微信·抖音·支付宝等小程序<br/>/ 鸿蒙 / 快应用</span></td>
+  </tr>
+  <tr>
+    <td align="center" width="33%"><b>VIP 权益闭环</b><br/><span>会员套餐 + 支付订单<br/>+ 收入统计一体化</span></td>
+    <td align="center" width="33%"><b>沉浸式短视频</b><br/><span>抖音式上下滑视频流<br/>+ 一键发布</span></td>
+    <td align="center" width="33%"><b>审核工作台</b><br/><span>快捷键 A 通过 / R 驳回<br/>人工联动自动下架</span></td>
+  </tr>
+</table>
+
+---
+
+<a id="数字说话"></a>
+## 数字说话
+
+<table>
+  <tr>
+    <td align="center"><h2>11</h2>微服务模块</td>
+    <td align="center"><h2>12</h2>端统一输出</td>
+    <td align="center"><h2>12</h2>中间件技术栈</td>
+    <td align="center"><h2>6</h2>核心域服务<br/><sub><code>recommend</code> / <code>elasticsearch</code> 按能力组件另计，早期文档曾以 8 计</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><h2>5 层</h2>推荐召回漏斗</td>
+    <td align="center"><h2>64 维</h2>用户 Embedding</td>
+    <td align="center"><h2>&lt;50ms</h2>地理召回延迟</td>
+    <td align="center"><h2>¥0</h2>IM / 音视频授权费</td>
+  </tr>
+</table>
+
+---
+
+<a id="产品功能预览"></a>
+## 产品功能预览
+
+> 以下截图均取自**真实运行环境**（移动端 H5 + 运营后台），覆盖 C 端核心链路与后台管理矩阵，非设计稿。
+
+### 心飞交友 · 移动端 App（uni-app · 多端）
+
+<p align="center">
+  <img src="xfjy-app/docs/demo/app-demo.gif" width="320" alt="心飞交友移动端 H5 操作演示：匹配首页与底部 Tab 切换"/>
+  <br/>
+  <sub>移动端 H5 实录：匹配首页 → 圈子 / 视频 / 我的 → 回到首页</sub>
+</p>
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/app/01-login.png" width="200"/><br/><b>登录注册</b><br/>手机号 + 验证码一键登录</td>
+    <td align="center"><img src="docs/screenshots/app/02-match.png" width="200"/><br/><b>探花匹配</b><br/>左滑跳过 · 右滑喜欢 · 超级喜欢</td>
+    <td align="center"><img src="docs/screenshots/app/03-match-success.png" width="200"/><br/><b>配对成功</b><br/>互喜弹「It's a Match!」庆祝层</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/app/04-circle.png" width="200"/><br/><b>圈子动态</b><br/>好友 / 推荐双 Tab 动态流</td>
+    <td align="center"><img src="docs/screenshots/app/05-publish.png" width="200"/><br/><b>发布内容</b><br/>图文 / 视频 + 话题 / 位置</td>
+    <td align="center"><img src="docs/screenshots/app/06-video.png" width="200"/><br/><b>短视频</b><br/>抖音式沉浸式视频流</td>
+  </tr>
+  <tr>
+    <td align="center" colspan="3"><img src="docs/screenshots/app/07-mine.png" width="200"/><br/><b>我的 · 个人中心</b><br/>会员权益 · 好友 · 谁看过我</td>
+  </tr>
+</table>
+
+> **配对成功庆祝层**：当双方互相喜欢时，App 会弹出 **「配对成功 / It's a Match!」** 全屏庆祝层，并自动建立 IM 好友关系、推送匹配通知、IM 实时透传匹配消息。上图「配对成功」即为该庆祝层的真实渲染（对方头像为占位示意，右侧为 App 品牌图标）。
+
+### 心飞交友 · 运营后台管理系统（Vue3 + Element Plus + ECharts）
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/admin/00-login.png" width="460"/><br/><b>后台登录页</b><br/>账号 + 密码登录（DEV 环境标识）</td>
+    <td align="center"><img src="docs/screenshots/admin/01-dashboard.png" width="460"/><br/><b>数据看板</b><br/>运营总览 + 趋势图 + 实时动态</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/admin/02-user.png" width="460"/><br/><b>用户管理</b><br/>125+ 用户 · 封禁 / 重置密码 / 导出</td>
+    <td align="center"><img src="docs/screenshots/admin/03-movement.png" width="460"/><br/><b>动态管理</b><br/>动态 CRUD + 图片 / 视频</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/admin/04-video.png" width="460"/><br/><b>视频管理</b><br/>小视频审核 / 下架</td>
+    <td align="center"><img src="docs/screenshots/admin/05-review.png" width="460"/><br/><b>内容审核</b><br/>审核工作台（A 通过 / R 驳回 快捷键）</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/admin/06-vip.png" width="460"/><br/><b>VIP 套餐</b><br/>会员权益配置</td>
+    <td align="center"><img src="docs/screenshots/admin/07-pay.png" width="460"/><br/><b>支付订单</b><br/>订单 / 收入统计</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/admin/08-kefu.png" width="460"/><br/><b>客服工作台</b><br/>IM 会话 + 反馈 + FAQ</td>
+    <td align="center"><img src="docs/screenshots/admin/09-system.png" width="460"/><br/><b>系统管理</b><br/>管理员 / 日志 / IM 通道</td>
+  </tr>
+</table>
+
+---
+
+<a id="技术亮点总览"></a>
+## 技术亮点总览
+
+<a id="后端技术栈"></a>
+### 后端技术栈
 
 | 领域 | 技术选型 | 核心优势 |
 |------|----------|----------|
@@ -44,37 +176,39 @@
 | **微服务生态** | Spring Cloud Alibaba 2025.1（Nacos 3.0.0 服务发现，未启用配置中心） | 服务注册/发现由 Nacos 承担，配置集中在各模块本地 `application.yml`，便于小团队运维 |
 | **服务网关** | Spring Cloud Gateway（WebFlux 版，`spring-cloud-starter-gateway-server-webflux`） | 响应式非阻塞，限流/跨域/路由统一收口，唯一对外端口 8090 |
 | **认证鉴权** | Sa-Token 1.46.0（spring-boot4-starter；Redis 会话存储仅 sso 引入） | 用于登录态与 Token 签发/校验（`StpUtil.login/logout/getLoginIdByToken`），业务鉴权由自研拦截器链（`TokenInterceptor`、`AdminTokenInterceptor`、`XInternalTokenInterceptor`）实现 |
-| **持久层** | MyBatis-Plus 3.5.17 (spring-boot4-starter) + MySQL 8.0 | JDK 25/SB4 完美适配，CRUD 提效 50%，**`@LoadBalanced` 替代硬编码** |
+| **持久层** | MyBatis-Plus 3.5.17 (spring-boot4-starter) + MySQL 8.0 | JDK 25/SB4 适配，CRUD 提效 50%，**`@LoadBalanced` 替代硬编码** |
 | **文档数据库** | MongoDB 7（compose `mongo:7`）+ spring-data-mongodb (SB4 托管) | 动态/评论/消息/行为日志**灵活 Schema**，水平扩展友好 |
 | **搜索引擎** | Elasticsearch 9.4.5 + spring-data-elasticsearch | **Elastic Geo 精准地理检索**，附近的人 <50ms，替代 MySQL geo 函数 |
 | **缓存** | Redis 7（compose `redis:7-alpine`）+ Spring Cache + Lettuce | 会话 + 缓存 + 网关限流计数 + 用户级风控计数 |
 | **消息队列** | RocketMQ 5.3.1 (rocketmq-spring-boot-starter 2.3.6) | 行为评分异步解耦（circle/video 生产、recommend 消费），削峰填谷 |
 | **对象存储** | MinIO (S3 兼容) | 可本地可上云，**视频/图片上传成本降低 90%**（vs 阿里云 OSS） |
-| **即时通讯** | WuKongIM（开源 Apache-2.0, 自托管 WS 长连接） + LiveKit SFU（WebRTC 1v1） | **商业 SDK 全替换**，无授权费、连接数/消息存储无限扩展 |
+| **即时通讯** | WuKongIM（开源 Apache-2.0, 自托管 WS 长连接） + LiveKit SFU（WebRTC 1v1） | **商业 SDK 全替换**，无授权费，连接数与消息存储可扩展 |
 | **向量数据库** | Qdrant（纯 REST，point id = userId 免映射） | 双塔 embedding **召回友互惠加分**，fallback 零损失降级 |
 | **图数据库** | Neo4j 5.x（Bolt 协议原生驱动） | **二度好友共同喜欢数**排序召回，社交扩展场景核心 |
 | **AI 模型** | PyTorch 双塔（权重共享 + BPR Loss + L2 归一化） | **特征自动工程**（64 维 Embedding，可 `--mock`），全流程国产化 |
 | **密码安全** | spring-security-crypto (BCrypt，默认强度 10) | 密码哈希替代 MD5，盐值内置于哈希串 |
 | **服务发现** | `@LoadBalanced RestClient.Builder` | 通过 `lb://` 服务名做负载均衡（`HttpServiceProxyConfig`） |
-| **限流** | Gateway IP 限流（`RateLimitGlobalFilter`，Redis 计数，5 次/60s）+ 服务内用户级风控（`RiskControlService`，Redis 固定窗口） | **双层防线**：网关 IP + 用户 ID 双重频率保护，防刷更安全 |
+| **限流** | Gateway IP 限流（`RateLimitGlobalFilter`，Redis 计数，5 次/60s）+ 服务内用户级风控（`RiskControlService`，Redis 固定窗口） | **双层防线**：网关 IP + 用户 ID 双重频率保护 |
 | **监控** | Spring Boot Actuator + Micrometer（仅 server 模块引入） | 暴露 `health / info / metrics` 三类端点，贴合 K8s 健康探针 |
 | **代码质量** | Lombok + commons-io/commons-lang3 + 全局 Result 异常体系 | 模板代码 -30%，统一业务异常，全局异常兜底 |
 | **部署运维** | Git Tag 语义版本 + Gitea Actions | **一键回滚** + 增量编译，增量部署 10 秒级完成 |
 | **敏感词引擎** | houbb/sensitive-word（DFA 自动机 + 多音字/繁简/字符混淆变体） | 三级定级（直接拒绝 / 星号替换 / 进人工队列），词库变更热刷新 |
 
-### 🌐 前端矩阵
+<a id="前端矩阵"></a>
+### 前端矩阵
 
 | 项目 | 框架栈 | 核心优势 |
 |------|--------|----------|
-| **xfjy-app** | uni-app + Vue 3.5 + uview-plus + Pinia + Sass | **一套代码输出 12 端**（H5 + App + 微信/支付宝/抖音/QQ/百度/快手/飞书/小红书/京东/微信小程序 + 鸿蒙 + 快应用），**开发成本 ≈ 原生 1/12** |
-| **xfjy-admin** | Vue 3.5 + TypeScript + Element Plus 2.14 + ECharts 6 + Vite 8 + Pinia | **热更新 50ms**，**element-plus 零配置开箱即用**，TS 全类型安全 |
-| **WuKongIM SDK** | 独立 JS SDK（uni-app 集成） | 前后端 IM 同 SDK **消息收发一致性 100%**，离线消息/历史/漫游全支持 |
+| **xfjy-app** | uni-app + Vue 3.5 + uview-plus + Pinia + Sass | 一套代码输出 12 端（H5 + App + 微信/支付宝/抖音/QQ/百度/快手/飞书/小红书/京东/微信小程序 + 鸿蒙 + 快应用） |
+| **xfjy-admin** | Vue 3.5 + TypeScript + Element Plus 2.14 + ECharts 6 + Vite 8 + Pinia | 热更新 50ms，Element Plus 开箱即用，TS 全类型安全 |
+| **WuKongIM SDK** | 独立 JS SDK（uni-app 集成） | 前后端 IM 共用同一 SDK，离线消息 / 历史 / 漫游全支持 |
 
 ---
 
-## 🧠 内容安全全景
+<a id="内容安全全景"></a>
+## 内容安全全景
 
-> **合规即代码——不是项目副产品，而是核心架构层**
+> 内容安全不是项目副产品，而是核心架构层。
 
 ```
 内容安全
@@ -101,7 +235,8 @@
 
 ---
 
-## 🤖 推荐引擎（5 层漏斗）
+<a id="推荐引擎"></a>
+## 推荐引擎（5 层漏斗）
 
 ```
 用户进入 → T5 冷启动（新用户兜底）
@@ -127,7 +262,7 @@
 └───── ⚠ Qdrant / Neo4j 不可用时自动降级为空召回 ┘
 ```
 
-### 🔬 AI 双塔训练管线
+### AI 双塔训练管线
 
 | 阶段 | 工具 | 产出 |
 |------|------|------|
@@ -147,82 +282,22 @@
 
 ---
 
-## 🏗️ 系统架构
+<a id="系统架构"></a>
+## 系统架构
 
-```mermaid
-flowchart TB
-    subgraph 客户端层
-        A1[管理后台 xfjy-admin<br/>Vue3 + Element Plus + TypeScript]
-        A2[用户端 xfjy-app<br/>uni-app 多端<br/>WuKongIM SDK]
-    end
-    subgraph 入口与安全
-        B["网关 Gateway · :8090<br/>SC-Gateway WebFlux + RateLimitGlobalFilter<br/>InternalToken (GlobalFilter Order=0)"]
-        C[SSO · :18080<br/>Sa-Token + Redis<br/>验证码登录]
-    end
-    subgraph BFF 编排层
-        D[xfjy-server · :18081<br/>业务编排 + 管理后台<br/>QdrantClient + Neo4jClient<br/>SensitiveWord + RiskControl]
-    end
-    subgraph 8 大域服务（X-Internal-Token 鉴权）
-        E1[user-service · :18081<br/>用户关系 CRUD]
-        E2[match-service · :18082<br/>探花卡片滑动]
-        E3[circle-service · :18084<br/>动态发布 → RocketMQ]
-        E4[video-service · :18085<br/>视频流 → RocketMQ]
-        E5[message-service · :18086<br/>WuKongIM Token 签发<br/>LiveKit SFU Token 签发]
-        E6[pay-service · :18089<br/>VIP 权益 CRUD]
-    end
-    subgraph 辅助服务（消费者 / 检索接口）
-        H1[xfjy-recommend<br/>RocketMQ → MongoDB 评分]
-        H2[xfjy-elasticsearch<br/> :附近的人 ES HTTP API]
-    end
-    subgraph 中间件层
-        M1[(MySQL 8.0)]
-        M2[(Redis 7.x)]
-        M3[(MongoDB 8.0)]
-        M4[(ES 9.x)]
-        M5[(RocketMQ 5.x)]
-        M6[(MinIO)]
-        M7[(Qdrant 向量库)]
-        M8[(Neo4j 图数据库)]
-        M9[ Nacos 3.x 服务注册]
-        M10[WuKongIM :5200 WS]
-        M11[LiveKit :7880 SFU]
-    end
+![心飞交友系统架构](docs/diagrams/architecture.svg)
 
-    A1 -->|HTTP/WebSocket| B
-    A2 --> wss:// --> M10
-    A2 --> wss:// --> M11
-    A2 --> |HTTP/WebSocket| B
-    B --> C
-    B --> D
-    D -- "@LoadBalanced + X-Internal-Token" --> E1
-    D -- "@LoadBalanced + X-Internal-Token" --> E2
-    D -- "@LoadBalanced + X-Internal-Token" --> E3
-    D -- "@LoadBalanced + X-Internal-Token" --> E4
-    D -- "@LoadBalanced + X-Internal-Token" --> E5
-    D -- "@LoadBalanced + X-Internal-Token" --> E6
-    D -- "Qdrant REST" --> M7
-    D -- "Neo4j Bolt" --> M8
-    D --> M5
-    M5 --> H1
-    H1 --> M3
-    H2 --> M4
-    E1 --> M3
-    E2 --> M4
-    E3 --> M3
-    E4 --> M3
-    D --> M1
-    D --> M2
-    D --> M6
-```
+> 架构图源码见 `docs/diagrams/architecture.mmd`。修改后需重新导出 SVG，不要直接在 README 里改图。
 
 ---
 
-## 🛡️ 安全设计矩阵
+<a id="安全设计矩阵"></a>
+## 安全设计矩阵
 
 | 层 | 机制 | 工具 |
 |----|------|------|
 | **网络边界** | TLS 终止于 Nginx + 仅 8090 对外 | docker-compose 移除域服务端口映射 |
-| **域服务鉴权** | X-Internal-Token（Gateway 注入 + server 调用域服务时注入） | `InternalTokenFilter` / `HttpServiceProxyConfig` 注入，8 个域服务用 `XInternalTokenInterceptor` + `@Value` 校验 |
+| **域服务鉴权** | X-Internal-Token（Gateway 注入 + server 调用域服务时注入） | `InternalTokenFilter` / `HttpServiceProxyConfig` 注入，6 个域服务用 `XInternalTokenInterceptor` + `@Value` 校验 |
 | **API 限流** | IP 维度 + 用户维度 | `RateLimitGlobalFilter`（Redis）+ `RiskControlService`（Redis） |
 | **用户风控** | Redis 固定窗口 60s 计数器 | RiskControlService |
 | **内容合规** | 文本 DFA + 图片/视频先发后审 | houbb sensitive-word + tb_review |
@@ -234,7 +309,8 @@ flowchart TB
 
 ---
 
-## 🚢 部署运维
+<a id="部署运维"></a>
+## 部署运维
 
 ### 服务端口（开发/测试环境）
 
@@ -299,7 +375,8 @@ git push origin master
 
 ---
 
-## 📁 项目结构
+<a id="项目结构"></a>
+## 项目结构
 
 ```
 xfjy/
@@ -363,7 +440,8 @@ xfjy/
 
 ---
 
-## ⚙️ 环境变量
+<a id="环境变量"></a>
+## 环境变量
 
 ### 核心中间件
 
@@ -401,7 +479,8 @@ xfjy/
 
 ---
 
-## 🚀 快速启动
+<a id="快速启动"></a>
+## 快速启动
 
 ```bash
 # 1. MySQL 初始化
@@ -433,7 +512,8 @@ cd xfjy-app && npm run dev:h5   # C 端 H5 http://localhost:5173
 
 ---
 
-## 📊 监控与可观测
+<a id="监控与可观测"></a>
+## 监控与可观测
 
 | 端点 | 路径 | 说明 |
 |------|------|------|
@@ -450,37 +530,51 @@ curl http://127.0.0.1:18081/actuator/health
 
 ---
 
-## 📄 文档
+<a id="文档"></a>
+## 文档
 
-- 🧭 [需求文档导航](docs/需求文档/00-需求文档导航总纲.md) — 索引与冲突解决记录
-- 📋 [需求文档](docs/需求文档/01-需求文档.md) — 产品功能全覆盖
-- 🔒 [技术约束](docs/需求文档/02-技术约束.md) — 架构规则 + 现状违反清单
-- ✅ [AGENTS.md](AGENTS.md) — 面向所有 AI 工具的唯一规则真源
-- 🗄️ 数据库脚本：`scripts/xfjy.sql`（全量表结构 + 初始数据）
+- [需求文档导航](docs/需求文档/00-需求文档导航总纲.md) — 索引与冲突解决记录
+- [需求文档](docs/需求文档/01-需求文档.md) — 产品功能全覆盖
+- [技术约束](docs/需求文档/02-技术约束.md) — 架构规则 + 现状违反清单
+- [AGENTS.md](AGENTS.md) — 面向所有 AI 工具的唯一规则真源
+- 数据库脚本：`scripts/xfjy.sql`（全量表结构 + 初始数据）
 
 > 原 `docs/功能就绪矩阵.md`、`docs/技术栈架构全景.html` 已失效：前者归档为
 > `docs/archive/23-功能就绪矩阵.md`，后者无对应替代文件。
 
 ---
 
-## 👨‍💻 贡献指南
+<a id="贡献指南"></a>
+## 贡献指南
 
 1. Fork 本仓库 → 创建特性分支 `feat/your-feature`
 2. 提交格式：`type: 简述`（feat / fix / refactor / docs / test / chore / perf）
-3. 🔐 **密钥禁止入库** — 统一 `.env` 外置
-4. 📦 修改 `xfjy-api` 后须 `mvn -am` 连带构建
-5. 🔄 新增域服务接口 → 同步 `X-Internal-Token` 透传
-6. 🗄️ 数据库表变更 → **走专属域服务**，禁止跨域写表
-7. ⚠ Qdrant / Neo4j 调用 → **必须有 `enabled: false` 降级开关**
+3. **密钥禁止入库** — 统一 `.env` 外置
+4. 修改 `xfjy-api` 后须 `mvn -am` 连带构建
+5. 新增域服务接口 → 同步 `X-Internal-Token` 透传
+6. 数据库表变更 → **走专属域服务**，禁止跨域写表
+7. Qdrant / Neo4j 调用 → **必须有 `enabled: false` 降级开关**
 
 ---
 
-## 📜 License
+<a id="路线图"></a>
+## 路线图
+
+| 阶段 | 状态 | 核心内容 |
+|------|------|----------|
+| **P1 核心社交闭环** | ✅ 已完成 | 探花匹配 · 圈子动态 · 短视频 · 即时通讯 · VIP 权益 · 内容审核 |
+| **P2 智能推荐增强** | 🟡 进行中 | Qdrant 向量召回 + Neo4j 二度好友（开关可控，不可用时自动降级） |
+| **P3 实时音视频** | 🟡 进行中 | LiveKit SFU 1v1 通话，WuKongIM Token 签发链路已打通 |
+| **P4 运营增长** | ⏳ 规划中 | 活动中心 · 裂变拉新 · 数据看板增强 · 多端小程序上架 |
+
+---
+
+## License
 
 [MIT](LICENSE)
 
 ---
 
 <div align="center">
-<sub>Built with ❤️ by <strong>itxinfei</strong> · 2026 · Powered by Spring Boot 4.1.1 + JDK 25 + Vue 3.5</sub>
+<sub>© 2026 itxinfei · Spring Boot 4.1.1 + JDK 25 + Vue 3.5</sub>
 </div>
