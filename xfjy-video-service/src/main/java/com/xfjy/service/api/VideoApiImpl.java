@@ -105,6 +105,11 @@ public class VideoApiImpl implements VideoApi {
     public Boolean followUser(@RequestParam("userId") Long userId,
                               @RequestParam("followUserId") Long followUserId) {
         try {
+            // 先查后插：已关注则幂等返回 true，防止重复关注记录
+            Query existQuery = Query.query(Criteria.where("userId").is(userId).and("followUserId").is(followUserId));
+            if (this.mongoTemplate.exists(existQuery, FollowUser.class)) {
+                return true;
+            }
             FollowUser followUser = new FollowUser();
             followUser.setId(ObjectId.get());
             followUser.setUserId(userId);

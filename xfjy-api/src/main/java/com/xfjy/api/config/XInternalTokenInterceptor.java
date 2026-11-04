@@ -42,8 +42,10 @@ public class XInternalTokenInterceptor implements HandlerInterceptor {
         if (token != null && validTokens.contains(token)) {
             return true;
         }
+        // token 脱敏：仅保留前 4 位，防止完整凭据泄露到日志
+        String maskedToken = token == null ? "null" : (token.length() <= 4 ? "***" : token.substring(0, 4) + "***");
         log.warn("[XInternalToken] 非法调用 URI={}, token={}, IP={}",
-                request.getRequestURI(), token, request.getRemoteAddr());
+                request.getRequestURI(), maskedToken, request.getRemoteAddr());
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().write("{\"code\":403,\"message\":\"Forbidden: invalid internal token\"}");

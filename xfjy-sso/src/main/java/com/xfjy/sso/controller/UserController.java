@@ -8,10 +8,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
@@ -92,10 +92,11 @@ public class UserController {
 
     /**
      * 根据 token 查询用户（xfjy-server TokenInterceptor 调用）
+     * token 通过 X-Token 请求头传递，避免出现在 URL 路径中被访问日志/反向代理日志记录。
      * 无效 token 返回空 body（server 侧解析为 null）
      */
-    @GetMapping("/user/{token}")
-    public ResponseEntity<User> queryUserByToken(@PathVariable String token) {
+    @GetMapping("/user/query")
+    public ResponseEntity<User> queryUserByToken(@RequestHeader("X-Token") String token) {
         User user = this.userService.queryUserByToken(token);
         if (user == null) {
             return ResponseEntity.ok().build();
