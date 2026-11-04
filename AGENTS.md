@@ -110,7 +110,9 @@ Copilot / Serena / Trae）开工前必须读完本文件。
 
 ## 7. 前端（xfjy-app + xfjy-admin）
 
-### 7.1 xfjy-app（uni-app + uview-plus + rpx）
+### 7.1 xfjy-app（uni-app + rpx）
+- `uview-plus` **必须保留**：`@dcloudio/uni-ui` 的 `uni-icons.vue` 内部 `@use "uview-plus/theme.scss"`（33 处冻结实例，见 §11），删除会导致 H5 构建失败。无 `<u-*>` 组件使用，但依赖其 scss 主题变量。
+- 不引入其它第三方 UI 组件库；组件只用 `uni-ui`（easycom `^uni-(.*)`）与 `src/components/*`。
 - 颜色只允许 `var(--color-*)`（定义在 `xfjy-app/src/App.vue`）；禁止在页面写主色字面量。
 - 主色 `--color-primary`=`#fe3c72`；浅底小字用 `--color-primary-text`=`#c2185b`（对比度 ≥4.5）。
   `--color-primary-deep` 当前值为 `#b13bff`（历史紫，与主色不同源），禁止新代码使用。
@@ -171,12 +173,15 @@ Copilot / Serena / Trae）开工前必须读完本文件。
 | `@dcloudio/uni-app`、`uni-app-harmony`、`uni-app-plus`、`uni-components`、`uni-h5`、`uni-mp-alipay`、`uni-mp-baidu`、`uni-mp-harmony`、`uni-mp-jd`、`uni-mp-kuaishou`、`uni-mp-lark`、`uni-mp-qq`、`uni-mp-toutiao`、`uni-mp-weixin`、`uni-mp-xhs`、`uni-quickapp-webview`（16 个运行时包） | `3.0.0-5030420261029002` | 运行时与构建链必须同 patch，否则编译器按解析路径选版本 |
 | `@dcloudio/vite-plugin-uni`、`uni-automator`（构建链基准） | `3.0.0-5030420261029002` | 基准版本，运行时向它对齐，不得反向自选"最新 patch" |
 | `@dcloudio/uni-cli-shared` | `3.0.0-5030420261029002`（全仓仅 1 份） | 编译器核心；两份并存会让构建结果不可复现，只能由 `overrides` 钉死 |
+| `@vue/*`（`compiler-core`/`compiler-dom`/`compiler-sfc`/`compiler-ssr`/`shared`/`server-renderer`） | `3.5.44`（与顶层 `vue` 同版本，全仓仅 1 份） | 由 `overrides` 收敛，禁止再引入第二版本（`@dcloudio/*` 默认会拉 3.4.21） |
+| `@intlify/*`（`core-base`/`message-compiler`/`shared`） | `11.4.16`（全仓仅 1 份） | 与 `vue-i18n` 精确版配套；由 `overrides` 收敛，禁止再引入第二版本 |
 | 包管理器 / 锁文件 | 仅 npm + `package-lock.json` | CI 三条流水线均为 `npm ci` |
 
 硬规则（可 grep）：
 - 禁止出现 `3.0.0-5020620260917001` 及任何 `-5020…` 旧系列：`rg -n "3\.0\.0-5020" xfjy-app --glob "!node_modules"` → 0。
 - 禁止单独升级/降级某个 `@dcloudio/*` 到不同 patch：`dependencies` 与 `devDependencies` 中 `@dcloudio/*` 版本值必须全为 `3.0.0-5030420261029002`。
 - `uni-cli-shared` 只允许一份，且必须来自 `overrides`；禁止删除 `overrides` 段。
+- `vue-i18n` 必须钉精确版本 `11.4.16`（禁止写 `^`）：`^` 会解析到 11.4.18，与 `@intlify/*` 的 11.4.16 override 冲突并让 `npm ls` 报 invalid。
 - 禁止新增 `pnpm-lock.yaml`、`yarn.lock`、`bun.lockb`；包管理器只允许 npm。
 - 升级必须整批同版本：先改 `package.json`（含 `overrides`），删 `package-lock.json` 后 `npm install` 重生成，禁止只改 lock。
 - 升级或改版本后必须重跑：`npm run type-check`、`npm run build:h5`、`npm run build:mp-weixin`，三条全绿才可提交。
@@ -241,8 +246,62 @@ Test-Path pnpm-lock.yaml          # 期望 False
 | `xfjy-admin` 6px 间距豁免（13 条，另有侧栏折叠态 1 条，合计 14 条 `declaration-property-value-disallowed-list` 豁免） | `movement.vue` L386、`video.vue` L344（内联统计项分隔）；`kefu/workbench.vue` L422 聊天气泡内距、L448 语音图标对齐；`login/index.vue` L469 标题副文案；`review/index.vue` L543 键帽、L675 结论标签组、L754 横向滚动条留白；`report/index.vue` L472-473 头像与文字间距、L477-478 标签与昵称分隔（`.target-name`）、L569-570 横向滚动条留白；`user/detail.vue` L850 头像文字；`sensitive/index.vue` L59 敏感词标签间距（`.hit-word`） | 均为图标/文字对齐或滚动条留白类视觉微调，改 4px 或 8px 会破坏对齐；已用行级 `declaration-property-value-disallowed-list` disable 并注明理由，**禁止新增** |
 | `xfjy-admin` 404 页插画配色 | 4 处 hex（`views/error/404.vue` L102-103/L118-119/L184-185/L191-192，均为 `color-no-hex` disable） | 配色随插画整体重做才有意义，暂不 token 化；已用行级 `color-no-hex` disable 并注明理由，**禁止新增** |
 | `xfjy-admin` 侧栏折叠态内距 | 1 条（14 条间距豁免之一，`layout/components/Sidebar.vue` L211-212 `padding: 0 18px`） | 与 220px 栏宽的视觉微调，改 16px 会破坏图标对齐；已用行级 `declaration-property-value-disallowed-list` disable，**禁止新增** |
+| `new SimpleDateFormat`（§13.4） | 6 处（`xfjy-server`：`AdminDashboardService` L119/L402、`AdminDashboardStatsService` L136/L224、`AdminOperationLogService` L48/L101，均为方法内局部变量，非 static 共享） | 新增禁止；存量随重构迁移 `DateTimeFormatter`，迁移前不得提升为字段/static |
+| 日志 `+` 拼接（§13.5） | 5 处（`xfjy-server/IMController` L77、`xfjy-circle-service/QuanziApiImpl` L86、`xfjy-video-service/VideoApiImpl` L60、`xfjy-recommend/VideoMsgConsumer` L100、`QuanZiMsgConsumer` L146） | 新增禁止；存量改为 `{}` 占位符，随重构迁移 |
 
 ## 12. 未确认与变更
 - 未确认统一登记：`docs/需求文档/01-需求文档.md` §11.7；格式
   `> 未确认：问题｜证据：文件:行｜选项 A/B｜建议`。
 - 规则变更：改本文件 → 同步工具适配文件 → PR 中说明理由 → 合并。
+
+## 13. 阿里巴巴开发规范强制项
+后端 Java 代码遵循《阿里巴巴 Java 开发手册》强制项（P0 级），以下为结合本项目技术栈的落地约束。
+与 §2/§5 重叠处以更严者为准；存量违规按 §11 豁免机制登记，新增禁止。
+
+### 13.1 依赖管理
+- 版本统一由根 pom `dependencyManagement` 管理；子模块声明依赖**禁止写 `<version>`**。
+  根 pom 未管理的新依赖，先在根 pom 补管理条目，再在子模块无版本引入。
+- `xfjy-api` 的 `optional` 依赖（spring-data-mongodb/spring-webmvc/jakarta.servlet-api 等）
+  不向下游传染；使用 `@Document`/`ObjectId` 的宿主服务必须显式声明 `spring-data-mongodb`。
+- 禁止引入未使用依赖；新增依赖前 grep 源码确认实际 import 需求。
+
+校验：`rg -n "<version>" --glob "xfjy-*/pom.xml" | rg -v "project.version"` → 0
+
+### 13.2 命名规约
+- 类名 `UpperCamelCase`；数据传输对象加 `DTO` 后缀、视图对象加 `VO` 后缀、数据库实体不加后缀（存量形态）。
+- 方法名/变量名 `lowerCamelCase`；常量全大写下划线分隔；包名全小写。
+- 抽象类 `Abstract`/`Base` 开头；异常类 `Exception` 结尾；测试类 `被测类名+Test`。
+- Service 方法命名：单个查询 `get`/`find`/`query`，列表 `list`/`queryXxxList`，分页 `queryPage`，
+  计数 `count`，插入 `save`/`insert`，更新 `update`，删除 `delete`/`remove`。
+
+### 13.3 OOP 与集合
+- POJO 类属性用包装类型（`Long`/`Integer`/`Boolean`），禁止基本类型（数据库映射可能为 null，拆箱 NPE）。
+- 所有 POJO（entity/dto/vo）必须有 `toString`（Lombok `@Data` 已含，禁止重复手写）。
+- `equals` 用常量或确定非 null 对象调用：`"literal".equals(var)`，禁止 `var.equals("literal")`。
+- 重写 `equals` 必须重写 `hashCode`。
+- `foreach` 内禁止增删集合元素，用 `Iterator.remove()` 或 `removeIf`。
+- 禁止调用 `@Deprecated` 方法（框架内部除外）。
+
+### 13.4 并发与时间
+- 线程池禁止 `Executors` 快捷方法创建，必须 `new ThreadPoolExecutor(...)` 显式指定核心参数。
+- 禁止 `new SimpleDateFormat` 共享或 static 持有；日期格式化用 `java.time.format.DateTimeFormatter`（线程安全）。
+- 禁止在循环体内创建线程/线程池。
+
+### 13.5 异常与日志
+- `catch` 后禁止空块吞异常；至少 `LOGGER.warn` 记录。
+- 禁止丢失原始异常链：`catch (Exception e)` 后再抛必须 `new BusinessException(msg, e)` 传入 cause。
+- 日志用 SLF4J 占位符 `{}`，禁止 `+` 拼接：`LOGGER.info("userId={}", id)`。
+- 异常日志必须带业务上下文（userId/订单号等），禁止只打 `e.getMessage()`。
+
+### 13.6 MySQL
+- 自定义 SQL 禁止 `SELECT *`，必须写明列名（MyBatis-Plus 框架生成的 selectById/selectList 不受此限）。
+- 新表必备 `id`/`created_at`/`updated_at`（字段命名 snake_case，与存量一致）。
+- 禁止数据库外键，关联关系在应用层维护。
+- 大字段（图片/文件）只存 MinIO URL，禁止入库。
+- 分页必须走 `PaginationInnerInterceptor`，禁止手拼 `LIMIT`。
+
+校验：
+`rg -n "SELECT \*" --glob "*.xml" --glob "*.java" xfjy-*/src` → 0（自定义 SQL）
+`rg -n "Executors\.new" --glob "*.java" xfjy-*/src` → 0
+`rg -n "new SimpleDateFormat" --glob "*.java" xfjy-*/src` → 0
+`rg -n "LOGGER\.(info|warn|error|debug)\(.*\+" --glob "*.java" xfjy-*/src` → 0（日志禁止拼接）
