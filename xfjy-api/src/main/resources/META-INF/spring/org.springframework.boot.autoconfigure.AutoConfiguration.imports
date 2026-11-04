@@ -1,1 +1,2 @@
 com.xfjy.api.json.XfjyJacksonAutoConfiguration
+com.xfjy.api.config.InternalTokenAutoConfiguration

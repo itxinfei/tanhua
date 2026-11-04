@@ -17,10 +17,23 @@
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
         </dependency>
-        <!-- MongoDB pojo 注解: @Document/@Id/@Indexed + ObjectId -->
+        <!-- XInternalTokenInterceptor 需要 HandlerInterceptor/HttpServletRequest；
+             optional：运行期由宿主服务（Spring Boot Web 应用）提供 -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <!-- MongoDB pojo 注解: @Document/@Id/@Indexed + ObjectId；optional：运行期由真正使用 Mongo 的宿主服务提供 -->
         <dependency>
             <groupId>org.springframework.data</groupId>
             <artifactId>spring-data-mongodb</artifactId>
+            <optional>true</optional>
         </dependency>
         <!-- MyBatis-Plus 注解: @TableField/@EnumValue（UserInfo/BasePojo/SexEnum 契约化所需） -->
         <dependency>

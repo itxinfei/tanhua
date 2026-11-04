@@ -12,6 +12,12 @@
     <artifactId>xfjy-elasticsearch</artifactId>
 
     <dependencies>
+        <!-- 内部契约 + 共享自动装配（XInternalTokenInterceptor / Jackson ObjectId 模块） -->
+        <dependency>
+            <groupId>cn.xfjy</groupId>
+            <artifactId>xfjy-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -45,7 +51,13 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-    </dependencies>
+    
+        <!-- MongoDB pojo 注解（@Document/ObjectId）：xfjy-api 已改为 optional，各服务按需显式声明 -->
+        <dependency>
+            <groupId>org.springframework.data</groupId>
+            <artifactId>spring-data-mongodb</artifactId>
+        </dependency>
+</dependencies>
 
     <build>
         <plugins>
