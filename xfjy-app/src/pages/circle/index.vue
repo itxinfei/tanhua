@@ -214,12 +214,14 @@ const loading = computed(() => circleStore.loading);
 const refreshing = ref(false);
 
 function switchTab(key: "friend" | "recommend") {
-  if (circleStore.activeTab === key) return;
-  circleStore.switchTab(key);
-  const targetList = key === "friend" ? circleStore.friendMovements : circleStore.recommendMovements;
-  if (targetList.length === 0) {
-    loadFeed();
-  }
+if (circleStore.activeTab === key) return;
+circleStore.switchTab(key);
+// 切换关注/推荐时收起通知面板
+noticePanelType.value = "";
+const targetList = key === "friend" ? circleStore.friendMovements : circleStore.recommendMovements;
+if (targetList.length === 0) {
+loadFeed();
+}
 }
 
 function goDetail(item: Movement) {
@@ -504,11 +506,13 @@ function goNotifications(type: string): void {
 
 /** 顶级分区切换：只切换视图，不重新加载数据（数据已在 onShow 首次加载，切换时保留滚动位置） */
 function switchTopTab(tab: "circle" | "message"): void {
-  if (topTab.value === tab) return;
-  topTab.value = tab;
-  // 首次切到消息且无数据时才加载，避免每次切换都重新请求导致页面闪动
-  if (tab === "message" && chatList.value.length === 0) {
-    loadMessages();
+if (topTab.value === tab) return;
+topTab.value = tab;
+// 切换分区时收起通知面板，避免面板停留在非消息视图
+noticePanelType.value = "";
+// 首次切到消息且无数据时才加载，避免每次切换都重新请求导致页面闪动
+if (tab === "message" && chatList.value.length === 0) {
+loadMessages();
     chatStore.loadNoticeCounts();
   }
 }
