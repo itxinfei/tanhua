@@ -35,10 +35,13 @@ public interface SwipeLogApi {
                         @RequestParam(value = "matched", defaultValue = "0") Integer matched);
 
     /**
-     * 查询用户今日已滑动次数（按 action 维度汇总，三种动作都计入总次数）
+     * 查询用户今日已滑动次数。
+     *
+     * <p>口径（2026-11-04 裁决，对齐探探）：仅 like / superlike（右滑）计入，
+     * dislike（左滑跳过）不计次。调用方 BFF 只在 likeUser 路径调用本方法。</p>
      *
      * @param userId 用户 ID
-     * @return 今日已滑动次数（dislike 不计数；like+superlike 均计数）
+     * @return 今日已滑动次数（like + superlike）
      */
     @GetExchange("/count-today")
     @GetMapping("/count-today")

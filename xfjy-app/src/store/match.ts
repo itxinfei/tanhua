@@ -95,6 +95,11 @@ export const useMatchStore = defineStore("match", () => {
   /**
    * 上报滑动动作
    * like/superlike → love 接口；dislike → unlove 接口
+   *
+   * 计数口径（探探模式，2026-11-04 裁决）：**仅 like/superlike（右滑）计次，
+   * dislike（左滑跳过）不计数**。与后端 TodayBestService.checkSwipeLimit 一致——
+   * 后端只在 likeUser 中校验/写 tb_swipe_log，disLikeUser 两者都不做。
+   *
    * @param userId 对方用户ID
    * @param action 滑动动作：like | dislike | superlike
    * @returns true=互相喜欢（匹配成功）
@@ -107,10 +112,11 @@ export const useMatchStore = defineStore("match", () => {
     let matched = false;
     if (action === "dislike") {
       await unloveUser(userId);
-    } else {
-      // superlove 单独传 action 参数，供后端校验 super_like 权益
-      matched = await loveUser(userId, action === "superlike" ? "superlike" : "like");
+      // 左滑不计次，直接返回（对齐探探）
+      return false;
     }
+    // superlove 单独传 action 参数，供后端校验 super_like 权益
+    matched = await loveUser(userId, action === "superlike" ? "superlike" : "like");
     swipeCount.value++;
     persistDailyCount(SWIPE_COUNT_STORAGE_KEY, swipeCount.value);
     return matched;
@@ -118,7 +124,12 @@ export const useMatchStore = defineStore("match", () => {
 
   /**
    * 撤销上一次滑动：回滚后端操作并返还滑动次数
-   * like/superlike → 调 unlove 删除刚保存的喜欢关系；dislike → 后端无状态变更无需回滚
+   * like/superlike → 调 unlove 删除刚保存的喜欢关系，并返还当日计数；
+   * dislike → 后端无状态变更、当日也未计次，两者都无需处理。
+   *
+   * 探探的「滑错无限反悔」左右滑都能反悔，所以 dislike 仍走回看流程（把卡片放回），
+   * 只是不消耗也不返还滑动额度。
+   *
    * @param userId 对方用户ID
    * @param action 被撤销的滑动动作
    */
@@ -126,9 +137,10 @@ export const useMatchStore = defineStore("match", () => {
     userId: number | string,
     action: "like" | "dislike" | "superlike"
   ): Promise<void> {
-    if (action !== "dislike") {
-      await unloveUser(userId);
+    if (action === "dislike") {
+      return;
     }
+    await unloveUser(userId);
     // 撤销返还本次滑动计数
     swipeCount.value = Math.max(0, swipeCount.value - 1);
     persistDailyCount(SWIPE_COUNT_STORAGE_KEY, swipeCount.value);

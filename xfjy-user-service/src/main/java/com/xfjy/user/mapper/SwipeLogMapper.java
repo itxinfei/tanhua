@@ -34,8 +34,12 @@ public interface SwipeLogMapper extends BaseMapper<SwipeLog> {
     /**
      * 统计今日已滑动次数。
      *
-     * <p>口径：like / dislike / superlike 三种动作均计入，与 BFF checkSwipeLimit 一致
-     * （2026-11-04 裁定：滑走并换成下一个用户即消耗一次，与滑动方向无关）。</p>
+     * <p>口径（2026-11-04 裁决，对齐探探）：<b>仅 like / superlike（右滑）计入</b>，
+     * dislike（左滑跳过）不计次。由于 disLikeUser 不写本表（见 TodayBestService），
+     * 直接 COUNT(*) 即为当日右滑次数。</p>
+     *
+     * <p>历史数据：2026-11-04 前的记录可能含 dislike，但按 DATE(created)=CURDATE()
+     * 只统计当天，跨日后不影响新口径。</p>
      */
     @Select("SELECT COUNT(*) FROM tb_swipe_log " +
             "WHERE user_id = #{userId} AND DATE(created) = CURDATE()")

@@ -484,10 +484,11 @@ public class TodayBestService {
      * 今日滑动次数校验（兜底层，防前端绕过）
      *
      * <p>逻辑：先检查是否持有 unlimited_swipe 权益；无权益则查询 tb_swipe_log 当日实际次数。</p>
-     * <p>口径（2026-11-04 裁定）：三种动作（like / dislike / superlike）统一计入每日 50 次额度——
-     * 「滑走并换成下一个用户」即消耗一次，与左右滑方向无关。前端 store/match.ts 同口径。</p>
+     * <p>口径（2026-11-04 裁决，对齐探探）：**仅 like / superlike（右滑）计入每日 50 次额度，
+     * dislike（左滑跳过）不计数**。探探免费用户每日右滑 120 次、左滑不限制，VIP 特权也仅
+     * 「无限喜欢次数」。本方法只在 likeUser 中被调用，disLikeUser 不再调用。</p>
      *
-     * @param action 动作类型（like / dislike / superlike，三者均计次）
+     * @param action 动作类型（like / superlike，均计次）
      * @throws SwipeLimitException 次数用尽且无权益
      */
     private void checkSwipeLimit(String action) {
@@ -500,7 +501,7 @@ public class TodayBestService {
         } catch (Exception e) {
             LOGGER.warn("权益校验失败，降级使用计数兜底：userId={}, err={}", user.getId(), e.getMessage());
         }
-        // 无权益兜底：以 tb_swipe_log 当日实际写入次数为准
+        // 无权益兜底：以 tb_swipe_log 当日右滑次数为准（dislike 不写入，见 recordSwipeLog）
         Long todayCount = this.swipeLogApi.countTodaySwipes(user.getId());
         if (todayCount >= MAX_FREE_SWIPE) {
             throw new SwipeLimitException("swipe_daily_limit", todayCount.intValue(), MAX_FREE_SWIPE, SWIPE_LIMIT_UPGRADE_URL);
@@ -611,16 +612,14 @@ public class TodayBestService {
 
     public Boolean disLikeUser(Long likeUserId) {
         User user = UserThreadLocal.get();
-        // ★ 次数校验兜底：dislike 与 like/superlike 同口径计次（见 checkSwipeLimit 注释）
-        checkSwipeLimit("dislike");
+        // ★ 探探口径（2026-11-04 裁决）：左滑（跳过）不消耗每日额度，故不做次数校验、
+        //   也不写 tb_swipe_log（countTodaySwipes 只统计右滑，写 dislike 会让额度被跳过动作吃掉）
         Boolean deleted = this.userLikeApi.deleteUserLike(user.getId(), likeUserId);
 
         // P2 同步取消喜欢到 Neo4j（异步语义：失败仅打日志）
         if (Boolean.TRUE.equals(deleted)) {
             this.graphRecommendService.removeLikeRelation(user.getId(), likeUserId);
         }
-        // ★ 滑动日志记录：dislike 也消耗额度，必须落库否则 countTodaySwipes 与额度脱钩
-        recordSwipeLog(likeUserId, "dislike", false);
         return deleted;
     }
 

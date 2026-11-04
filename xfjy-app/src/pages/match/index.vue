@@ -7,7 +7,8 @@
         <text class="arrow" aria-hidden="true">▾</text>
       </a11y-button>
       <a11y-button class="locate-btn" label="重新定位" @tap="relocate">
-        <text aria-hidden="true">◎</text>
+        <text class="locate-ico" aria-hidden="true">◎</text>
+        <text class="locate-text">定位</text>
       </a11y-button>
       <a11y-button class="filter-btn" label="查看附近的人" @tap="goNearby">
         <text>附近</text>
@@ -42,7 +43,8 @@
         @touchstart="onTouchStart($event, index)"
         @touchmove="onTouchMove($event, index)"
         @touchend="onTouchEnd($event, index)"
-        :aria-label="`推荐卡片：${card.nickname}，${card.age}岁`"
+        @tap="onCardTap(index)"
+        :aria-label="`推荐卡片：${card.nickname}，${card.age}岁，轻点查看完整资料`"
       >
         <!-- 主图 -->
         <image lazy-load
@@ -77,10 +79,24 @@
             </view>
             <text class="fate-value">{{ card.fateValue }}</text>
           </view>
+          <!-- 决策信息：城市 / 学历 / 行业（有则显示，避免用户在缺少判断依据时做决定） -->
+          <view v-if="cardMeta(card)" class="meta-row">
+            <text class="meta-text">{{ cardMeta(card) }}</text>
+          </view>
           <!-- 标签 -->
           <view v-if="card.tags && card.tags.length" class="tags">
             <text v-for="tag in card.tags.slice(0, MAX_TAG_COUNT)" :key="tag" class="tag glass">{{ tag }}</text>
           </view>
+          <!-- 照片数 + 查看资料入口（明确可点击，解决"卡片点不动"） -->
+          <a11y-button
+            class="detail-entry btn-feedback"
+            :label="`查看 ${card.nickname} 的完整资料`"
+            @tap.stop="onDetailEntryTap(card.id)"
+          >
+            <text class="detail-photo" aria-hidden="true">▣</text>
+            <text class="detail-text">{{ photoCount(card) > 0 ? `${photoCount(card)} 张照片 · ` : "" }}查看完整资料</text>
+            <text class="detail-arrow" aria-hidden="true">›</text>
+          </a11y-button>
         </view>
         <!-- 滑动提示（喜欢 / 不喜欢）：随手势显示的视觉反馈，对读屏隐藏 -->
         <view v-if="index === 0" class="swipe-hint like" :style="{ opacity: likeOpacity }" aria-hidden="true">
@@ -107,7 +123,8 @@
         <uni-icons type="heart-filled" size="24" color="#4cd964"></uni-icons>
       </a11y-button>
       <a11y-button class="action-btn boost btn-feedback" label="曝光提升" @tap="handleBoost">
-        <text aria-hidden="true">⚡</text>
+        <text class="boost-ico" aria-hidden="true">⚡</text>
+        <text class="boost-label">曝光</text>
       </a11y-button>
     </view>
 
@@ -172,6 +189,10 @@ const ROTATE_DIVISOR = 20;
 const OPACITY_DIVISOR = 100;
 /** 标签最大展示数量 */
 const MAX_TAG_COUNT = 3;
+/** 轻点判定阈值（rpx）：位移超过此值视为滑动，不再触发"轻点看资料" */
+const TAP_SLOP_RPX = 16;
+/** 详情跳转路径前缀 */
+const DETAIL_PAGE_PATH = "/pages/match/detail?id=";
 /** rpx 换算基准（750rpx = 屏幕宽度） */
 const RPX_BASE_WIDTH = 750;
 /** 默认屏幕宽度兜底值（px） */
@@ -395,10 +416,59 @@ let dragRafId = 0;
 let pendingDragX = 0;
 let pendingDragY = 0;
 
+/** 本次手势是否发生了明显拖动（用于区分"轻点看资料"与"滑动"） */
+let gestureMoved = false;
+/** 滑动出栈后抑制紧随其后的 tap，避免误跳详情 */
+let suppressCardTap = false;
+/** 上次跳转详情的时间戳：防止 tap 与 click 叠加导致重复入栈 */
+let lastDetailNavAt = 0;
+
+/** 城市 / 学历 / 行业：有则拼成一行决策信息，无则返回空 */
+function cardMeta(card: TodayBest): string {
+  return [card.city, card.edu, card.industry].filter(Boolean).join(" · ");
+}
+
+/** 照片墙数量（photoAlbum 为 JSON 数组字符串，解析失败按 0 处理） */
+function photoCount(card: TodayBest): number {
+  if (!card.photoAlbum) return 0;
+  try {
+    const list = JSON.parse(card.photoAlbum);
+    return Array.isArray(list) ? list.length : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** 进入用户资料详情页（页面已存在，此前未从卡片可达） */
+function openDetail(id: number | string) {
+  const now = Date.now();
+  if (now - lastDetailNavAt < 400) return;
+  lastDetailNavAt = now;
+  uni.navigateTo({ url: DETAIL_PAGE_PATH + id });
+}
+
+/** 轻点卡片看完整资料：滑动手势 / 出栈动画期间不触发 */
+function onCardTap(index: number) {
+  if (suppressCardTap) {
+    suppressCardTap = false;
+    return;
+  }
+  if (index !== 0 || gestureMoved || swiping.value) return;
+  const card = visibleCards.value[0];
+  if (card) openDetail(card.id);
+}
+
+/** 卡片底部「查看完整资料」入口（阻止冒泡，避免与卡片轻点重复入栈） */
+function onDetailEntryTap(id: number) {
+  if (gestureMoved || swiping.value) return;
+  openDetail(id);
+}
+
 /** 触摸开始：记录起始坐标，仅响应顶部卡片 */
 function onTouchStart(e: TouchEvent, index: number) {
   if (index !== 0) return;
   isDragging.value = true;
+  gestureMoved = false;
   touchStartX.value = e.touches[0].clientX;
   touchStartY.value = e.touches[0].clientY;
   pendingDragX = 0;
@@ -411,6 +481,9 @@ function onTouchMove(e: TouchEvent, index: number) {
   // rpx 换算比例已在 onMounted 缓存（750rpx / 屏幕宽度px），避免高频同步取系统信息
   pendingDragX = (e.touches[0].clientX - touchStartX.value) * rpxRatio.value;
   pendingDragY = (e.touches[0].clientY - touchStartY.value) * rpxRatio.value;
+  if (Math.abs(pendingDragX) > TAP_SLOP_RPX || Math.abs(pendingDragY) > TAP_SLOP_RPX) {
+    gestureMoved = true;
+  }
   if (!supportsRaf) {
     dragX.value = pendingDragX;
     dragY.value = pendingDragY;
@@ -436,8 +509,10 @@ function onTouchEnd(_e: TouchEvent, index: number) {
   dragX.value = pendingDragX;
   dragY.value = pendingDragY;
   if (dragX.value > SWIPE_THRESHOLD_RPX) {
+    suppressCardTap = true;
     swipeOut("like");
   } else if (dragX.value < -SWIPE_THRESHOLD_RPX) {
+    suppressCardTap = true;
     swipeOut("dislike");
   } else {
     // 未达阈值，回弹复位
@@ -461,8 +536,9 @@ async function swipeOut(action: "like" | "dislike" | "superlike") {
   if (swiping.value) return;
   swiping.value = true;
 
-  // 检查每日免费滑动次数
-  if (!matchStore.canSwipe()) {
+  // 检查每日免费滑动次数：探探口径下左滑（跳过）不计次，不应被额度拦截；
+  // 只有右滑（like/superlike）才消耗额度
+  if (action !== "dislike" && !matchStore.canSwipe()) {
     info("今日免费次数已用完，开通VIP无限滑");
     dragX.value = 0;
     dragY.value = 0;
@@ -732,6 +808,20 @@ onShareAppMessage(() => ({
     }
   }
 
+  /* 重新定位：原先只有一个 ◎ 字符与背景融合，补文字 + 胶囊描边提高辨识度 */
+  .locate-btn {
+    display: flex;
+    align-items: center;
+    gap: 4rpx;
+    padding: 8rpx 16rpx;
+    border-radius: 24rpx;
+    background: rgba(0, 0, 0, 0.28);
+    border: 1rpx solid rgba(255, 255, 255, 0.45);
+
+    .locate-ico { font-size: 28rpx; color: #fff; font-weight: 700; }
+    .locate-text { font-size: 24rpx; color: #fff; font-weight: 600; }
+  }
+
   .filter-btn {
     display: flex;
     align-items: center;
@@ -772,13 +862,19 @@ onShareAppMessage(() => ({
     height: 100%;
   }
 
+  /* 加强遮罩：浅色照片（如白裙）上白字仍可读；文字区再加半透明暗底兜底 */
   .card-mask {
     position: absolute;
     left: 0;
     right: 0;
     bottom: 0;
-    height: 40%;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.75), transparent);
+    height: 52%;
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.88) 0%,
+      rgba(0, 0, 0, 0.55) 42%,
+      transparent 100%
+    );
   }
 
   .card-info {
@@ -845,6 +941,16 @@ onShareAppMessage(() => ({
       }
     }
 
+    /* 城市 / 学历 / 行业：决策信息行 */
+    .meta-row {
+      margin-top: 12rpx;
+      .meta-text {
+        font-size: 24rpx;
+        color: rgba(255, 255, 255, 0.92);
+        text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.6);
+      }
+    }
+
     .tags {
       display: flex;
       gap: 12rpx;
@@ -859,6 +965,30 @@ onShareAppMessage(() => ({
         padding: 4rpx 16rpx;
         border-radius: 20rpx;
       }
+    }
+
+    /* 查看完整资料入口：半透明玻璃条，明确可点 */
+    .detail-entry {
+      display: flex;
+      align-items: center;
+      gap: 8rpx;
+      margin-top: 20rpx;
+      padding: 12rpx 24rpx;
+      min-height: 64rpx;
+      width: fit-content;
+      background: rgba(255, 255, 255, 0.16);
+      border: 1rpx solid rgba(255, 255, 255, 0.42);
+      border-radius: 32rpx;
+      backdrop-filter: blur(6rpx);
+
+      .detail-photo { font-size: 26rpx; color: #fff; }
+      .detail-text {
+        font-size: 24rpx;
+        color: #fff;
+        font-weight: 600;
+        text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.5);
+      }
+      .detail-arrow { font-size: 30rpx; color: #fff; margin-left: 4rpx; }
     }
   }
 
@@ -950,9 +1080,19 @@ onShareAppMessage(() => ({
     &.boost {
       width: 88rpx;
       height: 88rpx;
+      flex-direction: column;
+      gap: 0;
       background: linear-gradient(135deg, var(--color-primary-violet), var(--color-primary-deep));
       color: var(--text-inverse);
       box-shadow: 0 6rpx 20rpx rgba(138, 92, 246, 0.4);
+
+      .boost-ico { font-size: 36rpx; line-height: 1; }
+      .boost-label {
+        font-size: 18rpx;
+        font-weight: 600;
+        line-height: 1.1;
+        color: #fff;
+      }
     }
   }
 }
