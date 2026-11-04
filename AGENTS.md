@@ -30,6 +30,7 @@ Copilot / Serena / Trae）开工前必须读完本文件。
 | 对象存储 | MinIO（仅 `xfjy-server`） | 直传本地磁盘 |
 | 图库 | Neo4j（仅 `xfjy-server`，须可降级） | 强依赖 |
 | 注册中心 | Nacos（仅 discovery） | 启用 Nacos Config、`spring.config.import` |
+| 前端（uni-app） | `@dcloudio/*` 全量 `3.0.0-5030420261029002`（详表见 §7.3） | 降回 5020 系列、单独改某包 patch、新增非 npm 锁文件 |
 | 禁止引入 | H2、Dubbo、Feign、Sentinel、Knife4j | — |
 
 校验：`rg -n "sentinel|dubbo|feign|knife4j|spring-boot-starter-security" --glob "pom.xml"` → 0
@@ -160,6 +161,36 @@ Copilot / Serena / Trae）开工前必须读完本文件。
 命令内已直接过滤）：
 `git diff HEAD -- 'xfjy-app/src/**' ':(exclude)xfjy-app/src/App.vue' ':(exclude)xfjy-app/src/uni.scss' | rg "^\+.*(uni-icons|#fe3c72|#ff5e9c)" | rg -v -- "--color-|^\+\s*(//|/\*|\*)"` → 0；
 `npm run lint:style --prefix xfjy-admin 2>&1 | rg "✖"` → 0（新增代码）
+
+### 7.3 前端版本锁定（uni-app）
+
+版本表（真源：`xfjy-app/package.json` + `xfjy-app/package-lock.json`）：
+
+| 包名 | 锁定精确版本 | 锁定理由 |
+|---|---|---|
+| `@dcloudio/uni-app`、`uni-app-harmony`、`uni-app-plus`、`uni-components`、`uni-h5`、`uni-mp-alipay`、`uni-mp-baidu`、`uni-mp-harmony`、`uni-mp-jd`、`uni-mp-kuaishou`、`uni-mp-lark`、`uni-mp-qq`、`uni-mp-toutiao`、`uni-mp-weixin`、`uni-mp-xhs`、`uni-quickapp-webview`（16 个运行时包） | `3.0.0-5030420261029002` | 运行时与构建链必须同 patch，否则编译器按解析路径选版本 |
+| `@dcloudio/vite-plugin-uni`、`uni-automator`（构建链基准） | `3.0.0-5030420261029002` | 基准版本，运行时向它对齐，不得反向自选"最新 patch" |
+| `@dcloudio/uni-cli-shared` | `3.0.0-5030420261029002`（全仓仅 1 份） | 编译器核心；两份并存会让构建结果不可复现，只能由 `overrides` 钉死 |
+| 包管理器 / 锁文件 | 仅 npm + `package-lock.json` | CI 三条流水线均为 `npm ci` |
+
+硬规则（可 grep）：
+- 禁止出现 `3.0.0-5020620260917001` 及任何 `-5020…` 旧系列：`rg -n "3\.0\.0-5020" xfjy-app --glob "!node_modules"` → 0。
+- 禁止单独升级/降级某个 `@dcloudio/*` 到不同 patch：`dependencies` 与 `devDependencies` 中 `@dcloudio/*` 版本值必须全为 `3.0.0-5030420261029002`。
+- `uni-cli-shared` 只允许一份，且必须来自 `overrides`；禁止删除 `overrides` 段。
+- 禁止新增 `pnpm-lock.yaml`、`yarn.lock`、`bun.lockb`；包管理器只允许 npm。
+- 升级必须整批同版本：先改 `package.json`（含 `overrides`），删 `package-lock.json` 后 `npm install` 重生成，禁止只改 lock。
+- 升级或改版本后必须重跑：`npm run type-check`、`npm run build:h5`、`npm run build:mp-weixin`，三条全绿才可提交。
+
+校验命令（在 `xfjy-app` 下执行，可复制）：
+```
+npm ls @dcloudio/uni-cli-shared   # 期望全部 deduped，仅 1 个非 deduped 节点
+npm ls @dcloudio/uni-h5           # 期望只有一个 3.0.0-5030420261029002
+rg -o '"@dcloudio/[^"]+": "[^"]+"' package.json | rg -o '3\.0\.0-[0-9]+' | sort -u   # 期望只 1 行
+Test-Path pnpm-lock.yaml          # 期望 False
+```
+注意 `npm ls uni-cli-shared`（不带 scope）会输出 `(empty)`，是假通过，必须用带 scope 的写法。
+
+本节与代码/其它文档冲突时**以本节为准**，agent 不得自行变更版本或包管理器。
 
 ## 8. 提交与文档
 - **本地编译门禁**：提交到 Gitea 前必须本地编译通过，未通过不得 commit、不得 push；跳过验证的提交视为违规。
