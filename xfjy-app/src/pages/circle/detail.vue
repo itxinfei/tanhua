@@ -1,5 +1,6 @@
 <template>
   <view class="post-detail">
+    <scroll-view scroll-y class="detail-scroll">
     <!-- 动态内容 -->
     <!-- 动态主体：接口失败 post=null 时不渲染，避免读 null 属性崩溃（评论区仍可用） -->
     <view v-if="post" class="post-card">
@@ -48,6 +49,7 @@
       </view>
       <view v-if="commentHasMore" class="load-more" @tap="loadMoreComments">加载更多评论</view>
     </view>
+    </scroll-view>
 
     <!-- 评论输入：发送按钮 + 回车双通道（H5 浏览器/部分输入法 confirm 不可靠，仅回车会让用户以为"评论发不出去"） -->
     <view class="comment-bar safe-area-bottom">
@@ -175,7 +177,8 @@ onLoad((options: any) => {
 
 <style lang="scss" scoped>
 /* border-box：padding 计入高度，避免 min-height:100vh 下超出视口 */
-.post-detail { box-sizing: border-box; min-height: 100vh; background: var(--bg-sub); padding: 20rpx 24rpx 120rpx; }
+.post-detail { box-sizing: border-box; height: 100vh; background: var(--bg-sub); display: flex; flex-direction: column; overflow: hidden; }
+.detail-scroll { flex: 1; min-height: 0; padding: 20rpx 24rpx 24rpx; }
 .post-card { background: var(--bg-card); padding: 28rpx; margin-bottom: 16rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   .post-header { display: flex; align-items: center; min-width: 0;
     .avatar { width: 76rpx; height: 76rpx; border-radius: 50%; border: 3rpx solid var(--bg-icon-soft); flex-shrink: 0; }

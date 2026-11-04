@@ -147,6 +147,7 @@ import { useCircleStore, CIRCLE_NEED_REFRESH_KEY } from "@/store/circle";
 import type { Movement } from "@/api/circle";
 import { getContacts, type Contact } from "@/api/chat";
 import { useChatStore, type NoticeType } from "@/store/chat";
+import { ensureSelfIM, getConversations } from "@/utils/wukongim";
 
 const circleStore = useCircleStore();
 const chatStore = useChatStore();
@@ -287,13 +288,34 @@ function updateTabBarBadge(): void {
 }
 
 async function loadMessages(): Promise<void> {
-  try {
-    const res = await getContacts({ page: 1, pagesize: 50 });
-    chatList.value = (res.items || []).map((c) => ({ ...c, lastMessage: "", unreadCount: 0 }));
-    updateTabBarBadge();
-  } catch {
-    // 请求失败由 request 层统一 toast
-  }
+try {
+// 1. 确保 IM 已连接，拉取真实会话列表（含最后消息/未读数/时间）
+await ensureSelfIM();
+const conversations = await getConversations();
+// 2. 拉取联系人资料（昵称/头像），用于合并会话数据
+const contactsRes = await getContacts({ page: 1, pagesize: 50 });
+const contactMap = new Map<string, Contact>(
+(contactsRes.items || []).map((c) => [String(c.userId), c])
+);
+// 3. 合并：以会话为主，资料补充；无资料时用会话 ID 兜底
+chatList.value = conversations.map((s) => {
+const contact = contactMap.get(s.conversationId);
+return {
+userId: s.conversationId,
+nickname: contact?.nickname || s.conversationId,
+avatar: contact?.avatar || "",
+gender: contact?.gender || "",
+age: contact?.age || 0,
+city: contact?.city || "",
+online: false,
+lastMessage: s.lastMessage,
+unreadCount: s.unreadCount,
+};
+});
+updateTabBarBadge();
+} catch {
+// 请求失败由 request 层统一 toast
+}
 }
 
 function goNotifications(type: string): void {
