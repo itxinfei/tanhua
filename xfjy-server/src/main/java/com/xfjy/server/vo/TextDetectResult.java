@@ -29,7 +29,7 @@ public class TextDetectResult {
     private List<String> hitWords = new ArrayList<>();
 
     /** 命中的最高级别（1-HIGH 2-MID 3-LOW，0 表示未命中） */
-    private int maxLevel;
+    private Integer maxLevel;
 
     public static TextDetectResult pass(String text) {
         TextDetectResult result = new TextDetectResult();
