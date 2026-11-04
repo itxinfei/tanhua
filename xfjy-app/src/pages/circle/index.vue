@@ -75,15 +75,15 @@
           </view>
           <view class="action-row">
             <!-- 计数为 0 时给"抢首赞/抢首评"引导，而非空白让人以为功能缺失 -->
-            <a11y-button class="action btn-feedback" :label="item.hasLiked ? '取消点赞，当前 ' + (item.likeCount || 0) + ' 赞' : '点赞，当前 ' + (item.likeCount || 0) + ' 赞'" @tap="handleLike(item)">
+            <a11y-button class="action" :label="item.hasLiked ? '取消点赞，当前 ' + (item.likeCount || 0) + ' 赞' : '点赞，当前 ' + (item.likeCount || 0) + ' 赞'" @tap="handleLike(item)">
               <view class="action-icon" :class="{ liked: item.hasLiked, 'heart-beat': item.hasLiked, 'i-ph-heart-fill': item.hasLiked, 'i-ph-heart': !item.hasLiked }" aria-hidden="true" />
               <text class="count">{{ item.likeCount > 0 ? item.likeCount : '抢首赞' }}</text>
             </a11y-button>
-            <a11y-button class="action btn-feedback" :label="'查看评论，共 ' + (item.commentCount || 0) + ' 条'" @tap="goDetail(item)">
+            <a11y-button class="action" :label="'查看评论，共 ' + (item.commentCount || 0) + ' 条'" @tap="goDetail(item)">
               <view class="action-icon i-ph-chat-circle-dots" aria-hidden="true" />
               <text class="count">{{ item.commentCount > 0 ? item.commentCount : '抢首评' }}</text>
             </a11y-button>
-            <a11y-button class="action btn-feedback" :label="item.hasLoved ? '取消心动' : '心动'" @tap="handleLove(item)">
+            <a11y-button class="action" :label="item.hasLoved ? '取消心动' : '心动'" @tap="handleLove(item)">
               <view class="action-icon" :class="{ loved: item.hasLoved, 'i-ph-star-fill': item.hasLoved, 'i-ph-star': !item.hasLoved }" aria-hidden="true" />
             </a11y-button>
           </view>
@@ -95,7 +95,7 @@
     <!-- 消息视图（原 chat/index 内容） -->
     <view v-show="topTab === 'message'" class="tab-view">
       <view class="notice-bar">
-        <a11y-button class="notice-item btn-feedback" v-for="item in noticeItems" :key="item.type" :label="item.unread > 0 ? item.label + '，' + item.unread + ' 条未读' : item.label" @tap="goNotifications(item.type)">
+        <a11y-button class="notice-item" v-for="item in noticeItems" :key="item.type" :label="item.unread > 0 ? item.label + '，' + item.unread + ' 条未读' : item.label" @tap="goNotifications(item.type)">
           <view class="notice-icon-wrap">
             <view class="notice-icon-bg" :style="{ background: item.color }">
               <view class="notice-icon" :class="item.iconClass" aria-hidden="true" />
@@ -111,7 +111,7 @@
         <a11y-button
           v-for="item in chatList"
           :key="item.userId"
-          class="chat-item btn-feedback"
+          class="chat-item"
           :label="chatItemLabel(item)"
           @tap="goChatDetail(item)"
         >
@@ -322,11 +322,12 @@ function goNotifications(type: string): void {
   uni.navigateTo({ url: "/pages/chat/notifications?type=" + type });
 }
 
-/** 顶级分区切换：切到消息分区时立即拉取联系人/会话与通知未读（onShow 只覆盖首次展示） */
+/** 顶级分区切换：只切换视图，不重新加载数据（数据已在 onShow 首次加载，切换时保留滚动位置） */
 function switchTopTab(tab: "circle" | "message"): void {
   if (topTab.value === tab) return;
   topTab.value = tab;
-  if (tab === "message") {
+  // 首次切到消息且无数据时才加载，避免每次切换都重新请求导致页面闪动
+  if (tab === "message" && chatList.value.length === 0) {
     loadMessages();
     chatStore.loadNoticeCounts();
   }
@@ -351,16 +352,17 @@ function chatItemLabel(contact: ChatListItem): string {
 
 /* ---------------- 生命周期 ---------------- */
 onShow(() => {
-  if (topTab.value === "circle") {
-    // 发布成功返回时强制刷新；否则仅在列表为空时加载
-    const needRefresh = uni.getStorageSync(CIRCLE_NEED_REFRESH_KEY) === "1";
-    if (needRefresh) {
-      uni.removeStorageSync(CIRCLE_NEED_REFRESH_KEY);
-      loadFeed();
-    } else if (feedList.value.length === 0) {
-      loadFeed();
-    }
-  } else {
+  // 发布成功返回时强制刷新圈子列表
+  if (uni.getStorageSync(CIRCLE_NEED_REFRESH_KEY) === "1") {
+    uni.removeStorageSync(CIRCLE_NEED_REFRESH_KEY);
+    loadFeed();
+    return;
+  }
+  // 数据为空时才加载，避免每次 onShow 都重新请求导致页面闪动
+  if (feedList.value.length === 0 && topTab.value === "circle") {
+    loadFeed();
+  }
+  if (chatList.value.length === 0 && topTab.value === "message") {
     loadMessages();
     chatStore.loadNoticeCounts();
   }
