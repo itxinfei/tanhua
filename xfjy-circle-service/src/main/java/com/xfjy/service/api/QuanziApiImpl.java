@@ -472,6 +472,35 @@ public class QuanziApiImpl implements QuanZiApi {
     }
 
     @Override
+    @PostMapping("/queryCommentByIdBatch")
+    public Map<String, Comment> queryCommentByIdBatch(@RequestBody List<String> commentIds) {
+        if (CollectionUtils.isEmpty(commentIds)) {
+            return new HashMap<>();
+        }
+        List<ObjectId> objectIds = new ArrayList<>();
+        for (String cid : commentIds) {
+            try {
+                objectIds.add(new ObjectId(cid));
+            } catch (IllegalArgumentException e) {
+                LOGGER.warn("queryCommentByIdBatch 非法的 commentId，跳过: {}", cid);
+            }
+        }
+        if (objectIds.isEmpty()) {
+            return new HashMap<>();
+        }
+        // $in 批量查询，一次往返替代 N 次 findById
+        List<Comment> comments = this.mongoTemplate.find(
+                Query.query(Criteria.where("id").in(objectIds)), Comment.class);
+        Map<String, Comment> result = new HashMap<>();
+        for (Comment c : comments) {
+            if (c.getId() != null) {
+                result.put(c.getId().toHexString(), c);
+            }
+        }
+        return result;
+    }
+
+    @Override
     @GetMapping("/queryCommentList")
     public PageInfo<Comment> queryCommentList(@RequestParam(value = "publishId", required = false) String publishId,
                                               @RequestParam(value = "page", required = false) Integer page,

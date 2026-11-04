@@ -132,6 +132,16 @@ public interface QuanZiApi {
     Comment queryCommentById(@RequestParam(value = "commentId", required = false) String commentId);
 
     /**
+     * 根据id批量查询评论（评论列表展示被回复人昵称用，消除 N+1 查询）
+     *
+     * @param commentIds 评论ID列表（MongoDB ObjectId 字符串）
+     * @return commentId -> Comment 映射；无效ID自动跳过
+     */
+    @PostExchange("/queryCommentByIdBatch")
+    @PostMapping("/queryCommentByIdBatch")
+    Map<String, Comment> queryCommentByIdBatch(@RequestBody List<String> commentIds);
+
+    /**
      * 查询评论
      */
     @GetExchange("/queryCommentList")

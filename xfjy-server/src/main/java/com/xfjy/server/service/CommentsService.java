@@ -26,7 +26,9 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class CommentsService {
@@ -70,6 +72,31 @@ public class CommentsService {
             }
         }
 
+        // 批量预取父评论（消除循环内 N 次 RPC）：收集 parentId -> 一次 $in 查询
+        List<String> parentIds = new ArrayList<>();
+        for (Comment record : records) {
+            if (record.getParentId() != null) {
+                String pid = record.getParentId().toHexString();
+                if (!parentIds.contains(pid)) {
+                    parentIds.add(pid);
+                }
+            }
+        }
+        Map<String, Comment> parentCommentMap = new HashMap<>();
+        if (!parentIds.isEmpty()) {
+            try {
+                parentCommentMap = this.quanZiApi.queryCommentByIdBatch(parentIds);
+            } catch (Exception e) {
+                LOGGER.warn("批量查询父评论失败，被回复人昵称将不展示", e);
+            }
+        }
+        // 父评论作者也加入批量用户查询范围
+        for (Comment parent : parentCommentMap.values()) {
+            if (parent.getUserId() != null && !userIds.contains(parent.getUserId())) {
+                userIds.add(parent.getUserId());
+            }
+        }
+
         UserInfoQueryParam queryParam = new UserInfoQueryParam();
         queryParam.setUserIds(userIds);
         List<UserInfo> userInfoList;
@@ -81,8 +108,29 @@ public class CommentsService {
             userInfoList = new ArrayList<>();
         }
 
-        List<Comments> commentsList = new ArrayList<>();
+        // 批量预取 Redis（消除循环内 N 次 hasKey/get）：multiGet 点赞数 + 点赞状态
+        Long viewerId = user == null ? -1L : user.getId();
+        List<String> likeUserCommentKeys = new ArrayList<>();
+        List<String> likeCommentKeys = new ArrayList<>();
         for (Comment record : records) {
+            String cid = record.getId().toHexString();
+            likeUserCommentKeys.add("QUANZI_COMMENT_LIKE_USER_" + viewerId + "_" + cid);
+            likeCommentKeys.add("QUANZI_COMMENT_LIKE_" + cid);
+        }
+        List<String> hasLikedValues;
+        List<String> likeCountValues;
+        try {
+            hasLikedValues = this.redisTemplate.opsForValue().multiGet(likeUserCommentKeys);
+            likeCountValues = this.redisTemplate.opsForValue().multiGet(likeCommentKeys);
+        } catch (Exception e) {
+            LOGGER.warn("批量获取评论点赞缓存失败，降级为未点赞/0赞", e);
+            hasLikedValues = null;
+            likeCountValues = null;
+        }
+
+        List<Comments> commentsList = new ArrayList<>();
+        for (int idx = 0; idx < records.size(); idx++) {
+            Comment record = records.get(idx);
             Comments comments = new Comments();
 
             comments.setId(record.getId().toHexString());
@@ -104,36 +152,33 @@ public class CommentsService {
                 }
             }
 
-            // user 可能为 null（未登录访问），用 -1 占位构造 key，保证 key 格式一致且不 NPE
-            Long viewerId = user == null ? -1L : user.getId();
-            String likeUserCommentKey = "QUANZI_COMMENT_LIKE_USER_" + viewerId + "_" + comments.getId();
-            comments.setHasLiked(this.redisTemplate.hasKey(likeUserCommentKey) ? 1 : 0); //是否点赞
+            // 点赞状态：multiGet 结果非 null 即已点赞
+            comments.setHasLiked(hasLikedValues != null && hasLikedValues.get(idx) != null ? 1 : 0);
 
-            String likeCommentKey = "QUANZI_COMMENT_LIKE_" + comments.getId();
-            String value = this.redisTemplate.opsForValue().get(likeCommentKey);
+            // 点赞数：multiGet 结果解析，非数字兜底为 0
             int likeCount = 0;
-            if(StringUtils.isNotEmpty(value)){
+            if (likeCountValues != null && likeCountValues.get(idx) != null) {
                 try {
-                    likeCount = Integer.parseInt(value);
+                    likeCount = Integer.parseInt(likeCountValues.get(idx));
                 } catch (NumberFormatException e) {
-                    LOGGER.warn("评论点赞数缓存非数字，兜底为0: key={}, value={}", likeCommentKey, value);
+                    LOGGER.warn("评论点赞数缓存非数字，兜底为0: key={}, value={}",
+                            likeCommentKeys.get(idx), likeCountValues.get(idx));
                 }
             }
-            comments.setLikeCount(likeCount); //点赞数
+            comments.setLikeCount(likeCount);
 
-            // 层级信息：回复评论带父评论 id 与被回复人昵称（旁路，失败仅置空不阻断）
+            // 层级信息：从预取的父评论映射中取被回复人昵称（无额外 RPC）
             if (record.getParentId() != null) {
                 comments.setParentId(record.getParentId().toHexString());
-                try {
-                    Comment parent = this.quanZiApi.queryCommentById(comments.getParentId());
-                    if (parent != null && parent.getUserId() != null) {
-                        UserInfo parentUser = this.userInfoApi.queryUserInfoById(parent.getUserId());
-                        if (parentUser != null) {
-                            comments.setReplyNickname(parentUser.getNickName());
+                Comment parent = parentCommentMap.get(comments.getParentId());
+                if (parent != null && parent.getUserId() != null && !CollectionUtils.isEmpty(userInfoList)) {
+                    for (UserInfo userInfo : userInfoList) {
+                        if (userInfo != null && userInfo.getUserId() != null
+                                && parent.getUserId().longValue() == userInfo.getUserId().longValue()) {
+                            comments.setReplyNickname(userInfo.getNickName());
+                            break;
                         }
                     }
-                } catch (Exception e) {
-                    LOGGER.warn("查询被回复人信息失败：commentId={}", comments.getId());
                 }
             }
 
