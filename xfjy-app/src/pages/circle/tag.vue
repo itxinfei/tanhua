@@ -11,10 +11,11 @@
       desc="换个话题看看吧"
     />
 
-    <view
+    <a11y-button
       v-for="item in list"
       :key="item.id"
-      class="post-card"
+      class="post-card btn-feedback"
+      :label="`查看动态：${item.nickname}，${item.textContent ? item.textContent.slice(0, 20) : '无文字内容'}`"
       @tap="goDetail(item)"
     >
       <view class="post-header">
@@ -26,16 +27,17 @@
       </view>
       <view class="post-content">{{ item.textContent }}</view>
       <view v-if="item.imageContent && item.imageContent.length" class="image-grid">
-        <image lazy-load
+        <a11y-button
           v-for="(img, i) in item.imageContent.slice(0, 9)"
           :key="i"
-          class="grid-image"
-          :src="img"
-          mode="aspectFill"
-          @tap.stop="preview(item.imageContent, i)"
-        />
+          class="grid-img"
+          :label="`查看第 ${i + 1} 张配图`"
+          @tap="preview(item.imageContent, i)"
+        >
+          <image lazy-load class="grid-img-inner" :src="img" mode="aspectFill" aria-hidden="true" />
+        </a11y-button>
       </view>
-    </view>
+    </a11y-button>
 
     <view v-if="hasMore" class="loading" @tap="loadMore">加载更多</view>
   </view>
@@ -45,6 +47,7 @@
 import { ref, onMounted } from "vue";
 import EmptyState from "@/components/empty-state.vue";
 import { onLoad } from "@dcloudio/uni-app";
+import A11yButton from "@/components/a11y-button.vue";
 import { searchMovementsByTag } from "@/api/circle";
 import type { Movement } from "@/api/circle";
 
@@ -156,11 +159,14 @@ onLoad((options: any) => {
     display: flex;
     flex-wrap: wrap;
     gap: 8rpx;
-    .grid-image {
-      width: 200rpx;
-      height: 200rpx;
-      border-radius: 8rpx;
+    .grid-img {
+      flex: 1 1 calc(33.333% - 8rpx);
+      max-width: calc(33.333% - 8rpx);
+      aspect-ratio: 1 / 1;
+      border-radius: 12rpx;
+      overflow: hidden;
     }
+    .grid-img-inner { width: 100%; height: 100%; display: block; }
   }
 }
 

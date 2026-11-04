@@ -1,10 +1,11 @@
 <template>
   <view class="publish-page">
-    <!-- 顶部栏（抖音式）：左侧关闭，右侧发布按钮，无居中标题 -->
+    <!-- 顶部栏：左侧关闭 + 居中标题 + 右侧发布按钮 -->
     <view class="top-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
       <a11y-button class="icon-btn" label="取消发布" @tap="handleCancel">
         <uni-icons type="close" size="26" color="#161823"></uni-icons>
       </a11y-button>
+      <text class="top-title">发布动态</text>
       <a11y-button
         class="top-publish"
         :class="{ disabled: !canPublish || submitting }"
@@ -16,17 +17,35 @@
     </view>
 
     <!-- 正文（无边框大输入，抖音式） -->
+    <!-- 发布按钮禁用原因（P1）：明确告知可发布条件，避免"按钮灰了却不知道为什么" -->
+    <view v-if="!canPublish" class="publish-hint" role="status">
+      <uni-icons type="info" size="14" color="#8a5cf6"></uni-icons>
+      <text class="publish-hint-text">写点文字，或添加图片 / 视频后即可发布</text>
+    </view>
+
+    <!-- 正文分组标题：让"写什么 / 还能写多少"一目了然 -->
+    <view class="field-head">
+      <text class="field-title">动态内容</text>
+      <text class="field-hint">最多 {{ MAX_CONTENT_LENGTH }} 字</text>
+    </view>
     <textarea
       v-model="content"
       class="content-area"
-      placeholder="写点什么..."
+      placeholder="分享此刻的心情、遇见的有趣的事…"
       placeholder-class="placeholder"
       aria-label="动态正文"
       :maxlength="MAX_CONTENT_LENGTH"
       :auto-height="false"
     />
-    <text class="char-count">{{ content.length }}/{{ MAX_CONTENT_LENGTH }}</text>
+    <text class="char-count" :class="{ 'char-near-limit': content.length >= MAX_CONTENT_LENGTH - 50 }">
+      {{ content.length }} / {{ MAX_CONTENT_LENGTH }} 字
+    </text>
 
+    <!-- 媒体分组标题：说明图片上限，避免"点了没反应" -->
+    <view class="field-head">
+      <text class="field-title">添加图片或视频</text>
+      <text class="field-hint">图片最多 {{ MAX_IMAGE_COUNT }} 张 · 视频 1 个</text>
+    </view>
     <!-- 媒体行：横向缩略图 + 添加（抖音式）；选择视频后与图片互斥 -->
     <scroll-view class="media-row" scroll-x :show-scrollbar="false">
       <template v-if="videoFile">
@@ -58,6 +77,11 @@
       </template>
     </scroll-view>
 
+    <!-- 附加信息分组标题：话题 / 位置有明确归属，不再只靠 placeholder 猜 -->
+    <view v-if="!videoFile" class="field-head">
+      <text class="field-title">更多设置</text>
+      <text class="field-hint">话题最多 {{ MAX_TOPIC_COUNT }} 个 · 可选</text>
+    </view>
     <!-- 设置列表（抖音式分组行，右侧带箭头）；小视频发布仅接收封面+视频文件，文字/话题/位置不随视频上传，隐藏避免误导 -->
     <view v-if="!videoFile" class="setting-list">
       <a11y-button class="setting-row" :label="`话题，已选 ${selectedTopics.length} 个`" @tap="toggleTopicPanel">
@@ -81,6 +105,12 @@
         <view class="row-right">
           <text class="row-value" :class="{ placeholder: !location }">{{ location || "添加位置" }}</text>
           <uni-icons type="right" size="14" color="#c4c8d0"></uni-icons>
+        </view>
+      </a11y-button>
+      <a11y-button v-if="location" class="setting-row" label="清除已选位置" @tap="clearLocation">
+        <view class="row-left">
+          <uni-icons type="trash" size="20" color="#767676"></uni-icons>
+          <text class="row-name">清除位置</text>
         </view>
       </a11y-button>
     </view>
@@ -330,6 +360,9 @@ onUnload(() => {
     clearTimeout(backTimer);
     backTimer = null;
   }
+  // 手势返回等非 safeGoBack 路径会跳过 800ms 定时器，submitting 保持 true 会导致
+  // 下次进入页面无法发布；页面销毁时必须复位
+  submitting.value = false;
 });
 </script>
 
@@ -360,6 +393,16 @@ onUnload(() => {
   justify-content: center;
 }
 
+/* 居中页面标题：发布页此前只靠 placeholder 辨识 */
+.top-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+  text-align: center;
+  margin-right: -64rpx; /* 抵消左侧关闭按钮宽度，保持视觉居中 */
+}
+
 /* 右侧发布按钮：品牌玫红实心圆角，禁用态浅粉 */
 .top-publish {
   height: 64rpx;
@@ -378,6 +421,43 @@ onUnload(() => {
 
   &.disabled {
     background: var(--bg-sub);
+  }
+}
+
+/* ===== 分组标题 / 禁用原因提示 ===== */
+.field-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-top: 28rpx;
+  margin-bottom: 4rpx;
+
+  .field-title {
+    font-size: 28rpx;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .field-hint {
+    font-size: 22rpx;
+    color: var(--text-hint);
+  }
+}
+
+.publish-hint {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-top: 20rpx;
+  padding: 16rpx 20rpx;
+  border-radius: 16rpx;
+  background: var(--bg-icon-soft, #f4efff);
+  border: 1rpx solid rgba(138, 92, 246, 0.22);
+
+  .publish-hint-text {
+    font-size: 24rpx;
+    color: var(--color-primary-text, #7a4bd0);
   }
 }
 
@@ -400,6 +480,8 @@ onUnload(() => {
   text-align: right;
   font-size: 22rpx;
   color: var(--text-hint);
+
+  &.char-near-limit { color: var(--color-danger); font-weight: 600; }
 }
 
 /* ===== 横向媒体行 =====
@@ -458,6 +540,7 @@ onUnload(() => {
   }
 }
 
+/* 媒体选择块：加虚线边框 + 引导文案，让"可点"的意图更明确 */
 .media-add {
   display: inline-flex;
   flex-direction: column;
@@ -466,13 +549,15 @@ onUnload(() => {
   width: 180rpx;
   height: 180rpx;
   border-radius: 16rpx;
-  background: #f5f6f8;
+  background: #faf9fd;
+  border: 2rpx dashed #c9bede;
   vertical-align: top;
   gap: 10rpx;
 
   .media-add-label {
     font-size: 22rpx;
-    color: var(--text-hint);
+    color: #7a6a94;
+    font-weight: 500;
   }
 }
 

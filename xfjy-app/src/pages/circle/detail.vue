@@ -32,7 +32,21 @@
           <text class="content">{{ c.content }}</text>
           <text class="time">{{ c.createDate }}</text>
         </view>
+        <a11y-button
+          class="comment-like btn-feedback"
+          :class="{ liked: c.hasLiked }"
+          :label="c.hasLiked ? '取消点赞，当前 ' + (c.likeCount || 0) + ' 赞' : '点赞，当前 ' + (c.likeCount || 0) + ' 赞'"
+          @tap="toggleCommentLike(c)"
+        >
+          <view
+            class="comment-like-icon"
+            :class="{ 'i-ph-heart-fill': c.hasLiked, 'i-ph-heart': !c.hasLiked }"
+            aria-hidden="true"
+          />
+          <text class="comment-like-count">{{ c.likeCount > 0 ? c.likeCount : '' }}</text>
+        </a11y-button>
       </view>
+      <view v-if="commentHasMore" class="load-more" @tap="loadMoreComments">加载更多评论</view>
     </view>
 
     <!-- 评论输入：发送按钮 + 回车双通道（H5 浏览器/部分输入法 confirm 不可靠，仅回车会让用户以为"评论发不出去"） -->
@@ -49,7 +63,7 @@
 import { ref } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
-import { getMovementById, getComments, publishComment } from "@/api/circle";
+import { getMovementById, getComments, publishComment, likeComment, dislikeComment } from "@/api/circle";
 import type { Movement, Comment } from "@/api/circle";
 import { success } from "@/utils/ux";
 
@@ -59,6 +73,9 @@ const commentText = ref("");
 const post = ref<Movement | null>(null);
 const comments = ref<Comment[]>([]);
 const sending = ref(false);
+const commentPage = ref(1);
+const commentHasMore = ref(false);
+const commentLoading = ref(false);
 
 function previewImg(index: number | string) {
   const i = Number(index);
@@ -75,13 +92,55 @@ async function loadDetail() {
   }
 }
 
-/** 加载评论列表 */
+/** 加载评论列表（首页/刷新） */
 async function loadComments() {
   try {
     const res = await getComments(postId.value, { page: 1, pagesize: PAGE_SIZE });
     comments.value = res.items || [];
+    commentPage.value = 1;
+    commentHasMore.value = (res.pages || 1) > 1;
   } catch {
     // request 层统一 toast
+  }
+}
+
+/** 加载更多评论 */
+async function loadMoreComments() {
+  if (commentLoading.value || !commentHasMore.value) return;
+  commentLoading.value = true;
+  try {
+    const nextPage = commentPage.value + 1;
+    const res = await getComments(postId.value, { page: nextPage, pagesize: PAGE_SIZE });
+    comments.value = comments.value.concat(res.items || []);
+    commentPage.value = nextPage;
+    commentHasMore.value = (res.pages || 1) > nextPage;
+  } catch {
+    // request 层统一 toast
+  } finally {
+    commentLoading.value = false;
+  }
+}
+
+/** 切换评论点赞状态 */
+async function toggleCommentLike(comment: Comment) {
+  const wasLiked = comment.hasLiked;
+  const prevCount = comment.likeCount;
+  try {
+    if (wasLiked) {
+      comment.hasLiked = 0;
+      comment.likeCount = Math.max(0, comment.likeCount - 1);
+      const latest = await dislikeComment(comment.id);
+      if (typeof latest === "number") comment.likeCount = latest;
+    } else {
+      comment.hasLiked = 1;
+      comment.likeCount += 1;
+      const latest = await likeComment(comment.id);
+      if (typeof latest === "number") comment.likeCount = latest;
+    }
+  } catch {
+    // 请求失败：回滚本地状态
+    comment.hasLiked = wasLiked;
+    comment.likeCount = prevCount;
   }
 }
 
@@ -149,16 +208,23 @@ onLoad((options: any) => {
 }
 .comment-section { background: var(--bg-card); padding: 28rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   .section-title { font-size: 28rpx; font-weight: bold; display: block; margin-bottom: 16rpx; color: var(--text-primary); }
-  .comment-item { display: flex; padding: 18rpx 0; border-bottom: 1rpx solid var(--border-faint);
+  .comment-item { display: flex; align-items: flex-start; padding: 18rpx 0; border-bottom: 1rpx solid var(--border-faint);
     &:last-child { border-bottom: none; }
-    .avatar { width: 64rpx; height: 64rpx; border-radius: 50%; background: var(--bg-sub); }
-    .comment-info { margin-left: 16rpx; flex: 1;
+    .avatar { width: 64rpx; height: 64rpx; border-radius: 50%; background: var(--bg-sub); flex-shrink: 0; }
+    .comment-info { margin-left: 16rpx; flex: 1; min-width: 0;
       .nickname { font-size: 24rpx; color: var(--color-primary-text); display: block; }
       .content { font-size: 28rpx; color: var(--text-primary); margin-top: 6rpx; display: block; }
       /* 20rpx 极小字号 + #ccc → 提字号并提深 */
       .time { font-size: 22rpx; color: var(--text-hint); margin-top: 6rpx; display: block; }
     }
+    .comment-like { display: flex; flex-direction: column; align-items: center; gap: 4rpx; flex-shrink: 0; padding: 0 8rpx;
+      .comment-like-icon { font-size: 32rpx; color: var(--text-hint); line-height: 1; }
+      .comment-like-count { font-size: 22rpx; color: var(--text-hint); }
+      &.liked .comment-like-icon { color: var(--color-primary); }
+      &.liked .comment-like-count { color: var(--color-primary); }
+    }
   }
+  .load-more { text-align: center; padding: 24rpx; color: var(--color-primary); font-size: 26rpx; }
 }
 .comment-bar { position: fixed; left: 0; right: 0; bottom: var(--tab-bar-height, 0px); display: flex; align-items: center; gap: 16rpx; padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom, 0px)); background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(20px); box-shadow: 0 -8rpx 32rpx rgba(0, 0, 0, 0.08);
   .comment-input { flex: 1; height: 76rpx; background: var(--bg-sub); border-radius: 38rpx; padding: 0 28rpx; font-size: 28rpx; border: 2rpx solid transparent; transition: border-color 0.2s ease;

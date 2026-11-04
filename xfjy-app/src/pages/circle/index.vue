@@ -74,13 +74,14 @@
             />
           </view>
           <view class="action-row">
+            <!-- 计数为 0 时给"抢首赞/抢首评"引导，而非空白让人以为功能缺失 -->
             <a11y-button class="action btn-feedback" :label="item.hasLiked ? '取消点赞，当前 ' + (item.likeCount || 0) + ' 赞' : '点赞，当前 ' + (item.likeCount || 0) + ' 赞'" @tap="handleLike(item)">
               <view class="action-icon" :class="{ liked: item.hasLiked, 'heart-beat': item.hasLiked, 'i-ph-heart-fill': item.hasLiked, 'i-ph-heart': !item.hasLiked }" aria-hidden="true" />
-              <text class="count">{{ item.likeCount || '' }}</text>
+              <text class="count">{{ item.likeCount > 0 ? item.likeCount : '抢首赞' }}</text>
             </a11y-button>
             <a11y-button class="action btn-feedback" :label="'查看评论，共 ' + (item.commentCount || 0) + ' 条'" @tap="goDetail(item)">
               <view class="action-icon i-ph-chat-circle-dots" aria-hidden="true" />
-              <text class="count">{{ item.commentCount || '' }}</text>
+              <text class="count">{{ item.commentCount > 0 ? item.commentCount : '抢首评' }}</text>
             </a11y-button>
             <a11y-button class="action btn-feedback" :label="item.hasLoved ? '取消心动' : '心动'" @tap="handleLove(item)">
               <view class="action-icon" :class="{ loved: item.hasLoved, 'i-ph-star-fill': item.hasLoved, 'i-ph-star': !item.hasLoved }" aria-hidden="true" />
@@ -360,10 +361,10 @@ onShareAppMessage(() => ({
 /* 顶级分区：圈子 / 消息（custom 导航后直接贴状态栏，需自行避让） */
 .seg-bar {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   gap: 56rpx;
-  height: calc(88rpx + env(safe-area-inset-top, 0px));
+  height: calc(var(--category-bar-h) + env(safe-area-inset-top, 0px));
   padding-top: env(safe-area-inset-top, 0px);
   background: var(--bg-card);
   position: relative;
@@ -371,6 +372,9 @@ onShareAppMessage(() => ({
 
   .seg {
     position: relative;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
     font-size: 32rpx;
     color: var(--text-hint);
     padding: 6rpx 4rpx;
@@ -383,12 +387,12 @@ onShareAppMessage(() => ({
         content: "";
         position: absolute;
         left: 50%;
-        bottom: -6rpx;
+        bottom: 0;
         transform: translateX(-50%);
-        width: 44rpx;
-        height: 6rpx;
+        width: 48rpx;
+        height: 8rpx;
         background: var(--color-primary);
-        border-radius: 3rpx;
+        border-radius: var(--radius-pill);
       }
     }
   }
@@ -413,13 +417,15 @@ onShareAppMessage(() => ({
 /* 圈子子标签 */
 .tab-bar {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   background: var(--bg-card);
   padding: 0 32rpx;
-  height: 88rpx;
+  height: var(--category-bar-h);
   position: relative;
 
   .tab-item {
+    display: flex;
+    align-items: center;
     padding: 0 32rpx;
     font-size: 30rpx;
     color: var(--text-hint);
@@ -432,13 +438,13 @@ onShareAppMessage(() => ({
       &::after {
         content: "";
         position: absolute;
-        bottom: -16rpx;
+        bottom: 0;
         left: 50%;
         transform: translateX(-50%);
         width: 48rpx;
-        height: 6rpx;
+        height: 8rpx;
         background: var(--color-primary);
-        border-radius: 3rpx;
+        border-radius: var(--radius-pill);
       }
     }
   }
