@@ -68,6 +68,7 @@ Copilot / Serena / Trae）开工前必须读完本文件。
    `AdminController` 为登录/自身账户维护入口，按 §11 豁免）。
 4. 领域服务 `XInternalTokenInterceptor`：`X-Internal-Token` 不匹配返回 403。
 - 领域服务只信任内部 token，禁止信任外部传入的用户身份头。
+- Sa-Token 两端（`xfjy-sso`/`xfjy-server`）`timeout 604800` / `is-concurrent true` / `is-share true` / `active-timeout -1` 必须一致；`token-prefix` 例外（sso 无、server `Bearer`，属请求头解析差异）。
 
 校验：`rg -L "@RequireRole" --glob "Admin*Controller.java" xfjy-server/src/main/java`（存量 1 处豁免）
 

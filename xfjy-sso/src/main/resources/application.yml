@@ -33,7 +33,8 @@ mybatis-plus:
 # Sa-Token（用户端会话，Redis 存储，全部服务共享校验）
 sa-token:
   token-name: Authorization
-  timeout: 604800        # 7 天
+  timeout: 604800        # 7 天（与 xfjy-server 一致，见 AGENTS.md）
+  active-timeout: -1     # 不自动续签
   is-concurrent: true
   is-share: true         # 同一账号多端共享一个 token
   token-style: uuid
