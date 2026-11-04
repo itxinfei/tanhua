@@ -83,7 +83,6 @@ target/
 !/xfjy-app/index.html
 !/xfjy-app/package.json
 !/xfjy-app/package-lock.json
-!/xfjy-app/pnpm-lock.yaml
 !/xfjy-app/vite.config.mts
 !/xfjy-app/tsconfig.json
 !/xfjy-app/shims-uni.d.ts
