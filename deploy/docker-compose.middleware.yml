@@ -226,7 +226,7 @@ services:
 
   minio:
     # 对象存储（替代阿里云 OSS）：S3 API 9000，管理控制台 9001
-    image: docker.m.daocloud.io/minio/minio:latest
+    image: docker.m.daocloud.io/minio/minio:${MINIO_VERSION:-RELEASE.2025-04-22T23-22-57Z}
     container_name: xfjy-minio
     restart: unless-stopped
     mem_limit: 384m
@@ -251,7 +251,7 @@ services:
 
   minio-init:
     # 一次性任务：创建业务桶 test-media 并设为公开下载（匿名可读），与 server minio.bucketName 对齐
-    image: docker.m.daocloud.io/minio/mc:latest
+    image: docker.m.daocloud.io/minio/mc:${MINIO_VERSION:-RELEASE.2025-04-22T23-22-57Z}
     container_name: xfjy-minio-init
     depends_on:
       minio:
