@@ -263,7 +263,9 @@ Test-Path pnpm-lock.yaml          # 期望 False
 - 版本统一由根 pom `dependencyManagement` 管理；子模块声明依赖**禁止写 `<version>`**。
   根 pom 未管理的新依赖，先在根 pom 补管理条目，再在子模块无版本引入。
 - `xfjy-api` 的 `optional` 依赖（spring-data-mongodb/spring-webmvc/jakarta.servlet-api 等）
-  不向下游传染；使用 `@Document`/`ObjectId` 的宿主服务必须显式声明 `spring-data-mongodb`。
+  不向下游传染；使用 `@Document`/`ObjectId` 的宿主服务必须确保 classpath 有 `spring-data-mongodb`：
+  直接操作 MongoDB（`MongoTemplate`）的服务声明 `spring-boot-starter-data-mongodb`（已传递包含
+  `spring-data-mongodb`，**禁止再单独声明**）；仅用注解不操作 Mongo 的服务声明单独的 `spring-data-mongodb`。
 - 禁止引入未使用依赖；新增依赖前 grep 源码确认实际 import 需求。
 
 校验：`rg -n "<version>" --glob "xfjy-*/pom.xml" | rg -v "project.version"` → 0

@@ -75,12 +75,6 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-    
-        <!-- MongoDB pojo 注解（@Document/ObjectId）：xfjy-api 已改为 optional，各服务按需显式声明 -->
-        <dependency>
-            <groupId>org.springframework.data</groupId>
-            <artifactId>spring-data-mongodb</artifactId>
-        </dependency>
 </dependencies>
 
     <build>
