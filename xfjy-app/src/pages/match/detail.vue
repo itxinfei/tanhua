@@ -93,12 +93,12 @@
       </a11y-button>
     </view>
 
-    <!-- 底部操作栏：4 按钮，全部补齐语义与键盘操作 -->
+    <!-- 底部操作栏：4 键统一「白底彩环」圆形按钮（与匹配页 action-btn 同一视觉语言） -->
     <view class="action-bar safe-area-bottom">
-      <a11y-button class="action small dislike" label="不喜欢" @tap="handleDislike"><uni-icons type="close" size="22" color="var(--color-primary)"></uni-icons></a11y-button>
-      <a11y-button class="action small chat" label="打招呼" @tap="handleChat"><uni-icons type="chatbubble" size="22" color="var(--color-primary)"></uni-icons></a11y-button>
-      <a11y-button class="action super-like" label="超级喜欢" @tap="handleSuperLike"><uni-icons type="star-filled" size="22" color="#4dabf7"></uni-icons></a11y-button>
-      <a11y-button class="action like" label="喜欢" @tap="handleLike"><uni-icons type="heart-filled" size="22" color="var(--color-primary)"></uni-icons></a11y-button>
+      <a11y-button class="action dislike" label="不喜欢" @tap="handleDislike"><uni-icons type="close" size="22" color="var(--color-danger)"></uni-icons></a11y-button>
+      <a11y-button class="action chat" label="打招呼" @tap="handleChat"><uni-icons type="chatbubble" size="22" color="var(--info-blue)"></uni-icons></a11y-button>
+      <a11y-button class="action super-like" label="超级喜欢" @tap="handleSuperLike"><uni-icons type="star-filled" size="22" color="var(--gold)"></uni-icons></a11y-button>
+      <a11y-button class="action like" label="喜欢" @tap="handleLike"><uni-icons type="heart-filled" size="22" color="var(--success)"></uni-icons></a11y-button>
     </view>
 
     <!-- 匹配成功弹窗（与匹配页行为一致） -->
@@ -417,17 +417,16 @@ onLoad(async (options: any) => {
 }
 
 /* ===== 底部操作栏 ===== */
-.action-bar { position: fixed; left: 0; right: 0; bottom: var(--tab-bar-height, 0px); display: flex; justify-content: center; align-items: center; gap: 40rpx; padding: 28rpx 0; background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(20px); box-shadow: 0 -8rpx 32rpx rgba(0, 0, 0, 0.08); }
+.action-bar { position: fixed; left: 0; right: 0; bottom: var(--tab-bar-height, 0px); display: flex; justify-content: center; align-items: center; gap: 32rpx; padding: 24rpx 0; background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(20px); box-shadow: 0 -8rpx 32rpx rgba(0, 0, 0, 0.08); }
 
-.action { border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+/* 与匹配页 action-btn 统一的「白底彩环」视觉语言：
+   四键同尺寸 96rpx，4rpx 色环 + 同色系柔光阴影，功能区分交给色环 */
+.action { width: 96rpx; height: 96rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-sizing: border-box; background: var(--bg-card); border: 4rpx solid transparent; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
   &:active { transform: scale(0.92); }
-  /* 次按钮：不喜欢 / 打招呼 */
-  &.small { width: 96rpx; height: 96rpx; font-size: 38rpx;
-    &.dislike { background: var(--bg-card); color: var(--color-danger); border: 4rpx solid var(--color-danger); box-shadow: 0 4rpx 16rpx rgba(255, 59, 48, 0.15); }
-    &.chat { background: linear-gradient(135deg, var(--info-blue), var(--info-blue-soft)); color: var(--text-inverse); box-shadow: 0 6rpx 20rpx rgba(74, 144, 217, 0.4); }
-  }
-  /* 主按钮：超级喜欢 / 喜欢 */
-  &.super-like { width: 108rpx; height: 108rpx; font-size: 48rpx; background: linear-gradient(135deg, var(--gold), var(--gold-soft)); color: var(--text-inverse); box-shadow: 0 8rpx 28rpx rgba(255, 179, 71, 0.5); }
-  &.like { width: 120rpx; height: 120rpx; font-size: 56rpx; background: var(--gradient-brand); color: var(--bg-card); box-shadow: 0 10rpx 32rpx rgba(254, 60, 114, 0.45); }
+
+  &.dislike { border-color: var(--color-danger); box-shadow: 0 6rpx 20rpx rgba(255, 59, 48, 0.25); }
+  &.chat { border-color: var(--info-blue); box-shadow: 0 6rpx 20rpx rgba(74, 144, 217, 0.25); }
+  &.super-like { border-color: var(--gold); box-shadow: 0 6rpx 20rpx rgba(255, 179, 71, 0.3); }
+  &.like { border-color: var(--success); box-shadow: 0 6rpx 20rpx rgba(76, 217, 100, 0.3); }
 }
 </style>

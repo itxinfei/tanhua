@@ -89,13 +89,72 @@
         {{ logging ? "登录中..." : "登录 / 注册" }}
       </a11y-button>
     </view>
+
+    <!-- 协议半屏弹窗：登录前阅读（探探式），滚到底部后「同意并继续」点亮并自动勾选 -->
+    <a11y-dialog
+      :visible="sheetVisible"
+      :title="sheetContent.title"
+      :mask-closable="true"
+      class="sheet anim-fade-in"
+      @close="sheetVisible = false"
+    >
+      <view class="sheet-panel anim-slide-up">
+        <!-- 抓手：底部弹层的可视可供性（affordance） -->
+        <view class="sheet-grabber" aria-hidden="true" />
+        <view class="sheet-header">
+          <text class="sheet-title">{{ sheetContent.title }}</text>
+          <text class="sheet-full" role="link" @click.stop="goFullAgreement">查看全文 ›</text>
+        </view>
+
+        <!-- 阅读进度条 + 百分比反馈 -->
+        <view class="sheet-progress-row" aria-hidden="true">
+          <view class="sheet-progress">
+            <view class="sheet-progress-fill" :style="{ width: readProgress + '%' }" />
+          </view>
+          <text class="sheet-progress-text">{{ readComplete ? "已读完" : readProgress + "%" }}</text>
+        </view>
+
+        <scroll-view
+          scroll-y
+          class="sheet-scroll"
+          :scroll-top="0"
+          @scroll="onSheetScroll"
+          @scrolltolower="onSheetScrollToLower"
+        >
+          <text class="sheet-paragraph" v-for="(p, i) in sheetContent.paragraphs" :key="i">{{ p }}</text>
+        </scroll-view>
+
+        <!-- 主行动唯一：通栏主按钮承担视觉重量（探探/微信式）；
+             「不同意」降级为文字链接，主次分明 -->
+        <view class="sheet-footer">
+          <a11y-button
+            variant="primary"
+            block
+            :disabled="!readComplete"
+            @tap="agreeFromSheet"
+          >
+            {{ readComplete ? "同意并继续" : "阅读全文后可同意" }}
+          </a11y-button>
+          <a11y-button
+            variant="text"
+            class="sheet-disagree"
+            label="不同意协议，关闭弹窗"
+            @tap="disagreeFromSheet"
+          >
+            不同意
+          </a11y-button>
+        </view>
+      </view>
+    </a11y-dialog>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted } from "vue";
+import { ref, computed, watch, nextTick, onUnmounted } from "vue";
 import { useUserStore } from "@/store/user";
 import A11yButton from "@/components/a11y-button.vue";
+import A11yDialog from "@/components/a11y-dialog.vue";
+import { AGREEMENT_CONTENT, type AgreementContent } from "@/config/agreement-content";
 import { success, info, fail } from "@/utils/ux";
 
 /** 表单标签 id：供 input 的 aria-labelledby 关联，保证读屏能读出字段名 */
@@ -228,7 +287,68 @@ onUnmounted(() => {
 
 // 跳转用户协议 / 隐私政策落地页
 function openAgreement(type: 'user' | 'privacy') {
-  uni.navigateTo({ url: `/pages/mine/agreement?type=${type}` })
+  sheetType.value = type;
+  readProgress.value = 0;
+  readComplete.value = false;
+  sheetVisible.value = true;
+  measureSheetScroll();
+}
+
+// ===== 协议半屏弹窗（登录前阅读；探探式） =====
+const sheetVisible = ref(false);
+const sheetType = ref<"user" | "privacy">("user");
+const sheetContent = computed<AgreementContent>(
+  () => AGREEMENT_CONTENT[sheetType.value] || AGREEMENT_CONTENT.user
+);
+/** 阅读进度（0-100） */
+const readProgress = ref(0);
+/** 是否已滚动到底部（决定「同意并继续」是否点亮） */
+const readComplete = ref(false);
+/** scroll-view 视口高度（px）：滚动进度分母 = scrollHeight - clientHeight */
+let sheetClientHeight = 0;
+
+function measureSheetScroll(): void {
+  nextTick(() => {
+    try {
+      uni
+        .createSelectorQuery()
+        .select(".sheet-scroll")
+        .boundingClientRect((rect: any) => {
+          sheetClientHeight = rect?.height || 0;
+        })
+        .exec();
+    } catch {
+      // 非 H5 端取不到视口高度时，进度条仍可用 scrolltolower 点亮同意
+    }
+  });
+}
+
+function onSheetScroll(e: any): void {
+  const detail = e?.detail || {};
+  const maxScroll = Math.max(1, (detail.scrollHeight || 0) - sheetClientHeight);
+  readProgress.value = Math.min(100, Math.round(((detail.scrollTop || 0) / maxScroll) * 100));
+}
+
+function onSheetScrollToLower(): void {
+  readComplete.value = true;
+  readProgress.value = 100;
+}
+
+/** 弹窗内「同意并继续」：自动勾选协议复选框并关闭（闭环） */
+function agreeFromSheet(): void {
+  agree.value = true;
+  sheetVisible.value = false;
+  success("已同意协议");
+}
+
+/** 弹窗内「不同意」：不勾选，仅关闭 */
+function disagreeFromSheet(): void {
+  sheetVisible.value = false;
+}
+
+/** 查看全文：跳转整页协议（auth-guard 白名单已放行） */
+function goFullAgreement(): void {
+  uni.navigateTo({ url: `/pages/mine/agreement?type=${sheetType.value}` });
 }
 
 // 登录
@@ -501,6 +621,118 @@ async function handleLogin() {
     .link {
       color: var(--color-primary-text);
     }
+  }
+}
+
+/* ===== 协议半屏弹窗（a11y-dialog 壳 + 探探式阅读流） ===== */
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.sheet-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  /* 定高而非 max-height：正文区 flex 伸缩吸收空间，footer 永远贴底可见
+     （max-height + 固定高 scroll-view 会把 footer 挤出面板外） */
+  height: 72vh;
+  background: var(--bg-card);
+  border-radius: 32rpx 32rpx 0 0;
+  padding: 32rpx 32rpx calc(env(safe-area-inset-bottom, 0px) + 24rpx);
+  box-sizing: border-box;
+}
+
+/* 弹窗抓手：bottom sheet 的标准可供性暗示 */
+.sheet-grabber {
+  width: 72rpx;
+  height: 8rpx;
+  border-radius: var(--radius-pill);
+  background: var(--border);
+  margin: 0 auto 20rpx;
+}
+
+.sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .sheet-title {
+    font-size: 32rpx;
+    font-weight: bold;
+    color: var(--text-primary);
+  }
+
+  .sheet-full {
+    font-size: 26rpx;
+    color: var(--color-primary-text);
+    min-height: 88rpx;
+    display: flex;
+    align-items: center;
+  }
+}
+
+/* 进度行：进度条 + 右侧百分比反馈，让「读到哪了」一目了然 */
+.sheet-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-top: 8rpx;
+}
+
+.sheet-progress {
+  flex: 1;
+  height: 6rpx;
+  border-radius: var(--radius-pill);
+  background: var(--border-light);
+  overflow: hidden;
+
+  .sheet-progress-fill {
+    height: 100%;
+    border-radius: var(--radius-pill);
+    background: var(--color-primary);
+    transition: width 0.15s ease-out;
+  }
+}
+
+.sheet-progress-text {
+  flex-shrink: 0;
+  font-size: 22rpx;
+  color: var(--text-hint);
+  font-variant-numeric: tabular-nums;
+  min-width: 88rpx;
+  text-align: right;
+}
+
+.sheet-scroll {
+  flex: 1;
+  min-height: 0;
+  margin-top: 20rpx;
+
+  .sheet-paragraph {
+    display: block;
+    font-size: 26rpx;
+    line-height: 1.8;
+    color: var(--text-secondary);
+    margin-bottom: 16rpx;
+    text-align: justify;
+  }
+}
+
+.sheet-footer {
+  margin-top: 24rpx;
+
+  /* 「不同意」降级为居中细文字链接：主行动只有一个，不再与主按钮等权并排 */
+  .sheet-disagree {
+    display: flex;
+    justify-content: center;
+    margin-top: 8rpx;
+    min-height: 64rpx;
+    font-size: 24rpx;
   }
 }
 

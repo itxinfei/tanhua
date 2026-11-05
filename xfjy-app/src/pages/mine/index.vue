@@ -5,7 +5,7 @@
       <!-- 漂浮装饰圆（纯装饰，对读屏隐藏） -->
       <view class="deco-circle deco-1" aria-hidden="true" />
       <view class="deco-circle deco-2" aria-hidden="true" />
-      <a11y-button class="user-row" label="编辑个人资料" @tap="goProfile">
+      <a11y-button class="user-row anim-fade-up" label="编辑个人资料" @tap="goProfile">
         <image lazy-load class="avatar" :src="resolveAvatar(userInfo?.avatar)" mode="aspectFill" aria-hidden="true" />
         <view class="user-info">
           <view class="name-row">
@@ -24,7 +24,7 @@
       </a11y-button>
 
       <!-- 数据栏（与后端 CountsVo 对齐：eachLoveCount/loveCount/fanCount） -->
-      <view class="stats-row">
+      <view class="stats-row anim-fade-up anim-delay-1">
         <a11y-button class="stat-item" :label="`互相喜欢 ${counts.eachLoveCount} 人，查看列表`" @tap="goFriends(FRIEND_TYPE.MUTUAL)">
           <text class="stat-num">{{ counts.eachLoveCount }}</text>
           <text class="stat-label">互相喜欢</text>
@@ -41,7 +41,7 @@
     </view>
 
     <!-- VIP 入口 -->
-    <a11y-button class="vip-card" :label="userInfo?.vip ? '会员中心' : '开通会员'" @tap="goVip">
+    <a11y-button class="vip-card anim-fade-up anim-delay-2" :label="userInfo?.vip ? '会员中心' : '开通会员'" @tap="goVip">
       <view class="vip-left">
         <uni-icons class="vip-icon" type="vip" size="24"></uni-icons>
         <view>
@@ -56,7 +56,8 @@
     <view
       v-for="(group, groupIndex) in menuGroups"
       :key="groupIndex"
-      class="menu-group"
+      class="menu-group anim-fade-up"
+      :class="groupIndex ? 'anim-delay-4' : 'anim-delay-3'"
     >
       <a11y-button
         v-for="item in group"
@@ -274,7 +275,6 @@ onShow(() => {
   .user-row {
     display: flex;
     align-items: center;
-    animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 
     .avatar {
       width: 128rpx;
@@ -364,7 +364,6 @@ onShow(() => {
     background: rgba(255, 255, 255, 0.15);
     border-radius: 20rpx;
     padding: 20rpx 0;
-    animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
 
     .stat-item {
       display: flex;
@@ -398,7 +397,6 @@ onShow(() => {
   border-radius: 24rpx;
   border: 2rpx solid rgba(255, 215, 0, 0.6);
   box-shadow: 0 8rpx 32rpx rgba(255, 215, 0, 0.15);
-  animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
 
   .vip-left {
     display: flex;
@@ -438,12 +436,6 @@ onShow(() => {
   margin: 0 32rpx 16rpx;
   background: var(--bg-card);
   border-radius: 24rpx;
-  animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.26s both;
-
-  /* 第二组错峰入场 */
-  &:nth-of-type(2) {
-    animation-delay: 0.34s;
-  }
   /* 不用 overflow:hidden：它会配合 min-height:0 把低于 min-height 的菜单项裁掉。
      首尾圆角改由 menu-item 自身处理 */
   display: flex;
@@ -508,17 +500,6 @@ onShow(() => {
   }
 }
 
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(32rpx);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 @keyframes circleFloatA {
   0%,
   100% {
@@ -543,13 +524,9 @@ onShow(() => {
   }
 }
 
-/* 减弱动效偏好下停用所有装饰/入场动画（无障碍基线） */
+/* 减弱动效偏好下停用页面独有的装饰动画（入场动画由 App.vue 全局收口） */
 @media (prefers-reduced-motion: reduce) {
-  .deco-circle,
-  .user-row,
-  .stats-row,
-  .vip-card,
-  .menu-group {
+  .deco-circle {
     animation: none !important;
   }
 }

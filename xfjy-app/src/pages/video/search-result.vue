@@ -24,19 +24,21 @@
       <text class="header-action" @tap="submitSearch">搜索</text>
     </view>
 
-    <!-- 结果分类：综合 / 视频 / 用户 -->
+    <!-- 结果分类：综合 / 视频 / 用户（a11y-button 统一交互壳，键盘可达） -->
     <view class="result-tabs" role="tablist" aria-label="搜索结果分类">
-      <view
+      <a11y-button
         v-for="tab in TABS"
         :key="tab.key"
         class="result-tab"
         :class="{ active: activeTab === tab.key }"
         role="tab"
+        :checked="activeTab === tab.key"
+        :label="tab.label"
         @tap="activeTab = tab.key"
       >
         <text class="result-tab-text">{{ tab.label }}</text>
         <view v-if="activeTab === tab.key" class="tab-line" aria-hidden="true" />
-      </view>
+      </a11y-button>
     </view>
 
     <!-- 用户 Tab：后端暂无用户搜索接口，明确标注未实现，不给假数据 -->
@@ -403,7 +405,8 @@ function titleSegments(title: string): TitleSegment[] {
   display: flex;
   align-items: center;
   gap: var(--space-lg);
-  height: 80rpx;
+  /* 条高统一走全局 token（§7.1），与视频频道条/分类条对齐 */
+  height: var(--category-bar-h);
   padding: 0 var(--space-md);
   background-color: var(--bg-card);
   border-bottom: 1px solid var(--border-color);
@@ -430,10 +433,12 @@ function titleSegments(title: string): TitleSegment[] {
     left: 50%;
     bottom: 0;
     transform: translateX(-50%);
-    width: 40rpx;
-    height: 6rpx;
+    /* 选中指示统一规格（§7.1）：宽 48rpx、高 8rpx、药丸、贴 bottom；
+       浅底页面用主色纯色，不用 gradient-brand（那是视频深色画面频道条的例外） */
+    width: 48rpx;
+    height: 8rpx;
     border-radius: var(--radius-pill);
-    background: var(--gradient-brand);
+    background: var(--color-primary);
   }
 }
 

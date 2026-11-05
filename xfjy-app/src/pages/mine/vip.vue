@@ -36,26 +36,7 @@
         <a11y-button class="retry-btn" label="重新加载" @tap="loadVipData">重新加载</a11y-button>
       </view>
 
-      <!-- 权益矩阵（后端 tb_value_added_service 驱动） -->
-      <view class="benefits-card shadow-gold">
-        <view class="benefit-head">
-          <text class="head-name">权益</text>
-          <text class="head-vip">所需等级</text>
-        </view>
-        <!-- 等级口径说明：把 VIP1+/2+/3+ 与套餐等级对应起来 -->
-        <view class="level-note">
-          <text class="level-note-text">开通对应等级的会员套餐即可解锁该权益（VIP1 / VIP2 / VIP3 依次对应下方月卡 / 季卡 / 年卡）</text>
-        </view>
-        <view class="benefit-row" v-for="b in benefits" :key="b.serviceCode">
-          <view class="benefit-info">
-            <text class="benefit-name">{{ b.name }}</text>
-            <text class="benefit-desc">{{ b.description }}</text>
-          </view>
-          <text class="vip">VIP{{ b.vipLevelRequired }}+</text>
-        </view>
-      </view>
-
-      <!-- 套餐选择：语义单选组（涉及支付，必须可用键盘操作） -->
+      <!-- 套餐选择置顶：金额必须首屏可见（付费转化第一优先级） -->
       <view class="section-head">
         <text class="section-title">会员套餐</text>
         <text class="section-hint">开通后立即生效</text>
@@ -76,6 +57,25 @@
           <text class="plan-unit">{{ option.unit }}</text>
         </template>
       </a11y-radio-group>
+
+      <!-- 权益矩阵（后端 tb_value_added_service 驱动） -->
+      <view class="benefits-card shadow-gold">
+        <view class="benefit-head">
+          <text class="head-name">权益</text>
+          <text class="head-vip">所需等级</text>
+        </view>
+        <!-- 等级口径说明：把 VIP1+/2+/3+ 与套餐等级对应起来 -->
+        <view class="level-note">
+          <text class="level-note-text">开通对应等级的会员套餐即可解锁该权益（VIP1 / VIP2 / VIP3 依次对应上方月卡 / 季卡 / 年卡）</text>
+        </view>
+        <view class="benefit-row" v-for="b in benefits" :key="b.serviceCode">
+          <view class="benefit-info">
+            <text class="benefit-name">{{ b.name }}</text>
+            <text class="benefit-desc">{{ b.description }}</text>
+          </view>
+          <text class="vip">VIP{{ b.vipLevelRequired }}+</text>
+        </view>
+      </view>
 
       <!-- 服务说明：价格口径、生效时间、续费与退款，避免付费前有疑问 -->
       <view class="service-note">
@@ -331,15 +331,15 @@ onLoad(() => {
 }
 
 /* ===== 顶部权益区 ===== */
-.header { text-align: center; padding-bottom: 56rpx; background: linear-gradient(180deg, var(--bg-deep-grad) 0%, var(--bg-deep) 100%); position: relative; overflow: hidden; flex-shrink: 0;
+.header { text-align: center; padding-bottom: 24rpx; background: linear-gradient(180deg, var(--bg-deep-grad) 0%, var(--bg-deep) 100%); position: relative; overflow: hidden; flex-shrink: 0;
   /* 自绘返回按钮：毛玻璃圆形底，触摸目标 ≥44px */
     .back-btn { position: absolute; left: 24rpx; width: 88rpx; height: 88rpx; display: flex; align-items: center; justify-content: center; z-index: 10; background: rgba(255, 255, 255, 0.12); border-radius: 50%; backdrop-filter: blur(8px);
       /* UnoCSS mask 图标：font-size 控制图标尺寸，color 控制填充色，mask 图标天然视觉居中 */
       .back-icon { font-size: 44rpx; color: rgba(255, 255, 255, 0.95); line-height: 1; }
     }
-  .crown { font-size: 72rpx; display: block; margin-bottom: 12rpx; filter: drop-shadow(0 6rpx 16rpx rgba(255, 215, 0, 0.6)); }
-  .title { font-size: 52rpx; font-weight: 900; display: block; letter-spacing: 6rpx; }
-  .subtitle { font-size: 24rpx; color: rgba(255, 215, 0, 0.8); margin-top: 16rpx; display: block; letter-spacing: 2rpx; }
+  .crown { font-size: 48rpx; display: block; margin-bottom: 6rpx; filter: drop-shadow(0 6rpx 16rpx rgba(255, 215, 0, 0.6)); }
+  .title { font-size: 40rpx; font-weight: 900; display: block; letter-spacing: 6rpx; }
+  .subtitle { font-size: 24rpx; color: rgba(255, 215, 0, 0.8); margin-top: 8rpx; display: block; letter-spacing: 2rpx; }
 }
 
 /* 金色渐变文字 */
@@ -388,11 +388,11 @@ onLoad(() => {
 }
 
 /* ===== 套餐选择 ===== */
-.section-head { display: flex; align-items: baseline; justify-content: space-between; margin: 48rpx 32rpx 0; }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; margin: 24rpx 32rpx 0; }
 .section-title { font-size: 32rpx; font-weight: bold; color: var(--text-inverse); }
 .section-hint { font-size: 22rpx; color: rgba(255, 255, 255, 0.55); }
 
-.plans { display: flex; gap: 20rpx; margin: 24rpx 32rpx 32rpx; }
+.plans { display: flex; gap: 20rpx; margin: 20rpx 32rpx 24rpx; }
 
 /* 选项节点由 a11y-radio-group 内部渲染，页面 scoped 样式必须 :deep 穿透，
    否则卡片外观/选中态全部丢失，plan-tag 也会因失去 relative 锚点飘到页顶 */
@@ -452,8 +452,8 @@ onLoad(() => {
 
 .plans :deep(.plan-card) {
   /* min-width:0：长套餐名/标签才能约束在卡内，不撑宽卡片挤掉间距与留白 */
-  flex: 1 1 0; min-width: 0; background: rgba(255, 255, 255, 0.06); border-radius: 24rpx; padding: 48rpx 12rpx 32rpx; text-align: center; position: relative; border: 2rpx solid rgba(255, 255, 255, 0.08); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  &.active { border-color: var(--gold); background: linear-gradient(180deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05)); box-shadow: 0 0 32rpx rgba(255, 215, 0, 0.2), inset 0 1rpx 0 rgba(255, 255, 255, 0.1); transform: translateY(-12rpx); }
+  flex: 1 1 0; min-width: 0; background: rgba(255, 255, 255, 0.06); border-radius: 24rpx; padding: 36rpx 12rpx 24rpx; text-align: center; position: relative; border: 2rpx solid rgba(255, 255, 255, 0.08); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  &.active { border-color: var(--gold); background: linear-gradient(180deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05)); box-shadow: 0 0 32rpx rgba(255, 215, 0, 0.2), inset 0 1rpx 0 rgba(255, 255, 255, 0.1); transform: translateY(-8rpx); }
 }
 .plan-card {
   .plan-tag { position: absolute; top: -20rpx; left: 50%; transform: translateX(-50%); background: linear-gradient(90deg, var(--gold), var(--gold-soft)); color: var(--bg-deep); font-size: 20rpx; font-weight: bold; padding: 6rpx 20rpx; border-radius: 999rpx; white-space: nowrap; z-index: 1; box-shadow: 0 4rpx 12rpx rgba(255, 215, 0, 0.3); }

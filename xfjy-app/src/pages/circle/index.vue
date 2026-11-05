@@ -144,7 +144,12 @@
         </view>
       </view>
 
-      <scroll-view scroll-y class="msg-list" :class="{ 'msg-list-collapsed': noticePanelType }">
+      <!-- 通知面板打开时隐藏消息列表：同屏只保留一个列表滚动区，避免双滚动层 -->
+      <scroll-view
+        v-show="!noticePanelType"
+        scroll-y
+        class="msg-list"
+      >
         <empty-state v-if="chatList.length === 0" title="还没有聊天" desc="去匹配页滑动，遇见新朋友吧" />
         <a11y-button
           v-for="item in chatList"
@@ -549,8 +554,10 @@ onShow(() => {
   }
   if (chatList.value.length === 0 && topTab.value === "message") {
     loadMessages();
-    chatStore.loadNoticeCounts();
   }
+  // 未读角标每次 onShow 都重算（4 个 pagesize=1 的 count 请求，开销可忽略）：
+  // 只在列表为空时刷新会让角标长期停留在旧值，新通知时亮时不亮
+  chatStore.loadNoticeCounts();
 });
 
 onShareAppMessage(() => ({
@@ -961,6 +968,8 @@ flex-direction: column;
   .notice-panel-list {
     flex: 1;
     min-height: 0;
+    /* 面板 capped 在 60vh：列表超长时自身滚动，避免内容被裁切不可见 */
+    overflow-y: auto;
     padding: 16rpx 24rpx;
 
     .notice-loading {
@@ -1092,8 +1101,4 @@ flex-direction: column;
   }
 }
 
-.msg-list-collapsed {
-  flex: 0 0 auto;
-  max-height: 30vh;
-}
 </style>

@@ -9,7 +9,8 @@ import { getToken } from "@/utils/request";
 const LOGIN_PAGE = "/pages/auth/login";
 
 // 免登录页面白名单（前缀匹配）
-const WHITE_LIST = [LOGIN_PAGE];
+// 协议页：匿名接口 + 本地兜底文本，登录前必须可读（合规要求：登录前先看协议）
+const WHITE_LIST = [LOGIN_PAGE, "/pages/mine/agreement"];
 
 function isWhiteListed(url: string): boolean {
   const path = url.split("?")[0];

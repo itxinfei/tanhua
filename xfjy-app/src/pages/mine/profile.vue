@@ -1,7 +1,7 @@
 <template>
   <view class="profile-page">
     <!-- 头像：整行作为可访问按钮 -->
-    <a11y-button class="avatar-row" label="更换头像" @tap="changeAvatar">
+    <a11y-button class="avatar-row anim-fade-down" label="更换头像" @tap="changeAvatar">
       <text class="label">头像</text>
       <view class="avatar-wrap">
         <image lazy-load class="avatar" :src="resolveAvatar(form.avatar)" mode="aspectFill" aria-hidden="true" />
@@ -11,7 +11,7 @@
     </a11y-button>
 
     <!-- 照片墙 -->
-    <view class="section">
+    <view class="section anim-fade-up anim-delay-1">
       <text class="section-title">照片墙 ({{ form.photoAlbum.length }}/{{ MAX_ALBUM_COUNT }})</text>
       <view class="album-grid">
         <view v-for="(img, i) in form.photoAlbum" :key="i" class="album-item">
@@ -33,7 +33,7 @@
     </view>
 
     <!-- 基本信息（每项独立保存） -->
-    <view class="section">
+    <view class="section anim-fade-up anim-delay-2">
       <!-- 昵称：文本输入 -->
       <a11y-button class="form-item" label="修改昵称" @tap="editField('nickname', '昵称')">
         <text class="label">昵称</text>
@@ -425,7 +425,6 @@ onShow(async () => {
 
 /* ===== 头像行 ===== */
 .avatar-row { display: flex; align-items: center; padding: 32rpx; background: var(--bg-card);
-  animation: fadeDown 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
   .label { flex: 1; font-size: 28rpx; color: var(--text-primary); font-weight: 500; }
   .avatar-wrap { position: relative; width: 120rpx; height: 120rpx;
     .avatar { width: 100%; height: 100%; border-radius: 50%; border: 4rpx solid var(--bg-icon-soft); }
@@ -438,10 +437,6 @@ onShow(async () => {
 
 /* ===== 分组 ===== */
 .section { background: var(--bg-card); margin-top: 16rpx; padding: 8rpx 32rpx;
-  animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-  /* 两个 section 错峰入场 */
-  &:nth-of-type(1) { animation-delay: 0.1s; }
-  &:nth-of-type(2) { animation-delay: 0.18s; }
   .section-title { font-size: 26rpx; color: var(--text-hint); display: block; margin: 20rpx 0; }
 }
 
@@ -484,21 +479,4 @@ onShow(async () => {
   }
 }
 
-@keyframes fadeDown {
-  from { opacity: 0; transform: translateY(-24rpx); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(32rpx); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* 减弱动效偏好下停用入场动画（无障碍基线） */
-@media (prefers-reduced-motion: reduce) {
-  .avatar-row,
-  .section {
-    animation: none !important;
-  }
-}
 </style>

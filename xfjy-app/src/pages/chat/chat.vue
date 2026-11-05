@@ -602,7 +602,8 @@ onUnmounted(() => {
 /* ===== 消息列表 =====
    flex:1 必须配 min-height:0：纵向 flex 子项默认 min-height:auto，
    消息增多时会撑破容器、把输入区挤出视口。 */
-.msg-list { flex: 1 1 auto; min-height: 0; min-width: 0; padding: 24rpx 24rpx 12rpx; overflow-y: auto; }
+/* scroll-view 自带滚动：不再叠加 overflow-y，避免出现双层滚动容器 */
+.msg-list { flex: 1 1 auto; min-height: 0; min-width: 0; padding: 24rpx 24rpx 12rpx; }
 
 /* #bbb on 浅灰底 ≈1.9:1 → #767676 */
 .time-divider { display: flex; justify-content: center; margin: 16rpx 0 24rpx;

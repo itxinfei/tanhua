@@ -457,6 +457,26 @@ scroll-view {
 .anim-delay-4 { animation-delay: 0.34s; }
 .anim-delay-5 { animation-delay: 0.42s; }
 
+/* 遮罩淡入（配合 anim-slide-up 组成底部弹层入场） */
+@keyframes animFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.anim-fade-in {
+  animation: animFadeIn 0.25s ease-out both;
+}
+
+/* 底部弹层滑入（bottom sheet 专用，与 anim-fade-in 遮罩配套） */
+@keyframes animSlideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.anim-slide-up {
+  animation: animSlideUp 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* 双层阴影（卡片质感） */
 .shadow-card {
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06), 0 12rpx 48rpx rgba(0, 0, 0, 0.1);
@@ -512,7 +532,9 @@ scroll-view {
   .btn-feedback,
   .btn-gradient,
   .anim-fade-up,
-  .anim-fade-down {
+  .anim-fade-down,
+  .anim-fade-in,
+  .anim-slide-up {
     animation: none !important;
     transition: none !important;
   }
