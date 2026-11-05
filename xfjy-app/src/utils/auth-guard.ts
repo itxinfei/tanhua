@@ -37,7 +37,35 @@ function checkLogin(url: string): boolean {
 
 type NavOptions = { url: string } & Record<string, any>;
 
+/**
+ * 包装单个导航 API。
+ * 防御性设计：uni-h5 插件的 install 在 app.use(plugin) 时执行，而 App.vue 的
+ * onLaunch 早于 app.use（uni-app H5 的已知时序问题）。若此时 uni[name] 尚未
+ * 注册，直接 .bind 会抛 TypeError 导致白屏。改为延迟重试直到 API 可用。
+ */
 function wrapNav<K extends "navigateTo" | "redirectTo" | "reLaunch" | "switchTab">(
+  name: K
+): void {
+  // 已注册：立即包装
+  if (typeof uni[name] === "function") {
+    doWrap(name);
+    return;
+  }
+
+  // 未注册：轮询等待 uni-h5 插件 install 完成（最多 50 次 × 20ms = 1s）
+  let retries = 0;
+  const timer = setInterval(() => {
+    if (typeof uni[name] === "function") {
+      clearInterval(timer);
+      doWrap(name);
+    } else if (++retries >= 50) {
+      clearInterval(timer);
+      // 超时后放弃：不阻塞启动，导航守卫缺失时由后端鉴权兜底
+    }
+  }, 20);
+}
+
+function doWrap<K extends "navigateTo" | "redirectTo" | "reLaunch" | "switchTab">(
   name: K
 ): void {
   const original = uni[name].bind(uni);
