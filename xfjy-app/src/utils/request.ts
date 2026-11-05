@@ -10,7 +10,7 @@ import { log, error } from "@/utils/logger";
 export const BASE_URL: string =
   import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.MODE === "production"
-    ? "https://api.xfjy.com"
+    ? "/api" // 生产 H5 走同源相对路径，由 nginx 反代到网关 8090（见 deploy/docker/nginx.conf）
     : "http://localhost:8090"); // 统一走网关(8090，避开8080端口占用)，由网关路由到 sso/server
 
 // 请求配置类型
