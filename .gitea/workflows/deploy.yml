@@ -170,6 +170,11 @@ jobs:
       # ── 增量构建范围判定 ──────────────────────────────────
       - name: 判定增量构建范围
         if: ${{ env.SKIP_CI != 'true' }}
+        env:
+          # full_build=true 时注入 FORCE_FULL，忽略增量判定强制全量构建。
+          # 注意：incremental-build.sh 读的是 FORCE_FULL（非 FULL_BUILD），
+          #   此处必须显式传，否则下拉选了 true 也不会生效。
+          FORCE_FULL: ${{ env.FULL_BUILD }}
         run: |
           set -e
           cd /ci

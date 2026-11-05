@@ -78,10 +78,14 @@ services:
       <<: *common-env
       JAVA_OPTS: "-Xms128m -Xmx256m"
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'xfjy-gateway-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
-      interval: 30s
+      # 网关是唯一对外入口，进程存活 ≠ 服务可用（SC2025 路由前缀事故中进程正常但路由表为空，
+      # 全 404）。改为端口探测：能连上 8090 才算 healthy；仅 pgrep 会把「假活」判为健康。
+      # 注意：容器内无 curl/wget，用 bash /dev/tcp 探测端口（jre-jammy 镜像自带 bash）。
+      test: ["CMD-SHELL", "timeout 3 bash -c '</dev/tcp/127.0.0.1/8090' >/dev/null 2>&1 || exit 1"]
+      interval: 15s
       timeout: 5s
       retries: 3
+      start_period: 60s
 
   xfjy-sso:
     build:

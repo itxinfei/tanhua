@@ -68,9 +68,11 @@ echo ""
 echo "=== 网关路由匹配断言（防路由配置静默失效）==="
 # SC 2025.x 前缀迁移类事故（07a220c）中容器 healthy、端口在听，但路由表为空 →
 # 全 404。仅探测端口无法发现，必须断言已知路由能匹配到下游（非 404）。
-# 选 /movements（xfjy-server 路由）与 /user/login（xfjy-sso 路由）两个锚点：
+# 选 /movements（xfjy-server 路由）与 /user/query（xfjy-sso 路由）两个锚点：
+# 注意：/user/query 是 sso 真实存在的 GET 端点（UserController L99）；
+#   /user/login 端点不存在，用它探测会恒 404 造成误报，勿用。
 # 期望 200/400/401/403/500/503 等（只要不是 404 就说明路由已加载并转发）。
-for probe in "movements" "user/login"; do
+for probe in "movements" "user/query"; do
   PCODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "http://127.0.0.1:8090/${probe}" -H "Authorization: Bearer probe" 2>/dev/null || echo '000')
   if [ "$PCODE" = "404" ]; then
     echo "[FAIL] 路由未加载：/${probe} 返回 404（路由表可能为空，检查 server.webflux.routes 前缀）"
