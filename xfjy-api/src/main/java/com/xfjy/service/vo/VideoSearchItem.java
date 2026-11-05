@@ -1,0 +1,44 @@
+package com.xfjy.service.vo;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+/**
+ * 视频搜索结果条目（跨服务传输对象）
+ *
+ * <p>字段为 BFF 与前端搜索页的最小共识：标题、封面、作者、点赞数。
+ * 播放量（playCount）在 video 集合中无对应字段，保持 null 表示"暂未采集"，
+ * 不使用 0 冒充真实数据。</p>
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class VideoSearchItem implements java.io.Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    /** 视频 ObjectId 十六进制字符串 */
+    private String id;
+
+    /** 自增视频号（历史数据可能为空） */
+    private Long vid;
+
+    /** 标题/描述（video.text，视频集合没有独立 title 字段） */
+    private String title;
+
+    /** 封面地址 */
+    private String cover;
+
+    /** 作者用户ID */
+    private Long authorId;
+
+    /** 作者昵称（由 BFF 补齐，域服务返回时为空） */
+    private String authorName;
+
+    /** 点赞数（Redis 点赞计数快照） */
+    private Integer likeCount;
+
+    /** 播放量（当前无采集字段，固定 null） */
+    private Long playCount;
+}

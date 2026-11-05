@@ -87,16 +87,7 @@
           <view v-if="card.tags && card.tags.length" class="tags">
             <text v-for="tag in card.tags.slice(0, MAX_TAG_COUNT)" :key="tag" class="tag glass">{{ tag }}</text>
           </view>
-          <!-- 照片数 + 查看资料入口（明确可点击，解决"卡片点不动"） -->
-          <a11y-button
-            class="detail-entry btn-feedback"
-            :label="`查看 ${card.nickname} 的完整资料`"
-            @tap.stop="onDetailEntryTap(card.id)"
-          >
-            <text class="detail-photo" aria-hidden="true">▣</text>
-            <text class="detail-text">{{ photoCount(card) > 0 ? `${photoCount(card)} 张照片 · ` : "" }}查看完整资料</text>
-            <text class="detail-arrow" aria-hidden="true">›</text>
-          </a11y-button>
+          <!-- 轻点卡片任意处查看完整资料（onCardTap），不再放独立入口按钮 -->
         </view>
         <!-- 滑动提示（喜欢 / 不喜欢）：随手势显示的视觉反馈，对读屏隐藏 -->
         <view v-if="index === 0" class="swipe-hint like" :style="{ opacity: likeOpacity }" aria-hidden="true">
@@ -110,19 +101,19 @@
 
     <!-- 底部操作栏（探探式五键：回看 / 不喜欢 / 超级喜欢 / 心动 / 曝光提升） -->
     <view class="action-bar safe-area-bottom">
-      <a11y-button class="action-btn rewind btn-feedback" label="回看上一张" @tap="handleRewind">
+      <a11y-button class="action-btn rewind" label="回看上一张" @tap="handleRewind">
         <text aria-hidden="true">↺</text>
       </a11y-button>
-      <a11y-button class="action-btn dislike btn-feedback" label="不喜欢" @tap="handleDislike">
+      <a11y-button class="action-btn dislike" label="不喜欢" @tap="handleDislike">
         <uni-icons type="close" size="24" color="#ff3b30"></uni-icons>
       </a11y-button>
-      <a11y-button class="action-btn superlike btn-feedback" label="超级喜欢" @tap="handleSuperLike">
+      <a11y-button class="action-btn superlike" label="超级喜欢" @tap="handleSuperLike">
         <uni-icons type="star-filled" size="22" color="#4dabf7"></uni-icons>
       </a11y-button>
-      <a11y-button class="action-btn like btn-feedback" label="心动" @tap="handleLike">
+      <a11y-button class="action-btn like" label="心动" @tap="handleLike">
         <uni-icons type="heart-filled" size="24" color="#4cd964"></uni-icons>
       </a11y-button>
-      <a11y-button class="action-btn boost btn-feedback" label="曝光提升" @tap="handleBoost">
+      <a11y-button class="action-btn boost" label="曝光提升" @tap="handleBoost">
         <text class="boost-ico" aria-hidden="true">⚡</text>
         <text class="boost-label">曝光</text>
       </a11y-button>
@@ -423,9 +414,15 @@ let suppressCardTap = false;
 /** 上次跳转详情的时间戳：防止 tap 与 click 叠加导致重复入栈 */
 let lastDetailNavAt = 0;
 
-/** 城市 / 学历 / 行业：有则拼成一行决策信息，无则返回空 */
+/** 城市 / 学历 / 行业 / 照片数：拼成一行决策信息，无则返回空 */
 function cardMeta(card: TodayBest): string {
-  return [card.city, card.edu, card.industry].filter(Boolean).join(" · ");
+  const photos = photoCount(card);
+  return [
+    card.city,
+    card.edu,
+    card.industry,
+    photos > 0 ? `${photos} 张照片` : "",
+  ].filter(Boolean).join(" · ");
 }
 
 /** 照片墙数量（photoAlbum 为 JSON 数组字符串，解析失败按 0 处理） */
@@ -456,12 +453,6 @@ function onCardTap(index: number) {
   if (index !== 0 || gestureMoved || swiping.value) return;
   const card = visibleCards.value[0];
   if (card) openDetail(card.id);
-}
-
-/** 卡片底部「查看完整资料」入口（阻止冒泡，避免与卡片轻点重复入栈） */
-function onDetailEntryTap(id: number) {
-  if (gestureMoved || swiping.value) return;
-  openDetail(id);
 }
 
 /** 触摸开始：记录起始坐标，仅响应顶部卡片 */
@@ -800,64 +791,63 @@ onShareAppMessage(() => ({
   height: 88rpx;
   background: linear-gradient(to bottom, rgba(0, 0, 0, 0.38), transparent);
 
-  .city {
+  /* 顶栏三个操作按钮（城市/定位/附近）统一胶囊规格：
+     此前 city 无约束(24px)、locate 靠 padding 撑高(31px)、filter 固定 44rpx(23px)，
+     三者高低不一。统一为 60rpx 视觉高度 + 88rpx 热区，几何完全一致。 */
+  .city,
+  .locate-btn,
+  .filter-btn {
+    position: relative; /* 热区伪元素 ::before 的定位基准 */
     display: flex;
     align-items: center;
-    gap: 8rpx;
-
-    .city-name {
-      font-size: 32rpx;
-      font-weight: bold;
-      color: var(--text-inverse);
-    }
-
-    .arrow {
-      font-size: 24rpx;
-      color: rgba(255, 255, 255, 0.85);
-    }
-  }
-
-  /* 重新定位：原先只有一个 ◎ 字符与背景融合，补文字 + 胶囊描边提高辨识度 */
-  .locate-btn {
-    display: flex;
-    align-items: center;
-    gap: 4rpx;
-    padding: 8rpx 16rpx;
-    border-radius: 24rpx;
+    box-sizing: border-box;
+    height: 60rpx;
+    min-height: 60rpx;
+    padding: 0 20rpx;
+    border-radius: 30rpx;
     background: rgba(0, 0, 0, 0.28);
     border: 1rpx solid rgba(255, 255, 255, 0.45);
-
-    .locate-ico { font-size: 28rpx; color: #fff; font-weight: 700; }
-    .locate-text { font-size: 24rpx; color: #fff; font-weight: 600; }
-  }
-
-  .filter-btn {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    /* 与 locate-btn 保持同一胶囊高度：44rpx 视觉 + 88rpx 热区 */
-    height: 44rpx;
-    min-height: 44rpx;
-    box-sizing: border-box;
-    padding: 0 16rpx;
-    font-size: 24rpx;
+    font-size: 26rpx;
     font-weight: 600;
     color: var(--text-inverse);
-    background: rgba(255, 255, 255, 0.18);
-    border: 1rpx solid rgba(255, 255, 255, 0.35);
-    border-radius: 24rpx;
 
-    /* 热区扩展：44rpx 视觉高度不满足 88rpx 最小热区，用伪元素补足。
-       伪元素覆盖上下各 22rpx，透明但可点击 */
+    /* 60rpx 视觉高度不足 88rpx 最小热区，伪元素上下各补 14rpx */
     &::before {
       content: "";
       position: absolute;
       left: 0;
       right: 0;
-      top: -22rpx;
-      bottom: -22rpx;
+      top: -14rpx;
+      bottom: -14rpx;
     }
+  }
+
+  .city {
+    gap: 8rpx;
+
+    .city-name {
+      font-size: 26rpx;
+      font-weight: 600;
+      color: var(--text-inverse);
+    }
+
+    .arrow {
+      font-size: 22rpx;
+      color: rgba(255, 255, 255, 0.85);
+    }
+  }
+
+  /* 重新定位：◎ 图标 + 文字（描边/底色已由统一规格提供） */
+  .locate-btn {
+    gap: 4rpx;
+
+    .locate-ico { font-size: 28rpx; color: #fff; font-weight: 700; }
+    .locate-text { font-size: 26rpx; color: #fff; font-weight: 600; }
+  }
+
+  /* 附近按钮：几何/底色/描边已由顶栏统一胶囊规格提供，仅保留居中 */
+  .filter-btn {
+    justify-content: center;
   }
 }
 
@@ -987,30 +977,6 @@ onShareAppMessage(() => ({
         border-radius: 20rpx;
       }
     }
-
-    /* 查看完整资料入口：半透明玻璃条，明确可点 */
-    .detail-entry {
-      display: flex;
-      align-items: center;
-      gap: 8rpx;
-      margin-top: 20rpx;
-      padding: 12rpx 24rpx;
-      min-height: 64rpx;
-      width: fit-content;
-      background: rgba(255, 255, 255, 0.16);
-      border: 1rpx solid rgba(255, 255, 255, 0.42);
-      border-radius: 32rpx;
-      backdrop-filter: blur(6rpx);
-
-      .detail-photo { font-size: 26rpx; color: #fff; }
-      .detail-text {
-        font-size: 24rpx;
-        color: #fff;
-        font-weight: 600;
-        text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.5);
-      }
-      .detail-arrow { font-size: 30rpx; color: #fff; margin-left: 4rpx; }
-    }
   }
 
   .swipe-hint {
@@ -1060,11 +1026,24 @@ onShareAppMessage(() => ({
     justify-content: center;
     border-radius: 50%;
     font-size: 44rpx;
+    /* border-box：有描边与无描边（曝光渐变底）的按钮总尺寸才一致，
+       否则描边在 content-box 下向外撑，四个 53.9px、曝光 49.9px */
+    box-sizing: border-box;
+    border: 4rpx solid transparent; /* 默认透明描边占位，各按钮再覆盖颜色 */
 
-    /* 探探式尺寸梯度：✕/心动大、超级喜欢中、回看/曝光小 */
+    /* 五键统一尺寸：探探的"大小分层"依赖主栏只有 3 个按钮（回看小、喜欢/不喜欢大），
+       本项目 5 键平铺时 88/100 两档差异过小，传不出层级反显凌乱，故统一 96rpx，
+       功能区分交给颜色环（红=不喜欢、绿=心动、蓝=超喜欢、金=回看、紫=曝光） */
+    &.rewind,
+    &.dislike,
+    &.superlike,
+    &.like,
+    &.boost {
+      width: 96rpx;
+      height: 96rpx;
+    }
+
     &.rewind {
-      width: 88rpx;
-      height: 88rpx;
       background: var(--bg-card);
       color: var(--gold-soft);
       border: 4rpx solid var(--gold-soft);
@@ -1072,8 +1051,6 @@ onShareAppMessage(() => ({
     }
 
     &.dislike {
-      width: 100rpx;
-      height: 100rpx;
       background: var(--bg-card);
       color: var(--color-danger);
       border: 4rpx solid var(--color-danger);
@@ -1081,8 +1058,6 @@ onShareAppMessage(() => ({
     }
 
     &.superlike {
-      width: 88rpx;
-      height: 88rpx;
       background: var(--bg-card);
       color: var(--info-blue-soft);
       border: 4rpx solid var(--info-blue-soft);
@@ -1090,8 +1065,6 @@ onShareAppMessage(() => ({
     }
 
     &.like {
-      width: 100rpx;
-      height: 100rpx;
       background: var(--bg-card);
       color: var(--success);
       border: 4rpx solid var(--success);
@@ -1099,8 +1072,6 @@ onShareAppMessage(() => ({
     }
 
     &.boost {
-      width: 88rpx;
-      height: 88rpx;
       flex-direction: column;
       gap: 0;
       background: linear-gradient(135deg, var(--color-primary-violet), var(--color-primary-deep));

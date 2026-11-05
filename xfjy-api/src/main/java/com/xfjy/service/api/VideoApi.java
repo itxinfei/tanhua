@@ -121,11 +121,64 @@ public interface VideoApi {
     Map<String, Object> batchRemoveVideo(@RequestBody List<String> videoIds);
 
     /**
-     * 查询带地理位置的视频列表（定位频道）
-     * 仅返回有经纬度数据的视频，按创建时间倒序
+     * 查询「附近」视频：按 geo 2dsphere 球面距离升序（$geoNear），distance 字段回填在 Video 上
+     *
+     * @param lat      纬度
+     * @param lng      经度
+     * @param radiusKm 半径（公里）
      */
     @GetExchange("/queryLocationVideoList")
     @GetMapping("/queryLocationVideoList")
     PageInfo<Video> queryLocationVideoList(@RequestParam("page") Integer page,
-                                           @RequestParam("pageSize") Integer pageSize);
+                                           @RequestParam("pageSize") Integer pageSize,
+                                           @RequestParam("lat") Double lat,
+                                           @RequestParam("lng") Double lng,
+                                           @RequestParam("radiusKm") Double radiusKm);
+
+    /**
+     * 查询推荐排序候选池（热度分降序，稳定 (score, id) 排序）
+     *
+     * <p>热度分 = (点赞×3 + 评论×5 + 播放×1) × 1/(1 + 发布距今小时数/24)</p>
+     *
+     * @param limit 候选池上限（服务端再按页切分并缓存有序 vid 列表）
+     */
+    @GetExchange("/queryRecommendVideoList")
+    @GetMapping("/queryRecommendVideoList")
+    List<Video> queryRecommendVideoList(@RequestParam("limit") Integer limit);
+
+    /**
+     * 视频计数字段原子自增
+     *
+     * @param videoId 视频ID（ObjectId hex）
+     * @param field   likeCount / commentCount / playCount
+     * @param delta   增量（负值时服务端以 field > 0 为条件，保证不出现负数）
+     * @return 是否命中并更新了文档
+     */
+    @PostExchange("/incVideoCounter")
+    @PostMapping("/incVideoCounter")
+    Boolean incVideoCounter(@RequestParam("videoId") String videoId,
+                            @RequestParam("field") String field,
+                            @RequestParam("delta") Integer delta);
+
+    /**
+     * 覆盖式写入计数字段（历史数据回填专用，幂等可重跑）
+     */
+    @PostExchange("/setVideoCounters")
+    @PostMapping("/setVideoCounters")
+    Boolean setVideoCounters(@RequestParam("videoId") String videoId,
+                             @RequestParam("likeCount") Integer likeCount,
+                             @RequestParam("commentCount") Integer commentCount);
+
+    /**
+     * 回填专用：仅当字段在库中为 null（或缺失）时才写入，已存在的非空值一律不动。
+     *
+     * @param likeCount    为 null 时表示本次不回填点赞数
+     * @param commentCount 为 null 时表示本次不回填评论数
+     * @return 是否实际修改了文档（两个字段都已非空或被并发补齐时为 false）
+     */
+    @PostExchange("/fillVideoCountersIfNull")
+    @PostMapping("/fillVideoCountersIfNull")
+    Boolean fillVideoCountersIfNull(@RequestParam("videoId") String videoId,
+                                    @RequestParam(value = "likeCount", required = false) Integer likeCount,
+                                    @RequestParam(value = "commentCount", required = false) Integer commentCount);
 }

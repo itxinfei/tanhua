@@ -3,6 +3,7 @@ import { ref, computed } from "vue";
 import { getToken, setToken, removeToken } from "@/utils/request";
 import { login, sendSmsCode } from "@/api/auth";
 import { getUserProfile } from "@/api/mine";
+import { clearVideoCache } from "@/utils/video-cache";
 
 // 用户信息类型
 export interface UserInfo {
@@ -48,6 +49,8 @@ export const useUserStore = defineStore("user", () => {
     token.value = "";
     userInfo.value = null;
     removeToken();
+    // 视频首屏缓存按账号隔离：换号后不能继续展示上个账号的推荐流
+    clearVideoCache();
     uni.reLaunch({ url: "/pages/auth/login" });
   }
 

@@ -201,7 +201,7 @@ public class TodayBestService {
         //对结果集做排序，按照缘分值倒序排序
         Collections.sort(todayBests, (o1, o2) -> Long.valueOf(o2.getFateValue() - o1.getFateValue()).intValue());
 
-        return new PageResult(0, queryParam.getPagesize(), 0, queryParam.getPage(), todayBests);
+        return new PageResult(0, queryParam.getPagesize(), 0, queryParam.getPage(), todayBests, null);
     }
 
     public TodayBest queryTodayBest(Long userId) {
@@ -337,59 +337,88 @@ public class TodayBestService {
         return false;
     }
 
+    /**
+     * 搜附近。
+     *
+     * 线上曾出现：定位/ES 服务不可用时异常直接冒泡，GET /xfjy/search 对所有参数都返回 500，
+     * 前端只能显示「附近暂无用户」，把服务故障误报成「周围没人」。这里做全链路降级：
+     * 任何依赖不可用都返回空列表并留 WARN 日志，由前端区分「真空」与「加载失败」。
+     *
+     * @param gender   性别筛选（man / woman / null）
+     * @param distance 搜索半径（米，字符串）
+     */
     public List<NearUserVo> queryNearUser(String gender, String distance) {
         User user = UserThreadLocal.get();
-        //查询当前用户的地理位置
-        // 修改点：当前用户未上报地理位置时 queryByUserId 返回 null，直接解引用会 NPE(500)；无中心点无法计算附近，返回空列表
-        UserLocationVo userLocationVo = this.esUserLocationApi.queryByUserId(user.getId());
-        if (userLocationVo == null) {
-            return Collections.emptyList();
-        }
-        Double longitude = userLocationVo.getLongitude();
-        Double latitude = userLocationVo.getLatitude();
-
-        //查询附近的好友
-        List<UserLocationVo> userLocationVoList = this.esUserLocationApi.queryUserFromLocation(longitude, latitude, Integer.valueOf(distance));
-        if (CollectionUtils.isEmpty(userLocationVoList)) {
-            return Collections.emptyList();
-        }
-
-        List<Long> userIds = new ArrayList<>();
-        for (UserLocationVo locationVo : userLocationVoList) {
-            userIds.add(locationVo.getUserId());
-        }
-
-        UserInfoQueryParam userInfoQueryParam = new UserInfoQueryParam();
-        userInfoQueryParam.setUserIds(userIds);
-        if (StringUtils.equalsIgnoreCase(gender, "man")) {
-            userInfoQueryParam.setSex(SexEnum.MAN.getValue());
-        } else if (StringUtils.equalsIgnoreCase(gender, "woman")) {
-            userInfoQueryParam.setSex(SexEnum.WOMAN.getValue());
-        }
-
-        List<UserInfo> userInfoList = this.userInfoApi.queryUserInfoList(userInfoQueryParam);
-
         List<NearUserVo> result = new ArrayList<>();
-        for (UserLocationVo locationVo : userLocationVoList) {
-            //排除自己
-            if (locationVo.getUserId().longValue() == user.getId().longValue()) {
-                continue;
+        try {
+            // 当前用户未上报地理位置时无中心点，无法计算附近
+            UserLocationVo userLocationVo = this.esUserLocationApi.queryByUserId(user.getId());
+            if (userLocationVo == null
+                    || userLocationVo.getLongitude() == null
+                    || userLocationVo.getLatitude() == null) {
+                return result;
             }
 
-            for (UserInfo userInfo : userInfoList) {
-                if (locationVo.getUserId().longValue() == userInfo.getUserId().longValue()) {
-                    NearUserVo nearUserVo = new NearUserVo();
+            // distance 为空/脏数据时用默认值，避免 Integer.valueOf 抛 NumberFormatException
+            int distanceMeter;
+            try {
+                distanceMeter = Integer.parseInt(distance);
+            } catch (NumberFormatException e) {
+                LOGGER.warn("附近搜索半径非法，已降级为默认 2000m: distance={}", distance);
+                distanceMeter = 2000;
+            }
 
-                    nearUserVo.setNickname(userInfo.getNickName());
-                    nearUserVo.setAvatar(userInfo.getLogo());
-                    nearUserVo.setUserId(userInfo.getUserId());
-                    nearUserVo.setAge(userInfo.getAge());
-                    nearUserVo.setCity(userInfo.getCity());
+            List<UserLocationVo> userLocationVoList = this.esUserLocationApi.queryUserFromLocation(
+                    userLocationVo.getLongitude(), userLocationVo.getLatitude(), distanceMeter);
+            if (CollectionUtils.isEmpty(userLocationVoList)) {
+                return result;
+            }
 
-                    result.add(nearUserVo);
-                    break;
+            List<Long> userIds = new ArrayList<>();
+            for (UserLocationVo locationVo : userLocationVoList) {
+                userIds.add(locationVo.getUserId());
+            }
+
+            UserInfoQueryParam userInfoQueryParam = new UserInfoQueryParam();
+            userInfoQueryParam.setUserIds(userIds);
+            if (StringUtils.equalsIgnoreCase(gender, "man")) {
+                userInfoQueryParam.setSex(SexEnum.MAN.getValue());
+            } else if (StringUtils.equalsIgnoreCase(gender, "woman")) {
+                userInfoQueryParam.setSex(SexEnum.WOMAN.getValue());
+            }
+
+            // 用户服务异常时可能返回 null，直接双重循环会 NPE → 500
+            List<UserInfo> userInfoList = this.userInfoApi.queryUserInfoList(userInfoQueryParam);
+            if (CollectionUtils.isEmpty(userInfoList)) {
+                return result;
+            }
+
+            for (UserLocationVo locationVo : userLocationVoList) {
+                // 排除自己
+                if (locationVo.getUserId().longValue() == user.getId().longValue()) {
+                    continue;
+                }
+
+                for (UserInfo userInfo : userInfoList) {
+                    if (locationVo.getUserId().longValue() == userInfo.getUserId().longValue()) {
+                        NearUserVo nearUserVo = new NearUserVo();
+
+                        nearUserVo.setNickname(userInfo.getNickName());
+                        nearUserVo.setAvatar(userInfo.getLogo());
+                        nearUserVo.setUserId(userInfo.getUserId());
+                        nearUserVo.setAge(userInfo.getAge());
+                        nearUserVo.setCity(userInfo.getCity());
+
+                        result.add(nearUserVo);
+                        break;
+                    }
                 }
             }
+        } catch (Exception e) {
+            // ES / 用户服务不可用属于可降级故障：返回空列表，避免 500 把客户端打穿
+            LOGGER.warn("附近的人查询失败，已降级为空列表: userId={}, gender={}, distance={}",
+                    user.getId(), gender, distance, e);
+            return new ArrayList<>();
         }
 
         return result;

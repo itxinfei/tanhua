@@ -7,21 +7,26 @@
         <!-- 发布键插入在第 3 个 tab 之前（i === 2），布局：匹配 | 圈子 | [+] | 视频 | 我的 -->
         <a11y-button
           v-if="i === 2"
-          class="app-tabbar__item app-tabbar__mid btn-feedback"
+          class="app-tabbar__item app-tabbar__mid"
           role="tab"
           :checked="active === -1"
           :label="active === -1 ? '当前在发布页' : '打开发布'"
           @tap="goPublish"
         >
           <view class="app-tabbar__plus" aria-hidden="true">
-            <view class="app-tabbar__plus-circle">
-              <view class="app-tabbar__plus-h"></view>
-              <view class="app-tabbar__plus-v"></view>
+              <view class="app-tabbar__plus-circle">
+                <view class="app-tabbar__plus-h"></view>
+                <view class="app-tabbar__plus-v"></view>
+              </view>
             </view>
-          </view>
-        </a11y-button>
+            <!-- 与小程序端一致补「发布」文字，新用户不再把中央键当成装饰 -->
+            <text
+              class="app-tabbar__label app-tabbar__mid-label"
+              :class="{ 'app-tabbar__mid-label--active': active === -1 }"
+            >发布</text>
+          </a11y-button>
         <a11y-button
-          class="app-tabbar__item btn-feedback"
+          class="app-tabbar__item"
           role="tab"
           :checked="active === i"
           :label="`切换到${tab.text}`"
@@ -177,10 +182,11 @@ function goPublish(): void {
      （会拆成不同前缀结构，导致部分声明丢失），故此处全部使用扁平的独立顶层选择器，
      不写嵌套、不写多选择器共用规则。 -->
 <style lang="scss">
+/* 圆形缩至 34px，为下方「发布」文字留出空间（底栏内容总高 50px） */
 .app-tabbar__plus {
   position: relative;
-  width: 44px;
-  height: 44px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -188,14 +194,27 @@ function goPublish(): void {
 
 .app-tabbar__plus-circle {
   position: relative;
-  width: 44px;
-  height: 44px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   background: var(--color-primary);
   box-shadow: 0 4rpx 12rpx rgba(255, 94, 156, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* 中央发布键文字：与其它 tab 标签同字号，选中（发布页）时高亮 */
+.app-tabbar__mid-label {
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.app-tabbar__mid-label--active.app-tabbar__label {
+  color: var(--color-primary);
+  font-weight: 600;
 }
 
 .app-tabbar__plus-h {

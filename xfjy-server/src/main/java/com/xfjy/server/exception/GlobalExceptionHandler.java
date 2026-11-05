@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -46,6 +47,17 @@ public class GlobalExceptionHandler {
                 .orElse("参数校验失败");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Result.fail(400, msg));
+    }
+
+    /**
+     * 处理请求体不可读异常（JSON 语法错误、Content-Type 不符、字符编码非法等）。
+     * 属客户端请求缺陷，返回 400 而非落入兜底 500。
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Result<Void>> handleNotReadable(HttpMessageNotReadableException e) {
+        LOGGER.warn("[请求体解析失败] {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Result.fail(400, "请求参数格式错误，请检查请求体"));
     }
 
     /**

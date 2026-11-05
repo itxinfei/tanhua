@@ -7,6 +7,8 @@ export interface PageResult<T = any> {
   pages: number;
   counts: number;
   items: T[];
+  /** 「附近」无坐标/无结果时回退全站热门标记（前端据此提示，而不是当成附近内容或显示空页） */
+  fallback?: boolean;
 }
 
 /** 分页查询参数 */

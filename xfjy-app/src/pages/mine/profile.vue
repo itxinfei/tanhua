@@ -16,13 +16,13 @@
       <view class="album-grid">
         <view v-for="(img, i) in form.photoAlbum" :key="i" class="album-item">
           <image lazy-load class="album-img" :src="img" mode="aspectFill" :aria-label="`照片墙第 ${i + 1} 张`" />
-          <a11y-button class="remove btn-feedback" label="删除这张照片" @tap="removePhoto(i)">
+          <a11y-button class="remove" label="删除这张照片" @tap="removePhoto(i)">
             <text class="remove-icon">×</text>
           </a11y-button>
         </view>
         <a11y-button
           v-if="form.photoAlbum.length < MAX_ALBUM_COUNT"
-          class="add-photo btn-feedback"
+          class="add-photo"
           label="添加照片"
           @tap="addPhoto"
         >
@@ -425,6 +425,7 @@ onShow(async () => {
 
 /* ===== 头像行 ===== */
 .avatar-row { display: flex; align-items: center; padding: 32rpx; background: var(--bg-card);
+  animation: fadeDown 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
   .label { flex: 1; font-size: 28rpx; color: var(--text-primary); font-weight: 500; }
   .avatar-wrap { position: relative; width: 120rpx; height: 120rpx;
     .avatar { width: 100%; height: 100%; border-radius: 50%; border: 4rpx solid var(--bg-icon-soft); }
@@ -437,6 +438,10 @@ onShow(async () => {
 
 /* ===== 分组 ===== */
 .section { background: var(--bg-card); margin-top: 16rpx; padding: 8rpx 32rpx;
+  animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* 两个 section 错峰入场 */
+  &:nth-of-type(1) { animation-delay: 0.1s; }
+  &:nth-of-type(2) { animation-delay: 0.18s; }
   .section-title { font-size: 26rpx; color: var(--text-hint); display: block; margin: 20rpx 0; }
 }
 
@@ -476,6 +481,24 @@ onShow(async () => {
     .option-label { color: inherit; }
     &.male.active { background: linear-gradient(135deg, var(--info-blue), var(--info-blue-soft)); border-color: var(--info-blue); box-shadow: 0 4rpx 14rpx rgba(74, 144, 217, 0.3); color: var(--text-inverse); }
     &.female.active { background: var(--gradient-brand); border-color: var(--color-primary); box-shadow: 0 4rpx 14rpx rgba(254, 60, 114, 0.3); color: var(--text-inverse); }
+  }
+}
+
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-24rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(32rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 减弱动效偏好下停用入场动画（无障碍基线） */
+@media (prefers-reduced-motion: reduce) {
+  .avatar-row,
+  .section {
+    animation: none !important;
   }
 }
 </style>

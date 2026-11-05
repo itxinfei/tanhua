@@ -2,11 +2,12 @@
   <view class="nearby-page">
     <!-- 筛选栏 -->
     <view class="filter-bar" role="radiogroup" aria-label="筛选条件">
-      <a11y-button class="filter-item btn-feedback" :class="{ active: distance === d }" v-for="d in distances" :key="d" role="radio" :checked="distance === d" :label="d === 0 ? '距离不限' : `距离 ${d} 公里以内`" @tap="distance = d">
-        <text>{{ d === 0 ? '全部' : d + 'km' }}</text>
+      <!-- 距离维度的"全部"改为"不限距离"，与右侧性别筛选的"不限性别"明确区分 -->
+      <a11y-button class="filter-item" :class="{ active: distance === d }" v-for="d in distances" :key="d" role="radio" :checked="distance === d" :label="d === 0 ? '不限距离' : `距离 ${d} 公里以内`" @tap="distance = d">
+        <text>{{ d === 0 ? '不限距离' : d + 'km' }}</text>
       </a11y-button>
-      <a11y-button class="filter-item gender btn-feedback" :class="{ active: gender !== '全部' }" role="radio" :checked="gender === '女'" :label="`性别筛选：${gender}`" @tap="gender = gender === '女' ? '全部' : '女'">
-        <text>{{ gender }}</text>
+      <a11y-button class="filter-item gender" :class="{ active: gender !== '全部' }" role="radio" :checked="gender === '女'" :label="`性别筛选：${gender === '全部' ? '不限性别' : '女生'}`" @tap="gender = gender === '女' ? '全部' : '女'">
+        <text>{{ gender === '全部' ? '不限性别' : '女生' }}</text>
       </a11y-button>
     </view>
 
@@ -41,7 +42,7 @@
         </template>
         <template #action>
           <a11y-button
-            class="like-btn btn-feedback"
+            class="like-btn"
             :label="`喜欢 ${user.nickname || '该用户'}`"
             @tap="handleQuickLike(user.userId)"
           >
@@ -61,13 +62,25 @@
       <!-- 骨架 -->
       <skeleton v-if="userList.length === 0 && loading" variant="feed" />
 
-      <!-- 空状态 -->
+      <!-- 空状态：确实没有附近用户 -->
       <empty-state
-        v-if="userList.length === 0 && !loading"
+        v-if="userList.length === 0 && !loading && !loadFailed"
         icon="location"
         title="附近暂无用户"
         desc="扩大搜索范围或稍后再来看看"
       />
+
+      <!-- 加载失败：与「附近真的没人」严格区分，给明确原因 + 可重试入口。
+           后端 /xfjy/search 异常时旧版把服务故障误报成「附近暂无用户」，用户无从判断。 -->
+      <empty-state
+        v-if="userList.length === 0 && !loading && loadFailed"
+        role="alert"
+        icon="info"
+        title="暂时没能获取附近的人"
+        desc="服务可能开小差了，检查网络后重试"
+      >
+        <a11y-button class="nearby-retry" label="重新加载附近的人" @tap="loadNearby(true)">重新加载</a11y-button>
+      </empty-state>
     </scroll-view>
   </view>
 </template>
@@ -95,6 +108,8 @@ const userList = ref<NearUser[]>([]);
 const loading = ref(false);
 const loadingMore = ref(false);
 const hasMore = ref(true);
+/** 请求失败标记：与「附近确实没有用户」区分，展示可重试的错误态 */
+const loadFailed = ref(false);
 
 /** 分页（后端接口不分页，前端缓存全量数据做 slice 分页） */
 const page = ref(1);
@@ -130,12 +145,14 @@ async function loadNearby(isRefresh = false): Promise<void> {
     page.value = 1;
     hasMore.value = true;
     loading.value = true;
+    loadFailed.value = false;
   }
   try {
     const genderParam = gender.value === "女" ? "woman" : undefined;
     const distanceMeter = distance.value === 0 ? ALL_DISTANCE_METER : distance.value * 1000;
     const list = await getNearby(genderParam, distanceMeter);
     if (seq !== loadSeq) return;
+    loadFailed.value = false;
 
     const allItems = list || [];
     allItemsCache.value = allItems;
@@ -145,7 +162,10 @@ async function loadNearby(isRefresh = false): Promise<void> {
       hasMore.value = allItems.length > pageSize;
     }
   } catch {
-    // 请求失败由 request 层统一 toast
+    // request 层统一 toast；这里再把「服务失败」与「附近没人」区分开
+    if (seq === loadSeq && userList.value.length === 0) {
+      loadFailed.value = true;
+    }
   } finally {
     if (seq === loadSeq) {
       loading.value = false;
@@ -178,24 +198,46 @@ watch([distance, gender], () => loadNearby(true));
 
 /** 请求定位权限 */
 function requestLocation(): void {
-  uni.getLocation({
-    type: "wgs84",
-    success: () => {
-      hasLocationAuth.value = true;
-      loadNearby(true);
-    },
-    fail: () => {
-      info("请在系统设置中开启定位权限");
-    },
-  });
+  // getLocation 在 H5 由浏览器 Geolocation 提供、App 由系统定位提供，
+  // 但个别运行环境可能完全缺失；能力探测避免直接抛 TypeError 中断页面。
+  if (typeof (uni as any).getLocation !== "function") {
+    hasLocationAuth.value = true;
+    info("当前环境不支持精确定位，已为你展示全城用户");
+    loadNearby(true);
+    return;
+  }
+  try {
+    uni.getLocation({
+      type: "wgs84",
+      success: () => {
+        hasLocationAuth.value = true;
+        loadNearby(true);
+      },
+      fail: () => {
+        info("请在系统设置中开启定位权限");
+      },
+    });
+  } catch {
+    // 定位能力存在但调用异常（如非安全上下文）：降级为全城列表，不让页面卡死
+    hasLocationAuth.value = true;
+    loadNearby(true);
+  }
 }
 
 /** 检查定位权限（不触发系统弹窗，仅读取当前授权状态） */
 function checkLocationAuth(): void {
-  // 用 getSetting 检查权限状态，不主动触发定位请求
-  uni.getSetting({
-    success: (res) => {
-      const auth = res.authSetting?.["scope.userLocation"];
+  // uni.getSetting 是微信小程序专属 API，H5 / App 运行时并不存在。
+  // 原先无条件调用会在每次进入「附近」页抛出 `uni.getSetting is not a function`，
+  // 触发 Vue 全局错误边界并刷屏 console.error；这里先做能力探测再调用。
+  if (typeof (uni as any).getSetting !== "function") {
+    // H5 / App 没有「scope.userLocation」授权位：保持可用态，
+    // 真正的授权结果由 requestLocation 的 success/fail 决定。
+    hasLocationAuth.value = true;
+    return;
+  }
+  (uni as any).getSetting({
+    success: (res: any) => {
+      const auth = res?.authSetting?.["scope.userLocation"];
       hasLocationAuth.value = auth !== false;
     },
     fail: () => {
@@ -265,5 +307,16 @@ onPullDownRefresh(async () => {
 /* 加载更多 */
 .load-more { display: flex; justify-content: center; padding: 32rpx 0;
   text { font-size: 24rpx; color: var(--text-hint); }
+}
+
+/* 加载失败态的重试按钮（置于 empty-state 的 slot 内） */
+.nearby-retry {
+  margin-top: 32rpx;
+  padding: 16rpx 56rpx;
+  border-radius: var(--radius-pill);
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text-inverse);
+  background: linear-gradient(135deg, #ff4d8d, #8a5cf6);
 }
 </style>

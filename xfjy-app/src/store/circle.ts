@@ -10,6 +10,12 @@ import {
   type Movement,
   type PageResult,
 } from "@/api/circle";
+import {
+  readFeedCache,
+  writeFeedCache,
+  clearFeedCache,
+  getFeedPrefetchPromise,
+} from "@/utils/feed-cache";
 
 /** 默认分页大小 */
 const DEFAULT_PAGE_SIZE = 10;
@@ -47,12 +53,41 @@ export const useCircleStore = defineStore("circle", () => {
   );
 
   /**
-   * 按动态 id 去重后追加到列表（防止分页期间服务端插入导致重复卡片）
+   * 内容指纹：同一作者 + 同一正文 + 同一时间视为同一条动态。
+   * 后端 mock/重复发布可能产生不同 id 但内容完全一致的卡片，
+   * 只按 id 去重无法拦截，会造成信息流里两条一模一样的帖子（C2）。
+   */
+  function contentKey(item: Movement): string {
+    return `${item.userId}|${(item.textContent || "").trim()}|${item.createDate || ""}`;
+  }
+
+  /**
+   * 按 id + 内容指纹去重后追加到列表（防止分页期间服务端插入导致重复卡片）
    */
   function appendUnique(list: Movement[], items: Movement[] | undefined): void {
     if (!items || items.length === 0) return;
     const knownIds = new Set(list.map((item) => item.id));
-    list.push(...items.filter((item) => !knownIds.has(item.id)));
+    const knownContent = new Set(list.map(contentKey));
+    for (const item of items) {
+      if (knownIds.has(item.id) || knownContent.has(contentKey(item))) continue;
+      knownIds.add(item.id);
+      knownContent.add(contentKey(item));
+      list.push(item);
+    }
+  }
+
+  /** 首页/刷新时同样做内容级去重，避免首屏就出现重复卡片 */
+  function dedupItems(items: Movement[] | undefined): Movement[] {
+    if (!items || items.length === 0) return [];
+    const seenContent = new Set<string>();
+    const seenIds = new Set<string>();
+    return items.filter((item) => {
+      const key = contentKey(item);
+      if (seenIds.has(item.id) || seenContent.has(key)) return false;
+      seenIds.add(item.id);
+      seenContent.add(key);
+      return true;
+    });
   }
 
   /**
@@ -60,15 +95,22 @@ export const useCircleStore = defineStore("circle", () => {
    */
   async function loadFriendMovements(): Promise<void> {
     if (friendLoading.value) return;
+    // 先渲染首屏缓存：后端 /movements 可达 11s，缓存命中时 0 秒出内容
+    if (friendMovements.value.length === 0) {
+      const cached = readFeedCache("friend");
+      if (cached.length) friendMovements.value = dedupItems(cached);
+    }
     friendLoading.value = true;
     try {
-      const result: PageResult<Movement> = await getFriendMovements({
-        page: 1,
-        pagesize: DEFAULT_PAGE_SIZE,
-      });
-      friendMovements.value = result.items || [];
+      // 复用 App 启动时的在途预取，避免同一份数据重复等 3~11s
+      const inflight = getFeedPrefetchPromise();
+      const items = inflight
+        ? await inflight
+        : (await getFriendMovements({ page: 1, pagesize: DEFAULT_PAGE_SIZE })).items;
+      friendMovements.value = dedupItems(items);
+      writeFeedCache("friend", friendMovements.value);
       friendPage.value = 1;
-      friendHasMore.value = (result.items?.length || 0) >= DEFAULT_PAGE_SIZE;
+      friendHasMore.value = (items?.length || 0) >= DEFAULT_PAGE_SIZE;
     } finally {
       friendLoading.value = false;
     }
@@ -99,13 +141,18 @@ export const useCircleStore = defineStore("circle", () => {
    */
   async function loadRecommendMovements(): Promise<void> {
     if (recommendLoading.value) return;
+    if (recommendMovements.value.length === 0) {
+      const cached = readFeedCache("recommend");
+      if (cached.length) recommendMovements.value = dedupItems(cached);
+    }
     recommendLoading.value = true;
     try {
       const result: PageResult<Movement> = await getRecommendMovements({
         page: 1,
         pagesize: DEFAULT_PAGE_SIZE,
       });
-      recommendMovements.value = result.items || [];
+      recommendMovements.value = dedupItems(result.items);
+      writeFeedCache("recommend", recommendMovements.value);
       recommendPage.value = 1;
       recommendHasMore.value = (result.items?.length || 0) >= DEFAULT_PAGE_SIZE;
     } finally {
@@ -208,6 +255,8 @@ export const useCircleStore = defineStore("circle", () => {
     recommendPage.value = 1;
     recommendHasMore.value = true;
     recommendLoading.value = false;
+    // 首屏缓存按账号隔离：登出 / 换号后不能残留上一账号的动态
+    clearFeedCache();
   }
 
   return {

@@ -339,7 +339,13 @@ function inputDeleteCode() {
 </script>
 
 <style lang="scss" scoped>
-.settings-page { min-height: 100vh; background: var(--bg-sub); padding: 20rpx 24rpx 80rpx; }
+/* 底部留出「固定 TabBar 高度 + 安全区 + 呼吸余量」，否则「退出登录 / 注销账号」
+   会被导航栏遮住，滚到底也点不到（S1）。--tab-bar-height 由 App.vue 全局注入。 */
+.settings-page {
+  min-height: 100vh;
+  background: var(--bg-sub);
+  padding: 20rpx 24rpx calc(var(--tab-bar-height, 50px) + env(safe-area-inset-bottom, 0px) + 80rpx);
+}
 
 .group { background: var(--bg-card); margin: 0 0 24rpx; padding: 8rpx 32rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   /* 分组标题原 #999（≈2.85:1）→ #767676 */

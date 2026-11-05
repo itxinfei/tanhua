@@ -34,6 +34,20 @@
 			}
 		},
 		{
+			"path": "pages/video/search",
+			"style": {
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/video/search-result",
+			"style": {
+				"navigationStyle": "custom",
+				"enablePullDownRefresh": true,
+				"backgroundTextStyle": "dark"
+			}
+		},
+		{
 			"path": "pages/auth/login",
 			"style": {
 				"navigationStyle": "custom"

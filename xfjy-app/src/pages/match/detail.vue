@@ -95,10 +95,10 @@
 
     <!-- 底部操作栏：4 按钮，全部补齐语义与键盘操作 -->
     <view class="action-bar safe-area-bottom">
-      <a11y-button class="action small dislike btn-feedback" label="不喜欢" @tap="handleDislike"><uni-icons type="close" size="22" color="var(--color-primary)"></uni-icons></a11y-button>
-      <a11y-button class="action small chat btn-feedback" label="打招呼" @tap="handleChat"><uni-icons type="chatbubble" size="22" color="var(--color-primary)"></uni-icons></a11y-button>
-      <a11y-button class="action super-like btn-feedback" label="超级喜欢" @tap="handleSuperLike"><uni-icons type="star-filled" size="22" color="#4dabf7"></uni-icons></a11y-button>
-      <a11y-button class="action like btn-feedback" label="喜欢" @tap="handleLike"><uni-icons type="heart-filled" size="22" color="var(--color-primary)"></uni-icons></a11y-button>
+      <a11y-button class="action small dislike" label="不喜欢" @tap="handleDislike"><uni-icons type="close" size="22" color="var(--color-primary)"></uni-icons></a11y-button>
+      <a11y-button class="action small chat" label="打招呼" @tap="handleChat"><uni-icons type="chatbubble" size="22" color="var(--color-primary)"></uni-icons></a11y-button>
+      <a11y-button class="action super-like" label="超级喜欢" @tap="handleSuperLike"><uni-icons type="star-filled" size="22" color="#4dabf7"></uni-icons></a11y-button>
+      <a11y-button class="action like" label="喜欢" @tap="handleLike"><uni-icons type="heart-filled" size="22" color="var(--color-primary)"></uni-icons></a11y-button>
     </view>
 
     <!-- 匹配成功弹窗（与匹配页行为一致） -->

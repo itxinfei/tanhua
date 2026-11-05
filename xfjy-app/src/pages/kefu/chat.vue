@@ -46,7 +46,7 @@
           <a11y-button
             v-for="q in QUICK_QUESTIONS"
             :key="q"
-            class="quick-chip btn-feedback"
+            class="quick-chip"
             :label="`发送快捷问题：${q}`"
             @tap="sendQuick(q)"
           >
@@ -66,7 +66,7 @@
           @focus="isInputFocus = true"
           @blur="isInputFocus = false"
         />
-        <a11y-button class="send-btn btn-feedback" :class="{ disabled: !inputText.trim() || sending }" :disabled="!inputText.trim() || sending" label="发送消息" @tap="sendText">
+        <a11y-button class="send-btn" :class="{ disabled: !inputText.trim() || sending }" :disabled="!inputText.trim() || sending" label="发送消息" @tap="sendText">
           <text>发送</text>
         </a11y-button>
       </view>

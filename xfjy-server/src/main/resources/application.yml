@@ -112,6 +112,11 @@ xfjy:
   pay:
     mock-confirm:
       enabled: false
+  # 入站内部 token 拦截开关：BFF 位于网关之后，入站不校验 X-Internal-Token（仅领域服务需要）。
+  # 关闭 xfjy-api 的 InternalTokenAutoConfiguration，避免绕过网关直连 BFF 被误拦（见需求文档 §11.7-37）。
+  # 仅关闭入站拦截，BFF→领域服务的出站头注入由 HttpServiceProxyConfig 独立承载，不受影响。
+  internal:
+    enabled: false
 
 # Sa-Token 认证鉴权（管理后台）
 sa-token:

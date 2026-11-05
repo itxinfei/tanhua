@@ -58,7 +58,10 @@ public class VideoController {
      */
     @PostMapping
     public ResponseEntity<Void> saveVideo(@RequestParam(value = "videoThumbnail", required = false) MultipartFile picFile,
-                                          @RequestParam(value = "videoFile", required = false) MultipartFile videoFile) {
+                                          @RequestParam(value = "videoFile", required = false) MultipartFile videoFile,
+                                          @RequestParam(value = "longitude", required = false) String longitude,
+                                          @RequestParam(value = "latitude", required = false) String latitude,
+                                          @RequestParam(value = "locationName", required = false) String locationName) {
         try {
             Long userId = UserThreadLocal.get().getId();
 
@@ -67,7 +70,7 @@ public class VideoController {
                 return ResponseEntity.status(429).build();
             }
 
-            String id = this.videoService.saveVideo(picFile, videoFile);
+            String id = this.videoService.saveVideo(picFile, videoFile, longitude, latitude, locationName);
             if (StringUtils.isNotEmpty(id)) {
                 // 视频进人工审核队列（先发后审）
                 this.contentReviewService.createReviewRecord(ContentReviewService.TYPE_VIDEO, userId, id, null, null);
@@ -144,36 +147,19 @@ public class VideoController {
     }
 
     /**
-     * 查询「朋友」流：当前用户关注的作者发布的视频（分页）
-     */
-    @GetMapping("/friend")
-    public ResponseEntity<PageResult> queryFriendVideoList(@RequestParam(value = "page", defaultValue = "1") Integer page,
-                                                           @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize) {
-        try {
-            if (page <= 0) {
-                page = 1;
-            }
-            PageResult pageResult = this.videoService.queryFriendVideoList(page, ParamConvertUtils.capPageSize(pageSize, 10, VIDEO_PAGE_MAX_SIZE));
-            if (null != pageResult) {
-                return ResponseEntity.ok(pageResult);
-            }
-        } catch (Exception e) {
-            LOGGER.error("接口处理异常", e);
-        }
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-    }
-
-    /**
      * 查询「定位」流：有地理位置信息的视频（分页）
      */
     @GetMapping("/location")
     public ResponseEntity<PageResult> queryLocationVideoList(@RequestParam(value = "page", defaultValue = "1") Integer page,
-                                                             @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize) {
+                                                             @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize,
+                                                             @RequestParam(value = "lat", required = false) Double lat,
+                                                             @RequestParam(value = "lng", required = false) Double lng) {
         try {
             if (page <= 0) {
                 page = 1;
             }
-            PageResult pageResult = this.videoService.queryLocationVideoList(page, ParamConvertUtils.capPageSize(pageSize, 10, VIDEO_PAGE_MAX_SIZE));
+            PageResult pageResult = this.videoService.queryLocationVideoList(
+                    page, ParamConvertUtils.capPageSize(pageSize, 10, VIDEO_PAGE_MAX_SIZE), lat, lng);
             if (null != pageResult) {
                 return ResponseEntity.ok(pageResult);
             }
@@ -191,10 +177,15 @@ public class VideoController {
      */
     @PostMapping("/{id}/like")
     public ResponseEntity<Long> likeComment(@PathVariable("id") String videoId) {
+        // 点赞前先判断是否已赞：重复点赞不重复计数（落库 likeCount 只 +1 一次）
+        boolean alreadyLiked = this.videoService.hasLikedVideo(videoId);
         ResponseEntity<Long> entity = this.movementsController.likeComment(videoId);
         if(entity.getStatusCode().is2xxSuccessful()){
             //视频评分事件：点赞（type=2，由视频服务内部发送消息）
             this.videoService.recordVideoMsg(videoId, 2);
+            if (!alreadyLiked) {
+                this.videoService.incVideoLikeCount(videoId, 1);
+            }
         }
         return entity;
     }
@@ -208,14 +199,33 @@ public class VideoController {
     @PostMapping("/{id}/dislike")
     public ResponseEntity<Long> disLikeComment(@PathVariable("id") String videoId) {
 
+        // 取消赞前先判断是否已赞：未赞过就不减，避免把落库计数减成负数
+        boolean hadLiked = this.videoService.hasLikedVideo(videoId);
         ResponseEntity<Long> entity = this.movementsController.disLikeComment(videoId);
 
         if(entity.getStatusCode().is2xxSuccessful()){
             //视频评分事件：取消点赞（type=3，由视频服务内部发送消息）
             this.videoService.recordVideoMsg(videoId, 3);
+            if (hadLiked) {
+                this.videoService.incVideoLikeCount(videoId, -1);
+            }
         }
 
         return entity;
+    }
+
+    /**
+     * 播放上报（同一用户对同一视频只计一次，Redis 去重键 VIDEO_PLAY_DEDUP_{userId}_{videoId}）
+     */
+    @PostMapping("/{id}/play")
+    public ResponseEntity<Void> reportPlay(@PathVariable("id") String videoId) {
+        try {
+            this.videoService.reportVideoPlay(videoId);
+            return ResponseEntity.ok(null);
+        } catch (Exception e) {
+            LOGGER.error("播放上报异常 videoId={}", videoId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     /**
@@ -245,6 +255,8 @@ public class VideoController {
         if(entity.getStatusCode().is2xxSuccessful()){
             //视频评分事件：评论（type=4，由视频服务内部发送消息）
             this.videoService.recordVideoMsg(videoId, 4);
+            // 评论数落库 +1（评论删除/隐藏时由管理端同步 -1）
+            this.videoService.incVideoCommentCount(videoId, 1);
         }
         return entity;
     }

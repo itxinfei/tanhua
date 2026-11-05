@@ -3,19 +3,21 @@
     <!-- 头部背景区 -->
     <view class="header" :style="{ paddingTop: statusBarHeight + HEADER_EXTRA_PADDING_PX + 'px' }">
       <!-- 漂浮装饰圆（纯装饰，对读屏隐藏） -->
-      <view class="deco-circle deco-1 float" aria-hidden="true" />
-      <view class="deco-circle deco-2 float" aria-hidden="true" />
+      <view class="deco-circle deco-1" aria-hidden="true" />
+      <view class="deco-circle deco-2" aria-hidden="true" />
       <a11y-button class="user-row" label="编辑个人资料" @tap="goProfile">
         <image lazy-load class="avatar" :src="resolveAvatar(userInfo?.avatar)" mode="aspectFill" aria-hidden="true" />
         <view class="user-info">
           <view class="name-row">
-            <text class="nickname">{{ userInfo?.nickname || '未设置昵称' }}</text>
+            <text class="nickname">{{ userInfo?.nickname || '点击完善资料' }}</text>
             <view v-if="userInfo?.verified" class="verified">已认证</view>
             <view v-if="userInfo?.vip" class="vip-badge">VIP</view>
           </view>
           <text class="uid">ID: {{ userInfo?.id || '—' }}</text>
-          <text class="meta">{{ userInfo?.city || '未知城市' }} · {{ userInfo?.age || '—' }}岁</text>
+          <text class="meta">{{ profileMeta }}</text>
           <text v-if="userInfo?.signature" class="signature ellipsis">{{ userInfo.signature }}</text>
+          <!-- 资料未完善：给明确引导而非显示空值"破相" -->
+          <text v-else class="profile-guide">完善资料，让更多人遇见你 ›</text>
         </view>
         <!-- 箭头为装饰符号，避免读屏逐字朗读 -->
         <text class="edit-arrow" aria-hidden="true">›</text>
@@ -44,7 +46,7 @@
         <uni-icons class="vip-icon" type="vip" size="24"></uni-icons>
         <view>
           <text class="vip-title">{{ userInfo?.vip ? '会员中心' : '开通会员' }}</text>
-          <text class="vip-desc">{{ userInfo?.vip ? '查看你的会员权益' : '无限滑动 · 查看谁喜欢我 · 位置穿越' }}</text>
+          <text class="vip-desc">{{ userInfo?.vip ? '查看你的会员权益' : '无限滑动 · 查看谁喜欢我 · 专属标识' }}</text>
         </view>
       </view>
       <text class="vip-arrow" aria-hidden="true">›</text>
@@ -59,7 +61,7 @@
       <a11y-button
         v-for="item in group"
         :key="item.label"
-        class="menu-item btn-feedback"
+        class="menu-item"
         :label="item.label"
         @tap="item.action()"
       >
@@ -88,6 +90,20 @@ import { resolveAvatar } from "@/utils/avatar";
 const userStore = useUserStore();
 const userInfo = computed(() => userStore.userInfo);
 const statusBarHeight = ref(0);
+
+/**
+ * 资料摘要：资料完整时显示"城市 · 年龄岁"；缺字段时不再显示
+ * "未知城市 · —岁"这类破相文案，改为引导去完善资料。
+ */
+const profileMeta = computed(() => {
+  const u = userInfo.value;
+  const city = u?.city;
+  const age = u?.age;
+  if (city && age) return `${city} · ${age}岁`;
+  if (city) return `${city} · 点击补充年龄`;
+  if (age) return `${age}岁 · 点击补充城市`;
+  return "点击完善城市与年龄，提升匹配质量";
+});
 
 /** 状态栏高度兜底值（px） */
 const DEFAULT_STATUS_BAR_HEIGHT_PX = 20;
@@ -229,19 +245,20 @@ onShow(() => {
   overflow: hidden;
   flex-shrink: 0;
 
-  /* 漂浮装饰圆 */
+  /* 漂浮装饰圆：独立轨迹（浮动 + 缩放 + 呼吸），节奏错开 */
   .deco-circle {
     position: absolute;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.1);
     pointer-events: none;
+    will-change: transform, opacity;
 
     &.deco-1 {
       width: 240rpx;
       height: 240rpx;
       top: 20rpx;
       right: -60rpx;
-      animation-duration: 3.5s;
+      animation: circleFloatA 2.6s ease-in-out infinite;
     }
 
     &.deco-2 {
@@ -249,14 +266,15 @@ onShow(() => {
       height: 160rpx;
       top: 120rpx;
       left: -40rpx;
-      animation-duration: 4s;
-      animation-delay: 0.8s;
+      animation: circleFloatB 3s ease-in-out infinite;
+      animation-delay: 0.6s;
     }
   }
 
   .user-row {
     display: flex;
     align-items: center;
+    animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 
     .avatar {
       width: 128rpx;
@@ -318,6 +336,19 @@ onShow(() => {
         margin-top: 8rpx;
         display: block;
       }
+
+      /* 资料未完善时的引导（替代空值破相） */
+      .profile-guide {
+        font-size: 22rpx;
+        color: #fff;
+        margin-top: 10rpx;
+        display: inline-block;
+        padding: 6rpx 18rpx;
+        border-radius: 20rpx;
+        background: rgba(255, 255, 255, 0.22);
+        border: 1rpx solid rgba(255, 255, 255, 0.45);
+        font-weight: 600;
+      }
     }
 
     .edit-arrow {
@@ -333,6 +364,7 @@ onShow(() => {
     background: rgba(255, 255, 255, 0.15);
     border-radius: 20rpx;
     padding: 20rpx 0;
+    animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
 
     .stat-item {
       display: flex;
@@ -366,6 +398,7 @@ onShow(() => {
   border-radius: 24rpx;
   border: 2rpx solid rgba(255, 215, 0, 0.6);
   box-shadow: 0 8rpx 32rpx rgba(255, 215, 0, 0.15);
+  animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
 
   .vip-left {
     display: flex;
@@ -405,6 +438,12 @@ onShow(() => {
   margin: 0 32rpx 16rpx;
   background: var(--bg-card);
   border-radius: 24rpx;
+  animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.26s both;
+
+  /* 第二组错峰入场 */
+  &:nth-of-type(2) {
+    animation-delay: 0.34s;
+  }
   /* 不用 overflow:hidden：它会配合 min-height:0 把低于 min-height 的菜单项裁掉。
      首尾圆角改由 menu-item 自身处理 */
   display: flex;
@@ -466,6 +505,52 @@ onShow(() => {
       font-size: 32rpx;
       color: var(--text-hint);
     }
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(32rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes circleFloatA {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(-14rpx, 24rpx) scale(1.08);
+    opacity: 0.7;
+  }
+}
+
+@keyframes circleFloatB {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(16rpx, -20rpx) scale(1.12);
+    opacity: 0.65;
+  }
+}
+
+/* 减弱动效偏好下停用所有装饰/入场动画（无障碍基线） */
+@media (prefers-reduced-motion: reduce) {
+  .deco-circle,
+  .user-row,
+  .stats-row,
+  .vip-card,
+  .menu-group {
+    animation: none !important;
   }
 }
 </style>

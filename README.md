@@ -10,13 +10,13 @@
 ![JDK](https://img.shields.io/badge/JDK-25%20LTS-orange?logo=openjdk&logoColor=white)
 ![Spring Cloud](https://img.shields.io/badge/Spring%20Cloud-2025.1.3-green?logo=spring&logoColor=white)
 ![Nacos](https://img.shields.io/badge/Nacos-3.x-2C84EA?logo=alibabacloud&logoColor=white)
-![Sa-Token](https://img.shields.io/badge/Sa--Token-1.46.0-red?logo=data:image/svg+xml;base64,&logoColor=white)
-![MyBatis Plus](https://img.shields.io/badge/MyBatis%20Plus-3.5.17-blue?logo=data:image/svg+xml;base64,&logoColor=white)
+![Sa-Token](https://img.shields.io/badge/Sa--Token-1.46.0-red)
+![MyBatis Plus](https://img.shields.io/badge/MyBatis%20Plus-3.5.17-blue)
 ![WuKongIM](https://img.shields.io/badge/WuKongIM-长连接-ff6b35?logo=wechat&logoColor=white)
 ![LiveKit](https://img.shields.io/badge/LiveKit-SFU%20音视频-563dff?logo=livekit&logoColor=white)
 ![Vue.js](https://img.shields.io/badge/Vue-3.5-42b883?logo=vue.js&logoColor=white)
-![uni-app](https://img.shields.io/badge/uni--app-Vue3-purple?logo=data:image/svg+xml;base64,&logoColor=white)
-![Element Plus](https://img.shields.io/badge/Element%20Plus-2.14-blue?logo=data:image/svg+xml;base64,&logoColor=white)
+![uni-app](https://img.shields.io/badge/uni--app-Vue3-purple)
+![Element Plus](https://img.shields.io/badge/Element%20Plus-2.14-blue)
 ![ECharts](https://img.shields.io/badge/ECharts-6-006699?logo=apacheecharts&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
@@ -26,7 +26,7 @@
 ![ES](https://img.shields.io/badge/Elasticsearch-9.x-005571?logo=elasticsearch&logoColor=white)
 ![RocketMQ](https://img.shields.io/badge/RocketMQ-5.x-D773A2?logo=apache-rocketmq&logoColor=white)
 ![MinIO](https://img.shields.io/badge/MinIO-S3-FF2389?logo=minio&logoColor=white)
-![Qdrant](https://img.shields.io/badge/Qdrant-向量检索-4285F4?logo=data:image/svg+xml;base64,&logoColor=white)
+![Qdrant](https://img.shields.io/badge/Qdrant-向量检索-4285F4)
 ![Neo4j](https://img.shields.io/badge/Neo4j-5.x%20图数据库-008CC1?logo=neo4j&logoColor=white)
 ![PyTorch](https://img.shields.io/badge/PyTorch-双塔模型-EE4C2C?logo=pytorch&logoColor=white)
 
@@ -285,9 +285,9 @@
 <a id="系统架构"></a>
 ## 系统架构
 
-![心飞交友系统架构](docs/diagrams/architecture.svg)
+![心飞交友系统架构](docs/diagrams/architecture.png)
 
-> 架构图源码见 `docs/diagrams/architecture.mmd`。修改后需重新导出 SVG，不要直接在 README 里改图。
+> 架构图源文件为 `docs/diagrams/architecture.svg`（矢量稿，可直接编辑），改完导出 2400px 宽 PNG 覆盖 `architecture.png`；`architecture.mmd` 仅作结构速查，不再用于出图。
 
 ---
 
@@ -426,6 +426,7 @@ xfjy/
 │   │   ├── stage-artifacts.sh     # 增量编译脚本
 │   │   └── settings.xml           # 阿里云 Maven 镜像
 │   ├── manage.sh                  # 本地开发 1 键部署脚本
+│   ├── mysql/init/                # MySQL 初始化脚本（容器 initdb 自动执行）
 │   └── .env.example               # 环境变量模板（env 全外置）
 │
 ├── docs/                       # 📄 需求文档 · 图标规范 · 归档
@@ -435,7 +436,9 @@ xfjy/
 │   └── logo/
 │
 └── scripts/
-    └── xfjy.sql                # MySQL 全量初始脚本
+    ├── init-kefu.sql           # 客服系统初始化
+    ├── init-push.sql           # 推送相关表初始化
+    └── sync-agent-rules.ps1    # 规则文件同步校验
 ```
 
 ---
@@ -483,9 +486,9 @@ xfjy/
 ## 快速启动
 
 ```bash
-# 1. MySQL 初始化
+# 1. MySQL 初始化（脚本在 deploy/mysql/init/，容器首次启动会自动执行；手动导入按文件名顺序）
 mysql -u root -p --default-character-set=utf8mb4 -e "CREATE DATABASE IF NOT EXISTS xfjy DEFAULT CHARSET utf8mb4;"
-mysql -u root -p --default-character-set=utf8mb4 xfjy < scripts/xfjy.sql
+for f in deploy/mysql/init/*.sql; do mysql -u root -p --default-character-set=utf8mb4 xfjy < "$f"; done
 
 # 2. 克隆
 git clone gitea@yourhost:itxinfei/xfjy.git && cd xfjy
@@ -537,7 +540,7 @@ curl http://127.0.0.1:18081/actuator/health
 - [需求文档](docs/需求文档/01-需求文档.md) — 产品功能全覆盖
 - [技术约束](docs/需求文档/02-技术约束.md) — 架构规则 + 现状违反清单
 - [AGENTS.md](AGENTS.md) — 面向所有 AI 工具的唯一规则真源
-- 数据库脚本：`scripts/xfjy.sql`（全量表结构 + 初始数据）
+- 数据库脚本：`deploy/mysql/init/`（全量表结构 + 初始数据，MySQL 容器首次启动自动执行）
 
 > 原 `docs/功能就绪矩阵.md`、`docs/技术栈架构全景.html` 已失效：前者归档为
 > `docs/archive/23-功能就绪矩阵.md`，后者无对应替代文件。

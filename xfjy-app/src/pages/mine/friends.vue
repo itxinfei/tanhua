@@ -54,7 +54,7 @@
         :desc="emptyDesc"
       >
         <!-- 空态 CTA：可点击按钮，直接去匹配页认识更多人（原为纯文本不可点） -->
-        <a11y-button class="empty-cta btn-feedback" variant="primary" label="去认识更多人" @tap="goMatch">
+        <a11y-button class="empty-cta" variant="primary" label="去认识更多人" @tap="goMatch">
           去认识更多人
         </a11y-button>
       </empty-state>

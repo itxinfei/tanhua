@@ -1,9 +1,10 @@
 <template>
   <view class="login-page">
     <!-- 漂浮装饰心形（增强品牌区氛围）：纯装饰，对读屏隐藏 -->
-    <view class="deco-heart deco-1 float" aria-hidden="true" />
-    <view class="deco-heart deco-2 float" aria-hidden="true" />
-    <view class="deco-heart deco-3 float" aria-hidden="true" />
+    <view class="deco-heart deco-1" aria-hidden="true" />
+    <view class="deco-heart deco-2" aria-hidden="true" />
+    <view class="deco-heart deco-3" aria-hidden="true" />
+    <view class="deco-heart deco-4" aria-hidden="true" />
 
     <!-- 品牌区：padding-top 动态避让状态栏/刘海/挖孔（custom 导航页必须） -->
     <view class="brand" :style="{ paddingTop: statusBarHeight + 90 + 'px' }">
@@ -23,6 +24,7 @@
           type="number"
           inputmode="numeric"
           maxlength="11"
+          confirm-type="next"
           placeholder="请输入手机号"
           placeholder-class="placeholder"
           :aria-labelledby="PHONE_LABEL_ID"
@@ -39,6 +41,7 @@
             type="number"
             inputmode="numeric"
             maxlength="6"
+            confirm-type="done"
             placeholder="请输入验证码"
             placeholder-class="placeholder"
             :aria-labelledby="CODE_LABEL_ID"
@@ -90,10 +93,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from "vue";
+import { ref, computed, watch, onUnmounted } from "vue";
 import { useUserStore } from "@/store/user";
 import A11yButton from "@/components/a11y-button.vue";
-import { success, info } from "@/utils/ux";
+import { success, info, fail } from "@/utils/ux";
 
 /** 表单标签 id：供 input 的 aria-labelledby 关联，保证读屏能读出字段名 */
 const PHONE_LABEL_ID = "login-phone-label";
@@ -165,13 +168,25 @@ const logging = ref(false);
 
 // 计算属性
 const phoneValid = computed(() => PHONE_REGEX.test(phone.value));
+/**
+ * 可提交基础表单校验（不含协议勾选）。
+ * 协议未勾选时不再让按钮整体禁用——那样用户点了没有任何反馈，
+ * 改为允许点击，在 handleLogin 里给出明确的「请先同意协议」提示。
+ */
 const canLogin = computed(
   () =>
     phoneValid.value &&
     code.value.length >= MIN_CODE_LENGTH &&
-    agree.value &&
     !logging.value
 );
+
+/** 验证码输满自动提交（探探式体验）：仅在手机号有效、协议已勾选时触发，不打扰用户 */
+const CODE_AUTO_SUBMIT_LENGTH = 6;
+watch(code, (val) => {
+  if (val.length >= CODE_AUTO_SUBMIT_LENGTH && phoneValid.value && agree.value) {
+    handleLogin();
+  }
+});
 
 // 发送验证码
 async function handleSendCode() {
@@ -182,10 +197,12 @@ async function handleSendCode() {
   }
   try {
     await userStore.sendCode(phone.value);
-    success("验证码已发送");
+    success("验证码已发送，请查收短信");
     startCountdown();
   } catch {
-    // 错误已在 request 层提示
+    // request 层通常已 toast；此处兜底保证「发送失败」一定有显式反馈
+    // （ux.fail 自带去重，不会与 request 层重复弹两次）
+    fail("验证码发送失败，请稍后重试");
   }
 }
 
@@ -217,7 +234,19 @@ function openAgreement(type: 'user' | 'privacy') {
 // 登录
 async function handleLogin() {
   forceSanitize();
-  if (!canLogin.value) return;
+  if (!phoneValid.value) {
+    info("请输入正确的手机号");
+    return;
+  }
+  if (code.value.length < MIN_CODE_LENGTH) {
+    info("请输入验证码");
+    return;
+  }
+  // 协议未勾选：明确告知而非静默无响应
+  if (!agree.value) {
+    info("请先阅读并同意《用户协议》和《隐私政策》");
+    return;
+  }
   logging.value = true;
   try {
     await userStore.doLogin(phone.value, code.value);
@@ -243,7 +272,7 @@ async function handleLogin() {
   overflow: hidden;
 }
 
-/* 漂浮装饰心形 */
+/* 漂浮装饰心形：每颗独立轨迹（浮动 + 摆动 + 缩放 + 呼吸），节奏错开避免同步 */
 .deco-heart {
   position: absolute;
   color: rgba(255, 255, 255, 0.14);
@@ -252,6 +281,7 @@ async function handleLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
+  will-change: transform, opacity;
 
   &::after {
     content: '\2665';
@@ -261,23 +291,79 @@ async function handleLogin() {
     font-size: 320rpx;
     top: 40rpx;
     right: -100rpx;
-    animation-duration: 3.5s;
+    filter: blur(2rpx);
+    animation: heartFloatA 2.2s ease-in-out infinite;
   }
 
   &.deco-2 {
     font-size: 200rpx;
     top: 280rpx;
     left: -60rpx;
-    animation-duration: 4s;
-    animation-delay: 0.5s;
+    animation: heartFloatB 2.6s ease-in-out infinite;
+    animation-delay: 0.4s;
   }
 
   &.deco-3 {
     font-size: 120rpx;
     top: 140rpx;
     left: 180rpx;
-    animation-duration: 3s;
-    animation-delay: 1s;
+    animation: heartFloatC 1.8s ease-in-out infinite;
+    animation-delay: 0.8s;
+  }
+
+  &.deco-4 {
+    font-size: 72rpx;
+    top: 560rpx;
+    right: 90rpx;
+    opacity: 0.6;
+    animation: heartFloatC 2s ease-in-out infinite;
+    animation-delay: 1.2s;
+  }
+}
+
+@keyframes heartFloatA {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate(20rpx, -40rpx) rotate(10deg) scale(1.1);
+    opacity: 0.5;
+  }
+}
+
+@keyframes heartFloatB {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: translate(-22rpx, -32rpx) rotate(-9deg) scale(1.14);
+    opacity: 0.45;
+  }
+}
+
+@keyframes heartFloatC {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate(14rpx, -26rpx) rotate(12deg) scale(1.08);
+    opacity: 0.55;
+  }
+}
+
+/* 减弱动效偏好下停用所有装饰动画（无障碍基线） */
+@media (prefers-reduced-motion: reduce) {
+  .deco-heart,
+  .brand,
+  .form,
+  .logo {
+    animation: none !important;
   }
 }
 
@@ -287,11 +373,13 @@ async function handleLogin() {
   align-items: center;
   /* padding-top 由 :style 动态设置（statusBarHeight + 90px），避让刘海/挖孔 */
   padding-bottom: 80rpx;
+  animation: brandIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 
   .logo {
     width: 160rpx;
     height: 160rpx;
     border-radius: 32rpx;
+    animation: logoBeat 2.4s ease-in-out 1s infinite;
   }
 
   .app-name {
@@ -313,6 +401,48 @@ async function handleLogin() {
   border-radius: 32rpx;
   padding: 48rpx 40rpx;
   box-shadow: 0 8rpx 40rpx rgba(0, 0, 0, 0.06);
+  animation: formIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
+}
+
+@keyframes brandIn {
+  from {
+    opacity: 0;
+    transform: translateY(-24rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes formIn {
+  from {
+    opacity: 0;
+    transform: translateY(48rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes logoBeat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  12% {
+    transform: scale(1.08);
+  }
+  24% {
+    transform: scale(1);
+  }
+  36% {
+    transform: scale(1.06);
+  }
+  48% {
+    transform: scale(1);
+  }
 }
 
 .input-group {

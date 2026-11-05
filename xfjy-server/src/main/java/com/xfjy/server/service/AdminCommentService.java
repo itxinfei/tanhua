@@ -2,6 +2,7 @@ package com.xfjy.server.service;
 
 import com.xfjy.service.api.QuanZiApi;
 import com.xfjy.service.api.UserInfoApi;
+import com.xfjy.service.api.VideoApi;
 import com.xfjy.service.pojo.Comment;
 import com.xfjy.service.pojo.UserInfo;
 import com.xfjy.service.vo.PageInfo;
@@ -26,6 +27,9 @@ public class AdminCommentService {
 
     @Autowired
     private UserInfoApi userInfoApi;
+
+    @Autowired
+    private VideoApi videoApi;
 
     /**
      * 分页查询评论列表（合并评论人信息）
@@ -67,7 +71,13 @@ public class AdminCommentService {
             return false;
         }
         try {
-            return this.quanZiApi.removeCommentById(commentId);
+            // 删除前先取出所属发布ID，删除成功后同步把视频评论数 -1（非视频评论在视频集合里匹配不到，无副作用）
+            Comment comment = this.quanZiApi.queryCommentById(commentId);
+            Boolean removed = this.quanZiApi.removeCommentById(commentId);
+            if (Boolean.TRUE.equals(removed) && comment != null && comment.getPublishId() != null) {
+                this.videoApi.incVideoCounter(comment.getPublishId().toHexString(), "commentCount", -1);
+            }
+            return removed;
         } catch (Exception e) {
             LOGGER.error("删除评论失败 commentId={}", commentId, e);
             return false;
@@ -88,7 +98,20 @@ public class AdminCommentService {
             return empty;
         }
         try {
-            return this.quanZiApi.batchRemoveCommentByIds(commentIds);
+            // 逐条删除以精确同步视频评论数（批量接口不返回每条结果，无法保证计数与真实删除一致）
+            int success = 0;
+            int failed = 0;
+            for (String commentId : commentIds) {
+                if (Boolean.TRUE.equals(deleteComment(commentId))) {
+                    success++;
+                } else {
+                    failed++;
+                }
+            }
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", success);
+            result.put("failed", failed);
+            return result;
         } catch (Exception e) {
             LOGGER.error("批量删除评论失败", e);
             Map<String, Object> result = new HashMap<>();

@@ -291,6 +291,28 @@ function clearLocation(): void {
   latitude.value = "";
 }
 
+/** 发布视频时尽力取定位：失败/无城市名都不阻塞发布（H5 不支持 geocode，locationName 可为空） */
+function resolveVideoLocation(): Promise<{ longitude?: number; latitude?: number; locationName?: string }> {
+  return new Promise((resolve) => {
+    uni.getLocation({
+      type: "gcj02",
+      geocode: true,
+      success: (res: any) => {
+        const lat = Number(res.latitude);
+        const lng = Number(res.longitude);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+          resolve({});
+          return;
+        }
+        const addr = res.address || {};
+        const name = addr.city || addr.district || "";
+        resolve({ longitude: lng, latitude: lat, locationName: name || undefined });
+      },
+      fail: () => resolve({}),
+    } as any);
+  });
+}
+
 /** 发布动态（图片由 publishMovement 内部 upload 直传后端；小视频走 publishVideo 直传封面+视频文件） */
 async function handlePublish(): Promise<void> {
   if (!canPublish.value || submitting.value) return;
@@ -303,8 +325,9 @@ async function handlePublish(): Promise<void> {
   let published = false;
   try {
     if (videoFile.value) {
-      // 小视频链路：后端 POST /small-videos 仅接收 videoThumbnail + videoFile 两个字段
-      await publishVideo({ thumbnailPath: videoCover.value, videoPath: videoFile.value });
+      // 小视频链路：后端 POST /small-videos 接收 videoThumbnail + videoFile + 可选定位
+      const loc = await resolveVideoLocation();
+      await publishVideo({ thumbnailPath: videoCover.value, videoPath: videoFile.value, ...loc });
     } else {
       await publishMovement({
         textContent: content.value.trim(),

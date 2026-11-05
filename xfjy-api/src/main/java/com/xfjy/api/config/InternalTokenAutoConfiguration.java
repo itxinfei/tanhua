@@ -3,6 +3,7 @@ package com.xfjy.api.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -15,9 +16,15 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  *
  * <p>拦截路径默认 {@code /**}，排除 {@code /actuator/**} 与 {@code /error}；
  * 可用 {@code xfjy.internal.exclude-paths} 追加排除项（逗号分隔）。</p>
+ *
+ * <p>启用开关 {@code xfjy.internal.enabled}：缺省（未配置）为 {@code true}，8 个领域服务
+ * 零配置即生效；BFF（xfjy-server）位于网关之后、入站不校验内部 token，显式配 {@code false}
+ * 关闭本装配，避免绕过网关直连 BFF 被误拦（见需求文档 §11.7-37）。仅控制入站拦截，
+ * 不影响 BFF→领域服务的出站头注入（{@code HttpServiceProxyConfig} 独立装配）。</p>
  */
 @AutoConfiguration
 @ConditionalOnClass(WebMvcConfigurer.class)
+@ConditionalOnProperty(prefix = "xfjy.internal", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class InternalTokenAutoConfiguration {
 
     @Bean

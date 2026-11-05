@@ -29,7 +29,7 @@ export const PUBLISH_PAGE = "pages/circle/publish";
  *  - pages/auth：登录/协议等全屏页
  *  - publish：H5 端由 custom-tabbar 组件渲染底栏，排除注入避免双栏重叠
  */
-export const EXCLUDED_PREFIXES = ["pages/auth", PUBLISH_PAGE];
+export const EXCLUDED_PREFIXES = ["pages/auth", PUBLISH_PAGE, "pages/video/search", "pages/video/search-result"];
 
 export interface TabDef {
   /** 页面路径（pages.json 中的 pagePath） */

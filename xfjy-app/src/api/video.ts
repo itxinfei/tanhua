@@ -30,12 +30,22 @@ export interface Video {
   likeCount: number;
   /** 评论数 */
   commentCount: number;
+  /** 位置名称（城市/区域），H5 端可能为空 */
+  locationName?: string;
+  /** 距离（米），仅「附近」返回；为空时前端不展示坐标串，只展示位置名或不展示 */
+  distance?: number;
 }
 
 /** 发布视频参数 */
 export interface PublishVideoParam {
   thumbnailPath: string;
   videoPath: string;
+  /** 经度（定位失败时可不传，后端允许为空） */
+  longitude?: number;
+  /** 纬度 */
+  latitude?: number;
+  /** 城市/区域名（H5 端不支持逆地理，可为空） */
+  locationName?: string;
 }
 
 /**
@@ -60,6 +70,11 @@ export function publishVideo(param: PublishVideoParam): Promise<void> {
         { name: "videoFile", uri: param.videoPath },
       ],
       header,
+      formData: {
+        ...(param.longitude !== undefined ? { longitude: String(param.longitude) } : {}),
+        ...(param.latitude !== undefined ? { latitude: String(param.latitude) } : {}),
+        ...(param.locationName ? { locationName: param.locationName } : {}),
+      },
       success: (res: any) => {
         if (res.statusCode === 401) {
           handleUnauthorized();
@@ -120,19 +135,21 @@ export function getHotVideoList(params: PageParam): Promise<PageResult<Video>> {
 }
 
 /**
- * 查询「朋友」流视频（当前用户关注的作者发布的视频）
- * 对接后端: GET /small-videos/friend
+ * 查询「定位/附近」流视频：有经纬度按距离升序返回，无坐标时后端回退全站热门并带 fallback 标记
+ * 对接后端: GET /small-videos/location
  */
-export function getFriendVideoList(params: PageParam): Promise<PageResult<Video>> {
-  return get<PageResult<Video>>("/small-videos/friend", params as any);
+export function getLocationVideoList(
+  params: PageParam & { lat?: number; lng?: number }
+): Promise<PageResult<Video>> {
+  return get<PageResult<Video>>("/small-videos/location", params as any);
 }
 
 /**
- * 查询「定位」流视频（有地理位置信息的视频）
- * 对接后端: GET /small-videos/location
+ * 播放上报（后端按「用户×视频」Redis 去重，同一视频窗口期内只计一次）
+ * 对接后端: POST /small-videos/{id}/play
  */
-export function getLocationVideoList(params: PageParam): Promise<PageResult<Video>> {
-  return get<PageResult<Video>>("/small-videos/location", params as any);
+export function reportVideoPlay(id: string): Promise<void> {
+  return post<void>(`/small-videos/${id}/play`);
 }
 
 /**

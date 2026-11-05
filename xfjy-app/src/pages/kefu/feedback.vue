@@ -23,7 +23,7 @@
           :maxlength="100"
         />
         <!-- 主提交动作：由非语义 view 改为可聚焦按钮，支持键盘 Enter/Space -->
-        <a11y-button class="submit-btn btn-feedback" :class="{ disabled: submitting }" :disabled="submitting" @tap="handleSubmit">
+        <a11y-button class="submit-btn" :class="{ disabled: submitting }" :disabled="submitting" @tap="handleSubmit">
           <text>{{ submitting ? '提交中...' : '提交反馈' }}</text>
         </a11y-button>
       </view>

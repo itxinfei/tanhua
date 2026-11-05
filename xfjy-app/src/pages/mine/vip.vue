@@ -5,7 +5,7 @@
       <!-- 返回按钮（custom 导航无系统返回键，必须自绘） -->
       <!-- 返回按钮必须用 a11y-button（全站按钮单一真源），图标用 UnoCSS Phosphor i-ph-*，热区 88rpx 满足 WCAG 2.5.5 -->
       <a11y-button
-        class="back-btn btn-feedback"
+        class="back-btn"
         label="返回上一页"
         :style="{ top: statusBarHeight + 10 + 'px' }"
         @tap="goBack"
@@ -33,7 +33,7 @@
       <!-- 加载失败提示：不再静默空白，提供重试入口 -->
       <view v-if="loadError" class="load-error">
         <text class="load-error-text">数据加载失败，部分内容未显示</text>
-        <a11y-button class="retry-btn btn-feedback" label="重新加载" @tap="loadVipData">重新加载</a11y-button>
+        <a11y-button class="retry-btn" label="重新加载" @tap="loadVipData">重新加载</a11y-button>
       </view>
 
       <!-- 权益矩阵（后端 tb_value_added_service 驱动） -->
@@ -41,6 +41,10 @@
         <view class="benefit-head">
           <text class="head-name">权益</text>
           <text class="head-vip">所需等级</text>
+        </view>
+        <!-- 等级口径说明：把 VIP1+/2+/3+ 与套餐等级对应起来 -->
+        <view class="level-note">
+          <text class="level-note-text">开通对应等级的会员套餐即可解锁该权益（VIP1 / VIP2 / VIP3 依次对应下方月卡 / 季卡 / 年卡）</text>
         </view>
         <view class="benefit-row" v-for="b in benefits" :key="b.serviceCode">
           <view class="benefit-info">
@@ -66,11 +70,20 @@
       >
         <template #option="{ option }">
           <text v-if="option.tag" class="plan-tag">{{ option.tag }}</text>
+          <text class="plan-level">VIP{{ option.level }}</text>
           <text class="plan-name">{{ option.name }}</text>
           <text class="plan-price">¥{{ option.priceYuan }}</text>
           <text class="plan-unit">{{ option.unit }}</text>
         </template>
       </a11y-radio-group>
+
+      <!-- 服务说明：价格口径、生效时间、续费与退款，避免付费前有疑问 -->
+      <view class="service-note">
+        <text class="service-note-title">购买须知</text>
+        <text class="service-note-line">· 一次性购买，开通后立即生效，到期不自动续费</text>
+        <text class="service-note-line">· 权益等级按套餐 VIP 等级解锁，等级越高可用权益越多</text>
+        <text class="service-note-line">· 虚拟商品一经开通不支持退款，如有问题可联系在线客服</text>
+      </view>
 
       <!-- 底部占位：给固定操作栏留空间 -->
       <view class="bottom-placeholder" />
@@ -78,8 +91,12 @@
 
     <!-- 底部固定支付栏（固定在 tabbar 正上方） -->
     <view class="pay-bar">
+      <!-- 明确当前选中套餐，避免 CTA 金额与实际选择脱节 -->
+      <text v-if="currentPlan" class="pay-selected">
+        已选：{{ currentPlan.name }}（VIP{{ currentPlan.level }}） · ¥{{ currentPlan.priceYuan }}
+      </text>
       <!-- 未选套餐（如套餐接口失败）时禁用，避免点击「¥0」静默无动作 -->
-      <a11y-button class="pay-btn btn-feedback" :label="selectedId ? '立即开通会员' : '请先选择套餐'" :disabled="paying || !selectedId" @tap="handlePay">
+      <a11y-button class="pay-btn" :label="selectedId ? '立即开通会员' : '请先选择套餐'" :disabled="paying || !selectedId" @tap="handlePay">
         <text class="pay-btn-text">{{ paying ? "支付中..." : selectedId ? `立即开通 ¥${currentPlan?.priceYuan || 0}` : "请选择套餐" }}</text>
       </a11y-button>
     </view>
@@ -140,6 +157,7 @@ const plans = computed(() =>
     return {
       id: p.id,
       name: p.name,
+      level: p.level,
       priceYuan,
       unit: `¥${perMonth}/月`,
       tag,
@@ -157,8 +175,9 @@ const currentPlan = computed(() => plans.value.find((p) => p.id === selectedId.v
 const planOptions = computed(() =>
   plans.value.map((p) => ({
     value: p.id,
-    label: `${p.name}，${p.priceYuan} 元，${p.unit}`,
+    label: `${p.name}，VIP${p.level} 等级，${p.priceYuan} 元，${p.unit}`,
     name: p.name,
+    level: p.level,
     priceYuan: p.priceYuan,
     unit: p.unit,
     tag: p.tag,
@@ -377,6 +396,60 @@ onLoad(() => {
 
 /* 选项节点由 a11y-radio-group 内部渲染，页面 scoped 样式必须 :deep 穿透，
    否则卡片外观/选中态全部丢失，plan-tag 也会因失去 relative 锚点飘到页顶 */
+/* 等级口径说明 / 购买须知 */
+.level-note {
+  padding: 4rpx 0 20rpx;
+  border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
+
+  .level-note-text {
+    font-size: 22rpx;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.62);
+  }
+}
+
+.service-note {
+  margin: 32rpx 8rpx 8rpx;
+  padding: 24rpx;
+  border-radius: 20rpx;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+
+  .service-note-title {
+    display: block;
+    font-size: 26rpx;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 12rpx;
+  }
+
+  .service-note-line {
+    display: block;
+    font-size: 22rpx;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, 0.6);
+  }
+}
+
+/* 套餐等级徽标：把 VIP1/2/3 与月/季/年卡显式绑定 */
+.plans :deep(.plan-level) {
+  display: block;
+  font-size: 20rpx;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+  color: var(--gold);
+  margin-bottom: 6rpx;
+}
+
+/* 支付栏当前选中态 */
+.pay-selected {
+  display: block;
+  text-align: center;
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 12rpx;
+}
+
 .plans :deep(.plan-card) {
   /* min-width:0：长套餐名/标签才能约束在卡内，不撑宽卡片挤掉间距与留白 */
   flex: 1 1 0; min-width: 0; background: rgba(255, 255, 255, 0.06); border-radius: 24rpx; padding: 48rpx 12rpx 32rpx; text-align: center; position: relative; border: 2rpx solid rgba(255, 255, 255, 0.08); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

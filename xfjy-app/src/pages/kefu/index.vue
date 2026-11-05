@@ -47,10 +47,10 @@
 
     <!-- 底部入口：在线咨询 + 意见反馈 -->
     <view class="bottom-bar safe-area-bottom">
-      <a11y-button class="entry-btn btn-feedback consult" label="在线咨询" @tap="goChat">
+      <a11y-button class="entry-btn consult" label="在线咨询" @tap="goChat">
         <text><uni-icons type="headphones" size="14" color="#ffffff"></uni-icons> 在线咨询</text>
       </a11y-button>
-      <a11y-button class="entry-btn btn-feedback" label="意见反馈" @tap="goFeedback">
+      <a11y-button class="entry-btn" label="意见反馈" @tap="goFeedback">
         <text>意见反馈</text>
       </a11y-button>
     </view>

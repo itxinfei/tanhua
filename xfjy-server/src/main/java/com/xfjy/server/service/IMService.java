@@ -94,11 +94,19 @@ public class IMService {
         String uid = String.valueOf(user.getId());
         String password = DigestUtils.sha256Hex(uid + this.imTokenSalt);
 
-        // 先取 token（WuKongIM 取 token 即注册，幂等）；取不到说明通道侧无此账号（环信需先注册），补注册后重试
-        String token = this.wuKongImApi.getUserToken(uid, password);
-        if (StringUtils.isBlank(token)) {
-            this.wuKongImApi.registerUser(uid, password);
+        String token = null;
+        try {
+            // 先取 token（WuKongIM 取 token 即注册，幂等）；取不到说明通道侧无此账号，补注册后重试
             token = this.wuKongImApi.getUserToken(uid, password);
+            if (StringUtils.isBlank(token)) {
+                this.wuKongImApi.registerUser(uid, password);
+                token = this.wuKongImApi.getUserToken(uid, password);
+            }
+        } catch (Exception e) {
+            // WuKongIM 不可用时不能让 /messages/im/credential 直接 500：
+            // 与客服凭证一致降级为 token=null，客户端据此走直连/离线降级，聊天之外的功能不受影响
+            LOGGER.warn("获取 IM 凭证失败，已降级为空 token: uid={}", uid, e);
+            token = null;
         }
 
         ImCredential credential = new ImCredential();

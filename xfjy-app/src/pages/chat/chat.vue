@@ -54,7 +54,7 @@
     <view class="input-area safe-area-bottom">
       <view class="input-bar">
         <!-- 语音/键盘切换 -->
-        <a11y-button class="icon-btn btn-feedback" :label="isVoiceMode ? '切换到键盘输入' : '切换到语音输入'" @tap="toggleVoiceMode">
+        <a11y-button class="icon-btn" :label="isVoiceMode ? '切换到键盘输入' : '切换到语音输入'" @tap="toggleVoiceMode">
           <text aria-hidden="true">{{ isVoiceMode ? "⌨" : "🎤" }}</text>
         </a11y-button>
         <!-- 语音模式：按住说话 -->
@@ -64,12 +64,12 @@
         <!-- 文字模式：输入框 + 表情 -->
         <template v-else>
           <input v-model="inputText" class="text-input" :class="{ focus: isInputFocus }" placeholder="说点什么..." placeholder-class="ph" aria-label="聊天输入框" confirm-type="send" @confirm="sendText" @focus="isInputFocus = true" @blur="isInputFocus = false" />
-          <a11y-button class="icon-btn btn-feedback" role="tab" :checked="activePanel === 'emoji'" label="表情面板" @tap="togglePanel('emoji')">
+          <a11y-button class="icon-btn" role="tab" :checked="activePanel === 'emoji'" label="表情面板" @tap="togglePanel('emoji')">
             <text :class="{ 'icon-active': activePanel === 'emoji' }" aria-hidden="true">😊</text>
           </a11y-button>
         </template>
         <!-- 更多面板 -->
-        <a11y-button class="icon-btn btn-feedback" role="tab" :checked="activePanel === 'more'" label="更多功能面板" @tap="togglePanel('more')">
+        <a11y-button class="icon-btn" role="tab" :checked="activePanel === 'more'" label="更多功能面板" @tap="togglePanel('more')">
           <uni-icons :class="{ 'icon-active': activePanel === 'more' }" type="plus" size="24" color="#767676"></uni-icons>
         </a11y-button>
       </view>
@@ -78,7 +78,7 @@
       <view v-if="activePanel === 'emoji'" class="panel emoji-panel">
         <scroll-view scroll-y class="emoji-scroll">
           <view class="emoji-grid">
-            <a11y-button v-for="emoji in EMOJI_LIST" :key="emoji" class="emoji-item btn-feedback" :label="`插入表情 ${emoji}`" @tap="insertEmoji(emoji)">
+            <a11y-button v-for="emoji in EMOJI_LIST" :key="emoji" class="emoji-item" :label="`插入表情 ${emoji}`" @tap="insertEmoji(emoji)">
               <text aria-hidden="true">{{ emoji }}</text>
             </a11y-button>
           </view>
@@ -88,7 +88,7 @@
       <!-- 更多面板 -->
       <view v-if="activePanel === 'more'" class="panel more-panel">
         <view class="more-grid">
-          <a11y-button v-for="action in QUICK_ACTIONS" :key="action.label" class="more-item btn-feedback" :label="action.label" @tap="action.handler">
+          <a11y-button v-for="action in QUICK_ACTIONS" :key="action.label" class="more-item" :label="action.label" @tap="action.handler">
             <view class="more-icon" :style="{ background: action.bg }"><uni-icons :type="action.uniIcon" size="24" color="#fff"></uni-icons></view>
             <text class="more-label">{{ action.label }}</text>
           </a11y-button>

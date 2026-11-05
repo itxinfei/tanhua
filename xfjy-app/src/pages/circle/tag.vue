@@ -14,7 +14,7 @@
     <a11y-button
       v-for="item in list"
       :key="item.id"
-      class="post-card btn-feedback"
+      class="post-card"
       :label="`查看动态：${item.nickname}，${item.textContent ? item.textContent.slice(0, 20) : '无文字内容'}`"
       @tap="goDetail(item)"
     >
