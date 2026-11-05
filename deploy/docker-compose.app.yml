@@ -46,8 +46,10 @@ x-common-env: &common-env
   NEO4J_PASSWORD: ${NEO4J_PASSWORD:-itxinfei123456}
   # RocketMQ（circle/video/recommend 生产消费，name-server 指向宿主映射端口）
   ROCKETMQ_NAME_SERVER: ${ROCKETMQ_NAME_SERVER:-192.168.20.133:9876}
-  # match-service 调 xfjy-elasticsearch 服务的 HTTP 接口（区别于 ES 中间件 9200）
-  ES_SERVER_URL: ${ES_SERVER_URL:-http://192.168.20.133:18088/}
+  # match-service 调 xfjy-elasticsearch 应用的 HTTP 接口（区别于 ES 中间件 9200）。
+  # 两者同在 xfjy-app-net bridge，必须用容器服务名直连；走宿主机 LAN IP 的 hairpin
+  # 路径在防火墙上未放行 18088（9200 已放行），容器内实测 Connect timed out（2026-11-05）。
+  ES_SERVER_URL: ${ES_SERVER_URL:-http://xfjy-elasticsearch:18088/}
   # MinIO 对象存储（视频/图片上传，凭证留空则上传功能快速失败）
   MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://192.168.20.133:9000}
   MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-}
