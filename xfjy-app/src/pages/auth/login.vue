@@ -7,7 +7,7 @@
     <view class="deco-heart deco-4" aria-hidden="true" />
 
     <!-- 品牌区：padding-top 动态避让状态栏/刘海/挖孔（custom 导航页必须） -->
-    <view class="brand" :style="{ paddingTop: statusBarHeight + 90 + 'px' }">
+    <view class="brand anim-fade-down" :style="{ paddingTop: statusBarHeight + 90 + 'px' }">
       <!-- logo 与紧随其后的 app-name 文字语义重复，标为装饰避免重复朗读 -->
       <image lazy-load class="logo" src="/static/logo/logo-icon-transparent.png" mode="aspectFit" aria-hidden="true" />
       <text class="app-name">心飞交友</text>
@@ -15,7 +15,7 @@
     </view>
 
     <!-- 表单区 -->
-    <view class="form">
+    <view class="form anim-fade-up anim-delay-1">
       <view class="input-group">
         <text :id="PHONE_LABEL_ID" class="label">手机号</text>
         <input
@@ -373,7 +373,6 @@ async function handleLogin() {
   align-items: center;
   /* padding-top 由 :style 动态设置（statusBarHeight + 90px），避让刘海/挖孔 */
   padding-bottom: 80rpx;
-  animation: brandIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 
   .logo {
     width: 160rpx;
@@ -401,29 +400,6 @@ async function handleLogin() {
   border-radius: 32rpx;
   padding: 48rpx 40rpx;
   box-shadow: 0 8rpx 40rpx rgba(0, 0, 0, 0.06);
-  animation: formIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
-}
-
-@keyframes brandIn {
-  from {
-    opacity: 0;
-    transform: translateY(-24rpx);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes formIn {
-  from {
-    opacity: 0;
-    transform: translateY(48rpx);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 @keyframes logoBeat {

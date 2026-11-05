@@ -418,6 +418,45 @@ scroll-view {
   animation: float 3s ease-in-out infinite;
 }
 
+/* ===== 入场动画工具类（页面内容进场的唯一真源，页面禁止自行复制 keyframes） =====
+   用法：class="anim-fade-up anim-delay-2"（delay 工具类必须写在本组类之后） */
+@keyframes animFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(32rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes animFadeDown {
+  from {
+    opacity: 0;
+    transform: translateY(-24rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.anim-fade-up {
+  animation: animFadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.anim-fade-down {
+  animation: animFadeDown 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* 入场错峰档位：0.1s 步进，最多 5 档 */
+.anim-delay-1 { animation-delay: 0.1s; }
+.anim-delay-2 { animation-delay: 0.18s; }
+.anim-delay-3 { animation-delay: 0.26s; }
+.anim-delay-4 { animation-delay: 0.34s; }
+.anim-delay-5 { animation-delay: 0.42s; }
+
 /* 双层阴影（卡片质感） */
 .shadow-card {
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06), 0 12rpx 48rpx rgba(0, 0, 0, 0.1);
@@ -471,7 +510,9 @@ scroll-view {
   .float,
   .skeleton,
   .btn-feedback,
-  .btn-gradient {
+  .btn-gradient,
+  .anim-fade-up,
+  .anim-fade-down {
     animation: none !important;
     transition: none !important;
   }

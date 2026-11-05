@@ -210,57 +210,14 @@
 
 > 内容安全不是项目副产品，而是核心架构层。
 
-```
-内容安全
-│
-├── 文本：houbb/sensitive-word 引擎（4 大独有能力）
-│   ├── DFA 多音字变体：把"幹" “幹” “乾” "干"全部等效命中
-│   ├── 繁体简体无关：输入"激情"能匹配"激情"
-│   ├── 数字/拼音混淆："cao" "c a o" "艹" "操" 一视同仁
-│   └── 繁简音字形多维变体：单引擎零成本
-│
-├── 图片/视频：先发后审 + 人工审核队列联动下架
-│   ├── 动态/评论/小视频发布 →
-│   │   ├── 文本 → 敏感词 DFA → {PASS|FILTERED|BLOCK|MANUAL}
-│   │   └── 图片/视频 → tb_review 待审 → 人工通过/驳回
-│   └── 驳回自动联动下架：发布方代码不动
-│
-├── 风控：Redis 固定窗口计数器（60s 维度）
-│   ├── PUBLISH: 60s/5次
-│   ├── COMMENT: 60s/10次
-│   └── LIKE:    60s/20次
-│
-└── 阻断：GatewayRateLimiter（IP 维度）+ 用户级限流（Sa-Token 维度）
-```
+![内容安全全景](docs/diagrams/content-safety.png)
 
 ---
 
 <a id="推荐引擎"></a>
 ## 推荐引擎（5 层漏斗）
 
-```
-用户进入 → T5 冷启动（新用户兜底）
-              │
-              ├── 500km 地理召回（ES Geo + Redis Geo）
-              ├── 画像相似度（标签 Jaccard + 年龄 + 同城）
-              └── 兜底用户池（活跃 + 高质量认证 + VIP）
-              │
-              ▼ T4 互惠精排（双向打分）
-              │
-              ├── ALS 协同过滤分
-              ├── 地理距离衰减分
-              ├── 画像相似度分
-              ├── Qdrant 双向 Cosine² 互惠分  ← P2 已就绪，开关可控
-              └── 权重可配，缺失维度自动降级
-              │
-              ▼ T3 后处理
-              │
-              ├───── 已喜欢好友过滤
-              ├───── 已看过去重
-              ├───── VIP 达人加权
-
-└───── ⚠ Qdrant / Neo4j 不可用时自动降级为空召回 ┘
-```
+![推荐引擎 5 层漏斗](docs/diagrams/recommend-funnel.png)
 
 ### AI 双塔训练管线
 
@@ -272,13 +229,7 @@
 | 在线落地 | Qdrant `PUT /points` upsert | pointId=userId 免映射检索 |
 | 离线验证 | `--mock` 模式无依赖跑通管线 | 一键验证训练 + 召回链路完整性 |
 
-```
-                 ┌─────────────────┐
-用户画像 ──┐      │  共享权重 MLP   │       ┌── 余弦相似度 ← 互惠匹配
-          ├───▶  │  input 64dim    │  ──▶  │
-用户行为 ──┘      │  L2 normalize   │       └── Qdrant 入库（id=userId）
-                 └─────────────────┘
-```
+![AI 双塔训练管线](docs/diagrams/recommend-twin-tower.png)
 
 ---
 
@@ -287,7 +238,7 @@
 
 ![心飞交友系统架构](docs/diagrams/architecture.png)
 
-> 架构图源文件为 `docs/diagrams/architecture.svg`（矢量稿，可直接编辑），改完导出 2400px 宽 PNG 覆盖 `architecture.png`；`architecture.mmd` 仅作结构速查，不再用于出图。
+> 架构图源文件为 `docs/diagrams/architecture.svg`（矢量稿，可直接编辑），改完导出 2400px 宽 PNG 覆盖 `architecture.png`；`architecture.mmd` 仅作结构速查，不再用于出图。内容安全、推荐漏斗、双塔三张业务图同源同法（对应 `content-safety` / `recommend-funnel` / `recommend-twin-tower`）。
 
 ---
 

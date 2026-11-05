@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="1000" viewBox="0 0 2400 1000">
+<defs>
+<filter id="sh" x="-25%" y="-25%" width="150%" height="150%"><feDropShadow dx="0" dy="3" stdDeviation="7" flood-color="#0B1220" flood-opacity="0.07"/></filter>
+<marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#94A3B8"/></marker>
+</defs>
+<rect x="0" y="0" width="2400" height="1000" fill="#FFFFFF"/>
+<text x="80" y="98" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="46" font-weight="700" fill="#0B1220">AI 双塔训练管线</text>
+<text x="80" y="140" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="15.5" fill="#64748B">特征工程 → PyTorch 训练 → ONNX 导出 → Qdrant 上线 → --mock 离线验证</text>
+<rect x="2077.6" y="64" width="242.39999999999998" height="38" rx="19" fill="#F1F5F9"/>
+<text x="2198.7999999999997" y="89" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="13" fill="#475569" text-anchor="middle">64 维 L2 归一化 · BPR Loss</text>
+<rect x="80.0" y="190" width="422" height="200" rx="15" fill="#FFFFFF" stroke="#C7DDF9" stroke-width="1.3" filter="url(#sh)"/>
+<rect x="102.0" y="214" width="38" height="24" rx="12" fill="#EAF2FE"/>
+<text x="121.0" y="231" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="12" font-weight="700" fill="#2563EB" text-anchor="middle">01</text>
+<text x="102.0" y="282" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="16" font-weight="600" fill="#0B1220">特征工程</text>
+<text x="102.0" y="310" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#64748B">Python + MongoDB</text>
+<text x="102.0" y="344" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#64748B">用户行为日志</text>
+<text x="102.0" y="366" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#2563EB">→ (user, liked, score)</text>
+<line x1="508.0" y1="290" x2="526.5" y2="290" stroke="#94A3B8" stroke-width="2" marker-end="url(#ar)"/>
+<rect x="534.5" y="190" width="422" height="200" rx="15" fill="#FFFFFF" stroke="#C7DDF9" stroke-width="1.3" filter="url(#sh)"/>
+<rect x="556.5" y="214" width="38" height="24" rx="12" fill="#EAF2FE"/>
+<text x="575.5" y="231" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="12" font-weight="700" fill="#2563EB" text-anchor="middle">02</text>
+<text x="556.5" y="282" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="16" font-weight="600" fill="#0B1220">模型训练</text>
+<text x="556.5" y="310" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#64748B">PyTorch 对称双塔</text>
+<text x="556.5" y="344" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#64748B">BPR Loss · 权重共享</text>
+<text x="556.5" y="366" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#2563EB">→ 64 维 L2 归一化 Embedding</text>
+<line x1="962.5" y1="290" x2="981.0" y2="290" stroke="#94A3B8" stroke-width="2" marker-end="url(#ar)"/>
+<rect x="989.0" y="190" width="422" height="200" rx="15" fill="#FFFFFF" stroke="#C7DDF9" stroke-width="1.3" filter="url(#sh)"/>
+<rect x="1011.0" y="214" width="38" height="24" rx="12" fill="#EAF2FE"/>
+<text x="1030.0" y="231" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="12" font-weight="700" fill="#2563EB" text-anchor="middle">03</text>
+<text x="1011.0" y="282" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="16" font-weight="600" fill="#0B1220">权重导出</text>
+<text x="1011.0" y="310" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#64748B">torch.onnx + numpy</text>
+<text x="1011.0" y="344" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#64748B">float32 向量文件</text>
+<text x="1011.0" y="366" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#2563EB">→ 可直接 upsert</text>
+<line x1="1417.0" y1="290" x2="1435.5" y2="290" stroke="#94A3B8" stroke-width="2" marker-end="url(#ar)"/>
+<rect x="1443.5" y="190" width="422" height="200" rx="15" fill="#FFFFFF" stroke="#C7DDF9" stroke-width="1.3" filter="url(#sh)"/>
+<rect x="1465.5" y="214" width="38" height="24" rx="12" fill="#EAF2FE"/>
+<text x="1484.5" y="231" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="12" font-weight="700" fill="#2563EB" text-anchor="middle">04</text>
+<text x="1465.5" y="282" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="16" font-weight="600" fill="#0B1220">在线落地</text>
+<text x="1465.5" y="310" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#64748B">Qdrant PUT /points</text>
+<text x="1465.5" y="344" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#64748B">pointId = userId</text>
+<text x="1465.5" y="366" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#2563EB">→ 免映射直接检索</text>
+<line x1="1871.5" y1="290" x2="1890.0" y2="290" stroke="#94A3B8" stroke-width="2" marker-end="url(#ar)"/>
+<rect x="1898.0" y="190" width="422" height="200" rx="15" fill="#FFFFFF" stroke="#C7DDF9" stroke-width="1.3" filter="url(#sh)"/>
+<rect x="1920.0" y="214" width="38" height="24" rx="12" fill="#EAF2FE"/>
+<text x="1939.0" y="231" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="12" font-weight="700" fill="#2563EB" text-anchor="middle">05</text>
+<text x="1920.0" y="282" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="16" font-weight="600" fill="#0B1220">离线验证</text>
+<text x="1920.0" y="310" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#64748B">--mock 模式</text>
+<text x="1920.0" y="344" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#64748B">无外部依赖</text>
+<text x="1920.0" y="366" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#2563EB">→ 跑通训练 + 召回链路</text>
+<rect x="80" y="450" width="2240" height="490" rx="22" fill="#F7FAFF" stroke="#E4EEFB" stroke-width="1"/>
+<text x="112" y="510" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="19" font-weight="600" fill="#0B1220">双塔结构 · 共享权重对称网络</text>
+<text x="2288" y="510" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#94A3B8" text-anchor="end">用户与目标用户共用同一套权重，双端编码到同一向量空间</text>
+<rect x="160" y="570" width="380" height="100" rx="14" fill="#FFFFFF" stroke="#C7DDF9" stroke-width="1.3" filter="url(#sh)"/>
+<text x="184" y="610" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="16" font-weight="600" fill="#0B1220">用户画像</text>
+<text x="184" y="638" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#64748B">64 维特征向量</text>
+<rect x="160" y="690" width="380" height="100" rx="14" fill="#FFFFFF" stroke="#C7DDF9" stroke-width="1.3" filter="url(#sh)"/>
+<text x="184" y="730" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="16" font-weight="600" fill="#0B1220">用户行为</text>
+<text x="184" y="758" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#64748B">点击 / 喜欢序列</text>
+<rect x="740" y="550" width="640" height="300" rx="18" fill="#FFFFFF" stroke="#BFDBFE" stroke-width="1.4" filter="url(#sh)"/>
+<text x="772" y="594" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="17" font-weight="600" fill="#0B1220">共享权重 MLP</text>
+<rect x="772" y="612" width="576" height="48" rx="12" fill="#EFF4FF" stroke="#BFDBFE" stroke-width="1"/>
+<text x="792" y="642" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="12.5" fill="#1E3A8A">input · 64 dim</text>
+<rect x="772" y="674" width="576" height="48" rx="12" fill="#E4EEFD" stroke="#93B4F0" stroke-width="1"/>
+<text x="792" y="704" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="12.5" fill="#1E3A8A">hidden · 128 · ReLU</text>
+<rect x="772" y="736" width="576" height="48" rx="12" fill="#D6E4FB" stroke="#7EA6E8" stroke-width="1"/>
+<text x="792" y="766" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="12.5" fill="#1E3A8A">output · 64 · L2 normalize</text>
+<text x="772" y="832" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11" fill="#64748B">BPR Loss · 对称双塔共享权重</text>
+<rect x="1740" y="570" width="380" height="100" rx="14" fill="#FFFFFF" stroke="#DACDF7" stroke-width="1.3" filter="url(#sh)"/>
+<text x="1764" y="610" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="16" font-weight="600" fill="#0B1220">余弦相似度</text>
+<text x="1764" y="638" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#64748B">← 互惠匹配打分</text>
+<rect x="1740" y="690" width="380" height="100" rx="14" fill="#FFFFFF" stroke="#BFE6D2" stroke-width="1.3" filter="url(#sh)"/>
+<text x="1764" y="730" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="16" font-weight="600" fill="#0B1220">Qdrant 入库</text>
+<text x="1764" y="758" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#64748B">pointId = userId</text>
+<line x1="540" y1="620" x2="732" y2="636" stroke="#94A3B8" stroke-width="2" marker-end="url(#ar)"/>
+<line x1="540" y1="740" x2="732" y2="796" stroke="#94A3B8" stroke-width="2" marker-end="url(#ar)"/>
+<line x1="1380" y1="636" x2="1732" y2="620" stroke="#94A3B8" stroke-width="2" marker-end="url(#ar)"/>
+<line x1="1380" y1="796" x2="1732" y2="740" stroke="#94A3B8" stroke-width="2" marker-end="url(#ar)"/>
+</svg>

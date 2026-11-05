@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="1400" viewBox="0 0 2400 1400">
+<defs>
+<filter id="sh" x="-25%" y="-25%" width="150%" height="150%"><feDropShadow dx="0" dy="3" stdDeviation="7" flood-color="#0B1220" flood-opacity="0.07"/></filter>
+<marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#94A3B8"/></marker>
+</defs>
+<rect x="0" y="0" width="2400" height="1400" fill="#FFFFFF"/>
+<text x="80" y="98" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="46" font-weight="700" fill="#0B1220">推荐引擎 · 5 层漏斗</text>
+<text x="80" y="140" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="15.5" fill="#64748B">T5 冷启动召回 → T4 互惠精排 → T3 后处理，逐层收窄候选集</text>
+<rect x="2040.8" y="64" width="279.2" height="38" rx="19" fill="#F1F5F9"/>
+<text x="2180.4" y="89" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="13" fill="#475569" text-anchor="middle">P2 · Qdrant 双向 Cosine² 已就绪</text>
+<rect x="250" y="190" width="1900" height="310" rx="22" fill="#F4F8FF" stroke="#E4EEFB" stroke-width="1"/>
+<rect x="284" y="230" width="68" height="32" rx="16" fill="#2563EB"/>
+<text x="318" y="251" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">T5</text>
+<text x="284" y="294" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="21" font-weight="600" fill="#0B1220">冷启动召回</text>
+<text x="284" y="318" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#64748B">三路并行</text>
+<rect x="450" y="560" width="1500" height="420" rx="22" fill="#F7F4FF" stroke="#EAE3FB" stroke-width="1"/>
+<rect x="484" y="600" width="68" height="32" rx="16" fill="#7C3AED"/>
+<text x="518" y="621" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">T4</text>
+<text x="484" y="664" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="21" font-weight="600" fill="#0B1220">互惠精排</text>
+<text x="484" y="688" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#64748B">双向打分 · 加权融合</text>
+<rect x="650" y="1010" width="1100" height="300" rx="22" fill="#F3FBF7" stroke="#DFF2E8" stroke-width="1"/>
+<rect x="684" y="1050" width="68" height="32" rx="16" fill="#059669"/>
+<text x="718" y="1071" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">T3</text>
+<text x="684" y="1114" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="21" font-weight="600" fill="#0B1220">后处理</text>
+<text x="684" y="1138" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#64748B">去重 · 过滤 · 加权</text>
+<rect x="450.0" y="340" width="537.3333333333334" height="120" rx="14" fill="#FFFFFF" stroke="#C7DDF9" stroke-width="1.2" filter="url(#sh)"/>
+<text x="474.0" y="380" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="16" font-weight="600" fill="#0B1220">500km 地理召回</text>
+<text x="474.0" y="408" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#64748B">ES Geo + Redis Geo，附近优先</text>
+<rect x="1011.3333333333334" y="340" width="537.3333333333334" height="120" rx="14" fill="#FFFFFF" stroke="#C7DDF9" stroke-width="1.2" filter="url(#sh)"/>
+<text x="1035.3333333333335" y="380" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="16" font-weight="600" fill="#0B1220">画像相似度</text>
+<text x="1035.3333333333335" y="408" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#64748B">标签 Jaccard + 年龄 + 同城</text>
+<rect x="1572.6666666666667" y="340" width="537.3333333333334" height="120" rx="14" fill="#FFFFFF" stroke="#C7DDF9" stroke-width="1.2" filter="url(#sh)"/>
+<text x="1596.6666666666667" y="380" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="16" font-weight="600" fill="#0B1220">兜底用户池</text>
+<text x="1596.6666666666667" y="408" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#64748B">活跃 + 高质量认证 + VIP</text>
+<rect x="650.0" y="720" width="618.0" height="100" rx="14" fill="#FFFFFF" stroke="#C7DDF9" stroke-width="1.2" filter="url(#sh)"/>
+<text x="674.0" y="760" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="16" font-weight="600" fill="#0B1220">ALS 协同过滤分</text>
+<text x="674.0" y="788" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#64748B">行为相似用户召回</text>
+<rect x="1292.0" y="720" width="618.0" height="100" rx="14" fill="#FFFFFF" stroke="#C7DDF9" stroke-width="1.2" filter="url(#sh)"/>
+<text x="1316.0" y="760" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="16" font-weight="600" fill="#0B1220">地理距离衰减分</text>
+<text x="1316.0" y="788" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#64748B">越近权重越高</text>
+<rect x="650.0" y="850" width="618.0" height="100" rx="14" fill="#FFFFFF" stroke="#C7DDF9" stroke-width="1.2" filter="url(#sh)"/>
+<text x="674.0" y="890" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="16" font-weight="600" fill="#0B1220">画像相似度分</text>
+<text x="674.0" y="918" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#64748B">标签 + 年龄 + 同城</text>
+<rect x="1292.0" y="850" width="618.0" height="100" rx="14" fill="#FFFFFF" stroke="#C7DDF9" stroke-width="1.2" filter="url(#sh)"/>
+<text x="1316.0" y="890" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="16" font-weight="600" fill="#0B1220">Qdrant 双向 Cosine²</text>
+<text x="1316.0" y="918" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="11.5" fill="#64748B">互惠分 · P2 已就绪，开关可控</text>
+<circle cx="884" cy="1132" r="5.5" fill="#059669"/>
+<text x="906" y="1138" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="16" font-weight="600" fill="#0B1220">已喜欢好友过滤</text>
+<line x1="884" y1="1156" x2="1676" y2="1156" stroke="#DFF2E8" stroke-width="1"/>
+<circle cx="884" cy="1200" r="5.5" fill="#059669"/>
+<text x="906" y="1206" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="16" font-weight="600" fill="#0B1220">已看过去重</text>
+<line x1="884" y1="1224" x2="1676" y2="1224" stroke="#DFF2E8" stroke-width="1"/>
+<circle cx="884" cy="1268" r="5.5" fill="#059669"/>
+<text x="906" y="1274" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="16" font-weight="600" fill="#0B1220">VIP 达人加权</text>
+<line x1="884" y1="1292" x2="1676" y2="1292" stroke="#DFF2E8" stroke-width="1"/>
+<line x1="1200" y1="500" x2="1200" y2="556" stroke="#94A3B8" stroke-width="2.2" marker-end="url(#ar)"/>
+<line x1="1200" y1="980" x2="1200" y2="1006" stroke="#94A3B8" stroke-width="2.2" marker-end="url(#ar)"/>
+<rect x="80" y="1340" width="2240" height="44" rx="14" fill="#FFF7ED" stroke="#FBEBD6" stroke-width="1"/>
+<text x="112" y="1368" font-family="'Microsoft YaHei','Segoe UI Emoji','Segoe UI',Arial,sans-serif" font-size="12" fill="#B45309">⚠ Qdrant / Neo4j 不可用时自动降级为空召回，不阻断主链路</text>
+</svg>
