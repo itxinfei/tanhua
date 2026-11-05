@@ -83,7 +83,7 @@ public class QuanziApiImpl implements QuanZiApi {
 
             this.rocketMQTemplate.convertAndSend("xfjy-quanzi", (Object) msg);
         } catch (Exception e) {
-            LOGGER.error("圈子评分消息发送失败! type = " + type + ", userId = " + userId, e);
+            LOGGER.error("圈子评分消息发送失败! type={}, userId={}", type, userId, e);
         }
     }
 

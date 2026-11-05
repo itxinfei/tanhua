@@ -143,7 +143,7 @@ public class QuanZiMsgConsumer implements RocketMQListener<String> {
             this.userFeatureService.recordBehavior(userId, "quanzi:" + type, recommendQuanZi.getScore(), date);
 
         } catch (Exception e) {
-            LOGGER.error("消息处理失败! msg = " + msg, e);
+            LOGGER.error("消息处理失败! msg={}", msg, e);
         }
 
     }

@@ -19,9 +19,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -116,7 +116,7 @@ public class AdminDashboardService {
         List<String> dates = new ArrayList<>();
         List<Long> newUserList = new ArrayList<>();
 
-        SimpleDateFormat sdf = new SimpleDateFormat("MM-dd");
+        DateTimeFormatter sdf = DateTimeFormatter.ofPattern("MM-dd");
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.DAY_OF_MONTH, -(days - 1));
 
@@ -126,7 +126,7 @@ public class AdminDashboardService {
             endCal.add(Calendar.DAY_OF_MONTH, 1);
             Date dayEnd = endCal.getTime();
 
-            dates.add(sdf.format(dayStart));
+            dates.add(sdf.format(dayStart.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()));
 
             // 当日新增用户
             QueryWrapper<com.xfjy.server.pojo.User> dayWrapper = new QueryWrapper<>();
@@ -399,7 +399,7 @@ public class AdminDashboardService {
         List<Long> postList = new ArrayList<>();
         List<Long> videoList = new ArrayList<>();
 
-        SimpleDateFormat sdf = new SimpleDateFormat("MM-dd");
+        DateTimeFormatter sdf = DateTimeFormatter.ofPattern("MM-dd");
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.DAY_OF_MONTH, -(days - 1));
 
@@ -409,7 +409,7 @@ public class AdminDashboardService {
             endCal.add(Calendar.DAY_OF_MONTH, 1);
             Date dayEnd = endCal.getTime();
 
-            dates.add(sdf.format(dayStart));
+            dates.add(sdf.format(dayStart.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()));
 
             // 当日动态发布数
             long postCount = 0;

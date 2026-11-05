@@ -74,7 +74,7 @@ public class IMController {
             }
             return ResponseEntity.ok(null);
         } catch (Exception e) {
-            LOGGER.error("添加联系人失败~ param = " + param, e);
+            LOGGER.error("添加联系人失败~ param={}", param, e);
         }
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

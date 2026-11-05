@@ -9,8 +9,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,16 +47,18 @@ public class AdminOperationLogService {
             wrapper.like("admin_username", adminUsername);
         }
 
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        DateTimeFormatter sdf = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         try {
             if (StringUtils.isNotBlank(startDate)) {
-                wrapper.ge("created", sdf.parse(startDate));
+                LocalDate start = LocalDate.parse(startDate, sdf);
+                wrapper.ge("created", java.util.Date.from(start.atStartOfDay(ZoneId.systemDefault()).toInstant()));
             }
             if (StringUtils.isNotBlank(endDate)) {
                 // 结束日期含当天全天
-                wrapper.le("created", new java.util.Date(sdf.parse(endDate).getTime() + 24 * 3600 * 1000 - 1));
+                LocalDate end = LocalDate.parse(endDate, sdf);
+                wrapper.le("created", new java.util.Date(end.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() + 24L * 3600 * 1000 - 1));
             }
-        } catch (ParseException e) {
+        } catch (DateTimeParseException e) {
             // 日期格式非法时忽略筛选
         }
 
@@ -98,16 +102,18 @@ public class AdminOperationLogService {
             wrapper.like("admin_username", adminUsername);
         }
 
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        DateTimeFormatter sdf = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         try {
             if (StringUtils.isNotBlank(startDate)) {
-                wrapper.ge("created", sdf.parse(startDate));
+                LocalDate start = LocalDate.parse(startDate, sdf);
+                wrapper.ge("created", java.util.Date.from(start.atStartOfDay(ZoneId.systemDefault()).toInstant()));
             }
             if (StringUtils.isNotBlank(endDate)) {
                 // 结束日期含当天全天
-                wrapper.le("created", new java.util.Date(sdf.parse(endDate).getTime() + 24 * 3600 * 1000 - 1));
+                LocalDate end = LocalDate.parse(endDate, sdf);
+                wrapper.le("created", new java.util.Date(end.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() + 24L * 3600 * 1000 - 1));
             }
-        } catch (ParseException e) {
+        } catch (DateTimeParseException e) {
             // 日期格式非法时忽略筛选
         }
         return wrapper;

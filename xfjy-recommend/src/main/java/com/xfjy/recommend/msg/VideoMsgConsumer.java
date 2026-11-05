@@ -97,7 +97,7 @@ public class VideoMsgConsumer implements RocketMQListener<String> {
             this.userFeatureService.recordBehavior(userId, "video:" + type, recommendVideo.getScore(), date);
 
         } catch (Exception e) {
-            LOGGER.error("处理小视频消息失败~" + msg, e);
+            LOGGER.error("处理小视频消息失败~ msg={}", msg, e);
         }
     }
 }

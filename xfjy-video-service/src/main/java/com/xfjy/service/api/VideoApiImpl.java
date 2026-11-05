@@ -68,7 +68,7 @@ public class VideoApiImpl implements VideoApi {
             msg.put("type", type);
             this.rocketMQTemplate.convertAndSend("xfjy-video", (Object) msg);
         } catch (Exception e) {
-            LOGGER.error("视频评分消息发送失败! type = " + type + ", videoId = " + videoId, e);
+            LOGGER.error("视频评分消息发送失败! type={}, videoId={}", type, videoId, e);
         }
     }
 
