@@ -24,8 +24,11 @@ spring:
       nacos:
         enabled: true
     gateway:
-      # 服务发现路由（lb:// 经 Nacos 解析服务名，loadbalancer 负载均衡）
-      routes:
+      # Spring Cloud 2025.x 路由配置前缀必须是 server.webflux，旧版 spring.cloud.gateway.routes 不生效
+      server:
+        webflux:
+          # 服务发现路由（lb:// 经 Nacos 解析服务名，loadbalancer 负载均衡）
+          routes:
             - id: xfjy-sso
               uri: lb://xfjy-sso
               predicates:
@@ -39,6 +42,7 @@ spring:
           # 调用各域服务(user 18090 / match 18082 / circle 18084 / video 18085 / message 18086)，
           # gateway 不直连各域服务，避免跨域聚合逻辑散落到前端。路由已切换 lb://xfjy-server 服务发现。
           # 辅助服务：recommend(无独立端口，内部调用) / elasticsearch 18088(附近的人ES查询)，仅内部调用不走网关。
+          # CORS 不在此配置：统一由 CorsConfig.java 读取顶层 cors.allowed-origins 白名单接管，禁止重复 globalcors
 
 # 内部服务鉴权 Token（与域服务保持一致，网关转发时自动注入 X-Internal-Token 头）
 internal:
