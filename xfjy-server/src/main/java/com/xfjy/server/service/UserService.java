@@ -25,6 +25,15 @@ public class UserService {
     @Value("${xfjy.sso.url}")
     private String url;
 
+    /**
+     * 内部服务鉴权 token（逗号分隔时取第一个）。
+     * sso 已纳入 X-Internal-Token 鉴权体系、对 /** 全量校验，BFF 回源 /user/query
+     * 必须携带该头，否则被 XInternalTokenInterceptor 拒绝 403，进而导致所有需登录态接口 500。
+     * 取值口径与 HttpServiceProxyConfig 的出站内部 token 保持一致。
+     */
+    @Value("${internal.auth.tokens:}")
+    private String internalAuthTokens;
+
     private static final JsonMapper MAPPER = new JsonMapper();
 
 
@@ -38,6 +47,10 @@ public class UserService {
         // token 通过 X-Token 请求头传递，避免出现在 URL 路径中被访问日志记录
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-Token", token);
+        // sso 对 /** 全量校验内部 token，缺该头会被 XInternalTokenInterceptor 拒绝 403（5930db8 起）
+        if (internalAuthTokens != null && !internalAuthTokens.isBlank()) {
+            headers.set("X-Internal-Token", internalAuthTokens.split(",")[0].trim());
+        }
         HttpEntity<Void> entity = new HttpEntity<>(headers);
         ResponseEntity<String> response = this.restTemplate.exchange(url + "/user/query", HttpMethod.GET, entity, String.class);
         String jsonData = response.getBody();
