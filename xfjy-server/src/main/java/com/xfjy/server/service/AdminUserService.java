@@ -6,11 +6,14 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.xfjy.service.api.WuKongImApi;
 import com.xfjy.service.api.QuanZiApi;
 import com.xfjy.service.api.UserInfoApi;
+import com.xfjy.service.api.UserLikeApi;
+import com.xfjy.service.api.WuKongImApi;
 import com.xfjy.service.enums.SexEnum;
 import com.xfjy.service.pojo.UserInfo;
+import com.xfjy.service.pojo.UserLike;
+import com.xfjy.service.vo.PageInfo;
 import com.xfjy.service.vo.UserInfoQueryParam;
 import com.xfjy.server.dto.AdminProfileUpdateDTO;
 import com.xfjy.server.exception.BusinessException;
@@ -20,6 +23,8 @@ import com.xfjy.server.mapper.UserMapper;
 import com.xfjy.server.pojo.OperationLog;
 import com.xfjy.server.pojo.User;
 import com.xfjy.server.utils.OperationLogContext;
+import com.xfjy.server.vo.AdminRelationPageVO;
+import com.xfjy.server.vo.AdminRelationUserVO;
 import com.xfjy.server.vo.ProfileLogVO;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -27,11 +32,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -58,6 +68,17 @@ public class AdminUserService {
 
     @Autowired
     private OperationLogMapper operationLogMapper;
+
+    @Autowired
+    private UserLikeApi userLikeApi;
+
+    /**
+     * 关系链时间格式化：DateTimeFormatter 线程安全，统一 Asia/Shanghai（AGENTS §13.4 禁用 SimpleDateFormat）。
+     */
+    private static final DateTimeFormatter RELATION_TIME_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    private static final ZoneId SHANGHAI_ZONE = ZoneId.of("Asia/Shanghai");
 
     /**
      * 照片墙 JSON 仅含普通字符串，用线程安全的默认 ObjectMapper 单例即可；
@@ -593,6 +614,110 @@ public class AdminUserService {
         vo.setIp(log.getIp());
         vo.setCreatedAt(log.getCreated());
         return vo;
+    }
+
+    /**
+     * 分页查询用户关系链（关注/粉丝/匹配），后台只读排查用。
+     *
+     * <p>关系记录来自 user-service（MongoDB user_like），展示资料由 BFF 用对方 userId 批量回查
+     * tb_user_info 补全（一次 RPC，避免 N+1）。三种 type 的对方字段方向：
+     * 关注=我喜欢的（对方 likeUserId）；粉丝=喜欢我的（对方 userId）；匹配=相互喜欢（对方 userId）。</p>
+     *
+     * @param userId   目标用户 ID
+     * @param type     follow=关注 / fans=粉丝 / match=匹配，非法抛 BusinessException(400)
+     * @param page     页码（1 起）
+     * @param pageSize 每页条数（上限 100）
+     */
+    public AdminRelationPageVO queryUserRelations(Long userId, String type, Integer page, Integer pageSize) {
+        int pageNum = (page == null || page < 1) ? 1 : page;
+        int size = (pageSize == null || pageSize < 1) ? 10 : Math.min(pageSize, 100);
+        RelationType relationType = parseRelationType(type);
+
+        PageInfo<UserLike> relationPage = switch (relationType) {
+            case FOLLOW -> this.userLikeApi.queryLikeList(userId, pageNum, size);
+            case FANS -> this.userLikeApi.queryFanList(userId, pageNum, size);
+            case MATCH -> this.userLikeApi.queryEachLikeList(userId, pageNum, size);
+        };
+        List<UserLike> records = (relationPage == null || relationPage.getRecords() == null)
+                ? Collections.emptyList() : relationPage.getRecords();
+        if (records.isEmpty()) {
+            return new AdminRelationPageVO(0L, Collections.emptyList());
+        }
+
+        List<Long> targetIds = records.stream()
+                .map(item -> relationType == RelationType.FOLLOW ? item.getLikeUserId() : item.getUserId())
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, UserInfo> infoMap = this.loadUserInfoMap(targetIds);
+
+        List<AdminRelationUserVO> list = records.stream()
+                .map(item -> this.toRelationUserVO(item, relationType, infoMap))
+                .collect(Collectors.toList());
+        long total = relationPage.getTotal() == null ? 0L : relationPage.getTotal();
+        return new AdminRelationPageVO(total, list);
+    }
+
+    /** 按 userId 批量查资料并转 Map（一次 RPC 避免 N+1）；查无资料返回空 Map，由调用侧兜底。 */
+    private Map<Long, UserInfo> loadUserInfoMap(List<Long> userIds) {
+        if (userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        UserInfoQueryParam param = new UserInfoQueryParam();
+        param.setUserIds(userIds);
+        List<UserInfo> infoList = this.userInfoApi.queryUserInfoList(param);
+        if (infoList == null || infoList.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return infoList.stream()
+                .filter(info -> info.getUserId() != null)
+                .collect(Collectors.toMap(UserInfo::getUserId, info -> info, (a, b) -> a));
+    }
+
+    /** 关系记录 + 资料 Map 组装列表项；资料缺失时昵称回退「用户{id}」，与 buildUserItem 口径一致。 */
+    private AdminRelationUserVO toRelationUserVO(UserLike item, RelationType type, Map<Long, UserInfo> infoMap) {
+        Long targetId = type == RelationType.FOLLOW ? item.getLikeUserId() : item.getUserId();
+        AdminRelationUserVO vo = new AdminRelationUserVO();
+        vo.setUserId(targetId);
+        UserInfo info = targetId == null ? null : infoMap.get(targetId);
+        if (info != null) {
+            vo.setNickname(StringUtils.isBlank(info.getNickName()) ? "用户" + targetId : info.getNickName());
+            vo.setAvatar(info.getLogo());
+            vo.setGender(info.getSex() != null ? info.getSex().toString() : "未知");
+            vo.setAge(info.getAge());
+            vo.setCity(info.getCity());
+        } else {
+            vo.setNickname("用户" + targetId);
+            vo.setAvatar("");
+            vo.setGender("未知");
+        }
+        if (item.getCreated() != null) {
+            vo.setCreatedAt(RELATION_TIME_FORMATTER.format(
+                    Instant.ofEpochMilli(item.getCreated()).atZone(SHANGHAI_ZONE)));
+        }
+        return vo;
+    }
+
+    /** 解析关系类型，入参空白或不在白名单内统一抛 400（由 GlobalExceptionHandler 处理）。 */
+    private RelationType parseRelationType(String type) {
+        if (StringUtils.isBlank(type)) {
+            throw new BusinessException("关系类型非法，仅支持 follow/fans/match");
+        }
+        try {
+            return RelationType.valueOf(type.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException("关系类型非法，仅支持 follow/fans/match");
+        }
+    }
+
+    /** 关系链类型，name() 即入参 type 的大写形式 */
+    private enum RelationType {
+        /** 关注：我喜欢的人 */
+        FOLLOW,
+        /** 粉丝：喜欢我的人 */
+        FANS,
+        /** 匹配：相互喜欢 */
+        MATCH
     }
 
     /**

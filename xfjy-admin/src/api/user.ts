@@ -142,3 +142,25 @@ export function updateUserProfileApi(id: number, data: AdminProfileUpdate) {
 export function getProfileLogsApi(id: number, params: { page: number; pageSize: number }) {
   return request.get<any, PageResult<ProfileLogItem>>(`/admin/users/${id}/profile-logs`, { params })
 }
+
+/** 关系链类型：follow 关注 / fans 粉丝 / match 匹配 */
+export type RelationType = 'follow' | 'fans' | 'match'
+
+/** 关系链列表项（关注/粉丝/匹配通用） */
+export interface RelationUserItem {
+  userId: number
+  nickname: string
+  avatar: string
+  gender: string
+  age: number
+  city: string
+  createdAt: string
+}
+
+/** 获取用户关系链（关注/粉丝/匹配） */
+export function getUserRelationsApi(
+  id: number,
+  params: { type: RelationType; page: number; pageSize: number }
+) {
+  return request.get<any, PageResult<RelationUserItem>>(`/admin/users/${id}/relations`, { params })
+}

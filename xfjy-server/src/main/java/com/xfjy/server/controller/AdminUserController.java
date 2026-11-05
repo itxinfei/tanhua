@@ -5,6 +5,7 @@ import com.xfjy.server.dto.AdminProfileUpdateDTO;
 import com.xfjy.server.service.AdminUserService;
 import com.xfjy.server.pojo.User;
 import com.xfjy.server.utils.ParamConvertUtils;
+import com.xfjy.server.vo.AdminRelationPageVO;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -247,6 +248,19 @@ public class AdminUserController {
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer pageSize) {
         return ResponseEntity.ok(this.adminUserService.queryProfileLogs(id, page, pageSize));
+    }
+
+    /**
+     * 查询用户关系链（关注/粉丝/匹配），供后台排查关系异常。
+     * type 非法由 GlobalExceptionHandler 统一返回 400；类上 {@code @RequireRole} 已限定 SUPER_ADMIN/ADMIN。
+     */
+    @GetMapping("{id}/relations")
+    public ResponseEntity<AdminRelationPageVO> queryUserRelations(
+            @PathVariable("id") Long id,
+            @RequestParam String type,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer pageSize) {
+        return ResponseEntity.ok(this.adminUserService.queryUserRelations(id, type, page, pageSize));
     }
 
     /**

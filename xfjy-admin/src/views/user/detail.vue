@@ -179,6 +179,51 @@
           </div>
         </el-tab-pane>
 
+        <!-- 关系链（关注/粉丝/匹配，只读） -->
+        <el-tab-pane label="关系链" name="relations">
+          <div v-if="detail" v-loading="relationLoading" class="tab-content">
+            <el-radio-group v-model="relationType" size="small" @change="onRelationTypeChange">
+              <el-radio-button value="follow">关注</el-radio-button>
+              <el-radio-button value="fans">粉丝</el-radio-button>
+              <el-radio-button value="match">匹配</el-radio-button>
+            </el-radio-group>
+            <el-table :data="relationList" stripe size="small" class="relation-table">
+              <el-table-column label="头像" width="72">
+                <template #default="{ row }">
+                  <el-avatar :size="36" :src="row.avatar || undefined">{{ (row.nickname || '?').slice(0, 1) }}</el-avatar>
+                </template>
+              </el-table-column>
+              <el-table-column prop="nickname" label="昵称" min-width="120" show-overflow-tooltip />
+              <el-table-column label="性别" width="72" align="center">
+                <template #default="{ row }">
+                  <el-tag :type="row.gender === '女' ? 'danger' : 'primary'" size="small">{{ row.gender }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="age" label="年龄" width="70" align="center" />
+              <el-table-column prop="city" label="城市" width="110" show-overflow-tooltip />
+              <el-table-column label="关注时间" width="150">
+                <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
+              </el-table-column>
+              <el-table-column label="操作" width="92" align="center" fixed="right">
+                <template #default="{ row }">
+                  <el-button link type="primary" size="small" @click="viewRelationUser(row.userId)">查看详情</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            <div v-if="relationList.length" class="pagination-wrapper">
+              <el-pagination
+                v-model:current-page="relationQuery.page"
+                v-model:page-size="relationQuery.pageSize"
+                :total="relationTotal"
+                :page-sizes="[10, 20]"
+                layout="total, prev, pager, next"
+                @current-change="loadRelations"
+              />
+            </div>
+            <el-empty v-if="!relationList.length && !relationLoading" :description="relationEmptyText" :image-size="50" />
+          </div>
+        </el-tab-pane>
+
         <!-- 数据统计 -->
         <el-tab-pane label="数据统计" name="stats">
           <div v-if="detail" class="tab-content">
@@ -431,8 +476,17 @@ import {
   getUserChatMessagesApi,
   updateUserProfileApi,
   getProfileLogsApi,
+  getUserRelationsApi,
 } from '@/api/user'
-import type { UserDetail, ChatSession, ChatMessage, AdminProfileUpdate, ProfileLogItem } from '@/api/user'
+import type {
+  UserDetail,
+  ChatSession,
+  ChatMessage,
+  AdminProfileUpdate,
+  ProfileLogItem,
+  RelationUserItem,
+  RelationType,
+} from '@/api/user'
 import { uploadImageApi } from '@/api/upload'
 import { formatDateTime } from '@/utils/format'
 import { getMovementPageApi, type MovementItem } from '@/api/movement'
@@ -447,6 +501,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
+  'view-user': [id: number]
 }>()
 
 // 响应式：移动端抽屉全宽
@@ -887,6 +942,49 @@ async function loadProfileLogs() {
   }
 }
 
+// ── 关系链（关注/粉丝/匹配，只读） ──
+const relationType = ref<RelationType>('follow')
+const relationList = ref<RelationUserItem[]>([])
+const relationTotal = ref(0)
+const relationLoading = ref(false)
+const relationQuery = reactive({ page: 1, pageSize: 10 })
+
+const relationEmptyText = computed(() => {
+  if (relationType.value === 'fans') return '暂无粉丝'
+  if (relationType.value === 'match') return '暂无匹配'
+  return '暂未关注任何人'
+})
+
+async function loadRelations() {
+  if (!props.userId) return
+  relationLoading.value = true
+  try {
+    const res = await getUserRelationsApi(props.userId, {
+      type: relationType.value,
+      page: relationQuery.page,
+      pageSize: relationQuery.pageSize,
+    })
+    relationList.value = res.list || []
+    relationTotal.value = res.total
+  } catch {
+    relationList.value = []
+    relationTotal.value = 0
+  } finally {
+    relationLoading.value = false
+  }
+}
+
+/** 切换关系类型：回到第一页并重新加载 */
+function onRelationTypeChange() {
+  relationQuery.page = 1
+  loadRelations()
+}
+
+/** 查看关系对方详情：通知父组件切换抽屉用户 */
+function viewRelationUser(id: number) {
+  emit('view-user', id)
+}
+
 // ── 抽屉打开时加载数据，tab 切换时按需懒加载 ──
 const loadedTabs = ref<Set<string>>(new Set())
 
@@ -920,6 +1018,8 @@ watch(activeTab, async (tab) => {
   } else if (tab === 'profile-edit') {
     fillProfileForm()
     await loadProfileLogs()
+  } else if (tab === 'relations') {
+    await loadRelations()
   }
 })
 </script>
@@ -936,6 +1036,10 @@ watch(activeTab, async (tab) => {
 
 .tab-content {
   min-height: 200px;
+}
+
+.relation-table {
+  margin-top: var(--xfjy-space-3);
 }
 
 /* 基本信息 */

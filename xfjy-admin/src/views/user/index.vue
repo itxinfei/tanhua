@@ -140,7 +140,7 @@
     </el-dialog>
 
     <!-- 用户详情抽屉 -->
-    <UserDetailDrawer v-model="detailVisible" :user-id="detailUserId" />
+    <UserDetailDrawer v-model="detailVisible" :user-id="detailUserId" @view-user="goDetail" />
   </div>
 </template>
 
