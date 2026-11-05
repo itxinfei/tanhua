@@ -2,6 +2,8 @@
 
 格式：日期 | 模块 | 更新内容 | 开发者
 
+2026-11-05 | xfjy-sso | **安全加固：sso 纳入 X-Internal-Token 内部鉴权体系**：sso 此前未依赖 xfjy-api，其全部端点（含新增 /internal/user/* 管理操作）缺少 XInternalTokenInterceptor 保护。现于 sso pom 增加 xfjy-api 依赖（版本由父 POM 统一管理），并在 application.yml 补 internal.auth.tokens（与网关/BFF 同源 dev token），由 InternalTokenAutoConfiguration 自动激活拦截器，对 /** 校验 X-Internal-Token。至此 10 个模块均依赖 xfjy-api，内部 token 拦截器全链路一致生效。复核：BFF 注入头实际为 X-Internal-Token（与网关、拦截器一致），不存在 ln 头不一致问题。验证：mvn -o -DskipTests compile -pl xfjy-sso -am EXIT=0 | 开发者：AI
+
 2026-11-05 | xfjy-sso + xfjy-server + xfjy-api | **修复 §3 数据归属违规：tb_user 被 BFF 与 sso 双写**：sso UserService 新增 freezeUser/unfreezeUser/resetPassword/deactivateUser 并暴露 /internal/user/* 内部端点（非 /user 前缀，网关不路由，仅 BFF 经内部网络可达）；xfjy-api 新增 UserApi 契约；xfjy-server HttpServiceProxyConfig 增加 ssoServiceProxyFactory 与 userApi，AdminUserService 与 UsersService.logoff 改为调用 userApi，移除 BFF 对 tb_user 的全部 userMapper 写点。安全：sso 未依赖 xfjy-api 故内部 token 拦截器未生效，以网关未路由路径做隔离；X-Internal-Token 与 ln 头不一致为平台既有技术债，另立项。验证：BFF userMapper 写点 0 命中；mvn -o -DskipTests compile -pl xfjy-sso,xfjy-server -am EXIT=0 | 开发者：AI
 
 2026-11-05 | 全仓（§3 数据归属审计） | **执行 AGENTS.md §3 按表数据归属审计并产出报告**：①MySQL tb_user 被 xfjy-sso（注册/登录/清理）与 xfjy-server（BFF 的 AdminUserService/UsersService 经 UserMapper.updateById）双写，违反「一张表只能有一个写入方」「BFF 禁止为领域服务补写业务表」；根因为 xfjy-api 无供 BFF 委托的用户写 API（仅有 RecommendUserApi），BFF 被迫直写（详见 docs/数据归属审计-2026-11-05.md，待补 UserApi 后修复）。②其余 MySQL 表与全部 MongoDB 集合（xfjy_users/user_location/quanzi_*/video/user_like/follow_user/visitors/recommend_user/user_behavior/user_feature）写入方单一，符合 §3。③修正 §3 强制校验命令误报：原命令会命中 AdminVipService 的 Javadoc 注释，改为管道排除注释行后应为 0 命中。报告：docs/数据归属审计-2026-11-05.md | 开发者：AI

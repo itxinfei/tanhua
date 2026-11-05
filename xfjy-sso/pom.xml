@@ -53,6 +53,13 @@
             <artifactId>mysql-connector-j</artifactId>
         </dependency>
 
+        <!-- 共享 API（含内部 token 拦截器自动装配，使 sso 端点受 X-Internal-Token 保护） -->
+        <dependency>
+            <groupId>cn.xfjy</groupId>
+            <artifactId>xfjy-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- 工具 -->
         <dependency>
             <groupId>org.apache.commons</groupId>
