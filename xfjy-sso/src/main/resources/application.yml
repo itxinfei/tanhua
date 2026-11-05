@@ -16,6 +16,8 @@ spring:
         # CI/容器打包由 deploy/application-local.ci.yml 覆盖为 true；本地需参与服务发现时
         # 在 application-local.yml 里显式设回 true。
         register-enabled: false
+  profiles:
+    active: local
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://192.168.20.133:3306/xfjy?useUnicode=true&characterEncoding=utf8&autoReconnect=true&allowMultiQueries=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai

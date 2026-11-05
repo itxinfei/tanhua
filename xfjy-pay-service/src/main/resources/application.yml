@@ -16,6 +16,8 @@ spring:
         # CI/容器打包由 deploy/application-local.ci.yml 覆盖为 true；本地需参与服务发现时
         # 在 application-local.yml 里显式设回 true。
         register-enabled: false
+  profiles:
+    active: local
   data:
     redis:
       host: 192.168.20.133
