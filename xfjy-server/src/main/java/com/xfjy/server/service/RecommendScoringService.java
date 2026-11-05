@@ -270,6 +270,11 @@ public class RecommendScoringService {
 
     private Map<Long, UserLocationVo> loadLocations(UserLocationVo center) {
         try {
+            // 中心点缺失或经纬度不全时无法做附近召回，直接降级；否则 null 作为 @RequestParam 入参
+            // 会在 HTTP Interface 层抛 IllegalArgumentException: Missing request parameter value
+            if (center == null || center.getLongitude() == null || center.getLatitude() == null) {
+                return Collections.emptyMap();
+            }
             List<UserLocationVo> list = esUserLocationApi.queryUserFromLocation(
                     center.getLongitude(), center.getLatitude(), GEO_QUERY_RANGE_KM);
             if (CollectionUtils.isEmpty(list)) {
