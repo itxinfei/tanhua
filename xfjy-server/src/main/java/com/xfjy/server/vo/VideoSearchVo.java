@@ -35,6 +35,6 @@ public class VideoSearchVo {
     /** 点赞数 */
     private Integer likeCount;
 
-    /** 播放量（暂无采集字段，返回 null） */
+    /** 播放量（Mongo 落库计数，历史数据无该字段时按 0 返回） */
     private Long playCount;
 }

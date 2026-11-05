@@ -8,8 +8,7 @@ import lombok.NoArgsConstructor;
  * 视频搜索结果条目（跨服务传输对象）
  *
  * <p>字段为 BFF 与前端搜索页的最小共识：标题、封面、作者、点赞数。
- * 播放量（playCount）在 video 集合中无对应字段，保持 null 表示"暂未采集"，
- * 不使用 0 冒充真实数据。</p>
+ * 播放量（playCount）已落库计数，历史数据无该字段时按 0 返回。</p>
  */
 @Data
 @NoArgsConstructor
@@ -39,6 +38,6 @@ public class VideoSearchItem implements java.io.Serializable {
     /** 点赞数（Redis 点赞计数快照） */
     private Integer likeCount;
 
-    /** 播放量（当前无采集字段，固定 null） */
+    /** 播放量（Mongo 落库计数，历史数据无该字段时按 0 返回） */
     private Long playCount;
 }
