@@ -27,6 +27,22 @@ if [ "$MAX_MAP" -lt 262144 ]; then
     echo 'vm.max_map_count = 262144' | sudo tee -a /etc/sysctl.conf >/dev/null
 fi
 
+# 1.5 防火墙放行 docker 私有网段（容器经宿主 IP 访问映射端口的前置）
+# 部署机由宝塔面板管理，ufw（宝塔防火墙服务接管）默认 INPUT DROP，会拦截 docker 网桥的
+# hairpin 流量，导致容器内用宿主 IP+端口连中间件/应用超时，而宿主机自测却正常（[UFW BLOCK] IN=br-xxxx）。
+# 放行 172.16.0.0/12 覆盖全部 docker 网络（现有 172.17~21）；仅对容器私有源 IP 生效，
+# 不影响外部主机/公网的默认 DROP。幂等：规则已存在则跳过。也可在宝塔面板「安全」中配置同段放行。
+if command -v ufw >/dev/null 2>&1 && sudo ufw status 2>/dev/null | grep -q "Status: active"; then
+  if sudo ufw status 2>/dev/null | grep -q "172.16.0.0/12"; then
+    log "ufw 已放行 docker 私有网段 172.16.0.0/12，跳过"
+  else
+    log "放行 docker 私有网段 172.16.0.0/12（容器→宿主 IP hairpin 前置）"
+    sudo ufw allow from 172.16.0.0/12 comment 'docker private networks: host IP access from containers'
+  fi
+else
+  warn "未检测到 active 的 ufw，跳过防火墙放行；若容器经宿主 IP 连接超时，请在宝塔/防火墙人工放行 172.16.0.0/12"
+fi
+
 # 2. 启动全部容器
 log "启动中间件容器（首次拉镜像较慢）..."
 docker compose -f "$COMPOSE_FILE" up -d

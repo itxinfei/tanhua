@@ -105,6 +105,9 @@ Copilot / Serena / Trae）开工前必须读完本文件。
 - MongoDB 必须写 `spring.mongodb.uri`；Redis/DataSource 前缀不变。
 - 新增环境变量必须同步部署变量表与 `deploy/.env.example`（若不存在则先建）。
 - Nacos 只用于发现；禁止引入配置中心。
+- **服务间连接统一用宿主机 IP+端口（2026-11-05 裁决，硬约束）**：容器编排（`docker-compose*.yml`、部署 `.env`）中所有 `*_HOST`/`*_URL`/`*_URIS`（MySQL/Redis/Mongo/ES/Nacos/RocketMQ/MinIO/WuKongIM 及自研应用互调如 `ES_SERVER_URL`）一律写**宿主机 LAN IP 的映射端口**（如 `192.168.20.133:3306`、`http://192.168.20.133:18088/`），**禁止用 docker 容器服务名（如 `xfjy-elasticsearch`）或容器 IP（`172.x`）**。理由：寻址口径统一、配置在容器外可读可排查、迁移到非容器/混合部署无需改地址。本地裸机开发（非容器）仍用 `127.0.0.1`，本条只约束容器编排。
+  - 运维环境：部署机 `192.168.20.133` 由**宝塔面板**（宿主机直装，面板端口 8888）管理；系统防火墙 ufw 由宝塔防火墙服务 `BT-FirewallServices` 接管，`DEFAULT_INPUT_POLICY=DROP`。
+  - 前置条件：容器经宿主 IP 访问映射端口走 hairpin，ufw 默认拦截 docker 网桥入站。**必须放行 docker 私有网段 `172.16.0.0/12`**（覆盖现有 172.17~21 全部 docker 网络），规则固化在 `deploy/setup.sh`，亦可在宝塔面板「安全」中配置；仅对容器私有源 IP 生效，不影响外部主机/公网的默认 DROP 防护。未放行的典型现象：宿主机自测 `127.0.0.1:<端口>` 通、容器内访问宿主 IP:<端口> 连接超时，内核日志 `[UFW BLOCK] IN=br-xxxx`（2026-11-05 18088 即此因，9200 因历史已放行而正常）。
 
 校验：`rg -n "\$\{[A-Z_]+:" --glob "xfjy-*/src/main/resources/*.yml"` → 0；
 `rg -n "spring.data.mongodb" --glob "*.yml"` → 0
