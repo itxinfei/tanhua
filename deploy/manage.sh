@@ -314,10 +314,31 @@ main() {
       #   根因教训（2026-11-01）：up -d 只重建配置变化的容器，镜像内容变了
       #   但配置没变时不重建 → 旧容器残留跑旧 jar（如 /small-videos 404 事件）。
       #   force-recreate 配合 IMAGE_TAG 注入，确保每次部署都用新镜像。
+      # --wait --wait-timeout 240：等待容器 healthy（Spring Boot 冷启动最多 4 分钟），
+      #   避免「容器 Starting 后 CI 立刻返回、失败原因被日志截断」导致无法诊断
+      #   （2026-11-05 run #203 部署失败无日志的根因）。
+      #   注意：--wait 要求 compose 文件内服务有 healthcheck；无 healthcheck 的
+      #   recommend/elasticsearch 会被视为 running 即通过。
       resolve_targets "$@"
       stage_contexts
-      run_compose "up -d --build --force-recreate" app
-      run_compose "up -d --build --force-recreate" web
+      run_compose "up -d --build --force-recreate --wait --wait-timeout 240" app || {
+        echo "[ERROR] 后端服务启动失败，容器状态："
+        docker compose -p "${APP_PROJECT}" -f "${APP_COMPOSE}" ps
+        echo "---- 失败容器日志（最近 80 行）----"
+        for c in $(docker ps -a --filter "name=xfjy-" --format "{{.Names}}" | head -20); do
+          status=$(docker inspect --format "{{.State.Status}}" "${c}" 2>/dev/null || echo "unknown")
+          echo ">> ${c} 状态=${status}"
+          if [ "${status}" != "running" ] && [ "${status}" != "exited" ]; then
+            docker logs --tail 40 "${c}" 2>&1 | tail -40
+          fi
+        done
+        exit 1
+      }
+      run_compose "up -d --build --force-recreate --wait --wait-timeout 240" web || {
+        echo "[ERROR] 前端服务启动失败，容器状态："
+        docker compose -p "${WEB_PROJECT}" -f "${WEB_COMPOSE}" ps
+        exit 1
+      }
       ok "部署完成：${APP_TARGETS[*]} ${WEB_TARGETS[*]}"
       ;;
     status|ps)

@@ -225,6 +225,9 @@ jobs:
       #          旧方式在 Docker build 内 npm ci，构建容器吃不到缓存卷，每次 3-8 分钟。
       - name: 构建前端
         if: ${{ env.SKIP_CI != 'true' && success() }}
+        # 超时 20 分钟：正常构建 3-8 分钟，20 分钟足够覆盖网络抖动；
+        # 超时即失败，避免像 2026-11-05 run #203 那样卡 9.5 小时占住构建锁
+        timeout-minutes: 20
         run: |
           set -e
           cd /ci
@@ -362,6 +365,31 @@ jobs:
             logs)        bash deploy/manage.sh logs ${TARGETS} ;;
             *) echo "[ERROR] 未知 action: ${ACTION}"; exit 1 ;;
           esac
+
+      # ── 部署失败诊断（仅失败时执行，输出容器状态与日志） ──
+      # 根因：2026-11-05 run #203 部署失败时日志在 Container Starting 处截断，
+      #       看不到具体哪个容器失败。此步骤在部署失败后立即输出诊断信息。
+      - name: 部署失败诊断
+        if: ${{ failure() }}
+        run: |
+          cd /ci
+          echo "==== 后端容器状态 ===="
+          docker compose -p xfjy -f deploy/docker-compose.app.yml ps 2>&1 || true
+          echo "==== 前端容器状态 ===="
+          docker compose -p xfjy-web -f deploy/docker-compose.web.yml ps 2>&1 || true
+          echo "==== 失败容器日志（最近 60 行）===="
+          for c in $(docker ps -a --filter "name=xfjy-" --format "{{.Names}}"); do
+            status=$(docker inspect --format "{{.State.Status}}" "${c}" 2>/dev/null || echo "unknown")
+            exit_code=$(docker inspect --format "{{.State.ExitCode}}" "${c}" 2>/dev/null || echo "?")
+            echo ">> ${c} status=${status} exit=${exit_code}"
+            if [ "${status}" = "exited" ] && [ "${exit_code}" != "0" ]; then
+              echo "---- ${c} 日志 ----"
+              docker logs --tail 60 "${c}" 2>&1 | tail -60
+            fi
+          done
+          echo "==== 宿主机资源 ===="
+          free -h 2>/dev/null || true
+          df -h / 2>/dev/null || true
 
       # ── 部署成功后轮换 tag 记录（供 ops rollback 用） ──────
       # 只在部署成功后落笔：失败/取消的 run 不会污染 current/previous
