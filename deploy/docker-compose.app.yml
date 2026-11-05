@@ -58,6 +58,9 @@ x-common-env: &common-env
   WUKONGIM_API_HOST: ${WUKONGIM_API_HOST:-http://192.168.20.133:5001}
   # 域服务内部鉴权 Token（生产须替换为高强度随机值）
   INTERNAL_AUTH_TOKENS: ${INTERNAL_AUTH_TOKENS:-xfjy-internal-dev-token-change-in-prod}
+  # 网关 CORS 白名单：逗号分隔的前端来源（H5 5173 / admin 5174 / 生产域名）。
+  # 必须与实际访问地址一致，否则浏览器预检 403（见 CorsConfig.java）。
+  CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:5174,http://192.168.20.133:5173,http://192.168.20.133:5174}
 
 services:
 

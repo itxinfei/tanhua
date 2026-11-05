@@ -17,9 +17,23 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 @Configuration
 public class CorsConfig {
 
-    /** 受信任前端域名白名单（逗号分隔）；生产通过部署注入，禁止 * 通配 */
+    /**
+     * 受信任前端域名白名单（逗号分隔）；生产通过部署注入，禁止 * 通配。
+     * 优先读环境变量 CORS_ALLOWED_ORIGINS（部署注入），未配置时回退到 application.yml 中的值。
+     * 注意：AGENTS.md §6 禁止 ${VAR:default} 占位符，故此处用代码读取环境变量，
+     * application.yml 中保持明文默认值。
+     */
     @Value("${cors.allowed-origins:http://localhost:5173,http://localhost:5174}")
     private List<String> allowedOrigins;
+
+    /** 环境变量覆盖：部署时注入 CORS_ALLOWED_ORIGINS，优先于 application.yml */
+    @jakarta.annotation.PostConstruct
+    public void initOriginsFromEnv() {
+        String envOrigins = System.getenv("CORS_ALLOWED_ORIGINS");
+        if (envOrigins != null && !envOrigins.isBlank()) {
+            this.allowedOrigins = java.util.Arrays.asList(envOrigins.split(","));
+        }
+    }
 
     @Bean
     public CorsWebFilter corsWebFilter() {
