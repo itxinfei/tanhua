@@ -185,7 +185,8 @@ public class HttpServiceProxyConfig {
         // 1. 静态 URL 优先（本地开发/指定地址场景）
         String staticUrl = staticUrls.get(serviceId);
         if (staticUrl != null) {
-            var builder = applyNotFoundSilence(newBuilder().requestFactory(DownstreamRequestFactory.create())).baseUrl(staticUrl);
+            // newBuilder() 内部已设置 DownstreamRequestFactory，此处无需重复调用 requestFactory()
+            var builder = applyNotFoundSilence(newBuilder()).baseUrl(staticUrl);
             if (!this.internalAuthToken.isEmpty()) {
                 builder.defaultHeader("X-Internal-Token", this.internalAuthToken);
             }

@@ -22,12 +22,12 @@ import com.xfjy.server.vo.PicUploadResult;
 import com.xfjy.server.vo.VisitorsVo;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class MovementsService {
@@ -172,7 +172,8 @@ public class MovementsService {
     private List<Movements> fillValueToMovements(List<Publish> records) {
         User user = UserThreadLocal.get();
         List<Movements> movementsList = new ArrayList<>();
-        List<Long> userIds = new ArrayList<>();
+        // LinkedHashSet 去重：add() O(1)，替代 List.contains() O(n) 逐条扫描
+        Set<Long> userIds = new LinkedHashSet<>();
 
         // 查询当前登录用户地理位置，用于计算与发布者的真实距离（一次查询，循环内复用）
         UserLocationVo viewerLocation = null;
@@ -209,9 +210,7 @@ public class MovementsService {
             movements.setId(record.getId().toHexString());
             movements.setUserId(record.getUserId());
 
-            if (!userIds.contains(record.getUserId())) {
-                userIds.add(record.getUserId());
-            }
+            userIds.add(record.getUserId());
 
             // user 可能为 null（未登录访问），用 -1 占位构造 key，保证 key 格式一致且不 NPE
             Long viewerId = user == null ? -1L : user.getId();
@@ -283,7 +282,7 @@ public class MovementsService {
 
 
         UserInfoQueryParam queryParam = new UserInfoQueryParam();
-        queryParam.setUserIds(userIds);
+        queryParam.setUserIds(new ArrayList<>(userIds)); // Set → List（setUserIds 签名要求）
         List<UserInfo> userInfoList;
         try {
             userInfoList = this.userInfoApi.queryUserInfoList(queryParam);
@@ -296,24 +295,26 @@ public class MovementsService {
         if (CollectionUtils.isEmpty(userInfoList)) {
             return movementsList;
         }
+        // 嵌套循环匹配改 Map 查找：O(n×m) → O(n)，行为等价
+        Map<Long, UserInfo> userInfoMap = userInfoList.stream()
+                .filter(u -> u != null && u.getUserId() != null)
+                .collect(Collectors.toMap(UserInfo::getUserId, u -> u, (a, b) -> a));
         for (Movements movements : movementsList) {
-            for (UserInfo userInfo : userInfoList) {
-                if (userInfo != null && userInfo.getUserId() != null && movements.getUserId() != null
-                        && movements.getUserId().longValue() == userInfo.getUserId().longValue()) {
-
-                    // 修改点：动态级话题标签优先（发布页勾选）；无则回退作者资料标签（兼容历史动态）
-                    String[] movementTags = movementTagsMap.get(movements.getId());
-                    movements.setTags(movementTags != null
-                            ? movementTags
-                            : StringUtils.split(userInfo.getTags(), ','));
-                    movements.setNickname(userInfo.getNickName());
-                    // 性别可能未填写（null），兜底空串避免 NPE
-                    movements.setGender(userInfo.getSex() == null ? "" : userInfo.getSex().name().toLowerCase());
-                    movements.setAvatar(userInfo.getLogo());
-                    movements.setAge(userInfo.getAge());
-
-                    break;
-                }
+            if (movements.getUserId() == null) {
+                continue;
+            }
+            UserInfo userInfo = userInfoMap.get(movements.getUserId());
+            if (userInfo != null) {
+                // 修改点：动态级话题标签优先（发布页勾选）；无则回退作者资料标签（兼容历史动态）
+                String[] movementTags = movementTagsMap.get(movements.getId());
+                movements.setTags(movementTags != null
+                        ? movementTags
+                        : StringUtils.split(userInfo.getTags(), ','));
+                movements.setNickname(userInfo.getNickName());
+                // 性别可能未填写（null），兜底空串避免 NPE
+                movements.setGender(userInfo.getSex() == null ? "" : userInfo.getSex().name().toLowerCase());
+                movements.setAvatar(userInfo.getLogo());
+                movements.setAge(userInfo.getAge());
             }
         }
 
@@ -488,23 +489,28 @@ public class MovementsService {
         if (CollectionUtils.isEmpty(userInfoList)) {
             return result;
         }
+        // 嵌套循环匹配改 Map 查找：O(n×m) → O(n)，行为等价
+        Map<Long, UserInfo> userInfoMap = userInfoList.stream()
+                .filter(u -> u != null && u.getUserId() != null)
+                .collect(Collectors.toMap(UserInfo::getUserId, u -> u, (a, b) -> a));
         for (Visitors visitor : visitors) {
-            for (UserInfo userInfo : userInfoList) {
-                if (userInfo != null && visitor.getVisitorUserId() != null
-                        && visitor.getVisitorUserId().longValue() == userInfo.getUserId().longValue()){
-                    VisitorsVo visitorsVo = new VisitorsVo();
+            if (visitor.getVisitorUserId() == null) {
+                continue;
+            }
+            UserInfo userInfo = userInfoMap.get(visitor.getVisitorUserId());
+            if (userInfo != null) {
+                VisitorsVo visitorsVo = new VisitorsVo();
 
-                    visitorsVo.setAge(userInfo.getAge());
-                    visitorsVo.setAvatar(userInfo.getLogo());
-                    visitorsVo.setGender(userInfo.getSex().name().toLowerCase());
-                    visitorsVo.setId(userInfo.getUserId());
-                    visitorsVo.setNickname(userInfo.getNickName());
-                    visitorsVo.setTags(StringUtils.split(userInfo.getTags(), ','));
-                    visitorsVo.setFateValue(visitor.getScore().intValue());
+                visitorsVo.setAge(userInfo.getAge());
+                visitorsVo.setAvatar(userInfo.getLogo());
+                // 性别可能未填写（null），兜底空串避免 NPE（对齐 fillValueToMovements 写法）
+                visitorsVo.setGender(userInfo.getSex() == null ? "" : userInfo.getSex().name().toLowerCase());
+                visitorsVo.setId(userInfo.getUserId());
+                visitorsVo.setNickname(userInfo.getNickName());
+                visitorsVo.setTags(StringUtils.split(userInfo.getTags(), ','));
+                visitorsVo.setFateValue(visitor.getScore().intValue());
 
-                    result.add(visitorsVo);
-                    break;
-                }
+                result.add(visitorsVo);
             }
         }
 

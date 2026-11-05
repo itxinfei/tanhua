@@ -40,6 +40,7 @@ import com.xfjy.server.graph.Neo4jClient;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class IMService {
@@ -187,13 +188,15 @@ public class IMService {
             List<UserInfo> userInfoList = this.userInfoApi.queryUserInfoList(queryParam);
 
             // 按 userId（业务ID）配对，资料表自增主键 id 不是用户ID
+            // 嵌套循环匹配改 Map 查找：O(n×m) → O(n)，外层仍按 friendIds 顺序遍历，行为等价
             if (!CollectionUtils.isEmpty(userInfoList)) {
+                Map<Long, UserInfo> userInfoMap = userInfoList.stream()
+                        .filter(u -> u != null && u.getUserId() != null)
+                        .collect(Collectors.toMap(UserInfo::getUserId, u -> u, (a, b) -> a));
                 for (Long friendId : friendIds) {
-                    for (UserInfo userInfo : userInfoList) {
-                        if (userInfo.getUserId() != null && userInfo.getUserId().longValue() == friendId.longValue()) {
-                            contactsList.add(toContacts(userInfo));
-                            break;
-                        }
+                    UserInfo userInfo = userInfoMap.get(friendId);
+                    if (userInfo != null) {
+                        contactsList.add(toContacts(userInfo));
                     }
                 }
             }
@@ -219,7 +222,7 @@ public class IMService {
         contacts.setCity(StringUtils.substringBefore(userInfo.getCity(), "-"));
         contacts.setUserId(userInfo.getUserId().toString());
         contacts.setNickname(userInfo.getNickName());
-        contacts.setGender(userInfo.getSex().name().toLowerCase());
+        contacts.setGender(userInfo.getSex() == null ? "" : userInfo.getSex().name().toLowerCase());
         contacts.setAvatar(userInfo.getLogo());
         contacts.setAge(userInfo.getAge());
         return contacts;
@@ -267,21 +270,24 @@ public class IMService {
             pageResult.setItems(messageLikeList);
             return pageResult;
         }
+        // 嵌套循环匹配改 Map 查找：O(n×m) → O(n)，行为等价
+        Map<Long, UserInfo> userInfoMap = userInfoList.stream()
+                .filter(u -> u != null && u.getUserId() != null)
+                .collect(Collectors.toMap(UserInfo::getUserId, u -> u, (a, b) -> a));
         for (Comment record : records) {
-            for (UserInfo userInfo : userInfoList) {
-                if (userInfo.getUserId() != null && record.getUserId() != null
-                        && userInfo.getUserId().longValue() == record.getUserId().longValue()) {
+            if (record.getUserId() == null) {
+                continue;
+            }
+            UserInfo userInfo = userInfoMap.get(record.getUserId());
+            if (userInfo != null) {
+                MessageLike messageLike = new MessageLike();
+                messageLike.setId(record.getId().toHexString());
+                messageLike.setAvatar(userInfo.getLogo());
+                messageLike.setNickname(userInfo.getNickName());
+                messageLike.setUserId(record.getUserId());
+                messageLike.setCreateDate(LocalDateTime.ofInstant(Instant.ofEpochMilli(record.getCreated()), ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
 
-                    MessageLike messageLike = new MessageLike();
-                    messageLike.setId(record.getId().toHexString());
-                    messageLike.setAvatar(userInfo.getLogo());
-                    messageLike.setNickname(userInfo.getNickName());
-                    messageLike.setUserId(record.getUserId());
-                    messageLike.setCreateDate(LocalDateTime.ofInstant(Instant.ofEpochMilli(record.getCreated()), ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
-
-                    messageLikeList.add(messageLike);
-                    break;
-                }
+                messageLikeList.add(messageLike);
             }
         }
 

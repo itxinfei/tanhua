@@ -16,7 +16,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -79,21 +79,20 @@ public class UserLikeApiImpl implements UserLikeApi {
     @Override
     @GetMapping("/queryEachLikeCount")
     public Long queryEachLikeCount(@RequestParam("userId") Long userId) {
-        // 思路：
-
-        // 查询我的喜欢列表
+        // 查询我的喜欢列表（仅投影 likeUserId，避免全文档加载）
         Query query = Query.query(Criteria.where("userId").is(userId));
+        query.fields().include("likeUserId");
         List<UserLike> userLikes = this.mongoTemplate.find(query, UserLike.class);
 
-        // 收集到我的喜欢列表中的用户id（对方）
-        List<Long> likeUserIds = new ArrayList<>();
-        for (UserLike userLike : userLikes) {
-            likeUserIds.add(userLike.getLikeUserId());
+        if (userLikes.isEmpty()) {
+            return 0L;
         }
 
-        // 在我的喜欢列表范围内，查询喜欢我的人有哪些
-        Query query2 = Query.query(Criteria.where("userId").in(likeUserIds).and("likeUserId").is(userId));
+        // 收集我的喜欢对象 id
+        List<Long> likeUserIds = userLikes.stream().map(UserLike::getLikeUserId).toList();
 
+        // 在我的喜欢范围内，查询也喜欢我的人（互相喜欢）
+        Query query2 = Query.query(Criteria.where("userId").in(likeUserIds).and("likeUserId").is(userId));
         return this.mongoTemplate.count(query2, UserLike.class);
     }
 
@@ -115,17 +114,21 @@ public class UserLikeApiImpl implements UserLikeApi {
                                                 @RequestParam("page") Integer page,
                                                 @RequestParam("pageSize") Integer pageSize) {
 
-        // 查询我的喜欢列表
+        // 查询我的喜欢列表（仅投影 likeUserId，避免全文档加载）
         Query query = Query.query(Criteria.where("userId").is(userId));
+        query.fields().include("likeUserId");
         List<UserLike> userLikes = this.mongoTemplate.find(query, UserLike.class);
 
-        // 收集到我的喜欢列表中的用户id（对方）
-        List<Long> likeUserIds = new ArrayList<>();
-        for (UserLike userLike : userLikes) {
-            likeUserIds.add(userLike.getLikeUserId());
+        if (userLikes.isEmpty()) {
+            int p = (page == null || page < 1) ? 1 : page;
+            int size = (pageSize == null || pageSize < 1) ? 10 : pageSize;
+            return new PageInfo<>(0, p, size, 0, Collections.emptyList());
         }
 
-        // 在我的喜欢列表范围内，查询喜欢我的人有哪些
+        // 收集我的喜欢对象 id
+        List<Long> likeUserIds = userLikes.stream().map(UserLike::getLikeUserId).toList();
+
+        // 在我的喜欢范围内，查询也喜欢我的人（互相喜欢）
         Query query2 = Query.query(Criteria.where("userId").in(likeUserIds).and("likeUserId").is(userId));
         return this.queryList(query2, page, pageSize);
     }

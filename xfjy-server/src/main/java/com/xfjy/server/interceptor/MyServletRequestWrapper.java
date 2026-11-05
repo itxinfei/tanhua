@@ -125,8 +125,10 @@ public class MyServletRequestWrapper extends HttpServletRequestWrapper {
 
         @Override
         public void close() throws IOException {
+            // 仅标记已读完，不置 body=null：
+            // 置 null 后若容器/框架再调 isFinished()/read()/available() 会 NPE；
+            // 且外部类 MyServletRequestWrapper.body 仍持有数组引用，置 null 无 GC 收益
             lastIndexRetrieved = body.length - 1;
-            body = null;
         }
     }
 }

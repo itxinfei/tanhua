@@ -127,7 +127,7 @@ public class TodayBestService {
         if (null != userInfo) {
             todayBest.setAge(userInfo.getAge());
             todayBest.setAvatar(userInfo.getLogo());
-            todayBest.setGender(userInfo.getSex().name().toLowerCase());
+            todayBest.setGender(userInfo.getSex() == null ? "" : userInfo.getSex().name().toLowerCase());
             todayBest.setNickname(userInfo.getNickName());
             todayBest.setTags(StringUtils.split(userInfo.getTags(), ','));
         }
@@ -177,6 +177,9 @@ public class TodayBestService {
 
         //需要查询用户的信息，并且按照条件查询
         List<UserInfo> userInfos = this.userInfoApi.queryUserInfoList(userInfoQueryParam);
+        // 嵌套循环匹配改 Map 查找：O(n×m) → O(n)，行为等价
+        Map<Long, Double> scoreMap = records.stream()
+                .collect(Collectors.toMap(RecommendUser::getUserId, RecommendUser::getScore, (a, b) -> a));
         List<TodayBest> todayBests = new ArrayList<>();
         for (UserInfo userInfo : userInfos) {
             TodayBest todayBest = new TodayBest();
@@ -184,15 +187,14 @@ public class TodayBestService {
             todayBest.setId(userInfo.getUserId());
             todayBest.setAge(userInfo.getAge());
             todayBest.setAvatar(userInfo.getLogo());
-            todayBest.setGender(userInfo.getSex().name().toLowerCase());
+            todayBest.setGender(userInfo.getSex() == null ? "" : userInfo.getSex().name().toLowerCase());
             todayBest.setNickname(userInfo.getNickName());
             todayBest.setTags(StringUtils.split(userInfo.getTags(), ','));
 
-            for (RecommendUser record : records) {
-                if (record.getUserId().longValue() == todayBest.getId().longValue()) {
-                    double score = Math.floor(record.getScore());
-                    todayBest.setFateValue(Double.valueOf(score).longValue()); //缘分值
-                }
+            Double scoreValue = scoreMap.get(todayBest.getId());
+            if (scoreValue != null) {
+                double score = Math.floor(scoreValue);
+                todayBest.setFateValue(Double.valueOf(score).longValue()); //缘分值
             }
 
             todayBests.add(todayBest);
@@ -214,7 +216,7 @@ public class TodayBestService {
         todayBest.setId(userId);
         todayBest.setAge(userInfo.getAge());
         todayBest.setAvatar(userInfo.getLogo());
-        todayBest.setGender(userInfo.getSex().name().toLowerCase());
+        todayBest.setGender(userInfo.getSex() == null ? "" : userInfo.getSex().name().toLowerCase());
         todayBest.setNickname(userInfo.getNickName());
         todayBest.setTags(StringUtils.split(userInfo.getTags(), ','));
         todayBest.setCity(userInfo.getCity());
@@ -321,8 +323,9 @@ public class TodayBestService {
         //构建消息内容
         Map<String, Object> msg = new HashMap<>();
         msg.put("userId", user.getId().toString());
-        msg.put("nickname", this.queryQuestion(userId));
-        msg.put("strangerQuestion", userInfo.getNickName());
+        // 修复：此前两值写反——nickname 应为自己昵称，strangerQuestion 应为对方问题
+        msg.put("nickname", userInfo.getNickName());
+        msg.put("strangerQuestion", this.queryQuestion(userId));
         msg.put("reply", reply);
 
         try {
@@ -393,25 +396,28 @@ public class TodayBestService {
                 return result;
             }
 
+            // 嵌套循环匹配改 Map 查找：O(n×m) → O(n)，行为等价
+            Map<Long, UserInfo> userInfoMap = userInfoList.stream()
+                    .filter(u -> u != null && u.getUserId() != null)
+                    .collect(Collectors.toMap(UserInfo::getUserId, u -> u, (a, b) -> a));
+
             for (UserLocationVo locationVo : userLocationVoList) {
                 // 排除自己
                 if (locationVo.getUserId().longValue() == user.getId().longValue()) {
                     continue;
                 }
 
-                for (UserInfo userInfo : userInfoList) {
-                    if (locationVo.getUserId().longValue() == userInfo.getUserId().longValue()) {
-                        NearUserVo nearUserVo = new NearUserVo();
+                UserInfo userInfo = userInfoMap.get(locationVo.getUserId());
+                if (userInfo != null) {
+                    NearUserVo nearUserVo = new NearUserVo();
 
-                        nearUserVo.setNickname(userInfo.getNickName());
-                        nearUserVo.setAvatar(userInfo.getLogo());
-                        nearUserVo.setUserId(userInfo.getUserId());
-                        nearUserVo.setAge(userInfo.getAge());
-                        nearUserVo.setCity(userInfo.getCity());
+                    nearUserVo.setNickname(userInfo.getNickName());
+                    nearUserVo.setAvatar(userInfo.getLogo());
+                    nearUserVo.setUserId(userInfo.getUserId());
+                    nearUserVo.setAge(userInfo.getAge());
+                    nearUserVo.setCity(userInfo.getCity());
 
-                        result.add(nearUserVo);
-                        break;
-                    }
+                    result.add(nearUserVo);
                 }
             }
         } catch (Exception e) {
@@ -469,7 +475,7 @@ public class TodayBestService {
             todayBest.setId(userInfo.getUserId());
             todayBest.setAge(userInfo.getAge());
             todayBest.setAvatar(userInfo.getLogo());
-            todayBest.setGender(userInfo.getSex().name().toLowerCase());
+            todayBest.setGender(userInfo.getSex() == null ? "" : userInfo.getSex().name().toLowerCase());
             todayBest.setNickname(userInfo.getNickName());
             todayBest.setTags(StringUtils.split(userInfo.getTags(), ','));
 
