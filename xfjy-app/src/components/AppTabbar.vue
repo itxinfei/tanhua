@@ -60,6 +60,20 @@ const props = defineProps<{ active?: number }>();
 const activeIndex = ref(props.active ?? -1);
 
 /**
+ * 全局注入实例（utils/global-tabbar.ts）走 DOM 直改路径，不驱动 Vue 响应式。
+ *
+ * 背景：该实例由 createApp(AppTabbar).mount 挂载在 uni-app 页面树之外，是游离实例。
+ * 在 400ms 轮询的同步栈里写 ref（无论直接写还是 nextTick 延迟写）都会命中
+ * uni-app 内部只读对象（_ 标记）赋值路径，抛
+ * "Cannot assign to read only property '_'"，且赋值不生效（高亮卡在旧值）。
+ *
+ * 因此全局实例的高亮完全由 setActive 直接切换 DOM class 完成，不依赖重渲染；
+ * 页面内嵌实例（publish.vue 等传 :active prop）仍走响应式路径，两条路互不干扰。
+ */
+const isGlobalInstance = props.active === undefined && typeof window !== "undefined"
+  && !!document.getElementById("xfjy-global-tabbar");
+
+/**
  * 发布页等场景通过 :active prop 传入选中态（全局注入实例不传 prop，仅由 setActive 驱动）；
  * prop 变化时同步到 activeIndex，保证两种挂载方式共用同一高亮数据源。
  * 历史 bug：模板曾绑定 prop active，而全局实例不传 prop 且 setActive 只改 activeIndex，
@@ -72,12 +86,41 @@ watch(
   }
 );
 
-/** 由 global-tabbar.ts 在路由变化时调用，更新高亮（替代原手写 DOM 切换 class） */
+/**
+ * 由 global-tabbar.ts 在路由变化时调用，更新高亮。
+ * 全局实例：直接切 DOM class（不触发响应式，避开只读属性报错）；
+ * 页面内嵌实例：走 ref 响应式路径。
+ */
 function setActive(i: number): void {
-  // 全局实例由 global-tabbar.ts 每 400ms 轮询调用；同值直接返回，避免驱动这个游离在
-  // uni-app 页面树外的 createApp 组件无谓重渲染（其更新路径会触发只读内部属性赋值报错）
   if (activeIndex.value === i) return;
+  if (isGlobalInstance) {
+    applyActiveClass(i);
+    return;
+  }
   activeIndex.value = i;
+}
+
+/** 直接切换 DOM 高亮（供全局游离实例使用，绕开 Vue 响应式） */
+function applyActiveClass(i: number): void {
+  const root = document.getElementById("xfjy-global-tabbar");
+  if (!root) return;
+  const items = root.querySelectorAll<HTMLElement>(".app-tabbar__item");
+  items.forEach((el, idx) => {
+    // 模板中发布键插在 i===2 之前，实际 DOM 顺序：0匹配 1圈子 2发布 3视频 4我的
+    const tabIdx = idx < 2 ? idx : idx - 1;
+    const isActive = i === -1 ? idx === 2 : tabIdx === i;
+    const label = el.querySelector<HTMLElement>(".app-tabbar__label");
+    const icon = el.querySelector<HTMLElement>(".app-tabbar__icon");
+    el.setAttribute("aria-checked", isActive ? "true" : "false");
+    label?.classList.toggle("app-tabbar__label--active", isActive);
+    // 图标：用 tab-config 的 iconActive 替换 src
+    if (icon && tabIdx >= 0 && TABS[tabIdx]) {
+      const active = isActive;
+      const cur = icon.getAttribute("src") || "";
+      const target = active ? TABS[tabIdx].iconActive : TABS[tabIdx].icon;
+      if (cur !== target) icon.setAttribute("src", target);
+    }
+  });
 }
 
 defineExpose({ setActive });

@@ -52,28 +52,31 @@ xfjy:
   neo4j:
     # 覆盖 base application.yml 的空默认值，直连运行中 Neo4j 的真实密码
     password: ${NEO4J_PASSWORD:itxinfei123456}
-  # 领域服务 base 里默认 127.0.0.1（本地裸跑用）；容器走 bridge 网络 xfjy-app-net，
-  # 127.0.0.1 指向 BFF 自身会 Connection refused，必须覆盖为容器名（与 sso 同模式）。
+  # 领域服务 base 里默认 127.0.0.1（本地裸跑用）；容器内 127.0.0.1 指向 BFF 自身会
+  # Connection refused，必须覆盖。
+  # 统一用宿主机 LAN IP + 映射端口（AGENTS.md §6 硬约束，2026-11-05 裁决）：
+  #   - 禁止 docker 容器服务名：本地 Java 注册到 Nacos 后，其他服务器按容器名调用会失败
+  #   - 容器经宿主 IP 访问映射端口走 hairpin，前置条件为 ufw 放行 docker 私有网段
+  #     172.16.0.0/12（已在 deploy/setup.sh L31-43 固化，宝塔防火墙服务接管）
   match:
     service:
-      url: http://xfjy-match-service:18082
+      url: http://192.168.20.133:18082
   user:
     service:
-      url: http://xfjy-user-service:18090
+      url: http://192.168.20.133:18090
   circle:
     service:
-      url: http://xfjy-circle-service:18084
+      url: http://192.168.20.133:18084
   video:
     service:
-      url: http://xfjy-video-service:18085
+      url: http://192.168.20.133:18085
   message:
     service:
-      url: http://xfjy-message-service:18086
+      url: http://192.168.20.133:18086
   sso:
-    # Docker 部署必须用容器名：sso 的 18080 端口自 v2.4 起不对外发布（仅网关 8090 暴露），
-    # 用宿主机 LAN IP 容器内连不上 → TokenInterceptor 解析用户必失败 → 所有需登录态接口 500。
-    # server 与 sso 同在 xfjy-app-net 网络，容器名可直接解析。
-    url: http://xfjy-sso:18080
+    # sso 的 18080 端口自 v2.4 起不对外发布（仅网关 8090 暴露），但容器内经宿主 IP
+    # 访问映射端口由 ufw 放行 172.16.0.0/12 后可达（与其余服务同口径）。
+    url: http://192.168.20.133:18080
     default:
       user: 2
   pay:
