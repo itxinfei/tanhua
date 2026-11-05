@@ -1,6 +1,9 @@
 server:
   port: 8090
 
+cors:
+  allowed-origins: http://localhost:5173,http://localhost:5174
+
 spring:
   application:
     name: xfjy-gateway
@@ -21,16 +24,8 @@ spring:
       nacos:
         enabled: true
     gateway:
-      server:
-        webflux:
-          globalcors:
-            cors-configurations:
-              '[/**]':
-                allowedOriginPatterns: "*"
-                allowedMethods: "*"
-                allowedHeaders: "*"
-          # 服务发现路由（lb:// 经 Nacos 解析服务名，loadbalancer 负载均衡）
-          routes:
+      # 服务发现路由（lb:// 经 Nacos 解析服务名，loadbalancer 负载均衡）
+      routes:
             - id: xfjy-sso
               uri: lb://xfjy-sso
               predicates:

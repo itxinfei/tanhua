@@ -310,3 +310,13 @@ Test-Path pnpm-lock.yaml          # 期望 False
 `rg -n "Executors\.new" --glob "*.java" xfjy-*/src` → 0
 `rg -n "new SimpleDateFormat" --glob "*.java" xfjy-*/src` → 0
 `rg -n "LOGGER\.(info|warn|error|debug)\(.*\+" --glob "*.java" xfjy-*/src` → 0（日志禁止拼接）
+
+### 13.7 跨域（CORS）与 CSRF 防护
+- 跨域只在一处收敛：统一由网关 `xfjy-gateway` 处理；**禁止**各域服务（`xfjy-*` 领域服务）单独开启 CORS，避免分散失控、重复响应头。
+- `Access-Control-Allow-Origin` 必须为**受信任前端域名白名单**（如 `http://localhost:5173`、生产域名），**禁止 `*` 通配**。
+- 开启 `allow-credentials: true` 时，origin **不得通配**，须逐域名精确匹配（Spring 侧 `addAllowedOriginPattern` 只能列具体域名，不能用 `*`）。
+- 前端优先使用 `Authorization: Bearer` 自定义头传递 Sa-Token 凭证（**非 Cookie**），从根上消除浏览器自动携带凭证导致的 CSRF；确需 Cookie 凭证时须配合 CSRF Token 双提交校验与 `SameSite=Lax/Strict` 属性。
+- 表单与 AJAX 写操作必须执行 CSRF 安全过滤（阿里巴巴 Java 开发手册安全规约【强制】）。
+- 网关 CORS 配置必须唯一来源：`CorsConfig.java` 与 `application.yml` 的 `globalcors` **不得同时存在**（重复会产生双重 `Access-Control-Allow-*` 响应头，行为不可预期）。
+
+校验：`rg -F 'addAllowedOriginPattern("*")' xfjy-gateway/src` → 0；`rg -F 'allowedOriginPatterns: "*"' xfjy-gateway/src` → 0（存量 yml 死配置 `globalcors` 段随网关修复一并清理）
