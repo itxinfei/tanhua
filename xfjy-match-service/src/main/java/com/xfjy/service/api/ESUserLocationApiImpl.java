@@ -47,7 +47,7 @@ public class ESUserLocationApiImpl implements ESUserLocationApi {
 
     @Override
     @PostMapping("/updateUserLocation")
-    public String updateUserLocation(@RequestBody Map<String, Object> param) {
+    public void updateUserLocation(@RequestBody Map<String, Object> param) {
         try {
             String url = this.esServerUrl + "api/es-user-location/updateUserLocation";
 
@@ -59,15 +59,14 @@ public class ESUserLocationApiImpl implements ESUserLocationApi {
             HttpEntity<String> httpEntity = new HttpEntity<>(requestBody, httpHeaders);
 
             ResponseEntity<Void> responseEntity = this.restTemplate.postForEntity(url, httpEntity, Void.class);
-            if (responseEntity.getStatusCode().value() == 200) {
-                Object userId = param.get("userId");
-                return userId == null ? null : userId.toString();
+            if (responseEntity.getStatusCode().value() != 200) {
+                log.warn("ES updateUserLocation 非 200 响应, esServerUrl={}, status={}",
+                        esServerUrl, responseEntity.getStatusCode().value());
             }
         } catch (Exception e) {
+            // 吞异常并记录：BFF 侧接口为 void，对空/异常响应免疫；失败原因在此处留痕便于排查
             log.error("ES user location operation failed, esServerUrl={}", esServerUrl, e);
         }
-
-        return null;
     }
 
     @Override

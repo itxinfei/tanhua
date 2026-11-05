@@ -30,7 +30,9 @@ public interface ESUserLocationApi {
      */
     @PostExchange("/updateUserLocation")
     @PostMapping("/updateUserLocation")
-    String updateUserLocation(@RequestBody Map<String, Object> param);
+    // void：下游（match-service 实现）转发 ES 失败时返回 200 空 body（无 Content-Type），
+    // 声明 String 会让 RestClient 抛 UnknownContentTypeException；void 不解析响应体，对空响应免疫
+    void updateUserLocation(@RequestBody Map<String, Object> param);
 
     /**
      * 查询用户地理位置
