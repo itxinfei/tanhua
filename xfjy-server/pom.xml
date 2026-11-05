@@ -29,6 +29,32 @@
             <groupId>org.mongodb</groupId>
             <artifactId>bson</artifactId>
         </dependency>
+        <!-- xfjy-api 契约 POJO（Video.geo/UserLocation.location）使用 GeoJsonPoint，
+             xfjy-api 将此依赖设为 optional 不下传，BFF 反序列化需自行提供，否则 NoClassDefFoundError。
+             排除 mongodb-driver：xfjy-server 不直连 Mongo，仅需 GeoJsonPoint 类；
+             无 driver 则 MongoAutoConfiguration 因 classpath 无 MongoClient 自动跳过，不会尝试连库 -->
+        <dependency>
+            <groupId>org.springframework.data</groupId>
+            <artifactId>spring-data-mongodb</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.mongodb</groupId>
+                    <artifactId>mongodb-driver-sync</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.mongodb</groupId>
+                    <artifactId>mongodb-driver-legacy</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.mongodb</groupId>
+                    <artifactId>mongodb-driver-reactive-streams</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.mongodb</groupId>
+                    <artifactId>mongodb-driver-core</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
 
         <!-- Web -->
         <dependency>
