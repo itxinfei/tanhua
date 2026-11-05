@@ -58,7 +58,7 @@ Copilot / Serena / Trae）开工前必须读完本文件。
 - 禁止在 BFF 为领域服务补写业务表；禁止双写（已修复项不得回退）。
 - 事务只加在写方 Service；跨服务一致性用「本地事务 + 消息/补偿」，禁止分布式事务框架。
 
-校验：`rg -n "tb_pay_order|tb_vip_package" xfjy-server/src/main/java` → 只允许读
+校验：`rg -n "tb_pay_order|tb_vip_package" xfjy-server/src/main/java | rg -v "//|\*"` → 0（只允许读；管道排除注释误报，如 `AdminVipService` 的 Javadoc）
 
 ## 4. 鉴权链（顺序不可调换）
 1. 网关 `RateLimitGlobalFilter`：仅 POST 的 `/movements`、`/comments`、`/small-videos`、
@@ -249,8 +249,8 @@ Test-Path pnpm-lock.yaml          # 期望 False
 | `xfjy-admin` 6px 间距豁免（13 条，另有侧栏折叠态 1 条，合计 14 条 `declaration-property-value-disallowed-list` 豁免） | `movement.vue` L386、`video.vue` L344（内联统计项分隔）；`kefu/workbench.vue` L422 聊天气泡内距、L448 语音图标对齐；`login/index.vue` L469 标题副文案；`review/index.vue` L543 键帽、L675 结论标签组、L754 横向滚动条留白；`report/index.vue` L472-473 头像与文字间距、L477-478 标签与昵称分隔（`.target-name`）、L569-570 横向滚动条留白；`user/detail.vue` L850 头像文字；`sensitive/index.vue` L59 敏感词标签间距（`.hit-word`） | 均为图标/文字对齐或滚动条留白类视觉微调，改 4px 或 8px 会破坏对齐；已用行级 `declaration-property-value-disallowed-list` disable 并注明理由，**禁止新增** |
 | `xfjy-admin` 404 页插画配色 | 4 处 hex（`views/error/404.vue` L102-103/L118-119/L184-185/L191-192，均为 `color-no-hex` disable） | 配色随插画整体重做才有意义，暂不 token 化；已用行级 `color-no-hex` disable 并注明理由，**禁止新增** |
 | `xfjy-admin` 侧栏折叠态内距 | 1 条（14 条间距豁免之一，`layout/components/Sidebar.vue` L211-212 `padding: 0 18px`） | 与 220px 栏宽的视觉微调，改 16px 会破坏图标对齐；已用行级 `declaration-property-value-disallowed-list` disable，**禁止新增** |
-| `new SimpleDateFormat`（§13.4） | 6 处（`xfjy-server`：`AdminDashboardService` L119/L402、`AdminDashboardStatsService` L136/L224、`AdminOperationLogService` L48/L101，均为方法内局部变量，非 static 共享） | 新增禁止；存量随重构迁移 `DateTimeFormatter`，迁移前不得提升为字段/static |
-| 日志 `+` 拼接（§13.5） | 5 处（`xfjy-server/IMController` L77、`xfjy-circle-service/QuanziApiImpl` L86、`xfjy-video-service/VideoApiImpl` L60、`xfjy-recommend/VideoMsgConsumer` L100、`QuanZiMsgConsumer` L146） | 新增禁止；存量改为 `{}` 占位符，随重构迁移 |
+| `new SimpleDateFormat`（§13.4） | 0 处（2026-11-05 已清零：原 `AdminDashboardService`/`AdminOperationLogService` 局部变量 4 处已迁移 `DateTimeFormatter`，`AdminDashboardStatsService` 经核查原无实例） | 新增禁止；存量随重构迁移 `DateTimeFormatter`，迁移前不得提升为字段/static |
+| 日志 `+` 拼接（§13.5） | 0 处（2026-11-05 已清零：`IMController`/`QuanziApiImpl`/`VideoApiImpl`/`VideoMsgConsumer`/`QuanZiMsgConsumer` 5 处已改 `{}` 占位符；`QuanziApiImpl` L158 `相册+动态` 为字面量误报，非拼接） | 新增禁止；存量改为 `{}` 占位符，随重构迁移 |
 
 ## 12. 未确认与变更
 - 未确认统一登记：`docs/需求文档/01-需求文档.md` §11.7；格式
@@ -270,7 +270,7 @@ Test-Path pnpm-lock.yaml          # 期望 False
   `spring-data-mongodb`，**禁止再单独声明**）；仅用注解不操作 Mongo 的服务声明单独的 `spring-data-mongodb`。
 - 禁止引入未使用依赖；新增依赖前 grep 源码确认实际 import 需求。
 
-校验：`rg -n "<version>" --glob "xfjy-*/pom.xml" | rg -v "project.version"` → 0
+校验：`rg -n "<version>" --glob "xfjy-*/pom.xml" | rg -v "project.version" | rg -v "<version>1.0-SNAPSHOT</version>"` → 0（子模块自身 artifact 版本 `<version>1.0-SNAPSHOT</version>` 合法，仅禁止依赖声明写版本）
 
 ### 13.2 命名规约
 - 类名 `UpperCamelCase`；数据传输对象加 `DTO` 后缀、视图对象加 `VO` 后缀、数据库实体不加后缀（存量形态）。
