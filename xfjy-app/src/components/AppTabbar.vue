@@ -9,8 +9,8 @@
           v-if="i === 2"
           class="app-tabbar__item app-tabbar__mid"
           role="tab"
-          :checked="active === -1"
-          :label="active === -1 ? '当前在发布页' : '打开发布'"
+          :checked="activeIndex === -1"
+          :label="activeIndex === -1 ? '当前在发布页' : '打开发布'"
           @tap="goPublish"
         >
           <view class="app-tabbar__plus" aria-hidden="true">
@@ -22,25 +22,25 @@
             <!-- 与小程序端一致补「发布」文字，新用户不再把中央键当成装饰 -->
             <text
               class="app-tabbar__label app-tabbar__mid-label"
-              :class="{ 'app-tabbar__mid-label--active': active === -1 }"
+              :class="{ 'app-tabbar__mid-label--active': activeIndex === -1 }"
             >发布</text>
           </a11y-button>
         <a11y-button
           class="app-tabbar__item"
           role="tab"
-          :checked="active === i"
+          :checked="activeIndex === i"
           :label="`切换到${tab.text}`"
           @tap="go(tab)"
         >
           <image
             class="app-tabbar__icon"
-            :src="active === i ? tab.iconActive : tab.icon"
+            :src="activeIndex === i ? tab.iconActive : tab.icon"
             mode="aspectFit"
             aria-hidden="true"
           />
           <text
             class="app-tabbar__label"
-            :class="{ 'app-tabbar__label--active': active === i }"
+            :class="{ 'app-tabbar__label--active': activeIndex === i }"
           >{{ tab.text }}</text>
         </a11y-button>
       </template>
@@ -49,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import A11yButton from "@/components/a11y-button.vue";
 import { TABS, PUBLISH_PAGE } from "@/config/tab-config";
 
@@ -59,8 +59,24 @@ const props = defineProps<{ active?: number }>();
 /** 当前高亮索引（ref 以便 global-tabbar.ts 路由变化时通过 setActive 更新） */
 const activeIndex = ref(props.active ?? -1);
 
+/**
+ * 发布页等场景通过 :active prop 传入选中态（全局注入实例不传 prop，仅由 setActive 驱动）；
+ * prop 变化时同步到 activeIndex，保证两种挂载方式共用同一高亮数据源。
+ * 历史 bug：模板曾绑定 prop active，而全局实例不传 prop 且 setActive 只改 activeIndex，
+ * 导致 H5 底栏选中态（主色图标/文字）永不生效。
+ */
+watch(
+  () => props.active,
+  (val) => {
+    if (val !== undefined) activeIndex.value = val;
+  }
+);
+
 /** 由 global-tabbar.ts 在路由变化时调用，更新高亮（替代原手写 DOM 切换 class） */
 function setActive(i: number): void {
+  // 全局实例由 global-tabbar.ts 每 400ms 轮询调用；同值直接返回，避免驱动这个游离在
+  // uni-app 页面树外的 createApp 组件无谓重渲染（其更新路径会触发只读内部属性赋值报错）
+  if (activeIndex.value === i) return;
   activeIndex.value = i;
 }
 

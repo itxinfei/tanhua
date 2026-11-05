@@ -46,10 +46,13 @@ onLoad((query: any) => {
 
 <style lang="scss" scoped>
 .agreement-page {
-  min-height: 100vh;
+  /* 固定高度而非 min-height：scroll-view 需父容器有界才能滚动，
+     否则被内容撑高后 overflow 失效，长协议无法滚动阅读 */
+  height: calc(100vh - var(--tab-bar-height, 0px));
   background: var(--bg-card);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .title {
@@ -61,7 +64,11 @@ onLoad((query: any) => {
 }
 
 .content {
+  /* uni-app H5 端 scroll-view 需要显式高度才会启用滚动；
+     flex:1 只给 flex-basis，内容会撑高 clientHeight 导致 overflow 失效 */
   flex: 1;
+  min-height: 0;
+  height: 100%;
   padding: 0 32rpx 48rpx;
   box-sizing: border-box;
 }

@@ -421,7 +421,7 @@ onShow(async () => {
 </script>
 
 <style lang="scss" scoped>
-.profile-page { min-height: 100vh; background: var(--bg-sub); padding-bottom: calc(var(--window-bottom, 0px) + 60rpx); }
+.profile-page { min-height: calc(100vh - var(--tab-bar-height, 0px)); background: var(--bg-sub); padding-bottom: calc(var(--tab-bar-height, 50px) + 60rpx); }
 
 /* ===== 头像行 ===== */
 .avatar-row { display: flex; align-items: center; padding: 32rpx; background: var(--bg-card);

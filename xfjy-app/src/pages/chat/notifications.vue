@@ -5,7 +5,7 @@
       <view class="locked-icon"><uni-icons type="locked" size="28" color="#fff"></uni-icons></view>
       <text class="locked-title">VIP 专享权益</text>
       <text class="locked-desc">开通会员即可查看谁喜欢你</text>
-      <button class="locked-btn btn-feedback" @click="goVip">开通 VIP</button>
+      <a11y-button class="locked-btn" label="开通 VIP" @tap="goVip">开通 VIP</a11y-button>
     </view>
 
     <!-- 空状态 + 通知列表（非锁定态时二选一） -->
@@ -24,6 +24,13 @@
         <text class="time">{{ item.time }}</text>
       </a11y-button>
     </template>
+
+    <!-- 公告详情弹窗：公告无对应用户，点击通知项弹出正文，不跳用户主页 -->
+    <AnnouncementDetailDialog
+      :visible="!!announcementDetail"
+      :notice="announcementDialogNotice"
+      @close="announcementDetail = null"
+    />
   </view>
 </template>
 
@@ -32,6 +39,7 @@ import { ref, computed } from "vue";
 import EmptyState from "@/components/empty-state.vue";
 import { onLoad, onShow, onPullDownRefresh } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
+import AnnouncementDetailDialog from "@/components/announcement-detail-dialog.vue";
 import { useChatStore, type NoticeType } from "@/store/chat";
 import {
   getLikeMessages,
@@ -105,7 +113,26 @@ function noticeLabel(item: NoticeItem): string {
   return `${item.nickname}，${item.desc}，${item.time}`;
 }
 
+/** 当前查看的公告项（null 表示弹窗关闭） */
+const announcementDetail = ref<NoticeItem | null>(null);
+
+/** 公告弹窗展示模型：NoticeItem 的 nickname/desc 即公告标题/正文 */
+const announcementDialogNotice = computed(() =>
+  announcementDetail.value
+    ? {
+        title: announcementDetail.value.nickname,
+        content: announcementDetail.value.desc,
+        time: announcementDetail.value.time,
+      }
+    : null
+);
+
 function goDetail(item: NoticeItem): void {
+  // 公告无对应用户，点击弹出正文详情，不跳用户主页
+  if (type.value === "announcement") {
+    announcementDetail.value = item;
+    return;
+  }
   if (!item.userId) return;
   uni.navigateTo({ url: `/pages/match/detail?id=${item.userId}` });
 }
@@ -224,6 +251,6 @@ onPullDownRefresh(async () => {
   .locked-icon { width: 120rpx; height: 120rpx; border-radius: 50%; background: linear-gradient(135deg, var(--gold), var(--gold-soft)); display: flex; align-items: center; justify-content: center; font-size: 56rpx; margin-bottom: 24rpx; box-shadow: 0 8rpx 24rpx rgba(255, 179, 71, 0.35); }
   .locked-title { font-size: 32rpx; color: var(--text-primary); font-weight: bold; }
   .locked-desc { font-size: 24rpx; color: var(--text-hint); margin-top: 12rpx; text-align: center; }
-  .locked-btn { margin-top: 40rpx; width: 320rpx; height: 80rpx; line-height: 80rpx; background: linear-gradient(90deg, var(--gold), var(--gold-soft)); color: var(--bg-deep); font-size: 28rpx; font-weight: bold; border-radius: 40rpx; border: none; }
+  .locked-btn { margin-top: 40rpx; width: 320rpx; min-height: 88rpx; padding: 0 48rpx; display: flex; align-items: center; justify-content: center; background: linear-gradient(90deg, var(--gold), var(--gold-soft)); color: var(--bg-deep); font-size: 28rpx; font-weight: bold; border-radius: 44rpx; box-sizing: border-box; }
 }
 </style>

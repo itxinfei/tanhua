@@ -109,12 +109,6 @@
 
       <!-- 通知列表面板：内联展开，不跳转页面 -->
       <view v-if="noticePanelType" class="notice-panel">
-        <view class="notice-panel-header">
-          <text class="notice-panel-title">{{ noticePanelTitle }}</text>
-          <a11y-button class="notice-panel-close" label="关闭通知列表" @tap="closeNoticePanel">
-            <view class="i-ph-x" aria-hidden="true" />
-          </a11y-button>
-        </view>
         <view class="notice-panel-list">
           <view v-if="noticeLocked" class="locked-state">
             <view class="locked-icon"><view class="i-ph-lock" aria-hidden="true" /></view>
@@ -176,6 +170,13 @@
     </view>
 
     <MatchPopup />
+
+    <!-- 公告详情弹窗：公告无对应用户，点击通知项弹出正文，不跳用户主页 -->
+    <AnnouncementDetailDialog
+      :visible="!!announcementDetail"
+      :notice="announcementDialogNotice"
+      @close="announcementDetail = null"
+    />
   </view>
 </template>
 
@@ -185,6 +186,7 @@ import EmptyState from "@/components/empty-state.vue";
 import Skeleton from "@/components/skeleton.vue";
 import { onShow, onShareAppMessage } from "@dcloudio/uni-app";
 import MatchPopup from "@/components/match-popup.vue";
+import AnnouncementDetailDialog from "@/components/announcement-detail-dialog.vue";
 import A11yButton from "@/components/a11y-button.vue";
 import { useCircleStore, CIRCLE_NEED_REFRESH_KEY } from "@/store/circle";
 import type { Movement } from "@/api/circle";
@@ -375,12 +377,6 @@ interface NoticeItem {
   userId?: number;
 }
 
-const NOTICE_PANEL_TITLES: Record<string, string> = {
-  like: "谁喜欢我",
-  comment: "评论",
-  love: "心动",
-  announcement: "公告",
-};
 const NOTICE_TYPE_COLORS: Record<string, string> = {
   like: "var(--color-primary)",
   comment: "var(--info-blue)",
@@ -405,7 +401,6 @@ const noticeList = ref<NoticeItem[]>([]);
 const noticeLoading = ref(false);
 const noticeLocked = ref(false);
 
-const noticePanelTitle = computed(() => NOTICE_PANEL_TITLES[noticePanelType.value] || "通知");
 const noticeTypeColor = computed(() => NOTICE_TYPE_COLORS[noticePanelType.value] || "var(--color-primary)");
 const noticeTypeIcon = computed(() => NOTICE_TYPE_ICONS[noticePanelType.value] || "i-ph-bell");
 
@@ -488,26 +483,36 @@ async function toggleNoticePanel(type: string): Promise<void> {
   if (ok) chatStore.markNoticeRead(type as NoticeType);
 }
 
-function closeNoticePanel(): void {
-  noticePanelType.value = "";
-}
-
 function goVip(): void {
   uni.navigateTo({ url: "/pages/mine/vip" });
 }
 
+/** 当前查看的公告项（null 表示弹窗关闭） */
+const announcementDetail = ref<NoticeItem | null>(null);
+
+/** 公告弹窗展示模型：NoticeItem 的 nickname/desc 即公告标题/正文 */
+const announcementDialogNotice = computed(() =>
+  announcementDetail.value
+    ? {
+        title: announcementDetail.value.nickname,
+        content: announcementDetail.value.desc,
+        time: announcementDetail.value.time,
+      }
+    : null
+);
+
 function goNoticeDetail(item: NoticeItem): void {
+  // 公告无对应用户，点击弹出正文详情，不跳用户主页
+  if (noticePanelType.value === "announcement") {
+    announcementDetail.value = item;
+    return;
+  }
   if (!item.userId) return;
   uni.navigateTo({ url: `/pages/match/detail?id=${item.userId}` });
 }
 
 function noticeItemLabel(item: NoticeItem): string {
   return `${item.nickname}，${item.desc}，${item.time}`;
-}
-
-function goNotifications(type: string): void {
-  // 兼容旧逻辑：如果通知面板未实现，仍跳转页面（当前已内联，此函数不再调用）
-  uni.navigateTo({ url: "/pages/chat/notifications?type=" + type });
 }
 
 /** 顶级分区切换：只切换视图，不重新加载数据（数据已在 onShow 首次加载，切换时保留滚动位置） */
@@ -763,7 +768,10 @@ flex-direction: column;
       display: flex;
       align-items: center;
       gap: 8rpx;
-      min-height: 48rpx;
+      /* 热区 ≥88rpx（44px）：原 48rpx 仅 24px 高，用户难以点中点赞/评论/心动 */
+      min-height: 88rpx;
+      /* 「心动」仅图标无文字，宽度 22px 不足 44px，补足可点击宽度 */
+      min-width: 88rpx;
 
       .action-icon {
         font-size: 36rpx;
@@ -932,43 +940,16 @@ flex-direction: column;
 .notice-panel {
   background: var(--bg-card);
   border-bottom: 1rpx solid var(--border-light);
-  max-height: 60vh;
+  /* 撑满 notice-bar 下方 tab-view 的剩余高度，消除面板下方留白（与 .msg-list 同口径） */
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-
-  .notice-panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 20rpx 32rpx;
-    border-bottom: 1rpx solid var(--border-light);
-
-    .notice-panel-title {
-      font-size: 30rpx;
-      font-weight: bold;
-      color: var(--text-primary);
-    }
-
-    .notice-panel-close {
-      width: 56rpx;
-      height: 56rpx;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      background: var(--bg-sub);
-
-      .i-ph-x {
-        font-size: 28rpx;
-        color: var(--text-hint);
-      }
-    }
-  }
 
   .notice-panel-list {
     flex: 1;
     min-height: 0;
-    /* 面板 capped 在 60vh：列表超长时自身滚动，避免内容被裁切不可见 */
+    /* 面板已撑满 tab-view 剩余高度：列表超长时自身滚动，避免内容被裁切不可见 */
     overflow-y: auto;
     padding: 16rpx 24rpx;
 

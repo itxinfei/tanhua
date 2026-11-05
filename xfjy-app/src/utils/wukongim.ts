@@ -280,18 +280,36 @@ function registerConnectionListener(): void {
   });
 }
 
-/** 从原始消息解析匹配事件（JSON 文本 {"type":"match",...}），非匹配消息返回 null */
+/**
+ * 后端 WuKongIM 下发的数字 type 到业务 type 的映射。
+ * 后端消息体形如 {"type":1,"content":"..."}（type 为数字），前端契约用字符串 type，
+ * 此处统一归一化，避免数字 type 消息被当作原始 JSON 字符串透传显示。
+ */
+const NUMERIC_TYPE_MAP: Record<number, string> = {
+  1: "text",
+  2: "image",
+  3: "voice",
+  4: "location",
+  5: "card",
+  6: "match",
+};
+
+/** 从原始消息解析匹配事件（JSON 文本 {"type":"match"|"type":6,...}），非匹配消息返回 null */
 function extractMatchEvent(message: Message): MatchEvent | null {
   const payload = message.content;
   if (payload instanceof MessageText) {
     try {
       const parsed = JSON.parse(payload.text || "");
-      if (parsed && parsed.type === "match") {
-        return {
-          from: String(parsed.userId ?? message.fromUID ?? ""),
-          nickname: String(parsed.nickname ?? ""),
-          avatar: String(parsed.avatar ?? ""),
-        };
+      if (parsed && typeof parsed === "object") {
+        const rawType: unknown = parsed.type;
+        const type = typeof rawType === "number" ? NUMERIC_TYPE_MAP[rawType] ?? "" : String(rawType ?? "");
+        if (type === "match") {
+          return {
+            from: String(parsed.userId ?? message.fromUID ?? ""),
+            nickname: String(parsed.nickname ?? ""),
+            avatar: String(parsed.avatar ?? ""),
+          };
+        }
       }
     } catch {
       // 普通文本消息，非 JSON
@@ -311,8 +329,14 @@ function toReceivedMessage(message: Message): ReceivedMessage | null {
   const time = (message.timestamp || 0) * 1000; // WK 时间戳为秒
   try {
     const parsed = JSON.parse(text);
-    if (parsed && typeof parsed.type === "string") {
-      switch (parsed.type) {
+    if (parsed && typeof parsed === "object") {
+      // 归一化 type：字符串直接用；数字走映射表；未知 type 按文本兜底
+      let rawType: unknown = parsed.type;
+      if (typeof rawType === "number") {
+        rawType = NUMERIC_TYPE_MAP[rawType] ?? "";
+      }
+      const type = typeof rawType === "string" ? rawType : "";
+      switch (type) {
         case "match":
           return null; // 匹配事件单独分发
         case "image":
@@ -353,6 +377,14 @@ function toReceivedMessage(message: Message): ReceivedMessage | null {
             };
           }
           break;
+        case "text":
+          // 数字 type=1 或字符串 type="text"：取 content 字段作为纯文本
+          return {
+            from,
+            content: String(parsed.content ?? text),
+            type: "text",
+            time,
+          };
         default:
           break;
       }

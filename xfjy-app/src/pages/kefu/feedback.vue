@@ -112,7 +112,7 @@ function statusClass(status: number): string {
 
 <style lang="scss" scoped>
 .feedback-page {
-  height: 100vh;
+  height: calc(100vh - var(--tab-bar-height, 0px));
   background: var(--bg-sub);
 }
 

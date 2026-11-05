@@ -515,9 +515,10 @@ function goChat(user: FriendUser): void {
   background: var(--bg-card);
 
   .search-input {
-    height: 64rpx;
+    /* 热区 ≥88rpx（44px）：原 64rpx 仅 32px，输入框难以点中聚焦 */
+    min-height: 88rpx;
     background: var(--bg-sub);
-    border-radius: 32rpx;
+    border-radius: 44rpx;
     padding: 0 32rpx;
     font-size: 26rpx;
   }
@@ -527,8 +528,8 @@ function goChat(user: FriendUser): void {
 .empty-cta {
   margin-top: 36rpx;
   padding: 0 56rpx;
-  min-height: 76rpx;
-  border-radius: 38rpx;
+  min-height: 88rpx;
+  border-radius: 44rpx;
 }
 
 .list-scroll {

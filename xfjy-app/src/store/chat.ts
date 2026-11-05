@@ -171,6 +171,10 @@ export const useChatStore = defineStore("chat", () => {
     contactPage.value = 1;
     contactHasMore.value = true;
     noticeUnreads.value = { like: 0, comment: 0, love: 0, announcement: 0 };
+    // 必须同步清理本地已读水位：否则换账号/后端清库后，新 counts ≤ 残留 seen，未读恒为 0，角标永久不亮
+    (Object.keys(noticeUnreads.value) as NoticeType[]).forEach((t) => {
+      uni.removeStorageSync(`${NOTICE_SEEN_KEY_PREFIX}${t}`);
+    });
   }
 
   return {

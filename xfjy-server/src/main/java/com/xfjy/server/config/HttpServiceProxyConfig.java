@@ -162,11 +162,19 @@ public class HttpServiceProxyConfig {
         return applyContainerJsonMapper(builder, this.jsonMapperProvider.getIfAvailable());
     }
 
-    /** 用容器 JsonMapper 替换 JSON 转换器（含 xfjy-api 自动装配的 ObjectId 模块）；JsonMapper 为 null 时保持默认转换器 */
+    /**
+     * 用容器 JsonMapper 替换 JSON 转换器（含 xfjy-api 自动装配的 ObjectId 模块）；JsonMapper 为 null 时保持默认转换器。
+     * <p>Spring Framework 7 的 {@code configureMessageConverters} 将 configurer 应用在<b>空的</b>
+     * {@code HttpMessageConverters.ClientBuilder} 上，仅调 {@code withJsonConverter} 会导致
+     * {@code StringHttpMessageConverter} 等默认转换器丢失——下游返回 {@code text/plain} 时抛
+     * {@code UnknownContentTypeException}（IM 凭证 503 根因）。故先 {@code registerDefaults()}
+     * 注册默认转换器，再以容器 JsonMapper 覆盖 JSON 转换器。</p>
+     */
     static RestClient.Builder applyContainerJsonMapper(RestClient.Builder builder, JsonMapper jsonMapper) {
         if (jsonMapper != null) {
-            builder.configureMessageConverters(converters -> converters.withJsonConverter(
-                    new JacksonJsonHttpMessageConverter(jsonMapper)));
+            builder.configureMessageConverters(converters -> converters
+                    .registerDefaults()
+                    .withJsonConverter(new JacksonJsonHttpMessageConverter(jsonMapper)));
         }
         return builder;
     }

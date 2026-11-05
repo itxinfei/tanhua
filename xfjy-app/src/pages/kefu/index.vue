@@ -127,7 +127,7 @@ function goFeedback(): void {
 
 <style lang="scss" scoped>
 .kefu-page {
-  height: 100vh;
+  height: calc(100vh - var(--tab-bar-height, 0px));
   background: var(--bg-sub);
   display: flex;
   flex-direction: column;

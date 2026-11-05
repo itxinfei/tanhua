@@ -239,6 +239,8 @@ function handleSkip(): void {
   }
 
   .input {
+    /* 热区 ≥88rpx（44px）：原无高度声明，实测仅 37px 难以点中 */
+    min-height: 88rpx;
     font-size: 32rpx;
     color: var(--text-primary);
   }
@@ -279,7 +281,8 @@ function handleSkip(): void {
   /* 选项节点由 a11y-radio-group 内部渲染，页面 scoped 样式需 :deep 穿透才能命中 */
   :deep(.gender-btn) {
     flex: 1;
-    height: 80rpx;
+    /* 热区 ≥88rpx（44px）：原 80rpx 仅 40px，窄屏会等比缩到 33px */
+    min-height: 88rpx;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -316,14 +319,16 @@ function handleSkip(): void {
   }
 }
 
-/* 跳过：#999 → #767676；触摸目标 ≥24px */
+/* 跳过：#999 → #767676；热区 ≥88rpx（44px），原 min-height 48rpx 仅 24px */
 .skip-btn {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   margin-top: 24rpx;
   font-size: 28rpx;
   color: var(--text-hint);
-  min-height: 48rpx;
-  padding: 12rpx 0;
+  min-height: 88rpx;
+  padding: 0;
 }
 </style>

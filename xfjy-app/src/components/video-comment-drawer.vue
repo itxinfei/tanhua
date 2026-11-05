@@ -35,7 +35,7 @@
         <view v-else-if="!hasMore && list.length > 0" class="load-more">没有更多了</view>
       </scroll-view>
       <view class="input-bar">
-        <input v-model="text" placeholder="说点什么..." placeholder-class="ph" confirm-type="send" aria-label="评论内容" @confirm="send" />
+        <input v-model="text" placeholder="说点什么..." placeholder-class="ph" confirm-type="send" aria-label="评论内容" @confirm="send" @input="onInput" />
         <a11y-button class="send-btn" :class="{ active: text.trim() }" @tap="send">
           <text>发送</text>
         </a11y-button>
@@ -110,6 +110,11 @@ async function loadMore() {
 }
 
 const sending = ref(false);
+
+/** 输入事件：v-model 在 a11y-dialog v-if 切换场景下可能未正确更新 text，显式同步兜底 */
+function onInput(e: any): void {
+  text.value = e.detail?.value ?? "";
+}
 
 async function toggleLike(c: Comment) {
   try {

@@ -163,6 +163,18 @@
     <view class="top-scrim" aria-hidden="true"></view>
     <view class="bottom-scrim" aria-hidden="true"></view>
 
+    <!-- H5 静音提示：浏览器自动播放策略禁止无交互页面带声 autoplay，首屏只能 muted 起播。
+         未解锁前明示「静音中」，避免用户误以为视频本身没声音；用户首次触碰屏幕任意位置
+         （全局 pointerdown 监听）或点此按钮即解锁，解锁后 v-if 移除。小程序不受该策略约束，不渲染。 -->
+    <a11y-button
+      v-if="isH5 && isMuted"
+      class="muted-hint"
+      label="视频处于静音状态，点击开启声音"
+      @tap="unlockAudio"
+    >
+      <view class="muted-hint__ico i-ph-speaker-x" aria-hidden="true" />
+    </a11y-button>
+
     <!-- 附近回退提示：未授权/半径内无数据时后端回退全站热门，必须明示而不是伪装成附近内容 -->
     <view
       v-if="activeChannel === 'location' && nearbyFallback && displayList.length > 0"
@@ -450,9 +462,16 @@ function pauseAt(index: number) {
   getCtx(index)?.pause();
 }
 
+/**
+ * 解除 H5 静音。浏览器自动播放策略：无用户交互的页面只允许 muted autoplay，
+ * 故首屏/每个频道的第一个视频必然静音起播；必须在用户手势回调里 unmute 才被允许。
+ * 入口有四类（均为用户手势）：文档级 pointerdown 全局监听（覆盖点 Tab/封面等任意触碰）、
+ * swiper 切换、视频区单击、静音提示按钮。isMuted 守卫保证只生效一次，重复调用 no-op。
+ */
 function unlockAudio() {
   if (isH5 && isMuted.value) {
     isMuted.value = false;
+    // 命令式同步 unmute 兜底；uni-h5 内部 watch(muted) 也会随 prop 变化同步 video.muted
     document.querySelectorAll("video").forEach((v) => (v.muted = false));
   }
 }
@@ -888,6 +907,12 @@ watch(
 let wasPlayingBeforeHide = false;
 
 onShow(() => {
+  // H5：文档级首次手势监听（capture 阶段，先于业务 click/tap；不写 preventDefault，不拦截事件）。
+  // 用户触碰屏幕任意处即解锁音频——覆盖点频道 Tab（切频道后的第一个视频也要带声）、点封面、
+  // 滑动等所有入口，根治「每个频道第一个视频全程静音且无提示」。配对注销见 onHide。
+  if (isH5) {
+    document.addEventListener("pointerdown", unlockAudio, true);
+  }
   // 冷启动 / 缓存命中：先渲染本地首屏，再决定是否后台刷新
   if (displayList.value.length === 0) {
     const cached = readVideoCache(activeChannel.value);
@@ -905,6 +930,10 @@ onShow(() => {
 });
 
 onHide(() => {
+  // 与 onShow 配对：离开视频页即注销文档级监听，避免跨页面残留
+  if (isH5) {
+    document.removeEventListener("pointerdown", unlockAudio, true);
+  }
   wasPlayingBeforeHide = isPlaying.value;
   if (isPlaying.value) {
     isPlaying.value = false;
@@ -1074,6 +1103,30 @@ onShareAppMessage(() => ({
   .search-ico {
     width: 48rpx;
     height: 48rpx;
+    color: var(--text-inverse);
+  }
+}
+
+/* H5 静音提示：右上角浮层，仅 muted 起播期间显示，解锁后随 v-if 移除。
+   视频画面明暗不定，浮层沿用本页 nearby-tip/video-error 的黑色半透明压暗范式；
+   图标色走 --text-inverse 以适配暗色视频底。88rpx 热区满足 §7.1 独立功能按钮要求。 */
+.muted-hint {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 16rpx + var(--category-bar-h) + 16rpx);
+  right: var(--space-md);
+  z-index: 30;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+
+  .muted-hint__ico {
+    width: 44rpx;
+    height: 44rpx;
     color: var(--text-inverse);
   }
 }

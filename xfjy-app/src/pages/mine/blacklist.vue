@@ -164,7 +164,7 @@ async function loadPrevPage(): Promise<void> {
 
 <style lang="scss" scoped>
 .blacklist-page {
-  height: 100vh;
+  height: calc(100vh - var(--tab-bar-height, 0px));
   background: var(--bg-sub);
 }
 

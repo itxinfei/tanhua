@@ -39,7 +39,9 @@
       </view>
     </a11y-button>
 
-    <view v-if="hasMore" class="loading" @tap="loadMore">加载更多</view>
+    <a11y-button v-if="hasMore" class="loading" label="加载更多" @tap="loadMore">
+      <text>加载更多</text>
+    </a11y-button>
   </view>
 </template>
 
@@ -170,10 +172,15 @@ onLoad((options: any) => {
   }
 }
 
+/* 加载更多：热区 ≥88rpx（44px），原 padding 24rpx 仅 37px 高 */
 .loading {
-  text-align: center;
-  padding: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 88rpx;
+  padding: 0 24rpx;
   color: var(--color-primary);
   font-size: 26rpx;
+  text-align: center;
 }
 </style>

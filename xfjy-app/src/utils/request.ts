@@ -188,7 +188,15 @@ function request<T = any>(options: RequestOptions): Promise<T> {
           return;
         }
 
-        const body = res.data as ApiResponse<T>;
+        const rawBody = res.data;
+        const body = rawBody as ApiResponse<T>;
+
+        // 空响应体处理：后端 ResponseEntity.ok(null) 返回 200 + 空 body，
+        // 直接访问 body.code 会抛 TypeError（null.code），导致成功请求被误判为失败
+        if (rawBody === null || rawBody === undefined || rawBody === "") {
+          resolve(undefined as unknown as T);
+          return;
+        }
 
         // 业务状态码处理（后端约定 code=200 为成功）
         if (body.code !== undefined && body.code !== 200) {

@@ -177,7 +177,7 @@ onLoad((options: any) => {
 
 <style lang="scss" scoped>
 /* border-box：padding 计入高度，避免 min-height:100vh 下超出视口 */
-.post-detail { box-sizing: border-box; height: 100vh; background: var(--bg-sub); display: flex; flex-direction: column; overflow: hidden; }
+.post-detail { box-sizing: border-box; height: calc(100vh - var(--tab-bar-height, 0px)); background: var(--bg-sub); display: flex; flex-direction: column; overflow: hidden; }
 .detail-scroll { flex: 1; min-height: 0; padding: 20rpx 24rpx 24rpx; }
 .post-card { background: var(--bg-card); padding: 28rpx; margin-bottom: 16rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   .post-header { display: flex; align-items: center; min-width: 0;

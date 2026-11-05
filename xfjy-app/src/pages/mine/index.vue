@@ -369,6 +369,8 @@ onShow(() => {
       display: flex;
       flex-direction: column;
       align-items: center;
+      /* 热区 ≥44px：文案仅 2 字时宽度不足（「粉丝」实测 30px），补足可点击宽度 */
+      min-width: 88rpx;
 
       .stat-num {
         font-size: 36rpx;

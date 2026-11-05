@@ -2,6 +2,18 @@
   <view class="chat-room">
     <!-- 消息列表 -->
     <scroll-view scroll-y class="msg-list" :scroll-into-view="scrollToId" :scroll-with-animation="true">
+      <!-- 对方正在输入提示（点击可打开对方资料页） -->
+      <view v-if="peerTyping" class="typing-indicator">
+        <a11y-button class="typing-btn" :label="`${nickname} 正在输入，点击查看资料`" @tap="openPeerProfile">
+          <image lazy-load class="typing-avatar" :src="resolveAvatar(peerAvatar)" mode="aspectFill" aria-hidden="true" />
+          <view class="typing-bubble">
+            <view class="typing-dots" aria-hidden="true">
+              <text class="dot" /><text class="dot" /><text class="dot" />
+            </view>
+          </view>
+          <text class="typing-text">{{ nickname }} 正在输入…</text>
+        </a11y-button>
+      </view>
       <template v-for="(msg, i) in messageList" :key="msg.id">
         <!-- 时间分隔线：首条或间隔超过阈值时显示 -->
         <view v-if="showTimeDivider(i)" class="time-divider">
@@ -9,7 +21,15 @@
         </view>
         <!-- 单条消息 -->
         <view :id="'msg-' + msg.id" class="msg-item" :class="{ mine: msg.isMine }">
-          <image lazy-load v-if="!msg.isMine" class="avatar" :src="resolveAvatar(msg.avatar)" mode="aspectFill" :aria-label="`${nickname} 的头像`" />
+          <!-- 对方头像：点击打开对方资料页（用户想查看对方资料） -->
+          <a11y-button
+            v-if="!msg.isMine"
+            class="avatar-btn"
+            :label="`查看 ${nickname} 的资料`"
+            @tap="openPeerProfile"
+          >
+            <image lazy-load class="avatar" :src="resolveAvatar(msg.avatar)" mode="aspectFill" aria-hidden="true" />
+          </a11y-button>
           <view class="bubble-wrap" :class="{ mine: msg.isMine }">
             <!-- 发送中转圈：纯状态动画，对读屏隐藏 -->
             <view v-if="msg.isMine && msg.status === 'sending'" class="status-loading" aria-hidden="true" />
@@ -45,7 +65,15 @@
               </a11y-button>
             </view>
           </view>
-          <image lazy-load v-if="msg.isMine" class="avatar" :src="resolveAvatar(msg.avatar)" mode="aspectFill" aria-label="我的头像" />
+          <!-- 我的头像：点击打开自己的资料页 -->
+          <a11y-button
+            v-if="msg.isMine"
+            class="avatar-btn"
+            label="查看我的资料"
+            @tap="openMyProfile"
+          >
+            <image lazy-load class="avatar" :src="resolveAvatar(msg.avatar)" mode="aspectFill" aria-hidden="true" />
+          </a11y-button>
         </view>
       </template>
     </scroll-view>
@@ -165,6 +193,22 @@ const activePanel = ref<PanelType>("none");
 const isVoiceMode = ref(false);
 const isVoicePressing = ref(false);
 const isInputFocus = ref(false);
+
+/** 对方正在输入提示：本地模拟（WuKongIM SDK 不支持 typing 信令） */
+const peerTyping = ref(false);
+/** 模拟输入动画时长（ms）：对方消息到达前短暂显示「正在输入」 */
+const PEER_TYPING_DURATION_MS = 1500;
+let peerTypingTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** 显示对方正在输入（带自动消失） */
+function showPeerTyping(): void {
+  peerTyping.value = true;
+  if (peerTypingTimer) clearTimeout(peerTypingTimer);
+  peerTypingTimer = setTimeout(() => {
+    peerTyping.value = false;
+    peerTypingTimer = null;
+  }, PEER_TYPING_DURATION_MS);
+}
 
 /** 语音消息最长录制时长（ms） */
 const MAX_VOICE_DURATION_MS = 60000;
@@ -454,6 +498,19 @@ function openCard(msg: Message): void {
   uni.navigateTo({ url: `/pages/match/detail?id=${cardUserId}` });
 }
 
+/** 点击对方头像：打开对方资料页 */
+function openPeerProfile(): void {
+  if (!userId.value) return;
+  uni.navigateTo({ url: `/pages/match/detail?id=${userId.value}` });
+}
+
+/** 点击我的头像：打开自己的资料页 */
+function openMyProfile(): void {
+  const myId = String(userStore.userInfo?.id || "");
+  if (!myId) return;
+  uni.navigateTo({ url: `/pages/match/detail?id=${myId}` });
+}
+
 /**
  * 播放/暂停语音消息（同一时刻只播一条）
  */
@@ -513,6 +570,20 @@ function appendReceived(msg: ReceivedMessage): void {
   scrollToBottom();
 }
 
+/**
+ * 收到对方消息：先显示「正在输入」再显示消息（本地模拟，SDK 无 typing 信令）。
+ * 若已有输入提示在显示，直接追加消息即可（避免重复动画）。
+ */
+function appendReceivedWithTyping(msg: ReceivedMessage): void {
+  if (!peerTyping.value) {
+    showPeerTyping();
+    // 延迟到输入提示动画结束后再追加真实消息
+    setTimeout(() => appendReceived(msg), PEER_TYPING_DURATION_MS);
+  } else {
+    appendReceived(msg);
+  }
+}
+
 onLoad(async (options: any) => {
   userId.value = options?.userId || "";
   nickname.value = options?.nickname || "聊天";
@@ -547,7 +618,7 @@ onLoad(async (options: any) => {
         unregisterMessage = onMessageReceived((msg) => {
           if (msg.from !== userId.value) return;
           if (historyLoaded.value) {
-            appendReceived(msg);
+            appendReceivedWithTyping(msg);
           } else {
             pending.push(msg);
           }
@@ -584,6 +655,10 @@ onLoad(async (options: any) => {
 });
 
 onUnmounted(() => {
+  if (peerTypingTimer) {
+    clearTimeout(peerTypingTimer);
+    peerTypingTimer = null;
+  }
   // 注销录音回调：否则离页后 stop/onStop 链可能在新实例注册后重复触发
   // （offStop 运行时存在，但 @dcloudio/types 的 RecorderManager 声明缺该方法）
   (recorderManager as any)?.offStop?.(onRecorderStop);
@@ -597,7 +672,20 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.chat-room { height: 100vh; display: flex; flex-direction: column; background: var(--bg-sub); }
+/* fixed 撑满整个视口，彻底脱离 uni-page-wrapper/body 的高度限制；
+   否则 uni-page-body 在 H5 中高度由内容撑开（约半屏），输入框会被推到屏幕中间甚至视口外。
+   z-index 低于 tabbar(998) 避免遮挡全局底栏；padding-top 预留状态栏。 */
+.chat-room {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 997;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-sub);
+}
 
 /* ===== 消息列表 =====
    flex:1 必须配 min-height:0：纵向 flex 子项默认 min-height:auto，
@@ -610,9 +698,27 @@ onUnmounted(() => {
   .time-text { font-size: 22rpx; color: var(--text-hint); background: rgba(0, 0, 0, 0.05); padding: 6rpx 24rpx; border-radius: 24rpx; }
 }
 
+/* ===== 对方正在输入提示 ===== */
+.typing-indicator { display: flex; align-items: center; margin-bottom: 20rpx; animation: fadeIn 0.2s ease-out; }
+.typing-btn { display: flex; align-items: center; gap: 12rpx; min-height: 72rpx; padding: 8rpx 20rpx 8rpx 8rpx; background: var(--bg-card); border-radius: 40rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06); }
+.typing-avatar { width: 56rpx; height: 56rpx; border-radius: 50%; background: var(--border-light); flex-shrink: 0; }
+.typing-bubble { display: flex; align-items: center; padding: 0 8rpx; }
+.typing-dots { display: flex; align-items: center; gap: 6rpx; }
+.dot { width: 12rpx; height: 12rpx; border-radius: 50%; background: var(--text-hint); animation: typingBounce 1.2s ease-in-out infinite; }
+.dot:nth-child(2) { animation-delay: 0.15s; }
+.dot:nth-child(3) { animation-delay: 0.3s; }
+.typing-text { font-size: 24rpx; color: var(--text-hint); }
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-6rpx); opacity: 1; }
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-8rpx); } to { opacity: 1; transform: translateY(0); } }
+
+/* 头像：76rpx 已 ≥44px 热区基线；外层 a11y-button 补足可点击语义与键盘可达 */
 .msg-item { display: flex; align-items: flex-start; margin-bottom: 28rpx; gap: 16rpx;
-  &.mine { flex-direction: row-reverse; }
-  .avatar { width: 76rpx; height: 76rpx; border-radius: 16rpx; flex-shrink: 0; background: var(--border-light); }
+&.mine { flex-direction: row-reverse; }
+.avatar-btn { flex-shrink: 0; display: flex; }
+.avatar { width: 76rpx; height: 76rpx; border-radius: 16rpx; background: var(--border-light); }
   .bubble-wrap { display: flex; align-items: center; gap: 12rpx; max-width: 480rpx; min-width: 0;
     &.mine { flex-direction: row-reverse; }
   }

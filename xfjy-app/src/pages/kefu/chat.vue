@@ -33,7 +33,10 @@
             <text>{{ msg.content }}</text>
           </view>
         </view>
-        <image lazy-load v-if="msg.isMine" class="avatar" :src="myAvatar" mode="aspectFill" aria-label="我的头像" />
+        <!-- 我的头像：点击打开自己的资料页 -->
+        <a11y-button v-if="msg.isMine" class="avatar-btn" label="查看我的资料" @tap="openMyProfile">
+          <image lazy-load class="avatar" :src="myAvatar" mode="aspectFill" aria-hidden="true" />
+        </a11y-button>
         </view>
       </template>
     </scroll-view>
@@ -277,6 +280,13 @@ onLoad(async () => {
   }
 });
 
+/** 点击我的头像：打开自己的资料页 */
+function openMyProfile(): void {
+  const myId = String(userStore.userInfo?.id || "");
+  if (!myId) return;
+  uni.navigateTo({ url: `/pages/match/detail?id=${myId}` });
+}
+
 onUnmounted(() => {
   if (unregisterMessage) {
     unregisterMessage();
@@ -286,7 +296,20 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.chat-room { height: 100vh; display: flex; flex-direction: column; background: var(--bg-sub); }
+/* fixed 撑满整个视口，彻底脱离 uni-page-wrapper/body 的高度限制；
+   否则 uni-page-body 在 H5 中高度由内容撑开（约半屏），输入框会被推到屏幕中间甚至视口外。
+   z-index 低于 tabbar(998) 避免遮挡全局底栏；padding-top 预留状态栏。 */
+.chat-room {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 997;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-sub);
+}
 
 .vip-banner { display: flex; align-items: center; justify-content: center; gap: 8rpx;
   margin: 24rpx 24rpx 0; padding: 16rpx 24rpx;
@@ -310,6 +333,8 @@ onUnmounted(() => {
 
 .msg-item { display: flex; align-items: flex-start; margin-bottom: 28rpx; gap: 16rpx;
   &.mine { flex-direction: row-reverse; }
+  /* 头像：76rpx 已 ≥44px 热区基线；外层 a11y-button 补足可点击语义与键盘可达 */
+  .avatar-btn { flex-shrink: 0; display: flex; }
   .avatar { width: 76rpx; height: 76rpx; border-radius: 16rpx; flex-shrink: 0; background: var(--border-light); }
   .agent-avatar { width: 76rpx; height: 76rpx; border-radius: 16rpx; flex-shrink: 0; background: var(--bg-icon-soft); display: flex; align-items: center; justify-content: center; font-size: 40rpx; }
   .bubble-wrap { display: flex; align-items: center; gap: 12rpx; max-width: 70%;

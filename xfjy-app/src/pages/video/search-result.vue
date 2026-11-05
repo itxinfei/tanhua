@@ -21,7 +21,9 @@
           <view class="ico-sm i-ph-x-circle" aria-hidden="true" />
         </a11y-button>
       </view>
-      <text class="header-action" @tap="submitSearch">搜索</text>
+      <a11y-button class="header-action" label="搜索" @tap="submitSearch">
+        <text class="header-action-text">搜索</text>
+      </a11y-button>
     </view>
 
     <!-- 结果分类：综合 / 视频 / 用户（a11y-button 统一交互壳，键盘可达） -->
@@ -391,8 +393,17 @@ function titleSegments(title: string): TitleSegment[] {
   font-size: var(--fs-sm);
 }
 
+/* 搜索按钮：改用 a11y-button 承载，热区 ≥88rpx（原 <text> 仅 29.7×21.6px，用户需精准点中小字） */
 .header-action {
   flex-shrink: 0;
+  min-height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20rpx;
+}
+
+.header-action-text {
   font-size: var(--fs-sm);
   color: var(--color-primary-text);
   font-weight: 600;

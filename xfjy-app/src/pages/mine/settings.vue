@@ -22,20 +22,26 @@
     <!-- 通知设置 -->
     <view class="group">
       <text class="group-title">通知设置</text>
-      <view class="item" v-for="s in notificationSettings" :key="s.key">
+      <a11y-button
+        class="item"
+        v-for="s in notificationSettings"
+        :key="s.key"
+        :label="`${s.label}，当前${s.value ? '开启' : '关闭'}，点击切换`"
+        @tap="onNotificationTap(s)"
+      >
         <text class="label">{{ s.label }}</text>
         <!-- 服务端配置加载完成前禁用，避免拨动默认值覆盖服务端 -->
-        <switch :checked="s.value" :disabled="!settingsLoaded" :aria-label="s.label" color="var(--color-primary)" @change="toggleNotification(s.key, $event)" />
-      </view>
+        <switch :checked="s.value" :disabled="!settingsLoaded" color="var(--color-primary)" @change="toggleNotification(s.key, $event)" @click.stop />
+      </a11y-button>
     </view>
 
     <!-- 隐私 -->
     <view class="group">
       <text class="group-title">隐私</text>
-      <view class="item">
+      <a11y-button class="item" :label="`显示距离，当前${showDistance ? '开启' : '关闭'}，点击切换`" @tap="onDistanceChange({ detail: { value: !showDistance } })">
         <text class="label">显示距离</text>
-        <switch :checked="showDistance" aria-label="显示距离" color="var(--color-primary)" @change="onDistanceChange" />
-      </view>
+        <switch :checked="showDistance" color="var(--color-primary)" @change="onDistanceChange" @click.stop />
+      </a11y-button>
     </view>
 
     <!-- 通用 -->
@@ -100,6 +106,14 @@ const NOTIFICATION_DEBOUNCE_MS = 300;
 let notificationTimer: ReturnType<typeof setTimeout> | null = null;
 /** 待提交的最终状态：每次点击覆盖，保证 trailing 提交的是最后一次 */
 let pendingNotificationPayload: NotificationSettingParam | null = null;
+
+/**
+ * 整行点击切换通知开关（热区 ≥88rpx，原 switch 仅 32px 高难以点中）
+ * switch 自身已有 @change，此处 @click.stop 阻止冒泡避免重复触发
+ */
+function onNotificationTap(s: { key: string; value: boolean }): void {
+  toggleNotification(s.key, { detail: { value: !s.value } });
+}
 
 async function toggleNotification(key: string, e: any) {
   const s = notificationSettings.value.find(n => n.key === key);

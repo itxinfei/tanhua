@@ -106,6 +106,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
+import A11yButton from "@/components/a11y-button.vue";
 import A11yRadioGroup from "@/components/a11y-radio-group.vue";
 import {
   getVipPackages,

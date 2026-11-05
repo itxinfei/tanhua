@@ -591,7 +591,11 @@ async function handleLogin() {
 .agreement {
   display: flex;
   align-items: center;
+  /* 可点击区域比视觉区域大：min-height 88rpx 保证最小热区，padding 扩展点击范围 */
+  min-height: 88rpx;
+  padding: 16rpx 0;
   margin: 32rpx 0;
+  box-sizing: content-box;
 
   .checkbox {
     width: 36rpx;
@@ -602,6 +606,7 @@ async function handleLogin() {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 
     &.checked {
       background: var(--color-primary);
@@ -617,6 +622,9 @@ async function handleLogin() {
   .agreement-text {
     font-size: 24rpx;
     color: var(--text-hint);
+    line-height: 1.5;
+    flex: 1;
+    min-width: 0;
 
     .link {
       color: var(--color-primary-text);

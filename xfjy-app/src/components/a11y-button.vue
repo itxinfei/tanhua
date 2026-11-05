@@ -10,11 +10,11 @@
     ]"
     :role="role"
     :aria-label="label || null"
-    :aria-checked="isCheckable ? (checked ? 'true' : 'false') : null"
+    :aria-checked="ariaChecked"
     :aria-disabled="disabled || loading ? 'true' : null"
     :aria-busy="loading ? 'true' : null"
     :tabindex="disabled ? -1 : 0"
-    @click.stop="handleTap"
+    @click="handleTap"
     @keydown="handleKeydown"
   >
     <!-- loading 指示器：border 旋转，颜色取 currentColor 自动适配各变体 -->
@@ -66,16 +66,20 @@ const props = withDefaults(defineProps<Props>(), {
   loading: false,
 });
 
-const emit = defineEmits<{ (e: "tap"): void }>();
+const emit = defineEmits<{ (e: "tap" | "click"): void }>();
 
 /** 需要上报选中态的角色（对应 WCAG 4.1.2 Name, Role, Value） */
 const CHECKABLE_ROLES = ["checkbox", "radio", "tab", "switch", "menuitemcheckbox"];
 const isCheckable = computed(() => CHECKABLE_ROLES.includes(props.role));
 
+/** aria-checked 属性值（computed 确保响应式更新） */
+const ariaChecked = computed(() => (isCheckable.value ? (props.checked ? "true" : "false") : null));
+
 /** 统一的激活动作（点击与键盘共用），disabled/loading 时静默 */
 function activate(): void {
   if (props.disabled || props.loading) return;
   emit("tap");
+  emit("click");
 }
 
 function handleTap(): void {

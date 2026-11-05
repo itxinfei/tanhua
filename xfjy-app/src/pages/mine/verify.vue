@@ -28,6 +28,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { onShow } from "@dcloudio/uni-app";
+import A11yButton from "@/components/a11y-button.vue";
 import { submitVerify, getVerifyStatus } from "@/api/mine";
 import { info, success } from "@/utils/ux";
 
@@ -90,7 +91,8 @@ async function submit() {
   .form-item { display: flex; align-items: center; padding: 26rpx 0; border-bottom: 1rpx solid var(--border-faint);
     &:last-child { border-bottom: none; }
     .form-label { width: 160rpx; font-size: 28rpx; color: var(--text-primary); flex-shrink: 0; }
-    input { flex: 1; font-size: 28rpx; color: var(--text-primary); }
+    /* 热区 ≥88rpx（44px）：原仅由 line-height 撑高约 38.8rpx，点中困难 */
+    input { flex: 1; min-height: 88rpx; font-size: 28rpx; color: var(--text-primary); }
   }
 }
 .ph { color: var(--text-hint); }
