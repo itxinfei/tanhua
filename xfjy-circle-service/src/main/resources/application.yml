@@ -20,6 +20,7 @@ spring:
     active: local
   mongodb:
     uri: mongodb://192.168.20.133:27017/xfjy
+    auto-index-creation: true
   data:
     redis:
       host: 192.168.20.133

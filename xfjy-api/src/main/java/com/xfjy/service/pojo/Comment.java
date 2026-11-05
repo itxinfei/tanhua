@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.bson.types.ObjectId;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.CompoundIndexes;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Date;
@@ -15,6 +17,14 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "quanzi_comment")
+@CompoundIndexes({
+        // queryCommentListByUser：publishUserId + commentType 等值 + created DESC 排序
+        @CompoundIndex(name = "idx_pub_user_type_created",
+                def = "{'publishUserId': 1, 'commentType': 1, 'created': -1}"),
+        // queryCommentList / saveLikeComment / saveLoveComment：publishId + commentType 等值 + created ASC
+        @CompoundIndex(name = "idx_pub_id_type_created",
+                def = "{'publishId': 1, 'commentType': 1, 'created': 1}")
+})
 public class Comment implements java.io.Serializable{
 
     private static final long serialVersionUID = -291788258125767614L;
