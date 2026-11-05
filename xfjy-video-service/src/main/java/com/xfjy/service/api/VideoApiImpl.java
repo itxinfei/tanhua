@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import com.mongodb.client.result.DeleteResult;
+import com.mongodb.client.result.UpdateResult;
 import com.xfjy.service.pojo.FollowUser;
 import com.xfjy.service.pojo.Video;
 import com.xfjy.service.service.IdService;
@@ -123,13 +123,13 @@ public class VideoApiImpl implements VideoApi {
         int p = (page == null || page < 1) ? 1 : page;
         int size = (pageSize == null || pageSize < 1) ? 10 : pageSize;
         Pageable pageable = PageRequest.of(p - 1, size, Sort.by(Sort.Order.desc("created")));
-        Query query = new Query().with(pageable);
+        Query query = new Query(Criteria.where("deleted").ne(true)).with(pageable);
         List<Video> videos = this.mongoTemplate.find(query, Video.class);
         PageInfo<Video> pageInfo = new PageInfo<>();
         pageInfo.setRecords(videos);
         pageInfo.setPageNum(p);
         pageInfo.setPageSize(size);
-        long total = this.mongoTemplate.count(new Query(), Video.class);
+        long total = this.mongoTemplate.count(new Query(Criteria.where("deleted").ne(true)), Video.class);
         pageInfo.setTotal((int) total);
         pageInfo.setPages(size > 0 ? (int) ((total + size - 1) / size) : 0);
         return pageInfo;
@@ -140,9 +140,20 @@ public class VideoApiImpl implements VideoApi {
     public Boolean followUser(@RequestParam("userId") Long userId,
                               @RequestParam("followUserId") Long followUserId) {
         try {
-            // 先查后插：已关注则幂等返回 true，防止重复关注记录
-            Query existQuery = Query.query(Criteria.where("userId").is(userId).and("followUserId").is(followUserId));
+            // 先查后插：未删除的已关注记录存在则幂等返回 true，防止重复关注
+            Query existQuery = Query.query(Criteria.where("userId").is(userId)
+                    .and("followUserId").is(followUserId)
+                    .and("deleted").ne(true));
             if (this.mongoTemplate.exists(existQuery, FollowUser.class)) {
+                return true;
+            }
+            // 查是否已有取消关注的记录（软删除），有则恢复关注
+            Query removedQuery = Query.query(Criteria.where("userId").is(userId)
+                    .and("followUserId").is(followUserId)
+                    .and("deleted").is(true));
+            FollowUser existing = this.mongoTemplate.findOne(removedQuery, FollowUser.class);
+            if (existing != null) {
+                this.mongoTemplate.updateFirst(removedQuery, Update.update("deleted", false), FollowUser.class);
                 return true;
             }
             FollowUser followUser = new FollowUser();
@@ -162,15 +173,18 @@ public class VideoApiImpl implements VideoApi {
     @PostMapping("/disFollowUser")
     public Boolean disFollowUser(@RequestParam("userId") Long userId,
                                  @RequestParam("followUserId") Long followUserId) {
-        Query query = Query.query(Criteria.where("userId").is(userId).and("followUserId").is(followUserId));
-        DeleteResult deleteResult = this.mongoTemplate.remove(query, FollowUser.class);
-        return deleteResult.getDeletedCount() > 0;
+        Query query = Query.query(Criteria.where("userId").is(userId)
+                .and("followUserId").is(followUserId)
+                .and("deleted").ne(true));
+        // 软删除：标记 deleted=true 而非物理移除，保留取消关注记录便于重新关注时恢复
+        UpdateResult deleteResult = this.mongoTemplate.updateFirst(query, Update.update("deleted", true), FollowUser.class);
+        return deleteResult.getModifiedCount() > 0;
     }
 
     @Override
     @PostMapping("/queryVideoListByPids")
     public List<Video> queryVideoListByPids(@RequestBody List<Long> vids) {
-        Query query = Query.query(Criteria.where("vid").in(vids));
+        Query query = Query.query(Criteria.where("vid").in(vids).and("deleted").ne(true));
         return this.mongoTemplate.find(query, Video.class);
     }
 
@@ -179,7 +193,9 @@ public class VideoApiImpl implements VideoApi {
     public Boolean recordVideoMsg(@RequestParam("userId") Long userId,
                                   @RequestParam("videoId") String videoId,
                                   @RequestParam("type") Integer type) {
-        Video video = this.mongoTemplate.findById(new ObjectId(videoId), Video.class);
+        // 软删除过滤：已下架视频不再产生评分消息（ne(true) 同时匹配 false 和 null，旧数据无需迁移）
+        Video video = this.mongoTemplate.findOne(
+                Query.query(Criteria.where("_id").is(new ObjectId(videoId)).and("deleted").ne(true)), Video.class);
         if (video == null) {
             return false;
         }
@@ -194,9 +210,11 @@ public class VideoApiImpl implements VideoApi {
             return false;
         }
         try {
-            Query query = Query.query(Criteria.where("_id").is(new ObjectId(videoId)));
-            DeleteResult result = this.mongoTemplate.remove(query, Video.class);
-            if (result.getDeletedCount() > 0) {
+            Query query = Query.query(Criteria.where("_id").is(new ObjectId(videoId))
+                    .and("deleted").ne(true));
+            // 软删除：标记 deleted=true 而非物理移除，C 端查询自动过滤已删除视频
+            UpdateResult result = this.mongoTemplate.updateFirst(query, Update.update("deleted", true), Video.class);
+            if (result.getModifiedCount() > 0) {
                 LOGGER.info("视频已下架 videoId={}", videoId);
                 return true;
             }
@@ -253,7 +271,7 @@ public class VideoApiImpl implements VideoApi {
     @Override
     @GetMapping("/queryFollowUserIds")
     public List<Long> queryFollowUserIds(@RequestParam("userId") Long userId) {
-        Query query = Query.query(Criteria.where("userId").is(userId));
+        Query query = Query.query(Criteria.where("userId").is(userId).and("deleted").ne(true));
         List<FollowUser> list = this.mongoTemplate.find(query, FollowUser.class);
         List<Long> ids = new java.util.ArrayList<>();
         for (FollowUser fu : list) {
@@ -279,13 +297,13 @@ public class VideoApiImpl implements VideoApi {
             return empty;
         }
         Pageable pageable = PageRequest.of(p - 1, size, Sort.by(Sort.Order.desc("created")));
-        Query query = Query.query(Criteria.where("userId").in(userIds)).with(pageable);
+        Query query = Query.query(Criteria.where("userId").in(userIds).and("deleted").ne(true)).with(pageable);
         List<Video> videos = this.mongoTemplate.find(query, Video.class);
         PageInfo<Video> pageInfo = new PageInfo<>();
         pageInfo.setRecords(videos);
         pageInfo.setPageNum(p);
         pageInfo.setPageSize(size);
-        long total = this.mongoTemplate.count(Query.query(Criteria.where("userId").in(userIds)), Video.class);
+        long total = this.mongoTemplate.count(Query.query(Criteria.where("userId").in(userIds).and("deleted").ne(true)), Video.class);
         pageInfo.setTotal((int) total);
         pageInfo.setPages(size > 0 ? (int) ((total + size - 1) / size) : 0);
         return pageInfo;
@@ -350,7 +368,7 @@ public class VideoApiImpl implements VideoApi {
 
         NearQuery near = NearQuery.near(point)
                 .maxDistance(new Distance(radius, Metrics.KILOMETERS))
-                .query(new Query());
+                .query(new Query(Criteria.where("deleted").ne(true)));
         Aggregation aggregation = Aggregation.newAggregation(
                 Aggregation.geoNear(near, "distance"),
                 Aggregation.skip((long) (p - 1) * size),
@@ -360,7 +378,8 @@ public class VideoApiImpl implements VideoApi {
                 .getMappedResults();
 
         long total = this.mongoTemplate.count(
-                Query.query(Criteria.where("geo").nearSphere(point).maxDistance(radius * 1000D)), Video.class);
+                Query.query(Criteria.where("geo").nearSphere(point).maxDistance(radius * 1000D)
+                        .and("deleted").ne(true)), Video.class);
 
         pageInfo.setRecords(records);
         pageInfo.setTotal((int) total);
@@ -423,7 +442,7 @@ public class VideoApiImpl implements VideoApi {
         }
         try {
             ObjectId id = new ObjectId(videoId);
-            Criteria criteria = Criteria.where("_id").is(id);
+            Criteria criteria = Criteria.where("_id").is(id).and("deleted").ne(true);
             if (delta < 0) {
                 // 减计数时只更新当前值 > 0 的文档，保证不出现负数
                 criteria = criteria.and(field).gt(0);
@@ -450,7 +469,7 @@ public class VideoApiImpl implements VideoApi {
                     .set("likeCount", Math.max(0, likeCount))
                     .set("commentCount", Math.max(0, commentCount));
             return this.mongoTemplate.updateFirst(
-                    Query.query(Criteria.where("_id").is(new ObjectId(videoId))), update, Video.class)
+                    Query.query(Criteria.where("_id").is(new ObjectId(videoId)).and("deleted").ne(true)), update, Video.class)
                     .getModifiedCount() > 0;
         } catch (IllegalArgumentException e) {
             LOGGER.warn("setVideoCounters 非法的 videoId: {}", videoId);
@@ -482,6 +501,7 @@ public class VideoApiImpl implements VideoApi {
                 nullFields.add(Criteria.where("commentCount").is(null));
             }
             Criteria criteria = Criteria.where("_id").is(new ObjectId(videoId))
+                    .and("deleted").ne(true)
                     .andOperator(new Criteria().orOperator(nullFields.toArray(new Criteria[0])));
             return this.mongoTemplate.updateFirst(Query.query(criteria), update, Video.class)
                     .getModifiedCount() > 0;

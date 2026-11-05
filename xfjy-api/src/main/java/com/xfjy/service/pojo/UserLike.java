@@ -22,4 +22,7 @@ public class UserLike implements java.io.Serializable {
     private Long likeUserId; //喜欢的用户id，对方
     private Long created; //创建时间
 
+    /** 软删除标记：true=已取消喜欢（数据保留可恢复）；旧数据无此字段按未取消处理 */
+    private Boolean deleted = false;
+
 }

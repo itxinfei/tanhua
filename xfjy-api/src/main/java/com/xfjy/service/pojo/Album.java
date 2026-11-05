@@ -24,4 +24,7 @@ public class Album implements java.io.Serializable {
     private ObjectId publishId; //发布id
     private Long created; //发布时间
 
+    /** 软删除标记：true=已删除（用户不可见，数据保留可恢复）；旧数据无此字段按未删除处理 */
+    private Boolean deleted = false;
+
 }

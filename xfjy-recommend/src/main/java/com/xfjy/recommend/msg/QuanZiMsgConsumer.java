@@ -19,6 +19,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
@@ -74,14 +76,25 @@ public class QuanZiMsgConsumer implements RocketMQListener<String> {
             switch (type) {
                 case 1: {
                     int score = 0;
-                    Publish publish = this.mongoTemplate.findById(new ObjectId(publishId), Publish.class);
+                    // 软删动态不参与推荐评分（deleted.ne(true) 同时匹配 false/null，旧数据无需迁移）
+                    Publish publish = this.mongoTemplate.findOne(
+                            Query.query(Criteria.where("_id").is(new ObjectId(publishId)).and("deleted").ne(true)),
+                            Publish.class);
                     if (publish == null) {
-                        // 动态可能已被删除，跳过评分避免 NPE
+                        // 动态不存在或已被删除，跳过评分避免 NPE
                         LOGGER.warn("动态不存在, publishId={}, 跳过发动态评分", publishId);
                         recommendQuanZi.setScore(0d);
                         break;
                     }
                     int length = StringUtils.length(publish.getText());
+
+                    // 软删除适配：软删文档仍在库，findById 能查到，仅 deleted=true。
+                    // 已软删动态不再计入发动态评分；旧数据无此字段映射为 null，按未删除处理。
+                    if (Boolean.TRUE.equals(publish.getDeleted())) {
+                        LOGGER.info("动态已软删除, publishId={}, 跳过发动态评分", publishId);
+                        recommendQuanZi.setScore(0d);
+                        break;
+                    }
 
                     // 空文本 0 分；1-50 字 1 分；51-100 字 2 分；100 字以上 3 分
                     if (length == 0) {

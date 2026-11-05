@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import com.mongodb.client.result.DeleteResult;
+import com.mongodb.client.result.UpdateResult;
 import com.xfjy.service.pojo.*;
 import com.xfjy.service.service.IdService;
 import com.xfjy.service.vo.PageInfo;
@@ -25,6 +25,7 @@ import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.bson.Document;
 
 import java.util.ArrayList;
@@ -187,7 +188,8 @@ public class QuanziApiImpl implements QuanZiApi {
         int p = safePage(page);
         int size = (pageSize == null || pageSize < 1) ? 10 : pageSize;
         Pageable pageable = PageRequest.of(p - 1, size, Sort.by(Sort.Order.desc("date")));
-        Query query = new Query().with(pageable);
+        // 软删除过滤：时间线仅查未删除记录
+        Query query = new Query(Criteria.where("deleted").ne(true)).with(pageable);
 
         String tableName = "quanzi_time_line_";
         if (null == userId) {
@@ -206,7 +208,8 @@ public class QuanziApiImpl implements QuanZiApi {
             ids.add(timeLine.getPublishId());
         }
 
-        Query queryPublish = Query.query(Criteria.where("id").in(ids)).with(Sort.by(Sort.Order.desc("created")));
+        // 软删除过滤：动态仅查未删除记录
+        Query queryPublish = Query.query(Criteria.where("id").in(ids).and("deleted").ne(true)).with(Sort.by(Sort.Order.desc("created")));
         //查询动态信息
         List<Publish> publishList = this.mongoTemplate.find(queryPublish, Publish.class);
 
@@ -215,7 +218,8 @@ public class QuanziApiImpl implements QuanZiApi {
         pageInfo.setPageNum(p);
         pageInfo.setPageSize(size);
         // 计算总数：用时间线总数（时间线是分页的依据，records 是关联查出的 publish）
-        long total = this.mongoTemplate.count(new Query(), TimeLine.class, tableName);
+        // 软删除过滤：总数仅统计未删除的时间线
+        long total = this.mongoTemplate.count(new Query(Criteria.where("deleted").ne(true)), TimeLine.class, tableName);
         pageInfo.setTotal((int) total);
         pageInfo.setPages(size > 0 ? (int) ((total + size - 1) / size) : 0);
         pageInfo.setRecords(publishList);
@@ -235,7 +239,8 @@ public class QuanziApiImpl implements QuanZiApi {
         //判断是否已经点赞，如果已经点赞就返回
         Criteria criteria = Criteria.where("userId").is(userId)
                 .and("publishId").is(new ObjectId(publishId))
-                .and("commentType").is(1);
+                .and("commentType").is(1)
+                .and("deleted").ne(true);
         Query query = Query.query(criteria);
         long count = this.mongoTemplate.count(query, Comment.class);
         if (count > 0) {
@@ -245,7 +250,7 @@ public class QuanziApiImpl implements QuanZiApi {
         boolean result = this.saveComment(userId, publishId, 1, null, null, null, null);
         if (result) {
             // 评分事件：点赞（type=3）
-            Publish publish = this.mongoTemplate.findById(new ObjectId(publishId), Publish.class);
+            Publish publish = this.mongoTemplate.findOne(Query.query(Criteria.where("_id").is(new ObjectId(publishId)).and("deleted").ne(true)), Publish.class);
             this.sendScoringMsg(3, userId, publish);
         }
         return result;
@@ -266,15 +271,16 @@ public class QuanziApiImpl implements QuanZiApi {
                 .and("commentType").is(commentType);
         Query query = Query.query(criteria);
 
-        DeleteResult deleteResult = this.mongoTemplate.remove(query, Comment.class);
-        boolean result = deleteResult.getDeletedCount() > 0;
+        // 软删除：标记 deleted=true 替代物理删除
+        UpdateResult updateResult = this.mongoTemplate.updateMulti(query, Update.update("deleted", true), Comment.class);
+        boolean result = updateResult.getModifiedCount() > 0;
         if (result) {
             // 评分事件：取消点赞（commentType=1→type=6）/ 取消喜欢（commentType=3→type=7）
             // commentType 为 Integer 可能为 null，用 equals 避免拆箱 NPE
             Integer scoringType = Integer.valueOf(1).equals(commentType) ? 6
                     : Integer.valueOf(3).equals(commentType) ? 7 : null;
             if (scoringType != null) {
-                Publish publish = this.mongoTemplate.findById(new ObjectId(publishId), Publish.class);
+                Publish publish = this.mongoTemplate.findOne(Query.query(Criteria.where("_id").is(new ObjectId(publishId)).and("deleted").ne(true)), Publish.class);
                 this.sendScoringMsg(scoringType, userId, publish);
             }
         }
@@ -292,7 +298,8 @@ public class QuanziApiImpl implements QuanZiApi {
         //判断是否已经喜欢，如果已经喜欢就返回
         Criteria criteria = Criteria.where("userId").is(userId)
                 .and("publishId").is(new ObjectId(publishId))
-                .and("commentType").is(3);
+                .and("commentType").is(3)
+                .and("deleted").ne(true);
         Query query = Query.query(criteria);
         long count = this.mongoTemplate.count(query, Comment.class);
         if (count > 0) {
@@ -302,7 +309,7 @@ public class QuanziApiImpl implements QuanZiApi {
         boolean result = this.saveComment(userId, publishId, 3, null, null, null, null);
         if (result) {
             // 评分事件：喜欢（type=4）
-            Publish publish = this.mongoTemplate.findById(new ObjectId(publishId), Publish.class);
+            Publish publish = this.mongoTemplate.findOne(Query.query(Criteria.where("_id").is(new ObjectId(publishId)).and("deleted").ne(true)), Publish.class);
             this.sendScoringMsg(4, userId, publish);
         }
         return result;
@@ -332,12 +339,12 @@ public class QuanziApiImpl implements QuanZiApi {
             comment.setAudioUrl(audioUrl);
             comment.setDuration(duration);
 
-            // 设置发布人的id
-            Publish publish = this.mongoTemplate.findById(comment.getPublishId(), Publish.class);
+            // 设置发布人的id（软删除过滤：已删除内容不允许评论）
+            Publish publish = this.mongoTemplate.findOne(Query.query(Criteria.where("_id").is(comment.getPublishId()).and("deleted").ne(true)), Publish.class);
             if (null != publish) {
                 comment.setPublishUserId(publish.getUserId());
             } else {
-                Video video = this.mongoTemplate.findById(comment.getPublishId(), Video.class);
+                Video video = this.mongoTemplate.findOne(Query.query(Criteria.where("_id").is(comment.getPublishId()).and("deleted").ne(true)), Video.class);
                 if (null != video) {
                     comment.setPublishUserId(video.getUserId());
                 }
@@ -367,7 +374,8 @@ public class QuanziApiImpl implements QuanZiApi {
                                     @RequestParam(value = "parentId", required = false) String parentId,
                                     @RequestParam(value = "content", required = false) String content) {
         try {
-            Comment parent = this.mongoTemplate.findById(new ObjectId(parentId), Comment.class);
+            // 软删除过滤：已删除评论不允许回复
+            Comment parent = this.mongoTemplate.findOne(Query.query(Criteria.where("_id").is(new ObjectId(parentId)).and("deleted").ne(true)), Comment.class);
             if (parent == null) {
                 return false;
             }
@@ -388,12 +396,12 @@ public class QuanziApiImpl implements QuanZiApi {
             reply.setId(ObjectId.get());
             reply.setCreated(System.currentTimeMillis());
 
-            // 设置发布人的id
-            Publish publish = this.mongoTemplate.findById(reply.getPublishId(), Publish.class);
+            // 设置发布人的id（软删除过滤：已删除内容不允许回复）
+            Publish publish = this.mongoTemplate.findOne(Query.query(Criteria.where("_id").is(reply.getPublishId()).and("deleted").ne(true)), Publish.class);
             if (null != publish) {
                 reply.setPublishUserId(publish.getUserId());
             } else {
-                Video video = this.mongoTemplate.findById(reply.getPublishId(), Video.class);
+                Video video = this.mongoTemplate.findOne(Query.query(Criteria.where("_id").is(reply.getPublishId()).and("deleted").ne(true)), Video.class);
                 if (null != video) {
                     reply.setPublishUserId(video.getUserId());
                 }
@@ -413,8 +421,10 @@ public class QuanziApiImpl implements QuanZiApi {
     @GetMapping("/queryCommentCount")
     public Long queryCommentCount(@RequestParam(value = "publishId", required = false) String publishId,
                                   @RequestParam(value = "type", required = false) Integer type) {
+        // 软删除过滤：仅统计未删除评论
         Criteria criteria = Criteria.where("publishId").is(new ObjectId(publishId))
-                .and("commentType").is(type);
+                .and("commentType").is(type)
+                .and("deleted").ne(true);
         Query query = Query.query(criteria);
         return this.mongoTemplate.count(query, Comment.class);
     }
@@ -443,7 +453,8 @@ public class QuanziApiImpl implements QuanZiApi {
         // 聚合：match(publishId in + commentType) -> group(publishId).count()
         Aggregation agg = Aggregation.newAggregation(
                 Aggregation.match(Criteria.where("publishId").in(objectIds)
-                        .and("commentType").is(type)),
+                        .and("commentType").is(type)
+                        .and("deleted").ne(true)),
                 Aggregation.group("publishId").count().as("count")
         );
 
@@ -462,13 +473,15 @@ public class QuanziApiImpl implements QuanZiApi {
     @Override
     @GetMapping("/queryPublishById")
     public Publish queryPublishById(@RequestParam(value = "publishId", required = false) String publishId) {
-        return this.mongoTemplate.findById(new ObjectId(publishId), Publish.class);
+        // 软删除过滤：已删除动态对 C 端不可见
+        return this.mongoTemplate.findOne(Query.query(Criteria.where("_id").is(new ObjectId(publishId)).and("deleted").ne(true)), Publish.class);
     }
 
     @Override
     @GetMapping("/queryCommentById")
     public Comment queryCommentById(@RequestParam(value = "commentId", required = false) String commentId) {
-        return this.mongoTemplate.findById(new ObjectId(commentId), Comment.class);
+        // 软删除过滤：已删除评论对 C 端不可见
+        return this.mongoTemplate.findOne(Query.query(Criteria.where("_id").is(new ObjectId(commentId)).and("deleted").ne(true)), Comment.class);
     }
 
     @Override
@@ -510,14 +523,17 @@ public class QuanziApiImpl implements QuanZiApi {
         int size = (pageSize == null || pageSize < 1) ? 10 : pageSize;
         PageRequest pageRequest = PageRequest.of(p - 1, size, Sort.by(Sort.Order.asc("created")));
 
+        // 软删除过滤：仅查未删除评论
         Query query = Query.query(Criteria.where("publishId").is(new ObjectId(publishId))
-                .and("commentType").is(2)).with(pageRequest);
+                .and("commentType").is(2)
+                .and("deleted").ne(true)).with(pageRequest);
 
         List<Comment> commentList = this.mongoTemplate.find(query, Comment.class);
 
         PageInfo<Comment> pageInfo = new PageInfo<>();
         long total = this.mongoTemplate.count(Query.query(Criteria.where("publishId").is(new ObjectId(publishId))
-                .and("commentType").is(2)), Comment.class);
+                .and("commentType").is(2)
+                .and("deleted").ne(true)), Comment.class);
         pageInfo.setTotal((int) total);
         pageInfo.setPages(size > 0 ? (int) ((total + size - 1) / size) : 0);
         pageInfo.setPageSize(size);
@@ -530,7 +546,8 @@ public class QuanziApiImpl implements QuanZiApi {
     @Override
     @PostMapping("/queryPublishByPids")
     public List<Publish> queryPublishByPids(@RequestBody List<Long> pids) {
-        Query query = Query.query(Criteria.where("pid").in(pids));
+        // 软删除过滤：仅查未删除动态
+        Query query = Query.query(Criteria.where("pid").in(pids).and("deleted").ne(true));
         return this.mongoTemplate.find(query, Publish.class);
     }
 
@@ -544,9 +561,11 @@ public class QuanziApiImpl implements QuanZiApi {
         int p = safePage(page);
         int size = (pageSize == null || pageSize < 1) ? 10 : pageSize;
         PageRequest pageRequest = PageRequest.of(p - 1, size, Sort.by(Sort.Order.desc("created")));
+        // 软删除过滤：仅查未删除评论
         Query query = new Query(Criteria
                 .where("publishUserId").is(userId)
-                .and("commentType").is(type)).with(pageRequest);
+                .and("commentType").is(type)
+                .and("deleted").ne(true)).with(pageRequest);
 
         List<Comment> commentList = this.mongoTemplate.find(query, Comment.class);
 
@@ -556,7 +575,8 @@ public class QuanziApiImpl implements QuanZiApi {
         pageInfo.setRecords(commentList);
         long total = this.mongoTemplate.count(new Query(Criteria
                 .where("publishUserId").is(userId)
-                .and("commentType").is(type)), Comment.class);
+                .and("commentType").is(type)
+                .and("deleted").ne(true)), Comment.class);
         pageInfo.setTotal((int) total);
         pageInfo.setPages(size > 0 ? (int) ((total + size - 1) / size) : 0);
         return pageInfo;
@@ -572,12 +592,14 @@ public class QuanziApiImpl implements QuanZiApi {
         PageInfo<Publish> pageInfo = new PageInfo<>();
         pageInfo.setPageNum(p);
         pageInfo.setPageSize(size);
-        long total = this.mongoTemplate.count(new Query(), Album.class, "quanzi_album_" + userId);
+        // 软删除过滤：相册总数仅统计未删除记录
+        long total = this.mongoTemplate.count(new Query(Criteria.where("deleted").ne(true)), Album.class, "quanzi_album_" + userId);
         pageInfo.setTotal((int) total);
         pageInfo.setPages(size > 0 ? (int) ((total + size - 1) / size) : 0);
 
         Pageable pageable = PageRequest.of(p - 1, size, Sort.by(Sort.Order.desc("created")));
-        Query query = new Query().with(pageable);
+        // 软删除过滤：相册仅查未删除记录
+        Query query = new Query(Criteria.where("deleted").ne(true)).with(pageable);
         List<Album> albumList = this.mongoTemplate.find(query, Album.class, "quanzi_album_" + userId);
 
         if(CollectionUtils.isEmpty(albumList)){
@@ -590,7 +612,8 @@ public class QuanziApiImpl implements QuanZiApi {
             publishIds.add(album.getPublishId());
         }
 
-        Query publishQuery = Query.query(Criteria.where("id").in(publishIds)).with(Sort.by(Sort.Order.desc("created")));
+        // 软删除过滤：动态仅查未删除记录
+        Query publishQuery = Query.query(Criteria.where("id").in(publishIds).and("deleted").ne(true)).with(Sort.by(Sort.Order.desc("created")));
         List<Publish> publishList = this.mongoTemplate.find(publishQuery, Publish.class);
 
         pageInfo.setRecords(publishList);
@@ -616,27 +639,27 @@ public class QuanziApiImpl implements QuanZiApi {
             return false;
         }
 
-        // 1. 删除动态主表
-        this.mongoTemplate.remove(publish);
+        // 1. 软删除动态主表（标记 deleted=true）
+        this.mongoTemplate.updateFirst(Query.query(Criteria.where("_id").is(publish.getId())), Update.update("deleted", true), Publish.class);
 
-        // 2. 删除发布者相册中的记录（失败不阻断，记录告警）
+        // 2. 软删除发布者相册中的记录（失败不阻断，记录告警）
         try {
             Query albumQuery = Query.query(Criteria.where("publishId").is(oid));
-            this.mongoTemplate.remove(albumQuery, "quanzi_album_" + publish.getUserId());
+            this.mongoTemplate.updateMulti(albumQuery, Update.update("deleted", true), "quanzi_album_" + publish.getUserId());
         } catch (Exception e) {
-            LOGGER.error("删除相册记录失败 publishId={}", publishId, e);
+            LOGGER.error("软删除相册记录失败 publishId={}", publishId, e);
         }
 
-        // 3. 删除好友时间线中的该动态记录（失败不阻断，记录告警）
+        // 3. 软删除好友时间线中的该动态记录（失败不阻断，记录告警）
         try {
             Query usersQuery = Query.query(Criteria.where("userId").is(publish.getUserId()));
             List<Users> users = this.mongoTemplate.find(usersQuery, Users.class);
             for (Users user : users) {
                 Query timeLineQuery = Query.query(Criteria.where("publishId").is(oid));
-                this.mongoTemplate.remove(timeLineQuery, "quanzi_time_line_" + user.getFriendId());
+                this.mongoTemplate.updateMulti(timeLineQuery, Update.update("deleted", true), "quanzi_time_line_" + user.getFriendId());
             }
         } catch (Exception e) {
-            LOGGER.error("删除时间线记录失败 publishId={}", publishId, e);
+            LOGGER.error("软删除时间线记录失败 publishId={}", publishId, e);
         }
 
         LOGGER.info("动态已下架 publishId={} userId={}", publishId, publish.getUserId());
@@ -690,8 +713,8 @@ public class QuanziApiImpl implements QuanZiApi {
     @PostMapping("/recordPublishView")
     public boolean recordPublishView(@RequestParam(value = "userId", required = false) Long userId,
                                      @RequestParam(value = "publishId", required = false) String publishId) {
-        // 评分事件：浏览动态（type=2）
-        Publish publish = this.mongoTemplate.findById(new ObjectId(publishId), Publish.class);
+        // 评分事件：浏览动态（type=2）；软删除过滤：已删除动态不计浏览
+        Publish publish = this.mongoTemplate.findOne(Query.query(Criteria.where("_id").is(new ObjectId(publishId)).and("deleted").ne(true)), Publish.class);
         this.sendScoringMsg(2, userId, publish);
         return true;
     }
@@ -754,10 +777,11 @@ public class QuanziApiImpl implements QuanZiApi {
         }
 
         Query query = Query.query(Criteria.where("_id").is(oid).and("commentType").is(2));
-        DeleteResult deleteResult = this.mongoTemplate.remove(query, Comment.class);
-        boolean result = deleteResult.getDeletedCount() > 0;
+        // 软删除：标记 deleted=true 替代物理删除
+        UpdateResult updateResult = this.mongoTemplate.updateFirst(query, Update.update("deleted", true), Comment.class);
+        boolean result = updateResult.getModifiedCount() > 0;
         if (result) {
-            LOGGER.info("评论已删除 commentId={}", commentId);
+            LOGGER.info("评论已软删除 commentId={}", commentId);
         }
         return result;
     }
@@ -765,21 +789,24 @@ public class QuanziApiImpl implements QuanZiApi {
     @Override
     @GetMapping("/countPublishByUser")
     public Long countPublishByUser(@RequestParam(value = "userId", required = false) Long userId) {
-        Query query = Query.query(Criteria.where("userId").is(userId));
+        // 软删除过滤：仅统计未删除动态
+        Query query = Query.query(Criteria.where("userId").is(userId).and("deleted").ne(true));
         return this.mongoTemplate.count(query, Publish.class);
     }
 
     @Override
     @GetMapping("/countFollowerByUser")
     public Long countFollowerByUser(@RequestParam(value = "userId", required = false) Long userId) {
-        Query query = Query.query(Criteria.where("followUserId").is(userId));
+        // 软删除过滤：仅统计未删除的粉丝关系
+        Query query = Query.query(Criteria.where("followUserId").is(userId).and("deleted").ne(true));
         return this.mongoTemplate.count(query, FollowUser.class);
     }
 
     @Override
     @GetMapping("/countFollowingByUser")
     public Long countFollowingByUser(@RequestParam(value = "userId", required = false) Long userId) {
-        Query query = Query.query(Criteria.where("userId").is(userId));
+        // 软删除过滤：仅统计未删除的关注关系
+        Query query = Query.query(Criteria.where("userId").is(userId).and("deleted").ne(true));
         return this.mongoTemplate.count(query, FollowUser.class);
     }
 
@@ -859,8 +886,8 @@ public class QuanziApiImpl implements QuanZiApi {
     public PageInfo<Publish> searchPublishByTag(@RequestParam(value = "tag") String tag,
                                                 @RequestParam(value = "page", required = false, defaultValue = "1") Integer page,
                                                 @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize) {
-        // tags 为数组字段，Criteria.is(tag) 命中数组包含该元素的文档
-        Criteria criteria = Criteria.where("tags").is(tag);
+        // tags 为数组字段，Criteria.is(tag) 命中数组包含该元素的文档；软删除过滤：仅查未删除动态
+        Criteria criteria = Criteria.where("tags").is(tag).and("deleted").ne(true);
         long total = this.mongoTemplate.count(Query.query(criteria), Publish.class);
 
         int p = safePage(page);

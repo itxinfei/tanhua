@@ -93,7 +93,8 @@ public class VideoSearchApiImpl implements VideoSearchApi {
         Criteria visibility = new Criteria().orOperator(
                 Criteria.where("seeType").is(1),
                 Criteria.where("seeType").is(null));
-        Criteria criteria = new Criteria().andOperator(matchCriteria, visibility);
+        // 软删除过滤：已下架视频不参与搜索（ne(true) 同时匹配 false 和 null，旧数据无需迁移）
+        Criteria criteria = new Criteria().andOperator(matchCriteria, visibility, Criteria.where("deleted").ne(true));
 
         Query query = new Query(criteria)
                 .with(Sort.by(Sort.Order.desc("created")))

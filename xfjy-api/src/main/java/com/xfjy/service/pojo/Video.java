@@ -45,4 +45,7 @@ public class Video implements java.io.Serializable {
     private Integer likeCount; //点赞数（点赞 +1 / 取消赞 -1，不允许出现负数）
     private Integer commentCount; //评论数（评论写入 +1，评论删除/隐藏 -1）
     private Integer playCount; //播放数（同一用户对同一视频仅计一次，由上报接口去重）
+
+    /** 软删除标记：true=已删除（用户不可见，数据保留可恢复）；旧数据无此字段按未删除处理 */
+    private Boolean deleted = false;
 }
