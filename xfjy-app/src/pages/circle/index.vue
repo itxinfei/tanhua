@@ -30,6 +30,7 @@
           v-for="tab in tabs"
           :key="tab.key"
           class="tab-item"
+          :class="{ active: activeTab === tab.key }"
           role="tab"
           :checked="activeTab === tab.key"
           :label="tab.label"
@@ -114,7 +115,7 @@
             <view class="i-ph-x" aria-hidden="true" />
           </a11y-button>
         </view>
-        <scroll-view scroll-y class="notice-panel-list">
+        <view class="notice-panel-list">
           <view v-if="noticeLocked" class="locked-state">
             <view class="locked-icon"><view class="i-ph-lock" aria-hidden="true" /></view>
             <text class="locked-title">VIP 专享权益</text>
@@ -140,7 +141,7 @@
               <text class="notice-time">{{ item.time }}</text>
             </a11y-button>
           </template>
-        </scroll-view>
+        </view>
       </view>
 
       <scroll-view scroll-y class="msg-list" :class="{ 'msg-list-collapsed': noticePanelType }">
@@ -593,14 +594,11 @@ flex-direction: column;
     align-items: center;
     font-size: 32rpx;
     color: var(--text-hint);
-    padding: 6rpx 24rpx;
-    border-radius: var(--radius-pill);
-    transition: background 0.2s ease, color 0.2s ease;
+    padding: 6rpx 4rpx;
 
     &.active {
-      color: var(--text-primary);
+      color: var(--color-primary);
       font-weight: 700;
-      background: var(--bg-icon-soft);
 
       &::after {
         content: "";
@@ -638,31 +636,26 @@ flex-direction: column;
   display: flex;
   align-items: stretch;
   background: var(--bg-card);
-  padding: 8rpx 32rpx;
+  padding: 0 32rpx;
   height: var(--category-bar-h);
   position: relative;
-  gap: 16rpx;
 
   .tab-item {
     display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 0 24rpx;
-    font-size: 28rpx;
+    padding: 0 32rpx;
+    font-size: 30rpx;
     color: var(--text-hint);
     position: relative;
-    border-radius: var(--radius-pill);
-    transition: background 0.2s ease, color 0.2s ease;
 
     &.active {
-      color: var(--text-primary);
+      color: var(--color-primary);
       font-weight: bold;
-      background: var(--bg-icon-soft);
 
       &::after {
         content: "";
         position: absolute;
-        bottom: -8rpx;
+        bottom: 0;
         left: 50%;
         transform: translateX(-50%);
         width: 48rpx;
