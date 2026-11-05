@@ -209,12 +209,13 @@ do_logs() {
     err "logs 需要指定服务名，例如：bash deploy/manage.sh logs xfjy-server"
     exit 1
   fi
+  # 注意：禁止 -f（follow）——CI 工作流里调用本命令，-f 会永久阻塞 job 并堵死整个部署队列
   resolve_targets "${svc}"
   if [ ${#APP_TARGETS[@]} -gt 0 ]; then
-    docker compose -p "${APP_PROJECT}" -f "${APP_COMPOSE}" logs -f --tail=200 "${APP_TARGETS[@]}"
+    docker compose -p "${APP_PROJECT}" -f "${APP_COMPOSE}" logs --tail=200 "${APP_TARGETS[@]}"
   fi
   if [ ${#WEB_TARGETS[@]} -gt 0 ]; then
-    docker compose -p "${WEB_PROJECT}" -f "${WEB_COMPOSE}" logs -f --tail=200 "${WEB_TARGETS[@]}"
+    docker compose -p "${WEB_PROJECT}" -f "${WEB_COMPOSE}" logs --tail=200 "${WEB_TARGETS[@]}"
   fi
 }
 
