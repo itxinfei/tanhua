@@ -14,8 +14,15 @@
           @tap="switchChannel(ch.key)"
         >{{ ch.label }}</a11y-button>
       </view>
-      <a11y-button class="search-btn" label="搜索" @tap="onSearch">
-        <view class="search-ico i-ph-magnifying-glass" aria-hidden="true" />
+      <a11y-button class="side-btn" label="刷新视频列表" :loading="refreshing" @tap="onRefresh">
+        <view
+          class="side-ico i-ph-arrows-clockwise-bold"
+          :class="{ 'is-spinning': refreshing }"
+          aria-hidden="true"
+        />
+      </a11y-button>
+      <a11y-button class="side-btn search-btn" label="搜索" @tap="onSearch">
+        <view class="side-ico i-ph-magnifying-glass" aria-hidden="true" />
       </a11y-button>
     </view>
 
@@ -348,6 +355,16 @@ const activeCommentVideoId = ref("");
 const loadingMore = ref(false);
 let loadToken = 0;
 
+/**
+ * 手动刷新（顶部刷新按钮 / 再次点击当前频道 tab）。
+ *
+ * 为什么需要显式入口：视频页用 swiper 竖向滑动，swiper 不支持 scroll-view 的
+ * refresher-* 下拉刷新能力；而「上滑看更多」与「下拉刷新」在同一个 swiper 上
+ * 手势冲突，业务层拦截成本高且 H5/小程序行为不一致。抖音类竖流产品同样不做下拉，
+ * 主流做法是提供可见的刷新入口。
+ */
+const refreshing = ref(false);
+
 const currentVideo = computed<Video | undefined>(() => displayList.value[swiperIndex.value]);
 const currentId = computed(() => currentVideo.value?.id ?? "");
 
@@ -560,8 +577,58 @@ function onSearch(): void {
   uni.navigateTo({ url: "/pages/video/search" });
 }
 
+/**
+ * 手动刷新当前频道：回到第一条并重新拉取第 1 页。
+ * 与 loadVideos() 的差别：强制走「有内容也显示加载层」路径并上抛 refreshing 态，
+ * 让用户明确感知刷新动作（loadVideos 在已有内容时是静默后台刷新）。
+ */
+async function onRefresh() {
+  if (refreshing.value) return;
+  refreshing.value = true;
+  const ch = activeChannel.value;
+  const chState = channels[ch];
+  const token = ++loadToken;
+  try {
+    const query: Record<string, any> = { page: 1, pagesize: PAGE_SIZE };
+    if (ch === "location") {
+      nearbyFallback.value = false;
+      const loc = await locateOnce();
+      if (loc) {
+        query.lat = loc.lat;
+        query.lng = loc.lng;
+      }
+    }
+    const res = await (getChannelApi(ch) as any)(query);
+    if (token !== loadToken || activeChannel.value !== ch) return;
+    nearbyFallback.value = Boolean((res as any).fallback);
+    const items = res.items || [];
+    if (items.length) {
+      chState.list.value = arrangeForChannel(ch, items);
+      writeVideoCache(ch, items);
+      chState.page.value = 1;
+      chState.hasMore.value = true;
+      swiperIndex.value = 0;
+      erroredVideoIds.value = new Set();
+      isPlaying.value = true;
+      progress.value = 0;
+      nextTick(() => playAt(0));
+    } else {
+      // 空结果保留原列表：刷新拿到空不该把用户正在看的内容清掉
+      info("暂无新视频");
+    }
+  } catch {
+    // request 层统一 toast
+  } finally {
+    if (token === loadToken) refreshing.value = false;
+  }
+}
+
 async function switchChannel(ch: ChannelKey) {
-  if (activeChannel.value === ch) return;
+  // 再次点击当前频道 = 刷新（可发现性低于顶部按钮，作为快捷操作保留）
+  if (activeChannel.value === ch) {
+    await onRefresh();
+    return;
+  }
   activeChannel.value = ch;
   swiperIndex.value = 0;
   isPlaying.value = true;
@@ -1046,6 +1113,8 @@ onShareAppMessage(() => ({
   right: 0;
   display: flex;
   align-items: stretch;
+  /* 右侧刷新/搜索两个图标按钮的间距 */
+  gap: var(--space-xs);
   height: var(--category-bar-h);
   padding: 0 var(--space-md);
   z-index: 30;
@@ -1092,19 +1161,40 @@ onShareAppMessage(() => ({
   }
 }
 
-.search-btn {
+/* 顶部右侧图标按钮（刷新 / 搜索）：88rpx 热区满足 §7.1 独立功能按钮要求。
+   用 padding 撑热区而非写死 width/height——写死尺寸会把热区限死在图标大小，
+   而 a11y-button 的 default 变体是零样式壳，不自带 min-height。
+   视觉上仍是 48rpx 图标，热区由 padding 外扩到 88rpx。 */
+.side-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56rpx;
-  height: 56rpx;
+  /* 88rpx 热区 = 48rpx 图标 + 上下各 20rpx padding */
+  min-width: 88rpx;
+  min-height: 88rpx;
+  padding: 20rpx;
+  box-sizing: border-box;
   flex-shrink: 0;
 
-  .search-ico {
+  .side-ico {
     width: 48rpx;
     height: 48rpx;
     color: var(--text-inverse);
   }
+
+  /* 刷新中的图标旋转：与 a11y-button 的 loading spinner 并存，
+     图标本身转圈比spinner更贴合「刷新」语义 */
+  .is-spinning {
+    animation: refreshSpin 0.8s linear infinite;
+  }
+}
+
+@keyframes refreshSpin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-spinning { animation: none; }
 }
 
 /* H5 静音提示：右上角浮层，仅 muted 起播期间显示，解锁后随 v-if 移除。
