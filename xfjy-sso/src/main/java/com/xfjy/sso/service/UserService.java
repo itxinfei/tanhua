@@ -221,4 +221,61 @@ public class UserService {
         }
         return 0;
     }
+
+    /**
+     * 封禁用户（内部接口，由 xfjy-server 后台经内部 token 调用）。
+     *
+     * @param userId 用户 id
+     * @param reason 封禁原因
+     * @return 是否成功
+     */
+    public Boolean freezeUser(Long userId, String reason) {
+        User user = new User();
+        user.setId(userId);
+        user.setStatus("FROZEN");
+        user.setFreezeReason(reason);
+        return this.userMapper.updateById(user) > 0;
+    }
+
+    /**
+     * 解封用户（内部接口，由 xfjy-server 后台经内部 token 调用）。
+     *
+     * @param userId 用户 id
+     * @return 是否成功
+     */
+    public Boolean unfreezeUser(Long userId) {
+        UpdateWrapper<User> wrapper = new UpdateWrapper<>();
+        wrapper.eq("id", userId)
+                .set("status", "NORMAL")
+                .set("freeze_reason", null);
+        return this.userMapper.update(null, wrapper) > 0;
+    }
+
+    /**
+     * 重置用户密码（内部接口，由 xfjy-server 后台经内部 token 调用）。
+     * 密码以 md5Hex 存储，与注册/登录校验口径一致。
+     *
+     * @param userId      用户 id
+     * @param newPassword 明文新密码（由调用方传入，默认 123456）
+     * @return 是否成功
+     */
+    public Boolean resetPassword(Long userId, String newPassword) {
+        User user = new User();
+        user.setId(userId);
+        user.setPassword(DigestUtils.md5Hex(newPassword));
+        return this.userMapper.updateById(user) > 0;
+    }
+
+    /**
+     * 注销用户（软删除，status=DELETED，内部接口，由 xfjy-server 后台经内部 token 调用）。
+     *
+     * @param userId 用户 id
+     * @return 是否成功
+     */
+    public Boolean deactivateUser(Long userId) {
+        User user = new User();
+        user.setId(userId);
+        user.setStatus("DELETED");
+        return this.userMapper.updateById(user) > 0;
+    }
 }

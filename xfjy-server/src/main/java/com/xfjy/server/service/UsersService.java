@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xfjy.service.api.UserInfoApi;
 import com.xfjy.service.api.UserLikeApi;
 import com.xfjy.service.api.VisitorsApi;
+import com.xfjy.service.api.UserApi;
 import com.xfjy.service.enums.SexEnum;
 import com.xfjy.service.pojo.UserInfo;
 import com.xfjy.service.pojo.UserLike;
@@ -52,6 +53,9 @@ public class UsersService {
 
     @Autowired
     private RecommendUserService recommendUserService;
+
+    @Autowired
+    private UserApi userApi;
 
     @Autowired
     private QuestionService questionService;
@@ -437,11 +441,8 @@ public class UsersService {
         }
         this.redisTemplate.delete(CODE_KEY_PREFIX + user.getMobile());
 
-        // 软删除：status=DELETED
-        User update = new User();
-        update.setId(user.getId());
-        update.setStatus("DELETED");
-        int rows = this.userMapper.updateById(update);
+        // 软删除：status=DELETED（委托 sso 写入 tb_user，BFF 不再直写）
+        int rows = Boolean.TRUE.equals(this.userApi.deactivate(user.getId())) ? 1 : 0;
 
         // 清理推送设备绑定（注销用户不再接收任何推送）
         QueryWrapper<UserDevice> deviceWrapper = new QueryWrapper<>();

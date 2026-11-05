@@ -1,12 +1,12 @@
 package com.xfjy.server.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xfjy.service.api.QuanZiApi;
+import com.xfjy.service.api.UserApi;
 import com.xfjy.service.api.UserInfoApi;
 import com.xfjy.service.api.UserLikeApi;
 import com.xfjy.service.api.WuKongImApi;
@@ -53,6 +53,9 @@ public class AdminUserService {
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private UserApi userApi;
 
     @Autowired
     private UserInfoApi userInfoApi;
@@ -328,33 +331,21 @@ public class AdminUserService {
      * 封禁用户
      */
     public Boolean freezeUser(Long userId, String reason) {
-        User user = new User();
-        user.setId(userId);
-        user.setStatus("FROZEN");
-        user.setFreezeReason(reason);
-        return this.userMapper.updateById(user) > 0;
+        return this.userApi.freeze(userId, reason);
     }
 
     /**
      * 解封用户
      */
     public Boolean unfreezeUser(Long userId) {
-        // updateById 默认忽略 null，封禁原因必须用 UpdateWrapper 显式置空
-        LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(User::getId, userId)
-                .set(User::getStatus, "NORMAL")
-                .set(User::getFreezeReason, null);
-        return this.userMapper.update(null, wrapper) > 0;
+        return this.userApi.unfreeze(userId);
     }
 
     /**
      * 重置用户密码（重置为123456）
      */
     public Boolean resetPassword(Long userId) {
-        User user = new User();
-        user.setId(userId);
-        user.setPassword(org.apache.commons.codec.digest.DigestUtils.md5Hex(resetPassword));
-        return this.userMapper.updateById(user) > 0;
+        return this.userApi.resetPassword(userId, this.resetPassword);
     }
 
     /**

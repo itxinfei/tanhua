@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
@@ -165,5 +166,37 @@ public class UserController {
             return xRealIp;
         }
         return request.getRemoteAddr();
+    }
+
+    /**
+     * 内部接口：封禁用户（仅 xfjy-server 经内部网络调用，路径不含 /user 前缀故网关不路由，禁止外部直连）。
+     */
+    @PostMapping("/internal/user/freeze")
+    public ResponseEntity<Boolean> internalFreeze(@RequestParam Long userId, @RequestParam String reason) {
+        return ResponseEntity.ok(userService.freezeUser(userId, reason));
+    }
+
+    /**
+     * 内部接口：解封用户（仅 xfjy-server 经内部网络调用，网关不路由，禁止外部直连）。
+     */
+    @PostMapping("/internal/user/unfreeze")
+    public ResponseEntity<Boolean> internalUnfreeze(@RequestParam Long userId) {
+        return ResponseEntity.ok(userService.unfreezeUser(userId));
+    }
+
+    /**
+     * 内部接口：重置用户密码（仅 xfjy-server 经内部网络调用，网关不路由，禁止外部直连）。
+     */
+    @PostMapping("/internal/user/reset-password")
+    public ResponseEntity<Boolean> internalResetPassword(@RequestParam Long userId, @RequestParam String newPassword) {
+        return ResponseEntity.ok(userService.resetPassword(userId, newPassword));
+    }
+
+    /**
+     * 内部接口：注销用户（软删除，仅 xfjy-server 经内部网络调用，网关不路由，禁止外部直连）。
+     */
+    @PostMapping("/internal/user/deactivate")
+    public ResponseEntity<Boolean> internalDeactivate(@RequestParam Long userId) {
+        return ResponseEntity.ok(userService.deactivateUser(userId));
     }
 }

@@ -2,6 +2,7 @@ package com.xfjy.server.config;
 
 import com.xfjy.service.api.ESUserLocationApi;
 import com.xfjy.service.api.PayApi;
+import com.xfjy.service.api.UserApi;
 import com.xfjy.service.api.QuanZiApi;
 import com.xfjy.service.api.SwipeLogApi;
 import com.xfjy.service.api.RecommendUserApi;
@@ -84,7 +85,8 @@ public class HttpServiceProxyConfig {
                                   @Value("${xfjy.video.service.url:}") String videoUrl,
                                   @Value("${xfjy.message.service.url:}") String messageUrl,
                                   @Value("${xfjy.pay.service.url:}") String payUrl,
-                                  @Value("${xfjy.elasticsearch.service.url:}") String elasticsearchUrl) {
+                                  @Value("${xfjy.elasticsearch.service.url:}") String elasticsearchUrl,
+                                  @Value("${xfjy.sso.service.url:}") String ssoUrl) {
         this.loadBalancedBuilder = loadBalancedBuilderProvider.getIfAvailable();
         this.jsonMapperProvider = jsonMapperProvider;
         this.discoveryClient = discoveryClientProvider.getIfAvailable();
@@ -98,6 +100,7 @@ public class HttpServiceProxyConfig {
         putIfPresent(staticUrls, "xfjy-message-service", messageUrl);
         putIfPresent(staticUrls, "xfjy-pay-service", payUrl);
         putIfPresent(staticUrls, "xfjy-elasticsearch", elasticsearchUrl);
+        putIfPresent(staticUrls, "xfjy-sso", ssoUrl);
     }
 
     private static void putIfPresent(java.util.Map<String, String> map, String key, String value) {
@@ -139,6 +142,11 @@ public class HttpServiceProxyConfig {
     @Bean
     public HttpServiceProxyFactory elasticsearchServiceProxyFactory() {
         return buildFactory("xfjy-elasticsearch");
+    }
+
+    @Bean
+    public HttpServiceProxyFactory ssoServiceProxyFactory() {
+        return buildFactory("xfjy-sso");
     }
 
     /**
@@ -338,5 +346,12 @@ public class HttpServiceProxyConfig {
     @Bean
     public PayApi payApi(@Qualifier("payServiceProxyFactory") HttpServiceProxyFactory factory) {
         return factory.createClient(PayApi.class);
+    }
+
+    // ---- SSO 用户管理服务（18080）----
+
+    @Bean
+    public UserApi userApi(@Qualifier("ssoServiceProxyFactory") HttpServiceProxyFactory factory) {
+        return factory.createClient(UserApi.class);
     }
 }
