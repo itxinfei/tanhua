@@ -257,7 +257,7 @@ function goPublish(): void {
   height: 34px;
   border-radius: 50%;
   background: var(--color-primary);
-  box-shadow: 0 4rpx 12rpx rgba(255, 94, 156, 0.4);
+  box-shadow: 0 4rpx 12rpx rgba(var(--color-primary-rgb), 0.4);
   display: flex;
   align-items: center;
   justify-content: center;

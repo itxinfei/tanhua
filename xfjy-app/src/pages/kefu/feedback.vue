@@ -177,7 +177,7 @@ function statusClass(status: number): string {
     border-radius: 44rpx;
     text-align: center;
     padding: 22rpx 0;
-    box-shadow: 0 8rpx 24rpx rgba(255, 94, 156, 0.35);
+    box-shadow: 0 8rpx 24rpx rgba(var(--color-primary-rgb), 0.35);
 
     text {
       color: var(--text-inverse);

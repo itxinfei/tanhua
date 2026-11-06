@@ -116,8 +116,14 @@ page {
   --bg-deep-grad: #2c2c54;
   /* 深色品牌按钮上的反色文字（恒白，不随暗色模式变） */
   --text-inverse: #ffffff;
-  /* 主按钮投影（跟随主色 #fe3c72） */
-  --shadow-primary: 0 8rpx 24rpx rgba(254, 60, 114, 0.35);
+  /* 主色 RGB 分量：供 rgba()/color-mix() 使用（box-shadow / drop-shadow 光晕）。
+     不能直接用 var(--color-primary) 拼透明度——hex 无法分解出分量。
+     真源约束：本变量必须与上方 --color-primary 同色，改主色必须同步改这里。
+     历史问题：多处 box-shadow 写死 rgba(255,94,156/142,…) 是废弃冷粉 #ff5e9c 的分量，
+     与现主色 #fe3c72 不同源，导致「玫红按钮 + 冷粉光晕」的视觉割裂。 */
+  --color-primary-rgb: 254, 60, 114;
+  /* 主按钮投影（跟随主色，暗色模式下由下方 media 覆盖为暗色主色的分量） */
+  --shadow-primary: 0 8rpx 24rpx rgba(var(--color-primary-rgb), 0.35);
 
   /* ===== 间距刻度（全站 margin/padding/gap 只能取以下档位；存量 12/20/36/40 等就近归并） ===== */
   --space-xs: 8rpx;
@@ -187,6 +193,8 @@ page {
 @media (prefers-color-scheme: dark) {
   page {
     --color-primary: #ff8eb9;
+    /* 与上方暗色主色 #ff8eb9 同源（RGB 分量必须同步） */
+    --color-primary-rgb: 255, 142, 185;
     --color-primary-deep: #9b5cf6;
     --color-primary-violet: #a78bfa;
     --color-primary-soft: #ff8fb1;

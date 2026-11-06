@@ -562,7 +562,7 @@ async function handleLogin() {
 
     &:focus {
       border-color: var(--color-primary);
-      box-shadow: 0 0 0 4rpx rgba(255, 94, 156, 0.12);
+      box-shadow: 0 0 0 4rpx rgba(var(--color-primary-rgb), 0.12);
       background: var(--bg-card);
     }
   }

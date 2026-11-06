@@ -297,7 +297,7 @@ function handleSkip(): void {
       background: var(--gradient-brand);
       color: var(--text-inverse);
       border-color: var(--color-primary);
-      box-shadow: 0 4rpx 14rpx rgba(255, 94, 142, 0.3);
+      box-shadow: 0 4rpx 14rpx rgba(var(--color-primary-rgb), 0.3);
     }
   }
 }
@@ -312,7 +312,7 @@ function handleSkip(): void {
   line-height: 88rpx;
   border-radius: 44rpx;
   border: none;
-  box-shadow: 0 8rpx 24rpx rgba(255, 94, 142, 0.35);
+  box-shadow: 0 8rpx 24rpx rgba(var(--color-primary-rgb), 0.35);
 
   &[disabled] {
     opacity: 0.6;

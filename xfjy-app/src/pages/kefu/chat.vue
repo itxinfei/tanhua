@@ -314,7 +314,7 @@ onUnmounted(() => {
 .vip-banner { display: flex; align-items: center; justify-content: center; gap: 8rpx;
   margin: 24rpx 24rpx 0; padding: 16rpx 24rpx;
   background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary)); border-radius: 20rpx;
-  box-shadow: 0 4rpx 16rpx rgba(255, 94, 156, 0.25);
+  box-shadow: 0 4rpx 16rpx rgba(var(--color-primary-rgb), 0.25);
   .vip-crown { font-size: 28rpx; color: var(--text-inverse); }
   .vip-text { font-size: 24rpx; color: var(--text-inverse); letter-spacing: 1rpx; font-weight: 500; }
 }
@@ -368,10 +368,10 @@ onUnmounted(() => {
 
 .input-bar { display: flex; align-items: center; gap: 16rpx; padding: 14rpx 16rpx; }
 .text-input { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; transition: all 0.2s;
-  &.focus { background: var(--bg-card); box-shadow: 0 0 0 3rpx rgba(255, 94, 142, 0.35); }
+  &.focus { background: var(--bg-card); box-shadow: 0 0 0 3rpx rgba(var(--color-primary-rgb), 0.35); }
 }
 /* 发送按钮：禁用态仅 opacity 会让对比度跌破阈值 → 改用不透明深灰背景（WCAG 1.4.1 不依赖单一视觉线索） */
-.send-btn { padding: 0 36rpx; height: 72rpx; background: var(--color-primary); border-radius: 36rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4rpx 14rpx rgba(255, 94, 156, 0.3);
+.send-btn { padding: 0 36rpx; height: 72rpx; background: var(--color-primary); border-radius: 36rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4rpx 14rpx rgba(var(--color-primary-rgb), 0.3);
   text { color: var(--text-inverse); font-size: 28rpx; font-weight: 500; }
   &.disabled { background: var(--border); box-shadow: none; }
 }

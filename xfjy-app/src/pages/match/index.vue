@@ -911,7 +911,7 @@ onShareAppMessage(() => ({
         font-size: 24rpx;
         font-weight: bold;
         color: var(--text-inverse);
-        background: rgba(255, 94, 142, 0.85);
+        background: rgba(var(--color-primary-rgb), 0.85);
         padding: 2rpx 16rpx;
         border-radius: 16rpx;
       }
