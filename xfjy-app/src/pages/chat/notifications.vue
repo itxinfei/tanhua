@@ -75,6 +75,19 @@
           {{ item.time }}
         </text>
       </a11y-button>
+      <!-- 加载更多/没有更多（M-K7） -->
+      <view
+        v-if="list.length > 0"
+        class="load-more"
+        role="status"
+      >
+        <text v-if="loading && page > 1">
+          加载中...
+        </text>
+        <text v-else-if="!hasMore">
+          没有更多了
+        </text>
+      </view>
     </template>
 
     <!-- 公告详情弹窗：公告无对应用户，点击通知项弹出正文，不跳用户主页 -->
@@ -89,7 +102,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import EmptyState from "@/components/empty-state.vue";
-import { onLoad, onShow, onPullDownRefresh } from "@dcloudio/uni-app";
+import { onLoad, onShow, onPullDownRefresh, onReachBottom } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
 import AnnouncementDetailDialog from "@/components/announcement-detail-dialog.vue";
 import { useChatStore, type NoticeType } from "@/store/chat";
@@ -164,6 +177,12 @@ const list = ref<NoticeItem[]>([]);
 const loading = ref(false);
 /** VIP 权益锁定状态（心动/谁喜欢我：see_who_likes 权益） */
 const locked = ref(false);
+/** 当前分页页码（M-K7：通知列表分页） */
+const page = ref(1);
+/** 当前类型总条数（后端 counts 回传） */
+const total = ref(0);
+/** 是否还有更多（列表条数 < 总数） */
+const hasMore = computed(() => list.value.length < total.value);
 
 /** 跳转 VIP 开通页 */
 function goVip(): void {
@@ -229,12 +248,15 @@ function mapAnnouncementItem(msg: MessageAnnouncement): NoticeItem {
 }
 
 /** 加载当前类型的通知列表
+ * @param append 追加加载（触底翻页）；默认 false 重置到第 1 页
  * @returns 当前总条数（失败返回 null，不清未读，避免"没看到却清零"） */
-async function loadList(): Promise<number | null> {
+async function loadList(append = false): Promise<number | null> {
   if (loading.value) return null;
   loading.value = true;
   try {
-    const params = { page: 1, pagesize: PAGE_SIZE };
+    // 分页：追加加载页码+1，重置加载回第 1 页（M-K7）
+    page.value = append ? page.value + 1 : 1;
+    const params = { page: page.value, pagesize: PAGE_SIZE };
     const currentType = type.value;
 
     // P2 权益拦截：心动（谁喜欢我）需 see_who_likes 权益
@@ -254,19 +276,27 @@ async function loadList(): Promise<number | null> {
 
     if (currentType === "like") {
       const res = await getLikeMessages(params);
-      list.value = (res.items || []).map((m) => mapLikeItem(m, TYPE_DESC.like));
+      const items = (res.items || []).map((m) => mapLikeItem(m, TYPE_DESC.like));
+      list.value = append ? list.value.concat(items) : items;
+      total.value = res.counts || 0;
       return res.counts || 0;
     } else if (currentType === "comment") {
       const res = await getCommentMessages(params);
-      list.value = (res.items || []).map((m) => mapLikeItem(m, TYPE_DESC.comment));
+      const items = (res.items || []).map((m) => mapLikeItem(m, TYPE_DESC.comment));
+      list.value = append ? list.value.concat(items) : items;
+      total.value = res.counts || 0;
       return res.counts || 0;
     } else if (currentType === "love") {
       const res = await getLoveMessages(params);
-      list.value = (res.items || []).map((m) => mapLikeItem(m, TYPE_DESC.love));
+      const items = (res.items || []).map((m) => mapLikeItem(m, TYPE_DESC.love));
+      list.value = append ? list.value.concat(items) : items;
+      total.value = res.counts || 0;
       return res.counts || 0;
     } else if (currentType === "announcement") {
       const res = await getAnnouncementMessages(params);
-      list.value = (res.items || []).map(mapAnnouncementItem);
+      const items = (res.items || []).map(mapAnnouncementItem);
+      list.value = append ? list.value.concat(items) : items;
+      total.value = res.counts || 0;
       return res.counts || 0;
     } else {
       // visitors / fans 后端暂无接口，显示空状态
@@ -304,10 +334,17 @@ onPullDownRefresh(async () => {
     uni.stopPullDownRefresh();
   }
 });
+
+/** 触底加载更多（M-K7：超 20 条早期通知可达） */
+onReachBottom(async () => {
+  if (!hasMore.value || loading.value || locked.value) return;
+  await loadList(true);
+});
 </script>
 
 <style lang="scss" scoped>
 .notifications-page { min-height: 100vh; background: var(--bg-sub); padding: 20rpx 24rpx; }
+.load-more { text-align: center; padding: 24rpx 0; color: var(--text-hint); font-size: var(--fs-sm); }
 
 .notice-item { display: flex; align-items: center; padding: 24rpx; min-height: var(--row-h-touch-md); box-sizing: border-box; background: var(--bg-card); border-radius: 24rpx; margin-bottom: 16rpx;
   .avatar-wrap { position: relative; flex-shrink: 0;

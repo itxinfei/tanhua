@@ -431,10 +431,6 @@ const peerTyping = ref(false);
 const PEER_TYPING_DURATION_MS = 1500;
 let peerTypingTimer: ReturnType<typeof setTimeout> | null = null;
 
-/** 对方正在输入的待追加定时器：离页时必须清理，否则回调会在组件销毁后
- *  操作已卸载的 ref（appendReceived → scrollToBottom）导致报错/内存泄漏 */
-let peerTypingAppendTimer: ReturnType<typeof setTimeout> | null = null;
-
 /** 显示对方正在输入（带自动消失） */
 function showPeerTyping(): void {
   peerTyping.value = true;
@@ -886,22 +882,12 @@ function appendReceived(msg: ReceivedMessage): void {
 }
 
 /**
- * 收到对方消息：先显示「正在输入」再显示消息（本地模拟，SDK 无 typing 信令）。
- * 若已有输入提示在显示，直接追加消息即可（避免重复动画）。
+ * 收到对方消息：即时渲染上屏，「正在输入」仅作装饰并行显示、不阻塞消息（M-K5）。
+ * 原实现首条消息压 1.5s 等 typing 动画结束才上屏，期间第二条立即追加 → 顺序倒置。
  */
 function appendReceivedWithTyping(msg: ReceivedMessage): void {
-  if (!peerTyping.value) {
-    showPeerTyping();
-    // 延迟到输入提示动画结束后再追加真实消息。
-    // 定时器登记到 peerTypingAppendTimer，离页时 onUnmounted 统一清理。
-    if (peerTypingAppendTimer) clearTimeout(peerTypingAppendTimer);
-    peerTypingAppendTimer = setTimeout(() => {
-      peerTypingAppendTimer = null;
-      appendReceived(msg);
-    }, PEER_TYPING_DURATION_MS);
-  } else {
-    appendReceived(msg);
-  }
+  appendReceived(msg);
+  showPeerTyping();
 }
 
 /**
@@ -1016,11 +1002,6 @@ onUnmounted(() => {
   if (peerTypingTimer) {
     clearTimeout(peerTypingTimer);
     peerTypingTimer = null;
-  }
-  // 待追加定时器：清理后回调不会在组件销毁后执行
-  if (peerTypingAppendTimer) {
-    clearTimeout(peerTypingAppendTimer);
-    peerTypingAppendTimer = null;
   }
   // 停止在途录音并释放麦克风（置取消标记 + offStop 拦截回调，不会误发送）
   voiceCancelFlag = true;
