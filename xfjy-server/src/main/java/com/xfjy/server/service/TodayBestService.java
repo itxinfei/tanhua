@@ -33,9 +33,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
@@ -90,6 +93,11 @@ public class TodayBestService {
     /** 每日免费滑动上限（与前端 match.ts 的 MAX_FREE_SWIPE=50 一致；最终应迁 Nacos） */
     private static final int MAX_FREE_SWIPE = 50;
 
+    /** 探花已展示卡片 Redis key 前缀（Set 存已展示 userId，24h TTL） */
+    private static final String CARDS_SEEN_KEY_PREFIX = "xfjy:cards:seen:";
+    /** 已展示集合 TTL（小时）：跨日自动过期，配合每日推荐重置 */
+    private static final long CARDS_SEEN_TTL_HOURS = 24;
+
     /** 滑动限制拦截时前端跳转页 */
     private static final String SWIPE_LIMIT_UPGRADE_URL = "/pages/mine/vip?source=swipe_out";
 
@@ -107,6 +115,9 @@ public class TodayBestService {
 
     @Autowired //Neo4j 二度好友扩散召回（P2：好友关系图 FRIEND 边；不可用降级）
     private Neo4jClient neo4jClient;
+
+    @Autowired //探花已展示卡片缓存（Redis Set，排除已展示避免候选快速枯竭）
+    private StringRedisTemplate stringRedisTemplate;
 
 
     public TodayBest queryTodayBest() {
@@ -449,20 +460,32 @@ public class TodayBestService {
         // 混合评分后取 top 作为抽样池（保留探索性，非纯 top-N）
         this.recommendScoringService.scoreAndSort(user.getId(), records);
 
-        List<RecommendUser> newRecommendUserList = new ArrayList<>();
-
-        // 抽样池：混合分 top 30，从中随机抽 10 展示
+        // 抽样池：混合分 top 30（排除本次会话已展示过的卡片，避免无状态随机采样反复推同一批导致很快 exhausted）
+        Set<Long> seen = this.getSeenUserIds(user.getId());
         int poolSize = Math.min(30, records.size());
-        List<RecommendUser> candidatePool = records.subList(0, poolSize);
-        int showCount = Math.min(10, candidatePool.size());
+        List<RecommendUser> candidatePool = new ArrayList<>(records.subList(0, poolSize));
+        List<RecommendUser> unseenPool = candidatePool.stream()
+                .filter(r -> !seen.contains(r.getUserId()))
+                .collect(Collectors.toList());
+        // 全部看过则重置 seen 允许重看，避免永久 exhausted 卡死
+        if (unseenPool.isEmpty() && !seen.isEmpty()) {
+            unseenPool = candidatePool;
+        }
+
+        List<RecommendUser> newRecommendUserList = new ArrayList<>();
+        // 从 unseenPool 随机抽取最多 10 张展示
+        int showCount = Math.min(10, unseenPool.size());
         for (int i = 0; i < showCount; i++) {
-            createRecommendUser(newRecommendUserList, candidatePool);
+            createRecommendUser(newRecommendUserList, unseenPool);
         }
 
         List<Long> userIds = new ArrayList<>();
         for (RecommendUser recommendUser : newRecommendUserList) {
             userIds.add(recommendUser.getUserId());
         }
+
+        // 把本次展示的卡片写入已展示集合（旁路失败不阻断）
+        this.addSeenUserIds(user.getId(), newRecommendUserList);
 
         UserInfoQueryParam userInfoQueryParam = new UserInfoQueryParam();
         userInfoQueryParam.setUserIds(userIds);
@@ -483,6 +506,58 @@ public class TodayBestService {
         }
 
         return result;
+    }
+
+    /**
+     * 读取当前用户已展示过的探花卡片 id 集合（Redis Set）。
+     * 失败降级为空集合，不影响推荐主链路。
+     *
+     * @param userId 当前用户 ID
+     * @return 已展示过的 userId 集合（空集合表示无记录）
+     */
+    private Set<Long> getSeenUserIds(Long userId) {
+        try {
+            String key = CARDS_SEEN_KEY_PREFIX + userId;
+            Set<String> members = stringRedisTemplate.opsForSet().members(key);
+            if (members == null || members.isEmpty()) {
+                return Collections.emptySet();
+            }
+            Set<Long> ids = new HashSet<>();
+            for (String m : members) {
+                try {
+                    ids.add(Long.parseLong(m));
+                } catch (NumberFormatException ignore) {
+                    // 脏数据跳过
+                }
+            }
+            return ids;
+        } catch (Exception e) {
+            LOGGER.warn("读取探花已展示集合失败，降级为空: userId={}", userId, e);
+            return Collections.emptySet();
+        }
+    }
+
+    /**
+     * 把本次展示的卡片 id 写入已展示集合（Redis Set，24h TTL）。
+     * 旁路失败仅日志，不阻断推荐主链路。
+     *
+     * @param userId 当前用户 ID
+     * @param shown  本次展示的候选列表
+     */
+    private void addSeenUserIds(Long userId, List<RecommendUser> shown) {
+        if (CollectionUtils.isEmpty(shown)) {
+            return;
+        }
+        try {
+            String key = CARDS_SEEN_KEY_PREFIX + userId;
+            String[] vals = shown.stream()
+                    .map(r -> String.valueOf(r.getUserId()))
+                    .toArray(String[]::new);
+            stringRedisTemplate.opsForSet().add(key, vals);
+            stringRedisTemplate.expire(key, Duration.ofHours(CARDS_SEEN_TTL_HOURS));
+        } catch (Exception e) {
+            LOGGER.warn("写入探花已展示集合失败（旁路）: userId={}", userId, e);
+        }
     }
 
     /**
@@ -618,29 +693,48 @@ public class TodayBestService {
             return null;
         }
 
-        // P2 同步喜欢关系到 Neo4j（异步语义：失败仅打日志，不阻断主链路）
-        this.graphRecommendService.syncLikeRelation(user.getId(), likeUserId);
-
         // ★ 滑动日志记录（用于后端兜底计数；互喜时 matched=1；action 区分 like/superlike）
         boolean mutualLike = this.userLikeApi.isMutualLike(user.getId(), likeUserId);
         recordSwipeLog(likeUserId, action, mutualLike);
-        if (mutualLike) {
-            // 相互喜欢成为好友（注册 IM 联系人）
-            this.imService.contactUser(likeUserId);
-            // 推送匹配成功通知给对方（旁路，失败仅日志不阻断）
-            this.pushService.pushMatchNotification(likeUserId);
-            // IM 透传匹配消息：App 在线时实时触发"It's a Match"弹窗（旁路，失败仅日志不阻断）
+
+        final Long currentUid = user.getId();
+        // Neo4j 喜欢关系同步：原同步 HTTP 调用，异步化缩短 RT（失败仅日志，不阻断主链路）
+        CompletableFuture.runAsync(() -> {
             try {
-                UserInfo likeUserInfo = this.userInfoApi.queryUserInfoById(user.getId());
-                Map<String, Object> msg = new HashMap<>();
-                msg.put("type", "match");
-                msg.put("userId", user.getId().toString());
-                msg.put("nickname", likeUserInfo != null ? likeUserInfo.getNickName() : "");
-                msg.put("avatar", likeUserInfo != null ? likeUserInfo.getLogo() : "");
-                this.wuKongImApi.sendMessage(likeUserId.toString(), MAPPER.writeValueAsString(msg));
+                this.graphRecommendService.syncLikeRelation(currentUid, likeUserId);
             } catch (Exception e) {
-                LOGGER.warn("匹配成功 IM 消息发送失败：userId={}", likeUserId, e);
+                LOGGER.warn("异步同步喜欢关系到 Neo4j 失败: userId={}, target={}", currentUid, likeUserId, e);
             }
+        });
+
+        if (mutualLike) {
+            // 匹配成功副作用：注册 IM 好友 + 推送 + IM 透传消息，全部异步，不阻塞返回（前端已乐观出栈）
+            CompletableFuture.runAsync(() -> {
+                try {
+                    // 相互喜欢成为好友（注册 IM 联系人）
+                    this.imService.contactUser(likeUserId);
+                } catch (Exception e) {
+                    LOGGER.warn("匹配成功注册 IM 好友失败（旁路）: target={}", likeUserId, e);
+                }
+                try {
+                    // 推送匹配成功通知给对方（旁路，失败仅日志不阻断）
+                    this.pushService.pushMatchNotification(likeUserId);
+                } catch (Exception e) {
+                    LOGGER.warn("匹配成功推送失败（旁路）: target={}", likeUserId, e);
+                }
+                try {
+                    // IM 透传匹配消息：App 在线时实时触发"It's a Match"弹窗（旁路，失败仅日志不阻断）
+                    UserInfo likeUserInfo = this.userInfoApi.queryUserInfoById(currentUid);
+                    Map<String, Object> msg = new HashMap<>();
+                    msg.put("type", "match");
+                    msg.put("userId", currentUid.toString());
+                    msg.put("nickname", likeUserInfo != null ? likeUserInfo.getNickName() : "");
+                    msg.put("avatar", likeUserInfo != null ? likeUserInfo.getLogo() : "");
+                    this.wuKongImApi.sendMessage(likeUserId.toString(), MAPPER.writeValueAsString(msg));
+                } catch (Exception e) {
+                    LOGGER.warn("匹配成功 IM 消息发送失败：userId={}", likeUserId, e);
+                }
+            });
         }
         return mutualLike;
     }

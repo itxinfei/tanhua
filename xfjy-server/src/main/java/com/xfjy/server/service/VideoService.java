@@ -58,6 +58,9 @@ public class VideoService {
 
     private static final String RECOMMEND_KEY_PREFIX = "QUANZI_VIDEO_RECOMMEND_";
 
+    /** 推荐列表重建锁 TTL（秒）：锁只防并发回源，持有者异常退出后自动释放 */
+    private static final long RECOMMEND_LOCK_SECONDS = 5L;
+
     /** 「附近」半径（公里）与最多返回条数，均可通过配置/环境变量覆盖 */
     @Value("${xfjy.video.nearby.radius-km:5}")
     private double nearbyRadiusKm;
@@ -188,7 +191,7 @@ public class VideoService {
         // 排序与分页稳定性：视频服务一次排出最多 RECOMMEND_POOL_LIMIT 条有序 vid，
         // 这里把「已排好序的 vid 列表」缓存进 Redis，后续翻页只做切片，
         // 因而同一缓存窗口内热度实时变化不会造成重复/漏项；缓存丢失时自愈重建。
-        List<Long> rankedVids = loadRankedVidList(user.getId());
+        List<Long> rankedVids = loadRankedVidList();
         if (rankedVids.isEmpty()) {
             pageResult.setCounts(0);
             pageResult.setPages(0);
@@ -208,14 +211,16 @@ public class VideoService {
         List<Long> pageVids = new ArrayList<>(rankedVids.subList(startIndex, endIndex));
 
         List<Video> pageRecords = queryByVidsInOrder(pageVids);
-        // 自愈：缓存里的视频被删除后首屏可能为空，强制重建一次排序缓存
-        if (pageRecords.isEmpty() && page == 1) {
-            this.redisTemplate.delete(RECOMMEND_KEY_PREFIX + user.getId());
-            rankedVids = loadRankedVidList(user.getId());
+        // 自愈：缓存里的视频被删除后，任意页都可能切片为空或条数不足（视频下架/删除）。
+        // 旧实现只处理「整页为空」，被删几条时会长期少几条；这里按条数偏差也重建一次。
+        if (pageRecords.size() < pageVids.size()) {
+            this.redisTemplate.delete(RECOMMEND_KEY_PREFIX);
+            rankedVids = loadRankedVidList();
             total = rankedVids.size();
-            endIndex = Math.min(pageSize, total);
-            if (endIndex > 0) {
-                pageRecords = queryByVidsInOrder(new ArrayList<>(rankedVids.subList(0, endIndex)));
+            startIndex = (page - 1) * pageSize;
+            if (startIndex < total) {
+                endIndex = Math.min(startIndex + pageSize, total);
+                pageRecords = queryByVidsInOrder(new ArrayList<>(rankedVids.subList(startIndex, endIndex)));
             }
         }
 
@@ -225,26 +230,57 @@ public class VideoService {
         return pageResult;
     }
 
-    /** 读取已排好序的推荐 vid 列表；缓存未命中时调用视频服务聚合生成并写回（自愈重建） */
-    private List<Long> loadRankedVidList(Long userId) {
-        List<Long> cached = parseVidList(this.redisTemplate.opsForValue().get(RECOMMEND_KEY_PREFIX + userId));
+    /**
+     * 读取已排好序的推荐 vid 列表；缓存未命中时调用视频服务聚合生成并写回（自愈重建）。
+     *
+     * 推荐结果来自 {@code queryRecommendVideoList(limit)}，不含用户维度；因此按全局 key 缓存一份，
+     * 不再按 userId 各存一份（旧实现每个用户重复存 300 个 vid，纯浪费 Redis 内存）。
+     * 若后续推荐接了个性化，需要把 userId 重新纳入 key。
+     */
+    private List<Long> loadRankedVidList() {
+        List<Long> cached = parseVidList(this.redisTemplate.opsForValue().get(RECOMMEND_KEY_PREFIX));
         if (!cached.isEmpty()) {
             return cached;
         }
-        List<Video> pool = this.videoApi.queryRecommendVideoList(RECOMMEND_POOL_LIMIT);
-        List<Long> vids = new ArrayList<>();
-        if (pool != null) {
-            for (Video video : pool) {
-                if (video.getVid() != null) {
-                    vids.add(video.getVid());
+        // 缓存击穿防护：miss 瞬间只放一个请求回源（300 条聚合查询不轻，TTL 到期时
+        // 并发请求会把它放大成 N 次）；其余请求短暂等待写回，等不到再各自回源，保证不失败。
+        String lockKey = RECOMMEND_KEY_PREFIX + "LOCK";
+        boolean locked = Boolean.TRUE.equals(this.redisTemplate.opsForValue()
+                .setIfAbsent(lockKey, "1", RECOMMEND_LOCK_SECONDS, TimeUnit.SECONDS));
+        if (!locked) {
+            for (int i = 0; i < 3; i++) {
+                cached = parseVidList(this.redisTemplate.opsForValue().get(RECOMMEND_KEY_PREFIX));
+                if (!cached.isEmpty()) {
+                    return cached;
+                }
+                try {
+                    Thread.sleep(100L);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
                 }
             }
         }
-        if (!vids.isEmpty()) {
-            this.redisTemplate.opsForValue().set(RECOMMEND_KEY_PREFIX + userId,
-                    StringUtils.join(vids, ','), RECOMMEND_CACHE_SECONDS, TimeUnit.SECONDS);
+        try {
+            List<Video> pool = this.videoApi.queryRecommendVideoList(RECOMMEND_POOL_LIMIT);
+            List<Long> vids = new ArrayList<>();
+            if (pool != null) {
+                for (Video video : pool) {
+                    if (video.getVid() != null) {
+                        vids.add(video.getVid());
+                    }
+                }
+            }
+            if (!vids.isEmpty()) {
+                this.redisTemplate.opsForValue().set(RECOMMEND_KEY_PREFIX,
+                        StringUtils.join(vids, ','), RECOMMEND_CACHE_SECONDS, TimeUnit.SECONDS);
+            }
+            return vids;
+        } finally {
+            if (locked) {
+                this.redisTemplate.delete(lockKey);
+            }
         }
-        return vids;
     }
 
     /** 解析 Redis 中逗号分隔的 vid 列表，脏数据（非数字）跳过而不是抛错 */
@@ -295,7 +331,9 @@ public class VideoService {
         // 批量查询评论数（type=2 表示评论，一次远程调用替代循环内逐条调用，消除 N+1）
         List<String> videoIds = new ArrayList<>();
         for (Video record : records) {
-            videoIds.add(record.getId().toHexString());
+            if (record.getId() != null) {
+                videoIds.add(record.getId().toHexString());
+            }
         }
         Map<String, Long> commentCountMap;
         try {
@@ -317,13 +355,26 @@ public class VideoService {
             LOGGER.warn("查询用户关注列表失败，关注态降级为 Redis 键判断", e);
         }
 
+        // 点赞态：一次 multiGet 批量读，避免每条视频一次 hasKey（30 条 = 30 次串行往返）
+        List<String> likedKeys = new ArrayList<>();
+        for (Video record : records) {
+            String vid = record.getId() == null ? "" : record.getId().toHexString();
+            likedKeys.add("QUANZI_COMMENT_LIKE_USER_" + userId + "_" + vid);
+        }
+        List<String> likedValues = this.redisTemplate.opsForValue().multiGet(likedKeys);
+        Map<String, Boolean> likedMap = new java.util.HashMap<>();
+        for (int i = 0; i < records.size(); i++) {
+            String vid = records.get(i).getId() == null ? "" : records.get(i).getId().toHexString();
+            likedMap.put(vid, likedValues != null && i < likedValues.size() && likedValues.get(i) != null);
+        }
+
         for (Video record : records) {
             VideoVo videoVo = new VideoVo();
 
             videoVo.setUserId(record.getUserId());
             videoVo.setCover(record.getPicUrl());
             videoVo.setVideoUrl(record.getVideoUrl());
-            videoVo.setId(record.getId().toHexString());
+            videoVo.setId(record.getId() == null ? "" : record.getId().toHexString());
             // 位置：城市名可为空（H5 端不支持逆地理），前端空时用 distance 展示距离标签，
             // 绝不把 "lng,lat" 坐标串直接展示给用户
             videoVo.setLocationName(record.getLocationName());
@@ -349,7 +400,7 @@ public class VideoService {
             }
 
             String likeUserCommentKey = "QUANZI_COMMENT_LIKE_USER_" + userId + "_" + videoVo.getId();
-            videoVo.setHasLiked(this.redisTemplate.hasKey(likeUserCommentKey) ? 1 : 0); //是否点赞
+            videoVo.setHasLiked(Boolean.TRUE.equals(likedMap.get(videoVo.getId())) ? 1 : 0); //是否点赞
 
             String likeCommentKey = "QUANZI_COMMENT_LIKE_" + videoVo.getId();
             // 点赞数：优先落库计数（Video.likeCount），历史数据缺失时回退 Redis 赞数键
@@ -376,10 +427,16 @@ public class VideoService {
         }
 
 
-        UserInfoQueryParam queryParam = new UserInfoQueryParam();
-        queryParam.setUserIds(userIds);
-        List<UserInfo> userInfos = this.userInfoApi.queryUserInfoList(queryParam);
-        LOGGER.info("批量查询用户信息: userIds={}, 返回数量={}", userIds, userInfos == null ? 0 : userInfos.size());
+        List<UserInfo> userInfos;
+        try {
+            UserInfoQueryParam queryParam = new UserInfoQueryParam();
+            queryParam.setUserIds(userIds);
+            userInfos = this.userInfoApi.queryUserInfoList(queryParam);
+        } catch (Exception e) {
+            // 昵称/头像只影响展示，user-service 抖动不能让整页视频 500
+            LOGGER.warn("批量查询用户信息失败，昵称/头像降级为空: userIds={}", userIds, e);
+            userInfos = Collections.emptyList();
+        }
         
         // 构建 userId -> UserInfo 的映射，避免双重循环匹配
         Map<Long, UserInfo> userInfoMap = new java.util.HashMap<>();
@@ -554,7 +611,7 @@ public class VideoService {
 
     /** 「附近」回退全站热门：复用推荐排序缓存里的有序 vid 列表，并标记 fallback=true */
     private PageResult nearbyFallback(PageResult pageResult, Long userId, Integer page, Integer pageSize) {
-        List<Long> rankedVids = loadRankedVidList(userId);
+        List<Long> rankedVids = loadRankedVidList();
         if (rankedVids.isEmpty()) {
             pageResult.setCounts(0);
             pageResult.setPages(0);
@@ -618,13 +675,57 @@ public class VideoService {
      */
     public void recordVideoMsg(String videoId, Integer type) {
         User user = UserThreadLocal.get();
+        if (user == null || user.getId() == null) {
+            // 兜底：ThreadLocal 在异步/异常路径可能为空，直接 getId() 会 NPE 打断整个点赞/评论链路
+            LOGGER.warn("记录视频评分事件跳过：用户上下文缺失 videoId={} type={}", videoId, type);
+            return;
+        }
         this.videoApi.recordVideoMsg(user.getId(), videoId, type);
     }
 
-    /** 当前用户是否已点赞该视频（点赞去重依据，避免同一用户重复点赞导致落库计数虚高） */
-    public boolean hasLikedVideo(String videoId) {
+    /**
+     * 原子翻转「已点赞」标记（未赞→已赞），返回 true 表示本次是首次点赞。
+     * 并发双击时只有一个请求 setIfAbsent 成功，配合 Mongo likeCount 只 +1 一次；
+     * 与列表回显复用同一个 QUANZI_COMMENT_LIKE_USER_{userId}_{videoId} 键。
+     */
+    public boolean tryMarkVideoLiked(String videoId) {
         User user = UserThreadLocal.get();
-        return this.redisTemplate.hasKey("QUANZI_COMMENT_LIKE_USER_" + user.getId() + "_" + videoId);
+        if (user == null || user.getId() == null) {
+            return false;
+        }
+        return Boolean.TRUE.equals(this.redisTemplate.opsForValue()
+                .setIfAbsent(likeUserKey(user.getId(), videoId), "1"));
+    }
+
+    /** 下游失败时回滚占位，避免出现「标记已赞但实际没赞」的脏状态 */
+    public void rollbackVideoLiked(String videoId) {
+        User user = UserThreadLocal.get();
+        if (user == null || user.getId() == null) {
+            return;
+        }
+        this.redisTemplate.delete(likeUserKey(user.getId(), videoId));
+    }
+
+    /** 原子取消点赞标记，返回 true 表示本次真正由「已赞」翻转为「未赞」，用于 -1 去重 */
+    public boolean tryUnmarkVideoLiked(String videoId) {
+        User user = UserThreadLocal.get();
+        if (user == null || user.getId() == null) {
+            return false;
+        }
+        return Boolean.TRUE.equals(this.redisTemplate.delete(likeUserKey(user.getId(), videoId)));
+    }
+
+    /** 取消赞下游失败时恢复标记，避免「取消了标记但实际没取消」 */
+    public void restoreVideoLiked(String videoId) {
+        User user = UserThreadLocal.get();
+        if (user == null || user.getId() == null) {
+            return;
+        }
+        this.redisTemplate.opsForValue().set(likeUserKey(user.getId(), videoId), "1");
+    }
+
+    private String likeUserKey(Long userId, String videoId) {
+        return "QUANZI_COMMENT_LIKE_USER_" + userId + "_" + videoId;
     }
 
     /** 点赞/取消赞同步落库计数（+1 / -1）；负数边界由视频服务以 likeCount > 0 为条件保证 */

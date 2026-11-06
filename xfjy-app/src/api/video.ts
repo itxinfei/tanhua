@@ -4,6 +4,17 @@ import type { PageResult, PageParam, Comment } from "@/api/circle";
 import type { PicUploadResult } from "@/api/mine";
 
 /**
+ * 视频分页入参：后端已按契约 §5 迁移为 pageSize（pageSize 优先，服务端仍兼容存量 pagesize）。
+ * 与 circle 的 PageParam（pagesize）隔离，避免影响其它域。
+ */
+export interface VideoPageParam {
+  page: number;
+  pageSize: number;
+  /** @deprecated 迁移期兼容存量网关；后端 xfjy-server 上线后删除该字段 */
+  pagesize?: number;
+}
+
+/**
  * 小视频
  * 与后端 com.xfjy.server.vo.VideoVo 精确对齐
  */
@@ -114,7 +125,7 @@ export function publishVideo(param: PublishVideoParam): Promise<void> {
  * 查询小视频列表（推荐排序）
  * 对接后端: GET /small-videos
  */
-export function getVideoList(params: PageParam): Promise<PageResult<Video>> {
+export function getVideoList(params: VideoPageParam): Promise<PageResult<Video>> {
   return get<PageResult<Video>>("/small-videos", params as any);
 }
 
@@ -122,7 +133,7 @@ export function getVideoList(params: PageParam): Promise<PageResult<Video>> {
  * 查询「关注」流视频（仅当前登录用户关注的人发布的视频）
  * 对接后端: GET /small-videos/focus
  */
-export function getFollowVideoList(params: PageParam): Promise<PageResult<Video>> {
+export function getFollowVideoList(params: VideoPageParam): Promise<PageResult<Video>> {
   return get<PageResult<Video>>("/small-videos/focus", params as any);
 }
 
@@ -130,7 +141,7 @@ export function getFollowVideoList(params: PageParam): Promise<PageResult<Video>
  * 查询「热点」流视频（按点赞数排序）
  * 对接后端: GET /small-videos/hot
  */
-export function getHotVideoList(params: PageParam): Promise<PageResult<Video>> {
+export function getHotVideoList(params: VideoPageParam): Promise<PageResult<Video>> {
   return get<PageResult<Video>>("/small-videos/hot", params as any);
 }
 
@@ -139,7 +150,7 @@ export function getHotVideoList(params: PageParam): Promise<PageResult<Video>> {
  * 对接后端: GET /small-videos/location
  */
 export function getLocationVideoList(
-  params: PageParam & { lat?: number; lng?: number }
+  params: VideoPageParam & { lat?: number; lng?: number }
 ): Promise<PageResult<Video>> {
   return get<PageResult<Video>>("/small-videos/location", params as any);
 }
@@ -248,7 +259,8 @@ export function dislikeVideoComment(id: string): Promise<number> {
 
 /**
  * 关注视频作者
- * 对接后端: POST /small-videos/{id}/userFocus
+ * 对接后端: POST /small-videos/{userId}/userFocus
+ * 注意：路径变量是「被关注者的 userId」，不是视频 id；命名沿用后端既有契约，勿按 {id}=视频 理解。
  */
 export function focusVideoUser(userId: string): Promise<void> {
   return post<void>(`/small-videos/${userId}/userFocus`);
@@ -256,7 +268,7 @@ export function focusVideoUser(userId: string): Promise<void> {
 
 /**
  * 取消关注视频作者
- * 对接后端: POST /small-videos/{id}/userUnFocus
+ * 对接后端: POST /small-videos/{userId}/userUnFocus（路径变量同样是 userId）
  */
 export function unfocusVideoUser(userId: string): Promise<void> {
   return post<void>(`/small-videos/${userId}/userUnFocus`);

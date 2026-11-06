@@ -34,21 +34,28 @@
     >
       <swiper-item v-for="(video, idx) in displayList" :key="video.id">
         <view class="video-item" :class="{ 'is-active': idx === swiperIndex }">
+          <!-- 相邻三条挂载：上一条保留实例，回退时无需重建（重建会重新拉流、回退后要等几秒才出声）；
+              但只有当前条 auto 预载，相邻条仅取元数据，避免三条同时下载视频体。 -->
           <template v-if="Math.abs(idx - swiperIndex) <= 1">
             <video
               :id="'vid-' + video.id"
               :key="video.id + '-' + (videoRetryTick[video.id] || 0)"
               class="video-player"
               :src="video.videoUrl"
+              :poster="video.cover"
               :autoplay="idx === swiperIndex"
               loop
               :muted="isMuted"
+              :preload="idx === swiperIndex ? 'auto' : 'metadata'"
               :controls="false"
+              :aria-label="`视频：${video.nickname} 的作品`"
+              :show-center-play-btn="false"
+              :enable-progress-gesture="false"
               object-fit="cover"
               @timeupdate="idx === swiperIndex ? onTimeUpdate($event) : null"
               @play="onVideoPlay(idx)"
               @pause="onVideoPause(idx)"
-              @error="onVideoError(video)"
+              @error="onVideoError(video, $event)"
             />
             <image
               v-if="idx !== swiperIndex"
@@ -61,7 +68,7 @@
           <image v-else class="cover" :src="video.cover" mode="aspectFill" lazy-load :aria-label="`${video.nickname} 的视频封面`" />
 
           <!-- 透明点击层：单击暂停/播放，双击点赞 -->
-          <view class="tap-layer" aria-hidden="true" @click="onVideoTap(video, $event)" />
+          <view class="tap-layer" aria-hidden="true" @tap="onVideoTap(video, $event)" />
 
           <!-- 中央播放/暂停指示 -->
           <view v-if="currentId === video.id && !isPlaying && !erroredVideoIds.has(video.id)" class="center-state" aria-hidden="true">
@@ -69,16 +76,15 @@
           </view>
 
           <!-- 播放失败浮层 -->
-          <view
+          <a11y-button
             v-if="video.id === currentId && erroredVideoIds.has(video.id)"
             class="video-error"
-            role="alert"
-            aria-label="视频加载失败，点击重试"
+            label="视频加载失败，点击重试"
             @tap="retryVideo(video)"
           >
             <text class="video-error-title">视频加载失败</text>
-            <view class="video-error-retry" aria-hidden="true">点此重试</view>
-          </view>
+            <text class="video-error-retry" aria-hidden="true">点此重试</text>
+          </a11y-button>
 
           <!-- 双击飞出的爱心（抖音式大爱心跳弹） -->
           <view
@@ -153,7 +159,7 @@
                 <image lazy-load class="disc-img" :src="video.cover" mode="aspectFill" />
               </view>
               <view class="music-track">
-                <text class="music-text">{{ video.nickname }} 创作的原声 · {{ video.signature || '小视频' }}</text>
+                <text class="music-text" :class="{ 'text-paused': !isPlaying && currentId === video.id }">{{ video.nickname }} 创作的原声 · {{ video.signature || '小视频' }}</text>
               </view>
             </view>
           </view>
@@ -176,10 +182,11 @@
     <a11y-button
       v-if="isH5 && isMuted"
       class="muted-hint"
-      label="视频处于静音状态，点击开启声音"
+      label="视频处于静音状态，轻触开启声音"
       @tap="unlockAudio"
     >
       <view class="muted-hint__ico i-ph-speaker-x" aria-hidden="true" />
+      <text class="muted-hint__text">轻触开启声音</text>
     </a11y-button>
 
     <!-- 附近回退提示：未授权/半径内无数据时后端回退全站热门，必须明示而不是伪装成附近内容 -->
@@ -248,7 +255,7 @@
     <video-comment-drawer
       :visible="commentVisible"
       :video-id="activeCommentVideoId"
-      @close="commentVisible = false"
+      @close="closeComments"
       @commented="onVideoCommented"
     />
 
@@ -280,7 +287,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, getCurrentInstance } from "vue";
-import { onShow, onHide, onShareAppMessage } from "@dcloudio/uni-app";
+import { onLoad, onShow, onHide, onShareAppMessage } from "@dcloudio/uni-app";
 import MatchPopup from "@/components/match-popup.vue";
 import {
   getVideoList,
@@ -314,6 +321,12 @@ import { info } from "@/utils/ux";
  * swiper 仅渲染当前 ±1 项，30 条不会带来渲染压力。
  */
 const PAGE_SIZE = 30;
+
+/**
+ * 已加载条数上限：上滑久了 list 只增不减，DOM/封面图会常驻内存（30 条/页 × 4 页就很可观）。
+ * 超过上限先删头部再同步 swiper 索引，当前正在看的那条始终保留。
+ */
+const MAX_LOADED_ITEMS = 120;
 
 /** 4 个频道各自独立的列表与分页（「朋友」与「关注」同源重复，已从前后端移除） */
 const channels = {
@@ -468,14 +481,67 @@ function getCtx(index: number) {
   return uni.createVideoContext("vid-" + video.id, instance?.proxy as any);
 }
 
+/**
+ * 按「渲染索引」取真实的原生 video 元素。
+ *
+ * 不能靠 createVideoContext("vid-"+id)：H5 编译后内层原生 <video> 的 id 是空串
+ * （实测 id 未从模板透传），按 id 查会拿不到目标实例，甚至作用到相邻实例上，
+ * 表现为「滑回上一条时它被误暂停」。.video-item 与 displayList 顺序一致，按索引取最可靠。
+ */
+function videoEl(index: number): HTMLVideoElement | null {
+  if (!isH5 || typeof document === "undefined") return null;
+  const item = document.querySelectorAll(".video-item")[index] as any;
+  return (item?.querySelector?.("video") || null) as HTMLVideoElement | null;
+}
+
+function safePlay(index: number) {
+  const video = displayList.value[index];
+  if (!video) return;
+  if (isH5 && typeof document !== "undefined") {
+    let el = videoEl(index);
+    if (!el) {
+      // 该条刚被 v-if 挂载、DOM 还没就绪时按 src 反查兜底
+      el = Array.from(document.querySelectorAll("video")).find(
+        (v) => (v.getAttribute("src") || "") === video.videoUrl,
+      ) || null;
+    }
+    if (el) {
+      try {
+        const p = el.play();
+        if (p && typeof p.catch === "function") {
+          p.catch(() => {
+            /* 非手势下的非静音自动播放被浏览器拒绝：保持静音等待下一次手势，不抛到全局 */
+          });
+        }
+        // 刚挂载/刚换源的实例 play 可能被挂起（media 未 ready），短暂后仍是暂停态就补一次
+        setTimeout(() => {
+          if (!el || el !== videoEl(index) || !el.paused) return;
+          el.play().catch(() => {});
+        }, 320);
+      } catch {
+        /* 个别 WebView 的 play 同步抛错 */
+      }
+      return;
+    }
+  }
+  getCtx(index)?.play();
+}
+
 function playAt(index: number) {
   const video = displayList.value[index];
   if (!video) return;
   lastPlayedIndex = index;
-  getCtx(index)?.play();
+  safePlay(index);
 }
 
 function pauseAt(index: number) {
+  if (!displayList.value[index]) return;
+  if (isH5 && typeof document !== "undefined") {
+    // H5 拿不到实例就跳过：createVideoContext 的 id 不可靠，宁可少暂停也不能误伤别的实例
+    const el = videoEl(index);
+    if (el) el.pause();
+    return;
+  }
   getCtx(index)?.pause();
 }
 
@@ -488,8 +554,10 @@ function pauseAt(index: number) {
 function unlockAudio() {
   if (isH5 && isMuted.value) {
     isMuted.value = false;
-    // 命令式同步 unmute 兜底；uni-h5 内部 watch(muted) 也会随 prop 变化同步 video.muted
-    document.querySelectorAll("video").forEach((v) => (v.muted = false));
+    // 命令式同步 unmute 兜底；uni-h5 内部 watch(muted) 也会随 prop 变化同步 video.muted。
+    // 限定在当前页面容器内，避免误解除其它页面/浮层的视频实例。
+    const scope: any = document.querySelector(".video-page") || document;
+    scope.querySelectorAll("video").forEach((v: HTMLVideoElement) => (v.muted = false));
   }
 }
 
@@ -509,7 +577,12 @@ function onSwiperChange(e: any) {
   isPlaying.value = true;
   progress.value = 0;
   unlockAudio();
-  playAt(index);
+  // 回退到「上一条」时该条 video 是 v-if 重新挂载的，此刻 DOM 里还没有它；
+  // 必须等渲染完成再 play，否则 safePlay 取不到元素、getCtx 也指向未挂载实例，画面会停在 0 秒。
+  nextTick(() => {
+    if (commentVisible.value || index !== swiperIndex.value) return;
+    playAt(index);
+  });
   if (index >= displayList.value.length - 2) {
     loadMoreVideos();
   }
@@ -517,6 +590,9 @@ function onSwiperChange(e: any) {
 
 function onVideoPlay(idx: number) {
   if (idx !== swiperIndex.value) return;
+  // 首屏由 template 的 autoplay 直接起播，不经过 playAt()，必须在这里补写 lastPlayedIndex，
+  // 否则 onVideoPause 的 `idx !== lastPlayedIndex` 会吞掉首条的 pause 事件，isPlaying 永远为 true。
+  lastPlayedIndex = idx;
   isPlaying.value = true;
   // 播放上报：仅在 play 事件触发时上报一次/视频（不随 timeupdate 上报），
   // 后端另有 Redis「用户×视频」去重兜底，双层保证防刷。
@@ -539,7 +615,9 @@ const videoRetryTick = ref<Record<string, number>>({});
 /** 本次会话已上报播放的视频，避免同一视频反复播放时重复请求 */
 const reportedPlayIds = new Set<string>();
 
-function onVideoError(video: Video) {
+function onVideoError(video: Video, e?: any) {
+  const detail = e?.detail || {};
+  console.warn("[video] 加载失败", video.id, detail.errMsg || detail.message || video.videoUrl);
   erroredVideoIds.value = new Set(erroredVideoIds.value).add(video.id);
 }
 
@@ -589,7 +667,8 @@ async function onRefresh() {
   const chState = channels[ch];
   const token = ++loadToken;
   try {
-    const query: Record<string, any> = { page: 1, pagesize: PAGE_SIZE };
+    // 迁移期双传：新契约读 pageSize，存量网关只认 pagesize；后端 xfjy-server 上线后删除 pagesize
+    const query: Record<string, any> = { page: 1, pageSize: PAGE_SIZE, pagesize: PAGE_SIZE };
     if (ch === "location") {
       nearbyFallback.value = false;
       const loc = await locateOnce();
@@ -643,7 +722,10 @@ async function switchChannel(ch: ChannelKey) {
   if (chState.list.value.length === 0) {
     await loadVideos();
   } else {
+    // 已有数据先立即起播，再后台静默刷新第一页：旧实现只 playAt(0)，
+    // 切回「热点」看到的可能是几分钟前的旧流，且没有任何加载提示
     playAt(0);
+    void loadVideos();
   }
 }
 
@@ -785,6 +867,11 @@ async function handleLike(video: Video) {
 
 async function handleFocus(video: Video) {
   const wasFocused = video.hasFocus === 1;
+  // 取消关注时若处于关注频道会把视频从列表过滤；失败时需恢复列表，
+  // 否则出现「hasFocus 已回滚但视频从列表消失」的界面不一致
+  const followListBefore = wasFocused && activeChannel.value === "follow"
+    ? channels["follow"].list.value
+    : null;
   try {
     if (wasFocused) {
       video.hasFocus = 0;
@@ -809,12 +896,31 @@ async function handleFocus(video: Video) {
     }
   } catch {
     video.hasFocus = wasFocused ? 1 : 0;
+    // 恢复被过滤的关注频道列表
+    if (followListBefore) channels["follow"].list.value = followListBefore;
   }
 }
+
+/** 打开评论抽屉时记录视频是否在播；抽屉内的语音评论与视频声音叠加，必须先暂停 */
+let resumeAfterComment = false;
 
 function showComments(video: Video) {
   activeCommentVideoId.value = video.id;
   commentVisible.value = true;
+  resumeAfterComment = isPlaying.value;
+  if (isPlaying.value) {
+    isPlaying.value = false;
+    pauseAt(swiperIndex.value);
+  }
+}
+
+function closeComments() {
+  commentVisible.value = false;
+  if (resumeAfterComment) {
+    resumeAfterComment = false;
+    isPlaying.value = true;
+    playAt(swiperIndex.value);
+  }
 }
 
 function onVideoCommented() {
@@ -830,8 +936,17 @@ function openShare(video: Video) {
 function doShare(channel: "wechat" | "moments" | "copy") {
   showShare.value = false;
   if (channel === "copy") {
+    // 不能复制 MinIO 直链：那是内网 http 地址，分享出去对方打不开，还泄露内网 IP。
+    // H5 复制当前页面链接；其它端暂用「页面 + 视频 ID」文案，等后端短链上线再替换。
+    const id = shareVideo.value?.id || "";
+    let data = shareVideo.value?.videoUrl || "";
+    if (isH5 && typeof window !== "undefined") {
+      data = `${window.location.origin}${window.location.pathname}#/pages/video/index?id=${id}`;
+    } else {
+      data = `我在心飞交友看到一个视频，视频 ID：${id}`;
+    }
     uni.setClipboardData({
-      data: shareVideo.value?.videoUrl || "",
+      data,
       success: () => info("链接已复制"),
     });
   } else {
@@ -871,7 +986,8 @@ async function loadVideos() {
   try {
     chState.page.value = 1;
     chState.hasMore.value = true;
-    const query: Record<string, any> = { page: 1, pagesize: PAGE_SIZE };
+    // 迁移期双传：新契约读 pageSize，存量网关只认 pagesize；后端 xfjy-server 上线后删除 pagesize
+    const query: Record<string, any> = { page: 1, pageSize: PAGE_SIZE, pagesize: PAGE_SIZE };
     if (ch === "location") {
       // 附近：先取坐标再请求；未授权时也继续请求，由后端回退全站热门（绝不静默空列表）
       nearbyFallback.value = false;
@@ -892,8 +1008,10 @@ async function loadVideos() {
     if (items.length) {
       chState.list.value = arrangeForChannel(ch, items);
       writeVideoCache(ch, items);
+      trimLoadedList(chState);
       isPlaying.value = true;
-      playAt(0);
+      // 分享链接带 id 时直接定位到目标视频；找不到才回到第一条
+      if (!locateTargetVideo()) playAt(0);
     } else if (displayList.value.length === 0) {
       // 空结果由 empty-state 承担，不误报为网络失败
       chState.list.value = [];
@@ -920,6 +1038,23 @@ function appendUnique<T extends { id: string | number }>(target: T[], items: T[]
   return target.concat(items.filter((v) => !seen.has(v.id)));
 }
 
+/**
+ * 裁掉超出上限的头部项，并同步 swiper 索引与 lastPlayedIndex。
+ * 只删用户已经滑过去的部分，当前正在看的那条一定保留；
+ * 索引变化后重播同一视频，避免 swiper current 变化造成画面错位。
+ */
+function trimLoadedList(chState: { list: { value: Video[] } }) {
+  const overflow = chState.list.value.length - MAX_LOADED_ITEMS;
+  if (overflow <= 0) return;
+  const oldIndex = swiperIndex.value;
+  chState.list.value = chState.list.value.slice(overflow);
+  const newIndex = Math.max(0, oldIndex - overflow);
+  swiperIndex.value = newIndex;
+  lastPlayedIndex = lastPlayedIndex >= overflow ? lastPlayedIndex - overflow : -1;
+  // 裁掉头部会让 swiper-item 以 :key 重建，video 元素随之重新挂载，必须重新起播
+  nextTick(() => playAt(newIndex));
+}
+
 async function loadMoreVideos() {
   if (loadingMore.value) return;
   const channel = activeChannel.value;
@@ -931,7 +1066,8 @@ async function loadMoreVideos() {
   loadingMore.value = true;
   try {
     const nextPage = chState.page.value + 1;
-    const query: Record<string, any> = { page: nextPage, pagesize: PAGE_SIZE };
+    // 迁移期双传：新契约读 pageSize，存量网关只认 pagesize；后端上线后删除 pagesize
+    const query: Record<string, any> = { page: nextPage, pageSize: PAGE_SIZE, pagesize: PAGE_SIZE };
     if (channel === "location" && userLocation.value) {
       query.lat = userLocation.value.lat;
       query.lng = userLocation.value.lng;
@@ -941,6 +1077,7 @@ async function loadMoreVideos() {
     if (res.items && res.items.length > 0) {
       const before = chState.list.value.length;
       chState.list.value = mergeForChannel(channel, chState.list.value, res.items);
+      trimLoadedList(chState);
       // 本页全为重复视频时同样推进页码，避免反复请求同一页
       chState.page.value = nextPage;
       if (chState.list.value.length === before) {
@@ -957,13 +1094,20 @@ async function loadMoreVideos() {
 }
 
 const showSwipeHint = ref(false);
+let swipeHintTimer: ReturnType<typeof setTimeout> | null = null;
 watch(
   () => [currentVideo.value?.id, swiperIndex.value] as const,
   ([id, idx]) => {
+    // 快速切换时旧 timer 会提前把新提示关掉，必须先清掉
+    if (swipeHintTimer) {
+      clearTimeout(swipeHintTimer);
+      swipeHintTimer = null;
+    }
     if (id && idx === 0) {
       showSwipeHint.value = true;
-      setTimeout(() => {
+      swipeHintTimer = setTimeout(() => {
         showSwipeHint.value = false;
+        swipeHintTimer = null;
       }, 4000);
     } else {
       showSwipeHint.value = false;
@@ -971,7 +1115,58 @@ watch(
   },
 );
 
-let wasPlayingBeforeHide = false;
+/** 分享链接携带的目标视频 ID（`#/pages/video/index?id=xxx`）；首屏数据到达后定位到它 */
+const targetVideoId = ref("");
+
+onLoad((query: any) => {
+  const id = query?.id;
+  if (typeof id === "string" && id) {
+    targetVideoId.value = id;
+  }
+});
+
+// H5 兜底：实测（2026-11-06）H5 冷启动直接打开 `#/pages/video/index?id=xxx` 时 onLoad 拿不到 query，
+// 这里直接解析 hash，保证分享链接在任何情况下都能定位到目标视频。
+if (isH5 && typeof window !== "undefined") {
+  const qs = window.location.hash.split("?")[1] || "";
+  const id = new URLSearchParams(qs).get("id");
+  if (id) {
+    targetVideoId.value = id;
+  }
+}
+
+/**
+ * 首屏数据就绪后定位到分享的目标视频。
+ * 只在当前已加载列表里找：分享者看到的视频可能已下架或不在推荐池内，
+ * 不在列表时给一次提示后清空目标，避免用户每次进页面都被反复提示。
+ */
+function locateTargetVideo(): boolean {
+  if (!targetVideoId.value) return false;
+  const idx = displayList.value.findIndex((v) => v.id === targetVideoId.value);
+  const id = targetVideoId.value;
+  targetVideoId.value = "";
+  if (idx < 0) {
+    info("分享的视频未找到，可能已下架");
+    return false;
+  }
+  swiperIndex.value = idx;
+  nextTick(() => {
+    playAt(idx);
+    // 分享链接冷启动没有用户手势：非静音播放会被浏览器拒绝，画面停在第一帧。
+    // 退回「静音起播」（muted autoplay 是允许的），用户任意触碰屏幕即由 unlockAudio 解锁。
+    if (isH5) {
+      setTimeout(() => {
+        const el = videoEl(idx);
+        if (!el || !el.paused) return;
+        isMuted.value = true;
+        el.muted = true;
+        const p = el.play();
+        if (p && typeof p.catch === "function") p.catch(() => {});
+      }, 360);
+    }
+  });
+  return true;
+}
 
 onShow(() => {
   // H5：文档级首次手势监听（capture 阶段，先于业务 click/tap；不写 preventDefault，不拦截事件）。
@@ -989,10 +1184,17 @@ onShow(() => {
   }
   if (displayList.value.length === 0) {
     loadVideos();
-  } else if (wasPlayingBeforeHide) {
-    wasPlayingBeforeHide = false;
-    isPlaying.value = true;
-    playAt(swiperIndex.value);
+  } else {
+    // 回到页面/首次显示：无条件恢复当前视频。
+    // 旧实现只在 wasPlayingBeforeHide 为 true 时恢复，而 :autoplay 对已挂载元素不会二次触发，
+    // 实测从「我的」切回视频页会停在 paused+muted，必须在这里显式 play。
+    nextTick(() => {
+      if (commentVisible.value) return;
+      isPlaying.value = true;
+      // 缓存命中时 loadVideos 不会跑（列表已有内容），分享定位必须在这里补一次，
+      // 否则带 ?id= 打开永远停在第一条。
+      if (!locateTargetVideo()) playAt(swiperIndex.value);
+    });
   }
 });
 
@@ -1001,14 +1203,9 @@ onHide(() => {
   if (isH5) {
     document.removeEventListener("pointerdown", unlockAudio, true);
   }
-  wasPlayingBeforeHide = isPlaying.value;
   if (isPlaying.value) {
     isPlaying.value = false;
-    const video = currentVideo.value;
-    if (video) {
-      const ctx = uni.createVideoContext("vid-" + video.id, instance?.proxy as any);
-      ctx?.pause();
-    }
+    pauseAt(swiperIndex.value);
   }
 });
 
@@ -1021,6 +1218,7 @@ onShareAppMessage(() => ({
 <style lang="scss" scoped>
 .video-page {
   height: calc(100vh - var(--tab-bar-height, 0px));
+  height: calc(100dvh - var(--tab-bar-height, 0px));
   background: var(--bg-page);
   position: relative;
 }
@@ -1035,7 +1233,7 @@ onShareAppMessage(() => ({
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0d0b14;
+  background: var(--bg-deep);
   overflow: hidden;
 }
 
@@ -1063,15 +1261,15 @@ onShareAppMessage(() => ({
   margin-bottom: 40rpx;
   border-radius: 50%;
   border: 5rpx solid rgba(255, 255, 255, 0.16);
-  border-top-color: #ff4d8d;
-  border-right-color: #8a5cf6;
+  border-top-color: var(--color-primary);
+  border-right-color: var(--color-primary-text);
   animation: loadingSpin 0.9s linear infinite;
 }
 
 .video-loading__title {
   font-size: var(--fs-lg, 32rpx);
   font-weight: 600;
-  color: #fff;
+  color: var(--text-inverse);
   letter-spacing: 1rpx;
 }
 
@@ -1087,8 +1285,8 @@ onShareAppMessage(() => ({
   padding: 16rpx 56rpx;
   border-radius: 999rpx;
   font-size: var(--fs-md, 28rpx);
-  color: #fff;
-  background: linear-gradient(135deg, #ff4d8d, #8a5cf6);
+  color: var(--text-inverse);
+  background: var(--gradient-brand);
 }
 
 @keyframes loadingSpin {
@@ -1199,7 +1397,8 @@ onShareAppMessage(() => ({
 
 /* H5 静音提示：右上角浮层，仅 muted 起播期间显示，解锁后随 v-if 移除。
    视频画面明暗不定，浮层沿用本页 nearby-tip/video-error 的黑色半透明压暗范式；
-   图标色走 --text-inverse 以适配暗色视频底。88rpx 热区满足 §7.1 独立功能按钮要求。 */
+   图标色走 --text-inverse 以适配暗色视频底。88rpx 热区满足 §7.1 独立功能按钮要求。
+   必须带「轻触开启声音」文案：纯图标会被用户理解成「已静音」而不是「可开启」。 */
 .muted-hint {
   position: absolute;
   top: calc(env(safe-area-inset-top, 0px) + 16rpx + var(--category-bar-h) + 16rpx);
@@ -1209,20 +1408,31 @@ onShareAppMessage(() => ({
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 88rpx;
+  width: auto;
+  min-width: 88rpx;
   height: 88rpx;
-  border-radius: 50%;
+  padding: 0 var(--space-md);
+  gap: var(--space-sm);
+  border-radius: var(--radius-pill);
   background: rgba(0, 0, 0, 0.55);
 
   .muted-hint__ico {
-    width: 44rpx;
-    height: 44rpx;
+    width: 40rpx;
+    height: 40rpx;
     color: var(--text-inverse);
+  }
+
+  .muted-hint__text {
+    font-size: var(--fs-sm);
+    line-height: 1;
+    color: var(--text-inverse);
+    white-space: nowrap;
   }
 }
 
 .video-swiper {
   height: calc(100vh - var(--tab-bar-height, 0px));
+  height: calc(100dvh - var(--tab-bar-height, 0px));
 }
 
 .video-item {
@@ -1272,7 +1482,7 @@ onShareAppMessage(() => ({
   }
 }
 
-/* 播放失败浮层 */
+/* 播放失败浮层（a11y-button：可点击重试，满足 §7.1 不新增裸 view 按钮） */
 .video-error {
   position: absolute;
   inset: 0;
@@ -1284,6 +1494,11 @@ onShareAppMessage(() => ({
   z-index: 7;
   background: rgba(0, 0, 0, 0.6);
 
+  /* 全屏错误层不能跟随普通按钮缩放，否则整块画面抖动 */
+  &:active {
+    transform: none;
+  }
+
   .video-error-title {
     font-size: var(--fs-md);
     color: var(--text-inverse);
@@ -1291,6 +1506,7 @@ onShareAppMessage(() => ({
   }
 
   .video-error-retry {
+    display: inline-block;
     padding: var(--space-md) 48rpx;
     border: 2rpx solid var(--text-inverse);
     border-radius: var(--radius-pill);
@@ -1313,7 +1529,7 @@ onShareAppMessage(() => ({
     width: 96rpx;
     height: 96rpx;
     color: var(--color-primary);
-    filter: drop-shadow(0 4rpx 16rpx rgba(254, 60, 114, 0.4));
+    filter: drop-shadow(0 4rpx 16rpx rgba(var(--color-primary-rgb), 0.4));
   }
 }
 
@@ -1520,6 +1736,13 @@ onShareAppMessage(() => ({
 
 .video-item.is-active .music-text {
   animation: marquee 8s linear infinite;
+}
+
+/* 暂停时唱片与歌词必须同时停：原规则只有 .disc-paused 一个类，
+   优先级低于上面的 .video-item.is-active .disc-img，实际暂停后唱片仍在转。 */
+.video-item.is-active .music-disc.disc-paused .disc-img,
+.video-item.is-active .music-text.text-paused {
+  animation-play-state: paused;
 }
 
 @keyframes spin {

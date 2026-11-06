@@ -47,8 +47,16 @@ public class VideoController {
     @Autowired
     private PushService pushService;
 
-    /** 视频分页大小上限：防止超大 pagesize 拉爆列表接口（热点流候选池仅 100 条，50 已足够） */
+    /** 视频分页大小上限：防止超大分页参数拉爆列表接口（热点流候选池仅 100 条，50 已足够） */
     private static final int VIDEO_PAGE_MAX_SIZE = 50;
+
+    /**
+     * 解析分页大小：新契约 pageSize 优先；pagesize 仅作存量前端兼容入参（§5 存量豁免，随迁移移除）。
+     */
+    private static int resolvePageSize(Integer pageSize, Integer pageSizeLegacy) {
+        Integer size = pageSize != null ? pageSize : pageSizeLegacy;
+        return ParamConvertUtils.capPageSize(size == null ? 10 : size, 10, VIDEO_PAGE_MAX_SIZE);
+    }
 
     /**
      * 发布小视频
@@ -91,12 +99,13 @@ public class VideoController {
      */
     @GetMapping
     public ResponseEntity<PageResult> queryVideoList(@RequestParam(value = "page", defaultValue = "1") Integer page,
-                                                     @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize) {
+                                                     @RequestParam(value = "pageSize", required = false) Integer pageSize,
+                                                     @RequestParam(value = "pagesize", required = false) Integer pageSizeLegacy) {
         try {
             if (page <= 0) {
                 page = 1;
             }
-            PageResult pageResult = this.videoService.queryVideoList(page, ParamConvertUtils.capPageSize(pageSize, 10, VIDEO_PAGE_MAX_SIZE));
+            PageResult pageResult = this.videoService.queryVideoList(page, resolvePageSize(pageSize, pageSizeLegacy));
             if (null != pageResult) {
                 return ResponseEntity.ok(pageResult);
             }
@@ -111,12 +120,13 @@ public class VideoController {
      */
     @GetMapping("/focus")
     public ResponseEntity<PageResult> queryFocusVideoList(@RequestParam(value = "page", defaultValue = "1") Integer page,
-                                                         @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize) {
+                                                         @RequestParam(value = "pageSize", required = false) Integer pageSize,
+                                                         @RequestParam(value = "pagesize", required = false) Integer pageSizeLegacy) {
         try {
             if (page <= 0) {
                 page = 1;
             }
-            PageResult pageResult = this.videoService.queryFollowVideoList(page, ParamConvertUtils.capPageSize(pageSize, 10, VIDEO_PAGE_MAX_SIZE));
+            PageResult pageResult = this.videoService.queryFollowVideoList(page, resolvePageSize(pageSize, pageSizeLegacy));
             if (null != pageResult) {
                 return ResponseEntity.ok(pageResult);
             }
@@ -131,12 +141,13 @@ public class VideoController {
      */
     @GetMapping("/hot")
     public ResponseEntity<PageResult> queryHotVideoList(@RequestParam(value = "page", defaultValue = "1") Integer page,
-                                                       @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize) {
+                                                       @RequestParam(value = "pageSize", required = false) Integer pageSize,
+                                                       @RequestParam(value = "pagesize", required = false) Integer pageSizeLegacy) {
         try {
             if (page <= 0) {
                 page = 1;
             }
-            PageResult pageResult = this.videoService.queryHotVideoList(page, ParamConvertUtils.capPageSize(pageSize, 10, VIDEO_PAGE_MAX_SIZE));
+            PageResult pageResult = this.videoService.queryHotVideoList(page, resolvePageSize(pageSize, pageSizeLegacy));
             if (null != pageResult) {
                 return ResponseEntity.ok(pageResult);
             }
@@ -151,7 +162,8 @@ public class VideoController {
      */
     @GetMapping("/location")
     public ResponseEntity<PageResult> queryLocationVideoList(@RequestParam(value = "page", defaultValue = "1") Integer page,
-                                                             @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize,
+                                                             @RequestParam(value = "pageSize", required = false) Integer pageSize,
+                                                             @RequestParam(value = "pagesize", required = false) Integer pageSizeLegacy,
                                                              @RequestParam(value = "lat", required = false) Double lat,
                                                              @RequestParam(value = "lng", required = false) Double lng) {
         try {
@@ -159,7 +171,7 @@ public class VideoController {
                 page = 1;
             }
             PageResult pageResult = this.videoService.queryLocationVideoList(
-                    page, ParamConvertUtils.capPageSize(pageSize, 10, VIDEO_PAGE_MAX_SIZE), lat, lng);
+                    page, resolvePageSize(pageSize, pageSizeLegacy), lat, lng);
             if (null != pageResult) {
                 return ResponseEntity.ok(pageResult);
             }
@@ -177,15 +189,19 @@ public class VideoController {
      */
     @PostMapping("/{id}/like")
     public ResponseEntity<Long> likeComment(@PathVariable("id") String videoId) {
-        // 点赞前先判断是否已赞：重复点赞不重复计数（落库 likeCount 只 +1 一次）
-        boolean alreadyLiked = this.videoService.hasLikedVideo(videoId);
+        // 先原子占位「已赞」标记：并发双击时只有一个请求翻转成功，落库 likeCount 只 +1。
+        // 旧实现「先 hasLikedVideo 再改计数」存在读-改-写竞态，两次请求都可能读到未赞。
+        boolean firstLike = this.videoService.tryMarkVideoLiked(videoId);
         ResponseEntity<Long> entity = this.movementsController.likeComment(videoId);
         if(entity.getStatusCode().is2xxSuccessful()){
             //视频评分事件：点赞（type=2，由视频服务内部发送消息）
             this.videoService.recordVideoMsg(videoId, 2);
-            if (!alreadyLiked) {
+            if (firstLike) {
                 this.videoService.incVideoLikeCount(videoId, 1);
             }
+        } else if (firstLike) {
+            // 下游失败：撤销占位，允许用户下次重试仍能正常 +1
+            this.videoService.rollbackVideoLiked(videoId);
         }
         return entity;
     }
@@ -198,17 +214,20 @@ public class VideoController {
      */
     @PostMapping("/{id}/dislike")
     public ResponseEntity<Long> disLikeComment(@PathVariable("id") String videoId) {
-
-        // 取消赞前先判断是否已赞：未赞过就不减，避免把落库计数减成负数
-        boolean hadLiked = this.videoService.hasLikedVideo(videoId);
+        // 原子释放「已赞」标记：只有真正由已赞翻转为未赞的那次请求才 -1，避免并发双击 -2。
+        // 旧实现「先 hasLikedVideo 再减」同样有竞态。
+        boolean firstUnlike = this.videoService.tryUnmarkVideoLiked(videoId);
         ResponseEntity<Long> entity = this.movementsController.disLikeComment(videoId);
 
         if(entity.getStatusCode().is2xxSuccessful()){
             //视频评分事件：取消点赞（type=3，由视频服务内部发送消息）
             this.videoService.recordVideoMsg(videoId, 3);
-            if (hadLiked) {
+            if (firstUnlike) {
                 this.videoService.incVideoLikeCount(videoId, -1);
             }
+        } else if (firstUnlike) {
+            // 下游失败：恢复标记，避免「标记没了但赞还在」
+            this.videoService.restoreVideoLiked(videoId);
         }
 
         return entity;

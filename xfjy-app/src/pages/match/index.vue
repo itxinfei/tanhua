@@ -17,12 +17,30 @@
 
     <!-- 卡片区域 -->
     <view class="card-area">
-      <!-- 骨架卡片（首屏加载中）：与真实卡片同几何（全屏铺底单卡） -->
-      <skeleton v-if="cardList.length === 0 && loading" variant="match" />
+      <!-- 骨架卡片：门控基于实际可见窗口而非 cardList.length——
+           历史卡滑完后数组不清空，reload/补拉期间 visibleCards 为空，仍需骨架兜底防闪空白 -->
+      <skeleton v-if="loading && visibleCards.length === 0" variant="match" />
 
-      <!-- 空状态：仅加载完成且无卡片时显示（否则会与骨架/卡片叠显） -->
+      <!-- 加载失败错误态：与「候选耗尽/暂无推荐」严格区分，给明确原因 + 重试入口，
+           范式同 pages/match/nearby.vue，role=alert 透传到 empty-state 根节点供读屏播报 -->
       <empty-state
-        v-if="cardList.length === 0 && !loading"
+        v-if="!loading && visibleCards.length === 0 && loadFailed"
+        role="alert"
+        icon="info"
+        title="暂时没能获取推荐"
+        desc="服务可能开小差了，检查网络后重试"
+      >
+        <a11y-button
+          label="重新加载"
+          variant="primary"
+          @click="handleReload"
+        />
+      </empty-state>
+
+      <!-- 空状态：门控基于实际可见窗口（历史卡滑完后 cardList 不清空，length 判断永不成立）。
+           仅加载完成、无可见卡片且非失败时显示，避免与骨架/卡片叠显 -->
+      <empty-state
+        v-else-if="!loading && visibleCards.length === 0"
         :title="exhausted ? '推荐已看完' : '暂无推荐'"
         :desc="exhausted ? '今日候选都已滑过，点击重新加载看看有没有新面孔' : '稍后再来看看，缘分不期而至'"
       >
@@ -353,8 +371,10 @@ function syncLocation(): void {
 // 卡片数据
 const cardList = ref<TodayBest[]>([]);
 const loading = ref(false);
-/** 服务端候选已耗尽（拉取返回空）：为 true 时展示重试入口，避免滑到底后静默卡死 */
+/** 服务端候选已耗尽（拉取返回空或全重复）：为 true 时展示重试入口，避免滑到底后静默卡死 */
 const exhausted = ref(false);
+/** 请求失败标记：与「候选耗尽/暂无推荐」区分，展示可重试的错误空态，不把故障伪装成没数据 */
+const loadFailed = ref(false);
 
 // 滑动手势状态
 const dragX = ref(0);
@@ -520,81 +540,79 @@ let cardRemoveTimer: ReturnType<typeof setTimeout> | null = null;
 /** 上一张已完成上报的卡片（回看撤销用） */
 const lastSwipe = ref<{ id: number; action: "like" | "dislike" | "superlike" } | null>(null);
 
-/** 卡片滑出并上报操作，互相喜欢时弹出匹配成功弹窗 */
-async function swipeOut(action: "like" | "dislike" | "superlike") {
-  const card = visibleCards.value[0];
-  if (!card) return;
-  if (swiping.value) return;
-  swiping.value = true;
+    /** 卡片滑出并上报操作，互相喜欢时弹出匹配成功弹窗 */
+    async function swipeOut(action: "like" | "dislike" | "superlike") {
+      const card = visibleCards.value[0];
+      if (!card) return;
+      if (swiping.value) return;
+      swiping.value = true;
 
-  // 检查每日免费滑动次数：探探口径下左滑（跳过）不计次，不应被额度拦截；
-  // 只有右滑（like/superlike）才消耗额度
-  if (action !== "dislike" && !matchStore.canSwipe()) {
-    info("今日免费次数已用完，开通VIP无限滑");
-    dragX.value = 0;
-    dragY.value = 0;
-    swiping.value = false;
-    return;
-  }
-
-  // 驱动飞出动画：不喜欢向左，其余向右；超级喜欢向上飞
-  dragX.value =
-    action === "dislike" ? -FLY_DISTANCE_X_RPX : FLY_DISTANCE_X_RPX;
-  dragY.value =
-    action === "superlike"
-      ? FLY_DISTANCE_Y_SUPER_RPX
-      : FLY_DISTANCE_Y_NORMAL_RPX;
-
-  // 上报滑动，互相喜欢时弹出匹配成功窗
-  if (action === "dislike") {
-    // 左滑「跳过」不消耗额度、不改变推荐结果，只是异步清理可能存在的喜欢关系，
-    // 属于可补偿操作：乐观出栈 + 后台上报。若像 like 一样 await 后再决定，
-    // 后端超时/500 会把卡片弹回，用户会反复卡在同一张卡上（实测过的高频痛点）。
-    void matchStore.doSwipe(card.id, "dislike").catch(() => {
-      // 静默降级：跳过纯本地行为，服务端关系未清理不影响当前体验
-    });
-  } else {
-    try {
-      const matched = await matchStore.doSwipe(card.id, action);
-      if (matched) {
-        matchStore.showMatchPopup({
-          userId: card.id,
-          nickname: card.nickname,
-          avatar: card.avatar,
-        });
+      // 检查每日免费滑动次数：探探口径下左滑（跳过）不计次，不应被额度拦截；
+      // 只有右滑（like/superlike）才消耗额度
+      if (action !== "dislike" && !matchStore.canSwipe()) {
+        info("今日免费次数已用完，开通VIP无限滑");
+        dragX.value = 0;
+        dragY.value = 0;
+        swiping.value = false;
+        return;
       }
-      // 超级喜欢为 VIP 权益：先上报成功再扣次数（与 detail 页一致，避免失败白扣）
-      if (action === "superlike") {
-        const ok = await recordBenefitUsage("super_like");
-        if (!ok) {
-          info("今日超级喜欢次数已用完");
+
+      // 乐观出栈：先驱动飞出动画并立即推进队列（右滑/超级喜欢与左滑一致，不再 await 阻塞），
+      // 后台再上报，避免后端 like 链路（写关系+同步图+IM+推送）RT 高时卡片卡住不前进
+      dragX.value =
+        action === "dislike" ? -FLY_DISTANCE_X_RPX : FLY_DISTANCE_X_RPX;
+      dragY.value =
+        action === "superlike"
+          ? FLY_DISTANCE_Y_SUPER_RPX
+          : FLY_DISTANCE_Y_NORMAL_RPX;
+
+      // 延迟移除卡片（等待飞出动画完成）
+      cardRemoveTimer = setTimeout(() => {
+        cardRemoveTimer = null;
+        // 记录刚出栈的卡片供「回看」撤销
+        lastSwipe.value = { id: card.id, action };
+        currentCardIndex.value++;
+        dragX.value = 0;
+        dragY.value = 0;
+        swiping.value = false;
+        // 剩余卡片不足时预加载更多
+        if (cardList.value.length - currentCardIndex.value < MIN_REMAINING_CARDS) {
+          loadMoreCards();
         }
-      }
-    } catch {
-      // like/superlike 涉及真实关系与额度，上报失败必须回弹，避免后端未记录却把推荐划走
-      dragX.value = 0;
-      dragY.value = 0;
-      swiping.value = false;
-      fail("操作失败，请重试");
-      return;
-    }
-  }
+      }, CARD_REMOVE_DELAY_MS);
 
-  // 延迟移除卡片（等待飞出动画完成）
-  cardRemoveTimer = setTimeout(() => {
-    cardRemoveTimer = null;
-    // 记录刚出栈的卡片供「回看」撤销
-    lastSwipe.value = { id: card.id, action };
-    currentCardIndex.value++;
-    dragX.value = 0;
-    dragY.value = 0;
-    swiping.value = false;
-    // 剩余卡片不足时预加载更多
-    if (cardList.value.length - currentCardIndex.value < MIN_REMAINING_CARDS) {
-      loadMoreCards();
+      // 上报滑动（后台，不阻塞出栈）
+      if (action === "dislike") {
+        // 左滑「跳过」不消耗额度、不改变推荐结果，乐观出栈 + 后台上报
+        void matchStore.doSwipe(card.id, "dislike").catch(() => {
+          // 静默降级：跳过纯本地行为，服务端关系未清理不影响当前体验
+        });
+      } else {
+        matchStore
+          .doSwipe(card.id, action)
+          .then((matched) => {
+            if (matched) {
+              matchStore.showMatchPopup({
+                userId: card.id,
+                nickname: card.nickname,
+                avatar: card.avatar,
+              });
+            }
+            // 超级喜欢为 VIP 权益：上报成功后再扣次数（与 detail 页一致，避免失败白扣）
+            if (action === "superlike") {
+              recordBenefitUsage("super_like")
+                .then((ok) => {
+                  if (!ok) info("今日超级喜欢次数已用完");
+                })
+                .catch(() => {});
+            }
+          })
+          .catch(() => {
+            // 乐观出栈下，like/superlike 上报失败不再回弹（避免反复卡同一张）；仅提示
+            fail("操作失败，请重试");
+          });
+      }
     }
-  }, CARD_REMOVE_DELAY_MS);
-}
 
 // ===== 按钮操作 =====
 function handleLike() {
@@ -677,27 +695,40 @@ async function loadMoreCards() {
   loading.value = true;
   try {
     const newCards = await getCards();
+    // 请求成功返回即清除失败标记（含全重复批次——服务可达，只是没有新候选）
+    loadFailed.value = false;
     if (newCards && newCards.length > 0) {
       // 按 id 去重后追加：分页间隙服务端可能重复下发同一用户
       const knownIds = new Set(cardList.value.map((card) => card.id));
-      cardList.value.push(...newCards.filter((card) => !knownIds.has(card.id)));
-      exhausted.value = false;
-      return true;
+      const freshCards = newCards.filter((card) => !knownIds.has(card.id));
+      cardList.value.push(...freshCards);
+      if (freshCards.length > 0) {
+        exhausted.value = false;
+        return true;
+      }
+      // 返回非空但 id 全部重复：对用户等同无新候选，必须置耗尽，
+      // 否则滑完最后一张后空态门控永不成立、五个操作按钮全部空转
+      exhausted.value = true;
+      return false;
     }
     // 服务端已无新候选：标记耗尽，避免静默卡死
     exhausted.value = true;
     return false;
   } catch {
-    // 请求失败由 request 层统一 toast；保留既有 exhausted 态，避免重试入口被吞掉
+    // 请求失败由 request 层统一 toast；仅在手上已无可见卡片（首屏失败/耗尽后重试）时
+    // 升级为错误空态；预加载失败且仍有卡片可滑时不打断浏览，下次 onShow/补拉再自愈
+    loadFailed.value = visibleCards.value.length === 0;
     return false;
   } finally {
     loading.value = false;
   }
 }
 
-/** 候选耗尽后手动重新加载：清空已消费记录，重新从头展示 */
+/** 候选耗尽/加载失败后手动重新加载：清空已消费记录，重新从头展示 */
 async function handleReload() {
   loading.value = true;
+  // 先清失败标记：reload 期间 visibleCards 必为空，由骨架屏兜底，避免错误态残留闪烁
+  loadFailed.value = false;
   try {
     const newCards = await getCards();
     if (newCards && newCards.length > 0) {
@@ -711,7 +742,8 @@ async function handleReload() {
       exhausted.value = true;
     }
   } catch {
-    // 请求失败由 request 层统一 toast
+    // 请求失败由 request 层统一 toast；置错误态展示带重试入口的错误空态，而非「暂无推荐」
+    loadFailed.value = true;
   } finally {
     loading.value = false;
   }

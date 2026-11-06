@@ -24,7 +24,8 @@
 		{
 			"path": "pages/video/index",
 			"style": {
-				"navigationStyle": "custom"
+				"navigationStyle": "custom",
+				"enablePullDownRefresh": false
 			}
 		},
 		{

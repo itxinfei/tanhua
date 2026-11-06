@@ -1,5 +1,6 @@
 {
   "name": "xfjy-app",
+  "type": "module",
   "version": "1.0.0",
   "scripts": {
     "check:tabbar": "node --experimental-strip-types --no-warnings scripts/check-tabbar.mjs",

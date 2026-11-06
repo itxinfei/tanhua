@@ -494,9 +494,26 @@ export async function logoutIM(): Promise<void> {
   isLoggedIn = false;
 }
 
-/** 是否已连接 */
+/** 是否已登录（模块级登录态：仅登录成功/被踢下线时翻转，不随弱网断连翻转） */
 export function isIMLoggedIn(): boolean {
   return isLoggedIn;
+}
+
+/**
+ * WebSocket 实际连接状态（与 isIMLoggedIn 语义不同，禁止合并）。
+ *
+ * isLoggedIn 不随网络断开翻转；而 SDK 在 ws 为 null 时会把 sendPacketQueue
+ * 中的消息每 100ms 静默 shift 丢弃，不抛错且重连后不补发。因此发送前必须
+ * 以本函数判活，不能只信 isIMLoggedIn()。
+ * SDK 未初始化等异常一律按未连接处理（保守失败，让消息走 failed 红点重发链路）。
+ */
+export function isIMConnected(): boolean {
+  try {
+    return WKSDK.shared().connectManager.connected();
+  } catch (err) {
+    console.warn(`[wukongim] connected() 判活异常，按未连接处理: ${String(err)}`);
+    return false;
+  }
 }
 
 /**
@@ -549,12 +566,21 @@ async function sendMessagePayload(to: string, text: string): Promise<boolean> {
   if (!isLoggedIn) {
     return false;
   }
+  // 发送前判活：断连期间 SDK 入队后静默丢弃且重连不补发，
+  // 未连接直接返回 false，不进 SDK 队列，让气泡走现有 failed 红点 + 点击重发链路。
+  // 文本内容可能含隐私，日志只记录投递目标 uid，不打印 text。
+  if (!isIMConnected()) {
+    console.warn(`[wukongim] 发送中止：IM WebSocket 未连接，to=${to}`);
+    return false;
+  }
   try {
     const sdk = WKSDK.shared();
     const channel = sdk.newChannel(to, ChannelTypePerson);
     await sdk.chatManager.send(sdk.newMessageText(text), channel);
     return true;
-  } catch {
+  } catch (err) {
+    // catch 不得空吞：记录投递目标与异常上下文，返回 false 由消费方置 failed
+    console.warn(`[wukongim] 消息发送异常，to=${to}, err=${String(err)}`);
     return false;
   }
 }
