@@ -359,7 +359,7 @@ onLoad(() => {
 /* 装饰光斑 */
 .glow-circle { position: absolute; border-radius: 50%; filter: blur(80rpx); pointer-events: none;
   &.c1 { width: 360rpx; height: 360rpx; background: rgba(255, 215, 0, 0.15); top: -80rpx; left: -100rpx; }
-  &.c2 { width: 280rpx; height: 280rpx; background: rgba(254, 60, 114, 0.1); bottom: -60rpx; right: -80rpx; }
+  &.c2 { width: 280rpx; height: 280rpx; background: rgba(var(--color-primary-rgb), 0.1); bottom: -60rpx; right: -80rpx; }
 }
 
 /* ===== 会员状态卡 ===== */

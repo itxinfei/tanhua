@@ -383,8 +383,8 @@ function inputDeleteCode() {
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 }
 
-/* 破坏性操作：#ccc（≈1.6:1）改为深红并保证触摸目标 ≥24px */
-.delete-account { text-align: center; padding: 32rpx; min-height: 48rpx;
+/* 破坏性操作：保证触摸目标 ≥88rpx（54px），原 48rpx 偏低 */
+.delete-account { text-align: center; padding: 32rpx; min-height: 88rpx; box-sizing: border-box;
   text { font-size: 26rpx; color: var(--color-danger); }
 }
 </style>

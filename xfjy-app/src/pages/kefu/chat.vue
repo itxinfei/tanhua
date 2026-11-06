@@ -341,7 +341,8 @@ onUnmounted(() => {
     &.mine { flex-direction: row-reverse; }
   }
   .status-loading { width: 28rpx; height: 28rpx; border: 3rpx solid var(--border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
-  .status-failed { width: 36rpx; height: 36rpx; border-radius: 50%; background: var(--color-danger); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  /* 热区：88rpx 基线；原 36rpx 红点（≈22px）远低于 44px 可点击尺寸 */
+  .status-failed { width: 88rpx; height: 88rpx; border-radius: 50%; background: var(--color-danger); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     text { font-size: 24rpx; color: var(--text-inverse); font-weight: bold; line-height: 1; }
   }
   .bubble { position: relative; max-width: 70%; padding: 20rpx 24rpx; border-radius: 24rpx; background: var(--bg-card); font-size: 28rpx; line-height: 1.5; color: var(--text-primary); box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
@@ -349,7 +350,8 @@ onUnmounted(() => {
     &:not(.mine) { border-top-left-radius: 6rpx;
       &::before { left: -14rpx; border-right: 14rpx solid var(--bg-card); }
     }
-    &.mine { background: var(--color-primary); color: var(--bg-card); border-top-right-radius: 6rpx;
+    /* color 用 --text-inverse：原 --bg-card 在暗色模式下是深色，文字会消失 */
+    &.mine { background: var(--color-primary); color: var(--text-inverse); border-top-right-radius: 6rpx;
       &::before { right: -14rpx; border-left: 14rpx solid var(--color-primary); }
     }
   }

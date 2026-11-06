@@ -384,7 +384,9 @@ async function handleLogin() {
 <style lang="scss" scoped>
 .login-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, var(--color-primary-deep) 0%, var(--color-primary) 30%, var(--bg-page) 60%);
+  /* 渐变只用 --color-primary（真源主色）：--color-primary-deep 属历史紫，
+     §7.1 已禁止新代码使用，登录页大渐变背景是最高频命中点 */
+  background: linear-gradient(180deg, var(--color-primary) 0%, var(--color-primary) 30%, var(--bg-page) 60%);
   padding: 0 60rpx;
   display: flex;
   flex-direction: column;
@@ -510,7 +512,9 @@ async function handleLogin() {
 
   .slogan {
     font-size: 26rpx;
-    color: rgba(255, 255, 255, 0.85);
+    /* 走 --text-inverse：写死 rgba(255,255,255,.85) 在暗色模式下与深底对比度不足 */
+    color: var(--text-inverse);
+    opacity: 0.85;
     margin-top: 12rpx;
   }
 }
@@ -739,7 +743,8 @@ async function handleLogin() {
     display: flex;
     justify-content: center;
     margin-top: 8rpx;
-    min-height: 64rpx;
+    min-height: 88rpx;
+    box-sizing: border-box;
     font-size: 24rpx;
   }
 }

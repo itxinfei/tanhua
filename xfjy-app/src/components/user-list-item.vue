@@ -146,7 +146,8 @@ const emit = defineEmits<{ (e: "tap-item"): void }>();
   border-radius: 50%;
   background: var(--bg-sub);
   border: 4rpx solid var(--bg-icon-soft);
-  box-shadow: 0 4rpx 16rpx rgba(254, 60, 114, 0.12);
+  /* 主色分量走 CSS 变量：硬编码 rgba(254,60,114,.12) 在暗色模式下仍是玫红，与 --color-primary 暗色值不同源 */
+  box-shadow: 0 4rpx 16rpx rgba(var(--color-primary-rgb), 0.12);
 }
 
 /* 在线状态小绿点 */
@@ -189,7 +190,8 @@ const emit = defineEmits<{ (e: "tap-item"): void }>();
   font-weight: 600;
   padding: 4rpx 14rpx;
   border-radius: 20rpx;
-  box-shadow: 0 2rpx 8rpx rgba(254, 60, 114, 0.25);
+  /* 主色分量走 CSS 变量，同上 */
+  box-shadow: 0 2rpx 8rpx rgba(var(--color-primary-rgb), 0.25);
   flex-shrink: 0;
 }
 

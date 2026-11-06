@@ -14,7 +14,15 @@
       <view class="post-content">{{ post.textContent }}</view>
       <!-- 话题标签（点击进入话题筛选） -->
       <view v-if="post?.tags && post.tags.length" class="tag-row">
-        <view v-for="(tag, i) in post.tags" :key="i" class="tag-chip" @tap="goTag(tag)"># {{ tag }}</view>
+        <a11y-button
+          v-for="(tag, i) in post.tags"
+          :key="i"
+          class="tag-chip"
+          :label="`查看话题 ${tag}`"
+          @tap="goTag(tag)"
+        >
+          <text># {{ tag }}</text>
+        </a11y-button>
       </view>
       <view v-if="post.imageContent?.length" class="image-grid">
         <a11y-button v-for="(img, i) in post.imageContent" :key="i" class="grid-img" :label="`查看第 ${i + 1} 张配图`" @tap="previewImg(i)">
@@ -47,7 +55,9 @@
           <text class="comment-like-count">{{ c.likeCount > 0 ? c.likeCount : '' }}</text>
         </a11y-button>
       </view>
-      <view v-if="commentHasMore" class="load-more" @tap="loadMoreComments">加载更多评论</view>
+      <a11y-button v-if="commentHasMore" class="load-more" label="加载更多评论" @tap="loadMoreComments">
+        <text>加载更多评论</text>
+      </a11y-button>
     </view>
     </scroll-view>
 
@@ -194,7 +204,8 @@ onLoad((options: any) => {
 
   /* 话题标签（发布页勾选，落库 Movement.tags） */
   .tag-row { display: flex; flex-wrap: wrap; gap: 12rpx; margin: 0 0 20rpx; }
-  .tag-chip { font-size: 22rpx; color: var(--color-primary-text); background: var(--bg-icon-soft); padding: 6rpx 18rpx; border-radius: 24rpx; }
+  /* 热区：88rpx 基线（含上下 padding），原 view 无键盘/读屏入口 */
+  .tag-chip { font-size: 22rpx; color: var(--color-primary-text); background: var(--bg-icon-soft); padding: 20rpx 18rpx; min-height: 88rpx; box-sizing: border-box; border-radius: 24rpx; }
   /* 九宫格：按容器宽度等分而非固定 rpx，避免窄屏（320px）三格 + 间距
      超出卡片内宽导致横向溢出；aspect-ratio 保证正方形 */
   .image-grid { display: flex; flex-wrap: wrap; gap: 8rpx;
@@ -227,9 +238,11 @@ onLoad((options: any) => {
       &.liked .comment-like-count { color: var(--color-primary); }
     }
   }
-  .load-more { text-align: center; padding: 24rpx; color: var(--color-primary); font-size: 26rpx; }
+  /* 热区：88rpx 基线；原 view 直接 @tap 无键盘/读屏入口 */
+  .load-more { text-align: center; padding: 24rpx; min-height: 88rpx; box-sizing: border-box; color: var(--color-primary); font-size: 26rpx; }
 }
-.comment-bar { position: fixed; left: 0; right: 0; bottom: var(--tab-bar-height, 0px); display: flex; align-items: center; gap: 16rpx; padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom, 0px)); background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(20px); box-shadow: 0 -8rpx 32rpx rgba(0, 0, 0, 0.08);
+  /* background 走 --bg-card：写死 rgba(255,255,255,.92) 在暗色模式下会变成刺眼白条 */
+  .comment-bar { position: fixed; left: 0; right: 0; bottom: var(--tab-bar-height, 0px); display: flex; align-items: center; gap: 16rpx; padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom, 0px)); background: var(--bg-card); backdrop-filter: blur(20px); box-shadow: 0 -8rpx 32rpx rgba(0, 0, 0, 0.08);
   .comment-input { flex: 1; height: 76rpx; background: var(--bg-sub); border-radius: 38rpx; padding: 0 28rpx; font-size: 28rpx; border: 2rpx solid transparent; transition: border-color 0.2s ease;
     &:focus { border-color: var(--color-primary); background: var(--bg-card); }
   }

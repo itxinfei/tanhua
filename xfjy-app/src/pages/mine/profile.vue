@@ -475,7 +475,7 @@ onShow(async () => {
   :deep(.gender-chip) { display: inline-flex; align-items: center; gap: 8rpx; padding: 12rpx 28rpx; border-radius: 32rpx; font-size: 26rpx; border: 2rpx solid var(--border-light); background: var(--bg-sub); color: var(--text-secondary);
     .option-label { color: inherit; }
     &.male.active { background: linear-gradient(135deg, var(--info-blue), var(--info-blue-soft)); border-color: var(--info-blue); box-shadow: 0 4rpx 14rpx rgba(74, 144, 217, 0.3); color: var(--text-inverse); }
-    &.female.active { background: var(--gradient-brand); border-color: var(--color-primary); box-shadow: 0 4rpx 14rpx rgba(254, 60, 114, 0.3); color: var(--text-inverse); }
+    &.female.active { background: var(--gradient-brand); border-color: var(--color-primary); box-shadow: 0 4rpx 14rpx rgba(var(--color-primary-rgb), 0.3); color: var(--text-inverse); }
   }
 }
 

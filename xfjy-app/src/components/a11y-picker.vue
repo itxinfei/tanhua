@@ -266,7 +266,7 @@ defineExpose({ syncFromProp });
   }
 
   &.active {
-    background: rgba(254, 60, 114, 0.05);
+    background: rgba(var(--color-primary-rgb), 0.05);
   }
 }
 
