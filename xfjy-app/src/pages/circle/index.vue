@@ -135,6 +135,19 @@
               <text class="notice-time">{{ item.time }}</text>
             </a11y-button>
           </template>
+
+          <!-- 查看全部：跳独立通知页（承载完整分页列表 + 公告详情）。
+               仅有效类型（like/comment/love/announcement）展示，
+               visitors/fans 后端无接口，不给出必然空白的入口。 -->
+          <a11y-button
+            v-if="isSupportedNoticeType(noticePanelType)"
+            class="notice-more"
+            label="查看全部"
+            @tap="goNoticeList(noticePanelType)"
+          >
+            <text class="notice-more-text">查看全部</text>
+            <view class="notice-more-arrow i-ph-caret-right" aria-hidden="true" />
+          </a11y-button>
         </view>
       </view>
 
@@ -485,6 +498,28 @@ async function toggleNoticePanel(type: string): Promise<void> {
 
 function goVip(): void {
   uni.navigateTo({ url: "/pages/mine/vip" });
+}
+
+/**
+ * 后端有接口的有效通知类型（与 chatStore.NoticeType 对齐）。
+ * visitors / fans 仅预留占位，不给入口——点进去必然空白。
+ */
+const SUPPORTED_NOTICE_TYPES: readonly string[] = ["like", "comment", "love", "announcement"];
+
+function isSupportedNoticeType(type: string): boolean {
+  return SUPPORTED_NOTICE_TYPES.includes(type);
+}
+
+/**
+ * 跳转独立通知页查看完整列表。
+ *
+ * 背景（§11.7 #41）：`pages/chat/notifications.vue` 承载完整分页列表与公告详情弹窗，
+ * 但此前无任何入口可达（circle 面板是内联展开，只显示第一页）。
+ * 这里补「查看全部」入口，让长列表可被完整浏览。
+ */
+function goNoticeList(type: string): void {
+  if (!isSupportedNoticeType(type)) return;
+  uni.navigateTo({ url: `/pages/chat/notifications?type=${type}` });
 }
 
 /** 当前查看的公告项（null 表示弹窗关闭） */
@@ -958,6 +993,29 @@ flex-direction: column;
       padding: 40rpx;
       color: var(--text-hint);
       font-size: 26rpx;
+    }
+
+    /* 「查看全部」入口：列表底部居中，88rpx 热区（§7.1 独立功能按钮）。
+       视觉上只显示文字 + 箭头，热区由 a11y-button 自身 padding 外扩。 */
+    .notice-more {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4rpx;
+      margin-top: 24rpx;
+      padding: 20rpx;
+      border-top: 1rpx solid var(--border-faint);
+
+      .notice-more-text {
+        font-size: 26rpx;
+        color: var(--color-primary-text);
+      }
+
+      .notice-more-arrow {
+        width: 24rpx;
+        height: 24rpx;
+        color: var(--color-primary-text);
+      }
     }
 
     .notice-list-item {

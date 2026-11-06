@@ -74,11 +74,28 @@ const TYPE_META: Record<string, { uniIcon: string; color: string }> = {
   fans: { uniIcon: "person", color: "var(--color-primary-soft)" },
 };
 
-/** 页面标题映射 */
+/**
+ * 页面标题映射。
+ *
+ * 历史错位（§11.7 #41）：`like` 原写「谁喜欢我」，与同文件 `TYPE_DESC.like`
+ * 「赞了你的动态」语义冲突——标题说的是「谁喜欢我」（对应 love 的语义），
+ * 内容却是「赞了你的动态」。已按 TYPE_DESC 对齐为「喜欢」。
+ * 「谁喜欢我」是 love 的语义，已由 PAGE_TITLES.love = "心动" 承载。
+ */
 const PAGE_TITLES: Record<string, string> = {
-  like: "谁喜欢我", comment: "评论", love: "心动",
+  like: "喜欢", comment: "评论", love: "心动",
   announcement: "公告", visitors: "谁看过我", fans: "粉丝",
 };
+
+/**
+ * 有效（后端有接口）的通知类型白名单。
+ *
+ * `visitors` / `fans` 仅作未来扩展占位：不在 chatStore.NoticeType 联合类型内、
+ * 后端无对应接口、chatStore 无未读位，当前不参与任何逻辑。
+ * 入口只对有效类型开放，避免用户点进一个必然空白的页面。
+ */
+const SUPPORTED_TYPES = ["like", "comment", "love", "announcement"] as const;
+type SupportedType = (typeof SUPPORTED_TYPES)[number];
 
 /** 各类型的描述文案 */
 const TYPE_DESC: Record<string, string> = {
@@ -209,7 +226,11 @@ async function loadList(): Promise<boolean> {
 }
 
 onLoad((options: any) => {
-  type.value = options?.type || "like";
+  const requested = options?.type || "like";
+  // 兜底：visitors/fans 后端无接口，手工拼 URL 进入只会看到空白页；回落到 like
+  type.value = (SUPPORTED_TYPES as readonly string[]).includes(requested)
+    ? requested
+    : "like";
   uni.setNavigationBarTitle({ title: PAGE_TITLES[type.value] || "通知" });
 });
 
