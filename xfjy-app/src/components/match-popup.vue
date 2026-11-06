@@ -44,7 +44,7 @@
       </text>
       <view class="match-actions">
         <a11y-button
-          class="send-msg"
+          variant="primary"
           label="发消息"
           @tap.stop="goChat"
         >
@@ -52,6 +52,7 @@
         </a11y-button>
         <a11y-button
           class="keep-swipe"
+          variant="ghost"
           label="继续逛逛"
           @tap.stop="matchStore.closeMatchPopup()"
         >
@@ -132,23 +133,10 @@ function goChat(): void {
       display: flex;
       gap: 32rpx;
 
-      .send-msg {
-        background: var(--gradient-brand);
-        color: var(--text-inverse);
-        font-size: 30rpx;
-        padding: 0 48rpx;
-        min-height: 88rpx;
-        border-radius: var(--radius-pill);
-      }
-
+      /* ghost variant 提供热区/按压反馈/字体，此处只覆写为白色系（深色弹窗背景） */
       .keep-swipe {
-        background: transparent;
         color: var(--text-inverse);
-        font-size: 30rpx;
-        padding: 0 48rpx;
-        min-height: 88rpx;
-        border-radius: var(--radius-pill);
-        border: 2rpx solid rgba(255, 255, 255, 0.5);
+        border-color: rgba(255, 255, 255, 0.5);
       }
     }
   }

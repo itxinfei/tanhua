@@ -151,6 +151,7 @@
         >
         <a11y-button
           class="send-btn"
+          variant="primary"
           :class="{ disabled: !inputText.trim() || sending }"
           :disabled="!inputText.trim() || sending"
           label="发送消息"
@@ -179,6 +180,7 @@ import {
   type ReceivedMessage,
 } from "@/utils/wukongim";
 import { fail } from "@/utils/ux";
+import { warn } from "@/utils/logger";
 import { resolveAvatar, DEFAULT_AVATAR } from "@/utils/avatar";
 
 /** 时间分隔线最小间隔（分钟） */
@@ -502,9 +504,11 @@ onUnmounted(() => {
 .text-input { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; transition: all 0.2s;
   &.focus { background: var(--bg-card); box-shadow: 0 0 0 3rpx rgba(var(--color-primary-rgb), 0.35); }
 }
-/* 发送按钮：禁用态仅 opacity 会让对比度跌破阈值 → 改用不透明深灰背景（WCAG 1.4.1 不依赖单一视觉线索） */
-.send-btn { padding: 0 36rpx; height: 72rpx; background: var(--color-primary); border-radius: 36rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4rpx 14rpx rgba(var(--color-primary-rgb), 0.3);
-  text { color: var(--text-inverse); font-size: 28rpx; font-weight: 500; }
+/* 发送按钮：primary variant 提供底色/热区/按压反馈，此处只处理禁用态 */
+.send-btn {
+  margin-left: 20rpx;
+  flex-shrink: 0;
+
   &.disabled { background: var(--border); box-shadow: none; }
 }
 </style>

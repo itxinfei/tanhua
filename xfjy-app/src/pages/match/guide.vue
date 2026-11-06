@@ -134,6 +134,8 @@
     <!-- 提交 -->
     <a11y-button
       class="submit-btn"
+      variant="primary"
+      block
       :label="submitting ? '保存中' : '完成'"
       :disabled="submitting"
       @tap="handleSubmit"
@@ -385,21 +387,9 @@ function handleSkip(): void {
   }
 }
 
-/* 迁移 a11y-button 后需补布局属性：原 <button> 默认块级且居中 */
+/* primary variant 提供底色/热区/按压反馈/字体 */
 .submit-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  box-sizing: border-box;
   margin-top: 48rpx;
-  background: var(--gradient-brand-h);
-  color: var(--text-inverse);
-  font-size: 32rpx;
-  font-weight: bold;
-  min-height: 88rpx;
-  border-radius: 44rpx;
-  box-shadow: 0 8rpx 24rpx rgba(var(--color-primary-rgb), 0.35);
 
   &[disabled] {
     opacity: 0.6;

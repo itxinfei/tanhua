@@ -30,6 +30,8 @@
         <!-- 主提交动作：由非语义 view 改为可聚焦按钮，支持键盘 Enter/Space -->
         <a11y-button
           class="submit-btn"
+          variant="primary"
+          block
           :class="{ disabled: submitting }"
           :disabled="submitting"
           @tap="handleSubmit"
@@ -208,17 +210,7 @@ function statusClass(status: number): string {
 
   .submit-btn {
     margin-top: 32rpx;
-    background: var(--color-primary);
-    border-radius: 44rpx;
-    text-align: center;
-    padding: 22rpx 0;
-    box-shadow: 0 8rpx 24rpx rgba(var(--color-primary-rgb), 0.35);
-
-    text {
-      color: var(--text-inverse);
-      font-size: 30rpx;
-      font-weight: 500;
-    }
+    /* primary variant 提供底色/热区/按压反馈/字体，此处只处理禁用态 */
 
     &.disabled {
       opacity: 0.6;

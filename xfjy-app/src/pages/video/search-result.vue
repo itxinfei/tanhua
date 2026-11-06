@@ -137,6 +137,7 @@
         />
         <a11y-button
           class="retry-btn"
+          variant="primary"
           label="重新搜索"
           @tap="retry"
         >
@@ -793,19 +794,12 @@ function titleSegments(title: string): TitleSegment[] {
 }
 
 .retry-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   align-self: center;
   margin: 0 auto;
   width: 240rpx;
-  height: 72rpx;
-  border-radius: var(--radius-pill);
-  background: var(--gradient-brand);
 
   .retry-text {
     font-size: var(--fs-sm);
-    color: var(--text-inverse);
   }
 }
 
