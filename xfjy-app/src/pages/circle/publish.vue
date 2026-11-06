@@ -572,14 +572,15 @@ onUnload(() => {
   width: 180rpx;
   height: 180rpx;
   border-radius: 16rpx;
-  background: #faf9fd;
-  border: 2rpx dashed #c9bede;
+  /* 走 CSS 变量：写死 #faf9fd/#c9bede/#7a6a94 在暗色模式下仍是浅紫底 */
+  background: var(--bg-sub);
+  border: 2rpx dashed var(--border-light);
   vertical-align: top;
   gap: 10rpx;
 
   .media-add-label {
     font-size: 22rpx;
-    color: #7a6a94;
+    color: var(--text-secondary);
     font-weight: 500;
   }
 }
@@ -645,7 +646,8 @@ onUnload(() => {
 .topic-chip {
   padding: 12rpx 28rpx;
   border-radius: 32rpx;
-  background: #f5f6f8;
+  /* 走 --bg-sub：写死 #f5f6f8 在暗色模式下仍是浅灰 */
+  background: var(--bg-sub);
 
   text {
     font-size: 24rpx;

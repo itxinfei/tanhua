@@ -107,6 +107,11 @@ page {
   /* 信息蓝（性别男选中、超级喜欢星等） */
   --info-blue: #4a90d9;
   --info-blue-soft: #6bb0f5;
+  /* 状态徽章浅底（与 --success/--color-danger 配对，避免写死 hex 在暗色下成刺眼色块） */
+  --success-tint: #f0fff4;
+  --success-text: #1a7f37;
+  --warning-tint: #fff7e6;
+  --warning-text: #b35c00;
   /* VIP 金（会员皇冠/标签/渐变） */
   --gold: #ffd700;
   --gold-soft: #ffb347;
@@ -215,6 +220,11 @@ page {
     --text-hint: #8c8c8c;
     --text-hint-strong: #a6a6a6;
     --border-color: #3a3a3a;
+    /* 状态徽章暗色配对：浅底改为深底、深字改为亮字，保持对比度 */
+    --success-tint: #1e3a24;
+    --success-text: #6ee787;
+    --warning-tint: #3a2a12;
+    --warning-text: #ffb86b;
     /* 暗色下危险色提亮一档，保证暗底对比度 */
     --color-danger: #ff6b6b;
     --shadow-primary: 0 8rpx 24rpx rgba(249, 87, 143, 0.3);

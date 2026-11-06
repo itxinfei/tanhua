@@ -232,15 +232,15 @@ function statusClass(status: number): string {
       padding: 4rpx 16rpx;
       border-radius: 20rpx;
 
-      /* 状态徽章：原 #ff9500(≈2.2:1)、#4cd964(≈1.9:1) 远低于 4.5:1，提深至达标 */
+      /* 状态徽章：走 CSS 变量，原写死 #b35c00/#fff7e6 等 hex 在暗色模式下成刺眼色块 */
       &.st-pending {
-        color: #b35c00;
-        background: #fff7e6;
+        color: var(--warning-text);
+        background: var(--warning-tint);
       }
 
       &.st-replied {
-        color: #1a7f37;
-        background: #f0fff4;
+        color: var(--success-text);
+        background: var(--success-tint);
       }
 
       &.st-closed {

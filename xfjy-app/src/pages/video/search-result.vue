@@ -53,9 +53,15 @@
       <view class="reco">
         <text class="reco-title">换个视频关键词试试</text>
         <view class="chips">
-          <view v-for="word in recoWords" :key="word" class="chip" @tap="searchWord(word)">
+          <a11y-button
+            v-for="word in recoWords"
+            :key="word"
+            class="chip"
+            :label="`搜索 ${word}`"
+            @tap="searchWord(word)"
+          >
             <text class="chip-text">{{ word }}</text>
-          </view>
+          </a11y-button>
         </view>
       </view>
     </view>
@@ -89,9 +95,15 @@
         <empty-state icon="search" title="没有找到相关内容" desc="换个关键词试试，或看看这些热门搜索" />
         <view class="reco">
           <view class="chips center">
-            <view v-for="word in recoWords" :key="word" class="chip" @tap="searchWord(word)">
+            <a11y-button
+              v-for="word in recoWords"
+              :key="word"
+              class="chip"
+              :label="`搜索 ${word}`"
+              @tap="searchWord(word)"
+            >
               <text class="chip-text">{{ word }}</text>
-            </view>
+            </a11y-button>
           </view>
         </view>
       </view>
@@ -658,8 +670,10 @@ function titleSegments(title: string): TitleSegment[] {
   .chip {
     display: flex;
     align-items: center;
-    height: 56rpx;
+    /* 热区 88rpx：原 56rpx 低于 44px 基线 */
+    min-height: 88rpx;
     padding: 0 var(--space-md);
+    box-sizing: border-box;
     border-radius: var(--radius-pill);
     background-color: var(--bg-card);
 

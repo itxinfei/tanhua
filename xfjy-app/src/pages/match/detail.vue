@@ -417,7 +417,8 @@ onLoad(async (options: any) => {
 }
 
 /* ===== 底部操作栏 ===== */
-.action-bar { position: fixed; left: 0; right: 0; bottom: var(--tab-bar-height, 0px); display: flex; justify-content: center; align-items: center; gap: 32rpx; padding: 24rpx 0; background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(20px); box-shadow: 0 -8rpx 32rpx rgba(0, 0, 0, 0.08); }
+/* background 走 --bg-card：写死 rgba(255,255,255,.92) 在暗色模式下会变成刺眼白条 */
+.action-bar { position: fixed; left: 0; right: 0; bottom: var(--tab-bar-height, 0px); display: flex; justify-content: center; align-items: center; gap: 32rpx; padding: 24rpx 0; background: var(--bg-card); backdrop-filter: blur(20px); box-shadow: 0 -8rpx 32rpx rgba(0, 0, 0, 0.08); }
 
 /* 与匹配页 action-btn 统一的「白底彩环」视觉语言：
    四键同尺寸 96rpx，4rpx 色环 + 同色系柔光阴影，功能区分交给色环 */

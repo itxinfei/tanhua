@@ -22,7 +22,9 @@
           <view class="ico-sm i-ph-x-circle" aria-hidden="true" />
         </a11y-button>
       </view>
-      <text class="header-action" @tap="goBack">取消</text>
+      <a11y-button class="header-action" label="取消搜索" @tap="goBack">
+        <text>取消</text>
+      </a11y-button>
     </view>
 
     <view class="suggest-body">
@@ -35,12 +37,20 @@
           </a11y-button>
         </view>
         <view class="chips">
-          <view v-for="word in history" :key="word" class="chip" @tap="submit(word)">
+        <!-- chip 主体与删除按钮拆成兄弟节点：嵌套按钮在 HTML 中非法，
+             且外层 view 直接 @tap 无键盘/读屏入口（§7.1） -->
+        <view v-for="word in history" :key="word" class="chip">
+          <a11y-button
+            class="chip-main"
+            :label="`搜索 ${word}`"
+            @tap="submit(word)"
+          >
             <text class="chip-text">{{ word }}</text>
-            <a11y-button class="chip-del" :label="`删除历史 ${word}`" @tap.stop="removeHistory(word)">
-              <view class="ico-xs i-ph-x" aria-hidden="true" />
-            </a11y-button>
-          </view>
+          </a11y-button>
+          <a11y-button class="chip-del" :label="`删除历史 ${word}`" @tap="removeHistory(word)">
+            <view class="ico-xs i-ph-x" aria-hidden="true" />
+          </a11y-button>
+        </view>
         </view>
       </view>
 
@@ -50,18 +60,19 @@
           <text class="block-title">热搜榜</text>
           <text v-if="hotFromFallback" class="block-note">离线推荐</text>
         </view>
-        <view
+        <a11y-button
           v-for="item in hotWords"
           :key="`${item.rank}-${item.word}`"
           class="hot-row"
+          :label="`搜索热搜词 ${item.word}，排名第 ${item.rank}`"
           @tap="submit(item.word)"
         >
           <text class="hot-rank" :class="{ top: item.rank <= 3 }">{{ item.rank }}</text>
           <text class="hot-word" :class="{ top: item.rank <= 3 }">{{ item.word }}</text>
-          <view v-if="item.rank <= 3" class="hot-flag">
+          <view v-if="item.rank <= 3" class="hot-flag" aria-hidden="true">
             <text class="hot-flag-text">热</text>
           </view>
-        </view>
+        </a11y-button>
       </view>
     </view>
   </view>
@@ -244,8 +255,12 @@ function clearHistory(): void {
   font-size: var(--fs-sm);
 }
 
+/* 热区 88rpx：原纯文字无最小尺寸，且直接 @tap 无键盘入口 */
 .header-action {
   flex-shrink: 0;
+  min-height: 88rpx;
+  display: flex;
+  align-items: center;
   font-size: var(--fs-sm);
   color: var(--text-secondary);
 }
@@ -276,12 +291,13 @@ function clearHistory(): void {
   color: var(--text-hint);
 }
 
+/* 热区 88rpx：原 48rpx 难以点中 */
 .block-action {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48rpx;
-  height: 48rpx;
+  min-width: 88rpx;
+  min-height: 88rpx;
 
   .ico-sm {
     width: 32rpx;
@@ -296,16 +312,23 @@ function clearHistory(): void {
   gap: var(--space-sm);
 }
 
+/* chip 容器只做布局；可点击主体与删除按钮各自承担热区 */
 .chip {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
   max-width: 100%;
   min-width: 0;
-  height: 56rpx;
-  padding: 0 var(--space-sm) 0 var(--space-md);
-  border-radius: var(--radius-pill);
-  background-color: var(--bg-card);
+
+  .chip-main {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    min-height: 88rpx;
+    padding: 0 var(--space-sm) 0 var(--space-md);
+    border-radius: var(--radius-pill);
+    background-color: var(--bg-card);
+  }
 
   .chip-text {
     max-width: 240rpx;
@@ -316,12 +339,13 @@ function clearHistory(): void {
     color: var(--text-secondary);
   }
 
+  /* 热区 88rpx：原 32rpx（≈19px）远低于 44px 可点击尺寸 */
   .chip-del {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32rpx;
-    height: 32rpx;
+    min-width: 88rpx;
+    min-height: 88rpx;
     flex-shrink: 0;
 
     .ico-xs {
@@ -332,11 +356,12 @@ function clearHistory(): void {
   }
 }
 
+/* 热区 88rpx：原 84rpx 略低 */
 .hot-row {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  height: 84rpx;
+  min-height: 88rpx;
   border-bottom: 1px solid var(--border-color);
 
   &:last-child {

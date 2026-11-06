@@ -723,7 +723,8 @@ onUnmounted(() => {
     &.mine { flex-direction: row-reverse; }
   }
   .status-loading { width: 28rpx; height: 28rpx; border: 3rpx solid var(--border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
-  .status-failed { width: 32rpx; height: 32rpx; border-radius: 50%; background: var(--color-danger); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  /* 热区 88rpx：原 32rpx（≈19px）远低于 44px 可点击尺寸 */
+  .status-failed { width: 88rpx; height: 88rpx; border-radius: 50%; background: var(--color-danger); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     .failed-icon { font-size: 22rpx; color: var(--text-inverse); font-weight: bold; line-height: 1; }
   }
   /* min-width:0 + 断行：长文本/连续英文/URL 才能收在气泡内，
