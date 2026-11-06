@@ -6,7 +6,16 @@
       class="msg-list"
       :scroll-into-view="scrollToId"
       :scroll-with-animation="true"
+      @scrolltoupper="loadMoreHistory"
     >
+      <!-- 续拉更旧历史指示（M-K4） -->
+      <view
+        v-if="loadingMore || noMoreHistory"
+        class="load-more-history"
+        role="status"
+      >
+        <text>{{ loadingMore ? '加载中...' : '没有更多了' }}</text>
+      </view>
       <!-- 对方正在输入提示（点击可打开对方资料页） -->
       <view
         v-if="peerTyping"
@@ -370,9 +379,11 @@ import {
   sendTextMessage,
   sendStructuredMessage,
   getChatHistory,
+  getChatHistoryBefore,
   type ReceivedMessage,
 } from "@/utils/wukongim";
 import { info, fail } from "@/utils/ux";
+import { warn } from "@/utils/logger";
 import { resolveAvatar, DEFAULT_AVATAR } from "@/utils/avatar";
 
 /** 时间分隔线最小间隔（分钟） */
@@ -857,6 +868,12 @@ let unregisterMessage: (() => void) | null = null;
 const historyLoaded = ref(false);
 /** 历史拉取失败标记：与「真的没有历史消息」的空白态区分，驱动错误空态 + 重试（S3） */
 const historyLoadFailed = ref(false);
+/** 已加载最旧消息的 seq（scrolltoupper 续拉起点，M-K4） */
+const oldestSeq = ref(0);
+/** 续拉加载中（防重复触发） */
+const loadingMore = ref(false);
+/** 没有更旧的历史（续拉返回空后置位，不再触发） */
+const noMoreHistory = ref(false);
 /** 在途实时消息缓冲：历史填充前到达的消息先缓存，loadHistory 合并后清空。
  *  提升为组件级变量，供重试 loadHistory 时复用同一缓冲（重试不重跑 IM 登录/监听注册） */
 let pendingMessages: ReceivedMessage[] = [];
@@ -921,6 +938,9 @@ async function loadHistory(): Promise<void> {
   pendingMessages = [];
   historyLoadFailed.value = false;
   historyLoaded.value = true;
+  // 记录最旧消息 seq 作为续拉起点（history 已按时间正序，第一条最旧；M-K4）
+  oldestSeq.value = history[0]?.seq || 0;
+  noMoreHistory.value = false;
   scrollToBottom();
 }
 
@@ -931,8 +951,58 @@ async function retryLoadHistory(): Promise<void> {
   } catch (err) {
     // catch 不空吞：保留错误空态 + ux 反馈（IM SDK 直连不走 request 层，无统一 toast）
     historyLoadFailed.value = true;
-    console.warn(`[chat] 历史消息重试失败，userId=${userId.value}, err=${String(err)}`);
+    warn(`[chat] 历史消息重试失败，userId=${userId.value}, err=${String(err)}`);
     fail("历史消息加载失败，请稍后重试");
+  }
+}
+
+/** scrolltoupper 续拉更旧历史（M-K4）：加载后保持滚动位置不跳 */
+async function loadMoreHistory(): Promise<void> {
+  if (loadingMore.value || noMoreHistory.value || !oldestSeq.value || !historyLoaded.value) return;
+  loadingMore.value = true;
+  // 记录当前顶部消息 id：续拉后滚回此消息，保持视觉位置不跳
+  const anchorId = messageList.value[0]?.id || "";
+  try {
+    const older = await getChatHistoryBefore(userId.value, oldestSeq.value);
+    if (older.length === 0) {
+      noMoreHistory.value = true;
+      return;
+    }
+    const myId = String(userStore.userInfo?.id ?? "");
+    const olderItems: Message[] = older.map((msg, i) => ({
+      id: `hist-more-${oldestSeq.value}-${i}-${msg.time}`,
+      type: msg.type,
+      content: msg.content,
+      extra: msg.extra,
+      isMine: msg.from === myId,
+      avatar: msg.from === myId ? myAvatar.value : peerAvatar.value,
+      timestamp: msg.time,
+      status: "read" as MsgStatus,
+    }));
+    // 时间戳去重：续拉可能与已加载消息重叠（与 loadHistory 一致）
+    const existingTimestamps = new Set(messageList.value.map((m) => m.timestamp));
+    const deduped = olderItems.filter((m) => !existingTimestamps.has(m.timestamp));
+    if (deduped.length === 0) {
+      noMoreHistory.value = true;
+      return;
+    }
+    messageList.value = [...deduped, ...messageList.value];
+    // 更新最旧 seq（续拉结果已按时间正序，第一条最旧）
+    const newOldest = older[0];
+    if (newOldest?.seq) oldestSeq.value = newOldest.seq;
+    // 保持滚动位置：先清空再设回锚点 id，确保 scroll-into-view 重新触发
+    if (anchorId) {
+      scrollToId.value = "";
+      nextTick(() => {
+        scrollToId.value = "msg-" + anchorId;
+      });
+    }
+  } catch (err) {
+    // IM SDK 直连不走 request 层，无统一 toast
+    warn(`[chat] 历史消息续拉失败，userId=${userId.value}, err=${String(err)}`);
+    fail("历史消息加载失败，请稍后重试");
+  } finally {
+    loadingMore.value = false;
   }
 }
 
@@ -982,7 +1052,7 @@ onLoad(async (options: any) => {
         await loadHistory();
       } catch (err) {
         historyLoadFailed.value = true;
-        console.warn(`[chat] 历史消息拉取失败，userId=${userId.value}, err=${String(err)}`);
+        warn(`[chat] 历史消息拉取失败，userId=${userId.value}, err=${String(err)}`);
         fail("历史消息加载失败，请稍后重试");
       }
     }
@@ -1054,6 +1124,7 @@ onUnmounted(() => {
 
 /* ===== 对方正在输入提示 ===== */
 .typing-indicator { display: flex; align-items: center; margin-bottom: 20rpx; animation: fadeIn 0.2s ease-out; }
+.load-more-history { text-align: center; padding: 16rpx 0; color: var(--text-hint); font-size: var(--fs-sm); }
 .typing-btn { display: flex; align-items: center; gap: 12rpx; min-height: 72rpx; padding: 8rpx 20rpx 8rpx 8rpx; background: var(--bg-card); border-radius: 40rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06); }
 .typing-avatar { width: 56rpx; height: 56rpx; border-radius: 50%; background: var(--border-light); flex-shrink: 0; }
 .typing-bubble { display: flex; align-items: center; padding: 0 8rpx; }

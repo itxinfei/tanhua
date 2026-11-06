@@ -337,7 +337,7 @@ export function upload<T = any>(
       header["Authorization"] = `Bearer ${token}`;
     }
 
-    uni.uploadFile({
+    task = uni.uploadFile({
       url: BASE_URL + url,
       files: filePaths.map((filePath) => ({
         name: fileField,

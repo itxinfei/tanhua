@@ -160,7 +160,6 @@ const PAGE_TITLES: Record<string, string> = {
  * 入口只对有效类型开放，避免用户点进一个必然空白的页面。
  */
 const SUPPORTED_TYPES = ["like", "comment", "love", "announcement"] as const;
-type SupportedType = (typeof SUPPORTED_TYPES)[number];
 
 /** 各类型的描述文案 */
 const TYPE_DESC: Record<string, string> = {

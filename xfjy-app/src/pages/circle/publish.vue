@@ -44,7 +44,9 @@
           :style="{ width: uploadProgress + '%' }"
         />
       </view>
-      <text class="upload-progress-text">{{ uploadProgress }}%</text>
+      <text class="upload-progress-text">
+        {{ uploadProgress }}%
+      </text>
     </view>
 
     <!-- 正文（无边框大输入，抖音式） -->

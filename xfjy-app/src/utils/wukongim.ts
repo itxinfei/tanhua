@@ -21,6 +21,7 @@ import {
   type Conversation,
 } from "wukongimjssdk";
 import { BASE_URL, get } from "./request";
+import { warn } from "@/utils/logger";
 
 /** 会话摘要（聊天列表展示用） */
 export interface ChatSession {
@@ -41,6 +42,8 @@ export interface ReceivedMessage {
   type: "text" | "image" | "voice" | "location" | "card";
   extra?: Record<string, unknown>;
   time?: number;
+  /** 消息序号（WuKongIM messageSeq）：续拉更旧历史用（M-K4） */
+  seq?: number;
 }
 
 /** 匹配事件（互喜时后端经 IM 透传触发） */
@@ -511,7 +514,7 @@ export function isIMConnected(): boolean {
   try {
     return WKSDK.shared().connectManager.connected();
   } catch (err) {
-    console.warn(`[wukongim] connected() 判活异常，按未连接处理: ${String(err)}`);
+    warn(`[wukongim] connected() 判活异常，按未连接处理: ${String(err)}`);
     return false;
   }
 }
@@ -570,7 +573,7 @@ async function sendMessagePayload(to: string, text: string): Promise<boolean> {
   // 未连接直接返回 false，不进 SDK 队列，让气泡走现有 failed 红点 + 点击重发链路。
   // 文本内容可能含隐私，日志只记录投递目标 uid，不打印 text。
   if (!isIMConnected()) {
-    console.warn(`[wukongim] 发送中止：IM WebSocket 未连接，to=${to}`);
+    warn(`[wukongim] 发送中止：IM WebSocket 未连接，to=${to}`);
     return false;
   }
   try {
@@ -580,7 +583,7 @@ async function sendMessagePayload(to: string, text: string): Promise<boolean> {
     return true;
   } catch (err) {
     // catch 不得空吞：记录投递目标与异常上下文，返回 false 由消费方置 failed
-    console.warn(`[wukongim] 消息发送异常，to=${to}, err=${String(err)}`);
+    warn(`[wukongim] 消息发送异常，to=${to}, err=${String(err)}`);
     return false;
   }
 }
@@ -625,13 +628,53 @@ export async function getChatHistory(
     opts.pullMode = PullMode.Up; // 上拉模式 + seq=0：服务端返回最新一页
     const messages = await sdk.chatManager.syncMessages(channel, opts);
     return (messages || [])
-      .map(toReceivedMessage)
+      .map((raw) => {
+        const m = toReceivedMessage(raw);
+        if (m) m.seq = raw.messageSeq || 0;
+        return m;
+      })
       .filter((m): m is ReceivedMessage => m !== null)
       .sort((a, b) => (a.time || 0) - (b.time || 0));
   } catch (err) {
     // 不再伪装成空数组：空数组语义是「真的没有历史消息」，失败必须让调用方感知并展示错误空态。
     // 记录会话与异常上下文后重抛，由聊天页内层 try/catch 置失败标记；前置条件分支仍返回 []。
-    console.warn(`[wukongim] 历史消息拉取失败，conversationId=${conversationId}, err=${String(err)}`);
+    warn(`[wukongim] 历史消息拉取失败，conversationId=${conversationId}, err=${String(err)}`);
+    throw err;
+  }
+}
+
+/**
+ * 续拉更旧的历史消息（scrolltoupper 翻页，M-K4）。
+ * 从 beforeSeq 向下拉（PullMode.Down），返回 seq < beforeSeq 的最多 pageSize 条，按时间正序。
+ * beforeSeq 非法（≤0）或未登录时返回空数组，调用方据此置「没有更多」。
+ */
+export async function getChatHistoryBefore(
+  conversationId: string,
+  beforeSeq: number,
+  pageSize = 20
+): Promise<ReceivedMessage[]> {
+  if (!isLoggedIn || !conversationId || beforeSeq <= 0) {
+    return [];
+  }
+  try {
+    const sdk = WKSDK.shared();
+    const channel = sdk.newChannel(conversationId, ChannelTypePerson);
+    const opts = new SyncOptions();
+    opts.startMessageSeq = beforeSeq;
+    opts.endMessageSeq = 0;
+    opts.limit = pageSize;
+    opts.pullMode = PullMode.Down; // 向下拉更旧消息
+    const messages = await sdk.chatManager.syncMessages(channel, opts);
+    return (messages || [])
+      .map((raw) => {
+        const m = toReceivedMessage(raw);
+        if (m) m.seq = raw.messageSeq || 0;
+        return m;
+      })
+      .filter((m): m is ReceivedMessage => m !== null)
+      .sort((a, b) => (a.time || 0) - (b.time || 0));
+  } catch (err) {
+    warn(`[wukongim] 历史消息续拉失败，conversationId=${conversationId}, beforeSeq=${beforeSeq}, err=${String(err)}`);
     throw err;
   }
 }
