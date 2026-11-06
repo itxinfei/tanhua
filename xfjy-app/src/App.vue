@@ -105,9 +105,12 @@ page {
   --color-danger-rgb: 229, 72, 77;
   /* 成功态（认证/操作成功反馈） */
   --success: #4cd964;
+  --success-rgb: 76, 217, 100;
   /* 信息蓝（性别男选中、超级喜欢星等） */
   --info-blue: #4a90d9;
+  --info-blue-rgb: 74, 144, 217;
   --info-blue-soft: #6bb0f5;
+  --info-blue-soft-rgb: 107, 176, 245;
   /* 状态徽章浅底（与 --success/--color-danger 配对，避免写死 hex 在暗色下成刺眼色块） */
   --success-tint: #f0fff4;
   --success-text: #1a7f37;
@@ -115,7 +118,9 @@ page {
   --warning-text: #b35c00;
   /* VIP 金（会员皇冠/标签/渐变） */
   --gold: #ffd700;
+  --gold-rgb: 255, 215, 0;
   --gold-soft: #ffb347;
+  --gold-soft-rgb: 255, 179, 71;
   --gold-light: #fff5c0;
   /* VIP 页固定深色体系（有意恒暗，亮/暗模式同值，不随主题变） */
   --bg-deep: #1a1a2e;
@@ -231,6 +236,12 @@ page {
     /* 与上方暗色危险色 #ff6b6b 同源（RGB 分量必须同步） */
     --color-danger-rgb: 255, 107, 107;
     --shadow-primary: 0 8rpx 24rpx rgba(249, 87, 143, 0.3);
+    /* 以下功能色亮/暗同值，RGB 分量与上方亮色段保持同源 */
+    --success-rgb: 76, 217, 100;
+    --info-blue-rgb: 74, 144, 217;
+    --info-blue-soft-rgb: 107, 176, 245;
+    --gold-rgb: 255, 215, 0;
+    --gold-soft-rgb: 255, 179, 71;
     --skel-bg: var(--skel-bg-dark);
   }
 }

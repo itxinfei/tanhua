@@ -1047,28 +1047,28 @@ onShareAppMessage(() => ({
       background: var(--bg-card);
       color: var(--gold-soft);
       border: 4rpx solid var(--gold-soft);
-      box-shadow: 0 6rpx 20rpx rgba(246, 185, 59, 0.25);
+      box-shadow: 0 6rpx 20rpx rgba(var(--gold-soft-rgb), 0.25);
     }
 
     &.dislike {
       background: var(--bg-card);
       color: var(--color-danger);
       border: 4rpx solid var(--color-danger);
-      box-shadow: 0 6rpx 20rpx rgba(255, 59, 48, 0.25);
+      box-shadow: 0 6rpx 20rpx rgba(var(--color-danger-rgb), 0.25);
     }
 
     &.superlike {
       background: var(--bg-card);
       color: var(--info-blue-soft);
       border: 4rpx solid var(--info-blue-soft);
-      box-shadow: 0 6rpx 20rpx rgba(77, 171, 247, 0.25);
+      box-shadow: 0 6rpx 20rpx rgba(var(--info-blue-soft-rgb), 0.25);
     }
 
     &.like {
       background: var(--bg-card);
       color: var(--success);
       border: 4rpx solid var(--success);
-      box-shadow: 0 6rpx 20rpx rgba(76, 217, 100, 0.3);
+      box-shadow: 0 6rpx 20rpx rgba(var(--success-rgb), 0.3);
     }
 
     &.boost {

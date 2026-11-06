@@ -229,19 +229,23 @@ function openPicker(field: PickerField): void {
   pickerVisible.value = true;
 }
 
-/** 选择器确认：即时保存该字段 */
+/** 选择器确认：先提交后端，成功才写本地表单，失败保留旧值（避免界面与后端不一致） */
 async function onPickerConfirm(value: string): Promise<void> {
   const field = pickerConfig[pickerField.value].field;
-  (form.value as any)[field] = value;
   await saveField(field, value);
+  // 仅在保存成功后才同步本地表单；saveField 内部失败时不会抛出，
+  // 因此用返回值区分成败
 }
 
-/** 单个字段保存到后端（确认即提交，不含照片墙/昵称/签名的归一化字段） */
+/**
+ * 单个字段保存到后端（确认即提交，不含照片墙/昵称/签名的归一化字段）
+ * @returns true=保存成功（调用方据此同步本地表单）；false=失败（保留旧值）
+ */
 const savingFields = new Set<string>();
 
-async function saveField(field: string, value: string): Promise<void> {
+async function saveField(field: string, value: string): Promise<boolean> {
   // 同字段在途锁：快速连点（如性别切换）不发并发 PUT
-  if (savingFields.has(field)) return;
+  if (savingFields.has(field)) return false;
   savingFields.add(field);
   // 后端字段映射：前端 industry → 后端 profession
   const apiField = field === "industry" ? "profession" : field;
@@ -251,18 +255,21 @@ async function saveField(field: string, value: string): Promise<void> {
     // 保存成功才同步 store（失败保留旧值，避免界面与后端不一致）
     const storeField = field === "industry" ? "profession" : field;
     userStore.updateUserInfo({ [storeField]: value } as any);
+    (form.value as any)[field] = value;
+    return true;
   } catch {
-    // request 层统一 toast 错误
+    // request 层统一 toast 错误；本地表单保持旧值
+    return false;
   } finally {
     savingFields.delete(field);
   }
 }
 
-/** 性别变更：即时保存 */
+/** 性别变更：先提交后端，成功才更新本地表单 */
 async function onGenderChange(value: string): Promise<void> {
   if (form.value.gender === value) return;
-  form.value.gender = value;
-  await saveField("gender", value);
+  const ok = await saveField("gender", value);
+  if (ok) form.value.gender = value;
 }
 
 /** 更换头像：选图后上传 MinIO，成功写入 MinIO URL（随保存提交后端） */
@@ -278,10 +285,10 @@ function changeAvatar(): void {
         const result = await uploadImage(tempPath);
         hideLoading();
         if (result.status === "done" && result.name) {
-          form.value.avatar = result.name;
-          // 先保存成功再提示，避免保存失败却已告知成功
-          await saveField("avatar", result.name);
-          success("头像已更新");
+          // 交由 saveField 在保存成功后写入 form：失败时头像保持旧图，
+          // 避免「界面显示新头像但后端仍是旧图」的不一致
+          const ok = await saveField("avatar", result.name);
+          if (ok) success("头像已更新");
         } else {
           fail("上传失败，请重试");
         }
@@ -309,11 +316,12 @@ function addPhoto(): void {
       loading("上传中...");
       try {
         let failed = 0;
+        const uploaded: string[] = [];
         for (const tempPath of tempPaths) {
           try {
             const result = await uploadImage(tempPath);
             if (result.status === "done" && result.name) {
-              form.value.photoAlbum.push(result.name);
+              uploaded.push(result.name);
             } else {
               failed++;
             }
@@ -321,9 +329,17 @@ function addPhoto(): void {
             failed++;
           }
         }
-        // 仅在有图片入墙时提交
-        if (form.value.photoAlbum.length > 0 && failed < tempPaths.length) {
-          await saveAlbum();
+        // 先提交后端，成功才写入本地数组：与 removePhoto 同口径，
+        // 避免保存失败时本地多出「后端没有」的照片
+        if (uploaded.length > 0) {
+          const next = [...form.value.photoAlbum, ...uploaded];
+          try {
+            await updateUserProfile({ photoAlbum: JSON.stringify(next) });
+            form.value.photoAlbum = next;
+            userStore.updateUserInfo({ photoAlbum: [...next] });
+          } catch {
+            // request 层统一 toast；本地数组保持不变
+          }
         }
         if (failed > 0) fail(`${failed} 张照片上传失败，可重新添加`);
       } finally {
@@ -336,19 +352,21 @@ function addPhoto(): void {
   });
 }
 
-/** 删除照片墙图片 */
-function removePhoto(i: number): void {
-  form.value.photoAlbum.splice(i, 1);
-  saveAlbum();
-}
-
-/** 保存照片墙（JSON 字符串），成功后同步 store，避免返回再进读到旧照片墙 */
-async function saveAlbum(): Promise<void> {
+/**
+ * 删除照片墙图片：先提交后端，成功才从本地数组移除。
+ * 原实现在 splice 后才异步 saveAlbum，失败时本地已删而后端仍在，
+ * 且用户返回再进入会看到被删的照片「复活」体验混乱。
+ */
+async function removePhoto(i: number): Promise<void> {
+  const removed = form.value.photoAlbum[i];
+  if (!removed) return;
+  const next = form.value.photoAlbum.filter((_, idx) => idx !== i);
   try {
-    await updateUserProfile({ photoAlbum: JSON.stringify(form.value.photoAlbum) });
-    userStore.updateUserInfo({ photoAlbum: [...form.value.photoAlbum] });
+    await updateUserProfile({ photoAlbum: JSON.stringify(next) });
+    form.value.photoAlbum = next;
+    userStore.updateUserInfo({ photoAlbum: [...next] });
   } catch {
-    // request 层统一 toast 错误
+    // request 层统一 toast 错误；本地数组保持不变
   }
 }
 

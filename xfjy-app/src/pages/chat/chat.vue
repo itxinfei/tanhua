@@ -200,6 +200,10 @@ const peerTyping = ref(false);
 const PEER_TYPING_DURATION_MS = 1500;
 let peerTypingTimer: ReturnType<typeof setTimeout> | null = null;
 
+/** 对方正在输入的待追加定时器：离页时必须清理，否则回调会在组件销毁后
+ *  操作已卸载的 ref（appendReceived → scrollToBottom）导致报错/内存泄漏 */
+let peerTypingAppendTimer: ReturnType<typeof setTimeout> | null = null;
+
 /** 显示对方正在输入（带自动消失） */
 function showPeerTyping(): void {
   peerTyping.value = true;
@@ -577,8 +581,13 @@ function appendReceived(msg: ReceivedMessage): void {
 function appendReceivedWithTyping(msg: ReceivedMessage): void {
   if (!peerTyping.value) {
     showPeerTyping();
-    // 延迟到输入提示动画结束后再追加真实消息
-    setTimeout(() => appendReceived(msg), PEER_TYPING_DURATION_MS);
+    // 延迟到输入提示动画结束后再追加真实消息。
+    // 定时器登记到 peerTypingAppendTimer，离页时 onUnmounted 统一清理。
+    if (peerTypingAppendTimer) clearTimeout(peerTypingAppendTimer);
+    peerTypingAppendTimer = setTimeout(() => {
+      peerTypingAppendTimer = null;
+      appendReceived(msg);
+    }, PEER_TYPING_DURATION_MS);
   } else {
     appendReceived(msg);
   }
@@ -659,6 +668,11 @@ onUnmounted(() => {
     clearTimeout(peerTypingTimer);
     peerTypingTimer = null;
   }
+  // 待追加定时器：清理后回调不会在组件销毁后执行
+  if (peerTypingAppendTimer) {
+    clearTimeout(peerTypingAppendTimer);
+    peerTypingAppendTimer = null;
+  }
   // 注销录音回调：否则离页后 stop/onStop 链可能在新实例注册后重复触发
   // （offStop 运行时存在，但 @dcloudio/types 的 RecorderManager 声明缺该方法）
   (recorderManager as any)?.offStop?.(onRecorderStop);
@@ -694,8 +708,10 @@ onUnmounted(() => {
 .msg-list { flex: 1 1 auto; min-height: 0; min-width: 0; padding: 24rpx 24rpx 12rpx; }
 
 /* #bbb on 浅灰底 ≈1.9:1 → #767676 */
+/* 时间分隔线底色走 --bg-card：写死 rgba(0,0,0,.05) 在暗色模式下是深灰底+灰字，
+   对比度不足（--text-hint 在暗色下为 #a6a6a6） */
 .time-divider { display: flex; justify-content: center; margin: 16rpx 0 24rpx;
-  .time-text { font-size: 22rpx; color: var(--text-hint); background: rgba(0, 0, 0, 0.05); padding: 6rpx 24rpx; border-radius: 24rpx; }
+  .time-text { font-size: 22rpx; color: var(--text-hint); background: var(--bg-card); padding: 6rpx 24rpx; border-radius: 24rpx; }
 }
 
 /* ===== 对方正在输入提示 ===== */
@@ -733,9 +749,11 @@ onUnmounted(() => {
     /* 气泡尾巴 */
     &::before { content: ""; position: absolute; top: 28rpx; width: 0; height: 0; border-top: 10rpx solid transparent; border-bottom: 10rpx solid transparent; }
     &:not(.mine) { border-top-left-radius: 6rpx;
-      &::before { left: -16rpx; border-right: 16rpx solid var(--text-inverse); }
+      /* 尾巴跟随气泡底色：原 --text-inverse 恒白，与 --bg-card 暗色值不同源 */
+      &::before { left: -16rpx; border-right: 16rpx solid var(--bg-card); }
     }
-    &.mine { background: var(--gradient-brand); color: var(--bg-card); border-top-right-radius: 6rpx;
+    /* color 用 --text-inverse：原 --bg-card 在暗色模式下是深色，文字会消失 */
+    &.mine { background: var(--gradient-brand); color: var(--text-inverse); border-top-right-radius: 6rpx;
       &::before { right: -16rpx; border-left: 16rpx solid var(--color-primary); }
     }
     .msg-image { max-width: 360rpx; border-radius: 12rpx; display: block; }
