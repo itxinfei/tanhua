@@ -240,15 +240,17 @@
           v-if="isVoiceMode"
           class="voice-btn btn-feedback"
           role="button"
-          :aria-label="isVoicePressing ? '松开 发送' : '按住 说话'"
+          :aria-label="voiceCancelled ? '松开手指，取消发送' : isVoicePressing ? '松开 发送' : '按住 说话'"
           tabindex="0"
           @touchstart="onVoiceStart"
+          @touchmove="onVoiceMove"
           @touchend="onVoiceEnd"
+          @touchcancel="onVoiceCancel"
           @keydown.enter="onVoiceStart"
           @keydown.space.prevent="onVoiceStart"
           @keyup="onVoiceEnd"
         >
-          <text>{{ isVoicePressing ? "松开 发送" : "按住 说话" }}</text>
+          <text>{{ voiceCancelled ? "松开手指，取消发送" : isVoicePressing ? "松开 发送" : "按住 说话" }}</text>
         </view>
         <!-- 文字模式：输入框 + 表情 -->
         <template v-else>
@@ -261,7 +263,7 @@
             aria-label="聊天输入框"
             confirm-type="send"
             @confirm="sendText"
-            @focus="isInputFocus = true"
+            @focus="onInputFocus"
             @blur="isInputFocus = false"
           >
           <a11y-button
@@ -356,7 +358,7 @@
 
 <script setup lang="ts">
 import { ref, nextTick, onUnmounted } from "vue";
-import { onLoad } from "@dcloudio/uni-app";
+import { onLoad, onHide } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
 import EmptyState from "@/components/empty-state.vue";
 import { useUserStore } from "@/store/user";
@@ -468,9 +470,23 @@ const playingVoiceId = ref("");
 let audioContext: UniApp.InnerAudioContext | null = null;
 /** 录音起始时间戳（计算有效时长用） */
 let voiceStartAt = 0;
+/** 上滑取消阈值（px）：手指上移超过此距离进入取消区 */
+const VOICE_CANCEL_THRESHOLD = 80;
+/** 录音中手指是否已上滑至取消区（控制提示文案） */
+const voiceCancelled = ref(false);
+/** 本次录音是否取消发送：onStop 同步读取（M-K2） */
+let voiceCancelFlag = false;
+/** 录音按下时手指 Y 起始坐标（计算上滑距离） */
+let voiceTouchStartY = 0;
 
 // 录音完成：上传 → 以 JSON 管道发送（type:"voice", url, duration）
 function onRecorderStop(res: any): void {
+  const cancelled = voiceCancelFlag;
+  voiceCancelFlag = false;
+  if (cancelled) {
+    info("已取消");
+    return;
+  }
   const duration = Date.now() - voiceStartAt;
   if (duration < MIN_VOICE_DURATION_MS) {
     info("说话时间太短");
@@ -481,20 +497,46 @@ function onRecorderStop(res: any): void {
 }
 recorderManager?.onStop(onRecorderStop);
 
+// 录音异常：麦克风权限被拒等场景必须显式提示，否则松手只会走到 onStop 的「说话时间太短」（M-K1）
+recorderManager?.onError((err: any) => {
+  isVoicePressing.value = false;
+  voiceCancelled.value = false;
+  voiceCancelFlag = true; // 让可能迟到的 onStop 不发送
+  const msg = String(err?.errMsg || err?.message || "");
+  if (msg.includes("auth") || msg.includes("permission") || msg.includes("deny")) {
+    fail("麦克风权限被拒，请在设置中开启");
+    // #ifdef MP-WEIXIN
+    uni.openSetting({});
+    // #endif
+  } else {
+    fail("录音失败，请重试");
+  }
+});
+
 /** 语音按钮按下：开始录音 */
-function onVoiceStart(): void {
+function onVoiceStart(e: any): void {
   if (!recorderManager) {
     info("当前环境不支持录音");
     return;
   }
   isVoicePressing.value = true;
+  voiceCancelled.value = false;
+  voiceCancelFlag = false;
   voiceStartAt = Date.now();
+  voiceTouchStartY = e?.touches?.[0]?.clientY ?? 0;
   try {
     recorderManager.start({ format: "mp3", duration: MAX_VOICE_DURATION_MS });
   } catch {
     isVoicePressing.value = false;
     info("当前设备不支持录音");
   }
+}
+
+/** 录音中手指移动：上滑超过阈值进入取消区（M-K2） */
+function onVoiceMove(e: any): void {
+  if (!isVoicePressing.value) return;
+  const y = e?.touches?.[0]?.clientY ?? voiceTouchStartY;
+  voiceCancelled.value = voiceTouchStartY - y > VOICE_CANCEL_THRESHOLD;
 }
 
 /**
@@ -666,17 +708,42 @@ function toggleVoiceMode(): void {
   }
   isVoiceMode.value = !isVoiceMode.value;
   activePanel.value = "none";
+  // 切到语音模式时输入框被替换，主动收键盘避免残留在屏（M-K3）
+  if (isVoiceMode.value) uni.hideKeyboard();
 }
 
 /** 切换底部面板（同一面板再次点击则收起） */
 function togglePanel(panel: PanelType): void {
+  if (activePanel.value !== panel) {
+    // 开面板先收键盘，避免面板与软键盘互相遮挡（M-K3）
+    uni.hideKeyboard();
+    isInputFocus.value = false;
+  }
   activePanel.value = activePanel.value === panel ? "none" : panel;
   isVoiceMode.value = false;
 }
 
+/** 输入框聚焦：收起底部面板，避免键盘与面板同屏（M-K3） */
+function onInputFocus(): void {
+  isInputFocus.value = true;
+  activePanel.value = "none";
+}
+
 /** 语音按钮松开：停止录音，onStop 回调中上传发送 */
 function onVoiceEnd(): void {
+  if (!isVoicePressing.value) return;
   isVoicePressing.value = false;
+  voiceCancelFlag = voiceCancelled.value;
+  voiceCancelled.value = false;
+  recorderManager?.stop();
+}
+
+/** 触摸被系统中断（来电等）：取消本次录音，不发送（M-K2） */
+function onVoiceCancel(): void {
+  if (!isVoicePressing.value) return;
+  isVoicePressing.value = false;
+  voiceCancelled.value = false;
+  voiceCancelFlag = true;
   recorderManager?.stop();
 }
 
@@ -938,6 +1005,13 @@ onLoad(async (options: any) => {
   }
 });
 
+onHide(() => {
+  // 离页（navigateTo 等）停止语音播放：不应在后台继续出声（M-K6）
+  audioContext?.stop();
+  // 离页中断在途录音，避免跑到自动时长发出非预期语音（M-K2）
+  if (isVoicePressing.value) onVoiceCancel();
+});
+
 onUnmounted(() => {
   if (peerTypingTimer) {
     clearTimeout(peerTypingTimer);
@@ -948,6 +1022,9 @@ onUnmounted(() => {
     clearTimeout(peerTypingAppendTimer);
     peerTypingAppendTimer = null;
   }
+  // 停止在途录音并释放麦克风（置取消标记 + offStop 拦截回调，不会误发送）
+  voiceCancelFlag = true;
+  recorderManager?.stop();
   // 注销录音回调：否则离页后 stop/onStop 链可能在新实例注册后重复触发
   // （offStop 运行时存在，但 @dcloudio/types 的 RecorderManager 声明缺该方法）
   (recorderManager as any)?.offStop?.(onRecorderStop);

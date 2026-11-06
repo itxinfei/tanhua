@@ -305,7 +305,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { onUnload } from "@dcloudio/uni-app";
+import { onUnload, onBackPress } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
 import NetworkStatusBar from "@/components/network-status-bar.vue";
 import AppTabbar from "@/components/AppTabbar.vue";
@@ -350,6 +350,31 @@ function handleCancel(): void {
   if (submitting.value) return;
   safeGoBack("/pages/circle/index");
 }
+
+/** 手势/系统返回拦截：有未发布内容时弹确认，避免误触丢弃（M-C3） */
+onBackPress(() => {
+  // 提交在途：禁止返回（与 handleCancel 一致，避免导航打断上传）
+  if (submitting.value) return true;
+  // 无内容：放行默认返回
+  if (!canPublish.value) return false;
+  // 有未发布内容：弹确认，拦截默认返回由回调决定去向
+  uni.showModal({
+    title: "放弃发布？",
+    content: "内容尚未发布，确定离开吗？",
+    confirmText: "离开",
+    cancelText: "继续编辑",
+    success: (res) => {
+      if (res.confirm) {
+        content.value = "";
+        images.value = [];
+        videoFile.value = "";
+        videoCover.value = "";
+        safeGoBack("/pages/circle/index");
+      }
+    },
+  });
+  return true;
+});
 
 /** 是否可发布（内容、图片、视频至少一项） */
 const canPublish = computed(
@@ -731,9 +756,14 @@ onUnload(() => {
     position: absolute;
     top: -12rpx;
     right: -12rpx;
-    width: 40rpx;
-    height: 40rpx;
+    /* 视觉 40rpx 圆点，热区扩至 88rpx（WCAG 2.5.5）：padding 24rpx 透明外扩，
+       负 margin 抵消位移保持视觉位置，background-clip 让底色只画 content 区 */
+    width: 88rpx;
+    height: 88rpx;
+    padding: 24rpx;
+    margin: -24rpx;
     background: rgba(0, 0, 0, 0.6);
+    background-clip: content-box;
     border-radius: 50%;
     display: flex;
     align-items: center;

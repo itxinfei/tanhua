@@ -152,7 +152,6 @@
         placeholder="写评论..."
         aria-label="写评论"
         confirm-type="send"
-        adjust-position="false"
         @confirm="sendComment"
       >
       <a11y-button

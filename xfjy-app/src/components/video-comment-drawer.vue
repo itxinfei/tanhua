@@ -99,6 +99,7 @@
           v-model="text"
           placeholder="说点什么..."
           placeholder-class="ph"
+          maxlength="500"
           confirm-type="send"
           aria-label="评论内容"
           @confirm="send"
@@ -122,6 +123,7 @@ import A11yDialog from "@/components/a11y-dialog.vue";
 import A11yButton from "@/components/a11y-button.vue";
 import { getVideoComments, publishVideoComment, likeVideoComment, dislikeVideoComment } from "@/api/video";
 import { formatCount } from "@/utils/format";
+import { info, success } from "@/utils/ux";
 import type { Comment } from "@/api/circle";
 
 const props = defineProps<{ visible: boolean; videoId: string }>();
@@ -206,12 +208,13 @@ async function toggleLike(c: Comment) {
 
 async function send() {
   const content = text.value.trim();
-  if (!content || !props.videoId || sending.value) return;
+  if (!content) { info("说点什么再发送吧"); return; }
+  if (!props.videoId || sending.value) return;
   sending.value = true;
   try {
     await publishVideoComment(props.videoId, content);
     text.value = "";
-    uni.showToast({ title: "评论成功", icon: "success" });
+    success("评论成功");
     emit("commented");
     await reload();
   } catch {
@@ -228,7 +231,7 @@ async function send() {
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .drawer-header { display: flex; align-items: center; justify-content: space-between; padding: var(--space-md) var(--space-lg); border-bottom: 1rpx solid var(--border-faint);
   .drawer-title { font-size: var(--fs-md); font-weight: 600; color: var(--text-primary); }
-  .drawer-close { font-size: 40rpx; color: var(--text-hint); padding: 0 var(--space-sm); min-height: 48rpx; line-height: 1; }
+  .drawer-close { font-size: 40rpx; color: var(--text-hint); padding: 0 var(--space-sm); min-height: 88rpx; line-height: 1; }
 }
 .comment-list { flex: 1; padding: 0 var(--space-lg); }
 .empty { text-align: center; color: var(--text-hint); font-size: var(--fs-base); padding: 80rpx 0; }
@@ -250,7 +253,7 @@ async function send() {
 .load-more { text-align: center; color: var(--text-hint); font-size: var(--fs-sm); padding: var(--space-md) 0; }
 .input-bar { display: flex; align-items: center; padding: var(--space-sm) var(--space-md); padding-bottom: calc(var(--space-sm) + env(safe-area-inset-bottom)); border-top: 1rpx solid var(--border-faint); background: var(--bg-card);
   input { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; padding: 0 28rpx; font-size: var(--fs-base); }
-  .send-btn { margin-left: 20rpx; font-size: var(--fs-base); color: var(--text-hint); min-height: 48rpx; &.active { color: var(--color-primary); font-weight: 600; } }
+  .send-btn { margin-left: 20rpx; font-size: var(--fs-base); color: var(--text-hint); min-height: 88rpx; &.active { color: var(--color-primary); font-weight: 600; } }
 }
 .ph { color: var(--text-hint); }
 </style>
