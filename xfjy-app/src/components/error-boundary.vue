@@ -2,7 +2,8 @@
   <!-- 错误边界：捕获子组件渲染异常，防止白屏 -->
   <slot v-if="!hasError"></slot>
   <view v-else class="error-boundary">
-    <text class="error-icon">⚠️</text>
+    <!-- 图标统一 UnoCSS Icons + Phosphor（AGENTS.md §7.1）：mask + currentColor，尺寸由 font-size 控制 -->
+    <text class="i-ph-warning-circle error-icon" aria-hidden="true" />
     <text class="error-title">{{ displayTitle }}</text>
     <text class="error-message">{{ displayMessage }}</text>
     <view class="error-actions">
@@ -19,14 +20,15 @@
       label="复制错误码"
       @tap.stop="copyTraceId"
     >
-      <text class="trace-id">Trace: {{ traceId }} (长按复制)</text>
+      <text class="trace-id">Trace: {{ traceId }}（点击复制错误码）</text>
     </a11y-button>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, onErrorCaptured, computed } from "vue";
+import { ref, onErrorCaptured, computed, onUnmounted } from "vue";
 import { useUserStore } from "@/store/user";
+import { info } from "@/utils/ux";
 
 interface Props {
   /** 是否生产环境（控制是否显示详细错误） */
@@ -43,6 +45,13 @@ const props = withDefaults(defineProps<Props>(), {
   autoRetry: false,
 });
 
+/**
+ * 事件契约：
+ * - error：捕获到渲染异常时上报，父级可用于埋点/日志
+ * - retry：用户点「重新加载」或 autoRetry 倒计时结束时触发。
+ *   父级必须监听 @retry 并重新拉取数据；组件自身不掌握父级数据源、无法自行重取，
+ *   否则只会清除错误态（hasError=false），错误页消失但数据不会刷新，子组件仍无内容可渲染
+ */
 const emit = defineEmits<{
   (e: "error", err: unknown): void;
   (e: "retry"): void;
@@ -51,6 +60,19 @@ const emit = defineEmits<{
 const hasError = ref(false);
 const errorInfo = ref<unknown>(null);
 const traceId = ref("");
+
+/** autoRetry 定时器句柄：组件卸载时必须清理，避免销毁后仍触发 onRetry */
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+function clearRetryTimer(): void {
+  if (retryTimer !== null) {
+    clearTimeout(retryTimer);
+    retryTimer = null;
+  }
+}
+
+// 卸载清理：防止 3s 倒计时未结束就离开页面后，定时器在组件外触发重试
+onUnmounted(clearRetryTimer);
 
 const displayTitle = computed(() => props.title);
 const displayMessage = computed(() => {
@@ -71,30 +93,48 @@ onErrorCaptured((err) => {
   try {
     traceId.value = `ERR-${Date.now().toString(36).toUpperCase()}`;
   } catch {
-    // ignore
+    // Date.now() 与 Number.toString() 按 ECMA 规范不会抛错，此 catch 仅为防御性兜底，无异常需要上报告警
   }
 
   emit("error", err);
 
   if (props.autoRetry) {
-    setTimeout(() => onRetry(), 3000);
+    // 先清旧句柄：防御异常被多次捕获时叠加出多个定时器
+    clearRetryTimer();
+    retryTimer = setTimeout(() => {
+      retryTimer = null;
+      onRetry();
+    }, 3000);
   }
 
   return false; // 阻止向上传播
 });
 
+/**
+ * 清除错误态并通知父级重试。
+ * 契约：组件无法自行重取父级数据，父级必须监听 @retry 重新拉取，
+ * 否则错误态消失但页面数据不会刷新。
+ */
 function onRetry(): void {
+  // 手动重试时取消尚未触发的 autoRetry 倒计时，避免重复重试
+  clearRetryTimer();
   hasError.value = false;
   errorInfo.value = null;
   emit("retry");
 }
 
 function onReport(): void {
-  // 跳转到客服页
+  // 三级兜底链路：客服会话页 → 客服首页（两者均为普通页，switchTab 跳普通页必失败，禁用）
+  // → reLaunch 匹配首页（tabBar 页，最后兜底，清空页面栈保证用户不被困在错误页）
   uni.navigateTo({
     url: "/pages/kefu/chat",
     fail: () => {
-      uni.switchTab({ url: "/pages/kefu/index" });
+      uni.navigateTo({
+        url: "/pages/kefu/index",
+        fail: () => {
+          uni.reLaunch({ url: "/pages/match/index" });
+        },
+      });
     },
   });
 }
@@ -104,7 +144,7 @@ function copyTraceId(): void {
   uni.setClipboardData({
     data: traceId.value,
     success: () => {
-      uni.showToast({ title: "已复制错误码", icon: "none" });
+      info("错误码已复制");
     },
   });
 }
@@ -123,6 +163,8 @@ function copyTraceId(): void {
 .error-icon {
   font-size: 96rpx;
   line-height: 1;
+  /* 预警语义色，明暗双模式 token，禁止写死 hex */
+  color: var(--warning-text);
 }
 .error-title {
   font-size: 36rpx;
@@ -139,21 +181,6 @@ function copyTraceId(): void {
   display: flex;
   gap: 24rpx;
   margin-top: 16rpx;
-}
-.btn {
-  padding: 16rpx 48rpx;
-  font-size: 28rpx;
-  border-radius: 40rpx;
-  border: none;
-}
-.btn-primary {
-  /* 渐变走 --gradient-brand：原硬编码 #ff6b9d 是废弃冷粉，与主色不同源 */
-  background: var(--gradient-brand);
-  color: var(--text-inverse);
-}
-.btn-secondary {
-  background: var(--bg-page);
-  color: var(--text-secondary);
 }
 /* Trace 行原为 text @click，无最小热区且无读屏入口 */
 .trace-btn {

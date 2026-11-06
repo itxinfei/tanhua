@@ -118,7 +118,7 @@ import A11yRadioGroup from "@/components/a11y-radio-group.vue";
 import A11yButton from "@/components/a11y-button.vue";
 import A11yPicker from "@/components/a11y-picker.vue";
 import { getUserProfile, updateUserProfile, uploadImage } from "@/api/mine";
-import { success, fail, loading, hideLoading } from "@/utils/ux";
+import { success, fail, info, loading, hideLoading, confirm } from "@/utils/ux";
 import { resolveAvatar } from "@/utils/avatar";
 
 /** 照片墙最大数量 */
@@ -272,6 +272,22 @@ async function onGenderChange(value: string): Promise<void> {
   if (ok) form.value.gender = value;
 }
 
+/**
+ * chooseImage fail 统一处理（changeAvatar/addPhoto 共用，禁止各写一份）：
+ * errMsg 含 cancel 是用户主动取消，静默不打扰；其余多为相册授权被拒，
+ * 走 ux.info 提示，并在 MP 端（openSetting 存在时）引导跳转系统设置页重新授权。
+ * 范式对齐 pages/circle/publish.vue 的 handleMediaFail。
+ */
+function handleChooseImageFail(err: any): void {
+  const msg = String(err?.errMsg || "");
+  if (msg.includes("cancel")) return;
+  info("需要相册权限才能选择图片");
+  const openSetting = (uni as any).openSetting;
+  if (typeof openSetting === "function") {
+    openSetting({});
+  }
+}
+
 /** 更换头像：选图后上传 MinIO，成功写入 MinIO URL（随保存提交后端） */
 function changeAvatar(): void {
   uni.chooseImage({
@@ -297,9 +313,7 @@ function changeAvatar(): void {
         fail("上传失败，请重试");
       }
     },
-    fail: () => {
-      // 用户取消或选择失败，不显示 toast
-    },
+    fail: handleChooseImageFail,
   });
 }
 
@@ -346,9 +360,7 @@ function addPhoto(): void {
         hideLoading();
       }
     },
-    fail: () => {
-      // 用户取消或选择失败，不显示 toast
-    },
+    fail: handleChooseImageFail,
   });
 }
 
@@ -360,6 +372,9 @@ function addPhoto(): void {
 async function removePhoto(i: number): Promise<void> {
   const removed = form.value.photoAlbum[i];
   if (!removed) return;
+  // 删除是破坏性操作：先确认再提交（对齐 blacklist 移除的确认交互，M-A2）
+  const ok = await confirm("确认删除这张照片？");
+  if (!ok) return;
   const next = form.value.photoAlbum.filter((_, idx) => idx !== i);
   try {
     await updateUserProfile({ photoAlbum: JSON.stringify(next) });
