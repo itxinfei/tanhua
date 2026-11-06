@@ -154,6 +154,15 @@ page {
   /* 主按钮投影（跟随主色，暗色模式下由下方 media 覆盖为暗色主色的分量） */
   --shadow-primary: 0 8rpx 24rpx rgba(var(--color-primary-rgb), 0.35);
 
+  /* ===== 视频沉浸页专属 token（2026-11-06 用户裁决：抖音基线对齐 + 视觉冻结）=====
+     播放页是永恒深色沉浸环境，强调色不随系统主题翻转；亮/暗模式同值，禁止用于视频页以外场景。
+     基线出处：6d4497b（抖音对标版），冻结声明见 pages/video/index.vue 样式段顶部。 */
+  --video-accent: #fe2c55;
+  /* 同色 RGB 分量，供 rgba() 拼投影/光晕（与 --color-primary-rgb 同范式） */
+  --video-accent-rgb: 254, 44, 85;
+  /* 播放页纯黑底（抖音原版 .video-page 为 #000；原版唱片 #111 收敛到此值，靠白边勾勒） */
+  --video-bg: #000000;
+
   /* ===== 间距刻度（全站 margin/padding/gap 只能取以下档位；存量 12/20/36/40 等就近归并） ===== */
   --space-xs: 8rpx;
   --space-sm: 16rpx;
@@ -265,6 +274,10 @@ page {
     --gold-rgb: 255, 215, 0;
     --gold-soft-rgb: 255, 179, 71;
     --skel-bg: var(--skel-bg-dark);
+    /* 视频沉浸页 token 恒暗锁定：与亮色段同值显式声明，防止暗色主题调整误伤播放页（2026-11-06 裁决） */
+    --video-accent: #fe2c55;
+    --video-accent-rgb: 254, 44, 85;
+    --video-bg: #000000;
   }
 }
 

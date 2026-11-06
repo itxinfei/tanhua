@@ -1152,6 +1152,7 @@ const scrubLabel = computed(() => {
 
 async function handleLike(video: Video) {
   const wasLiked = video.hasLiked === 1;
+  const prevCount = video.likeCount;
   try {
     if (wasLiked) {
       video.hasLiked = 0;
@@ -1165,8 +1166,9 @@ async function handleLike(video: Video) {
       if (typeof count === "number") video.likeCount = count;
     }
   } catch {
+    // 请求失败：回滚到请求前的精确值（不用 += 反推，避免请求期间计数被改导致回滚错误）
     video.hasLiked = wasLiked ? 1 : 0;
-    video.likeCount += wasLiked ? 1 : -1;
+    video.likeCount = prevCount;
   }
 }
 
@@ -1624,16 +1626,33 @@ onShareAppMessage(() => ({
 </script>
 
 <style lang="scss" scoped>
+/* ============================================================
+   视觉基线冻结表（2026-11-06 用户裁决，优先级最高）
+   ------------------------------------------------------------
+   本页对标抖音沉浸播放页，色值只允许以下三个 token：
+     --video-accent  #fe2c55  抖音红：点赞红心/关注+/双击爱心/加载重试等一切强调色
+     --video-bg      #000000  纯黑底：页面/加载态/音乐唱片底色
+     --text-inverse  #ffffff  纯白：图标/文字/频道选中条/进度条
+   黑白透明叠层 rgba(0,0,0,x) / rgba(255,255,255,x) 是抖音同款遮罩语言，允许使用。
+   第三方品牌色（微信 #07c160 / 朋友圈 #ff8200）仅分享面板保留。
+   基线出处：git show 6d4497b:xfjy-app/src/pages/video/index.vue（948 行抖音对标版）。
+   收敛说明：原版双击爱心 #ff2d55 与点赞/关注 #fe2c55 视觉等价，统一为 --video-accent；
+             原版音乐唱片 #111 收敛为 --video-bg，靠白色描边勾勒轮廓。
+   ------------------------------------------------------------
+   【冻结声明】本文件样式只接受 bug 修复；任何视觉/色值/尺寸/布局改动必须经用户单独裁决，
+   UX 审查批次不得顺手修改本文件样式。模板结构与 script 逻辑改动不受此限但须最小化。
+   ============================================================ */
 .video-page {
   height: calc(100vh - var(--tab-bar-height, 0px));
   height: calc(100dvh - var(--tab-bar-height, 0px));
-  background: var(--bg-page);
+  /* 冻结表：播放页永恒纯黑，不随系统暗色模式翻转 */
+  background: var(--video-bg);
   position: relative;
 }
 
 /* ===== 首屏加载态 =====
-   视频页是深色底，旧的暗色骨架几乎与背景同色，4~5s 内用户只看到纯黑。
-   这里用品牌渐变光晕 + 旋转指示 + 明确文案，让等待「看得见、有解释、可重试」。 */
+   视频页是纯黑底，旧的暗色骨架几乎与背景同色，4~5s 内用户只看到纯黑。
+   这里用抖音红光晕 + 旋转指示 + 明确文案，让等待「看得见、有解释、可重试」。 */
 .video-loading {
   position: absolute;
   inset: 0;
@@ -1641,7 +1660,7 @@ onShareAppMessage(() => ({
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-deep);
+  background: var(--video-bg);
   overflow: hidden;
 }
 
@@ -1650,7 +1669,8 @@ onShareAppMessage(() => ({
   width: 620rpx;
   height: 620rpx;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 77, 141, 0.28) 0%, rgba(138, 92, 246, 0.16) 38%, rgba(13, 11, 20, 0) 72%);
+  /* 冻结表：抖音红同系光晕（废弃粉紫 #ff4d8d/#8a5cf6 已清退），rgb 分量走 --video-accent-rgb */
+  background: radial-gradient(circle, rgba(var(--video-accent-rgb), 0.28) 0%, rgba(var(--video-accent-rgb), 0.12) 38%, transparent 72%);
   animation: loadingGlow 3.2s ease-in-out infinite;
 }
 
@@ -1669,8 +1689,9 @@ onShareAppMessage(() => ({
   margin-bottom: 40rpx;
   border-radius: 50%;
   border: 5rpx solid rgba(255, 255, 255, 0.16);
-  border-top-color: var(--color-primary);
-  border-right-color: var(--color-primary-text);
+  /* 冻结表：抖音式单色 spinner——顶环抖音红，其余环与基础环同为白色半透明 */
+  border-top-color: var(--video-accent);
+  border-right-color: rgba(255, 255, 255, 0.16);
   animation: loadingSpin 0.9s linear infinite;
 }
 
@@ -1694,7 +1715,8 @@ onShareAppMessage(() => ({
   border-radius: 999rpx;
   font-size: var(--fs-md, 28rpx);
   color: var(--text-inverse);
-  background: var(--gradient-brand);
+  /* 冻结表：抖音按钮范式为红底白字实色，不用品牌粉橙渐变 */
+  background: var(--video-accent);
 }
 
 @keyframes loadingSpin {
@@ -1743,13 +1765,13 @@ onShareAppMessage(() => ({
     color: var(--text-inverse);
     opacity: 0.6;
     padding: var(--space-xs) var(--space-xs);
-    transition: opacity 0.2s ease, font-size 0.2s ease;
+    /* 冻结表：抖音选中只变字重/透明度、不变字号，transition 不含 font-size */
+    transition: opacity 0.2s ease;
 
-    /* 选中：三通道区分——字重 700 + 纯白（opacity 1）+ 底部渐变条 */
+    /* 选中：三通道区分——字重 700 + 纯白（opacity 1）+ 底部白色短条（对标抖音 40×6rpx） */
     &.active {
       opacity: 1;
       font-weight: 700;
-      font-size: var(--fs-xl);
 
       &::after {
         content: "";
@@ -1757,11 +1779,11 @@ onShareAppMessage(() => ({
         left: 50%;
         bottom: 0;
         transform: translateX(-50%);
-        width: 48rpx;
-        height: 8rpx;
-        border-radius: var(--radius-pill);
-        /* 视频页例外：深色画面上用品牌渐变，暗色主题下由 App.vue 覆盖为更亮的一档 */
-        background: var(--gradient-brand);
+        width: 40rpx;
+        height: 6rpx;
+        border-radius: 3rpx;
+        /* 冻结表：频道选中条纯白，不用品牌渐变 */
+        background: var(--text-inverse);
       }
     }
   }
@@ -1936,8 +1958,9 @@ onShareAppMessage(() => ({
   .float-heart__ico {
     width: 96rpx;
     height: 96rpx;
-    color: var(--color-primary);
-    filter: drop-shadow(0 4rpx 16rpx rgba(var(--color-primary-rgb), 0.4));
+    /* 冻结表：双击爱心抖音红（原版 #ff2d55，统一收敛为 --video-accent） */
+    color: var(--video-accent);
+    filter: drop-shadow(0 4rpx 16rpx rgba(var(--video-accent-rgb), 0.4));
   }
 }
 
@@ -1999,7 +2022,8 @@ onShareAppMessage(() => ({
     }
 
     .side-ico__ph--liked {
-      color: var(--color-primary);
+      /* 冻结表：点赞激活红心抖音红（原版 #fe2c55） */
+      color: var(--video-accent);
     }
 
     .like-pop {
@@ -2034,12 +2058,13 @@ onShareAppMessage(() => ({
       transform: translateX(-50%);
       width: 32rpx;
       height: 32rpx;
-      background: var(--color-primary);
+      /* 冻结表：关注加号抖音红实色 + 同色投影（对标原版 0 4rpx 12rpx rgba(254,44,85,.5)） */
+      background: var(--video-accent);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: var(--shadow-primary);
+      box-shadow: 0 4rpx 12rpx rgba(var(--video-accent-rgb), 0.5);
 
       .follow-plus__ico {
         width: 20rpx;
@@ -2099,7 +2124,8 @@ onShareAppMessage(() => ({
       width: 56rpx;
       height: 56rpx;
       border-radius: 50%;
-      background: var(--bg-page);
+      /* 冻结表：唱片底色收敛到播放页纯黑（原版 #111），靠白色描边勾勒轮廓 */
+      background: var(--video-bg);
       border: 4rpx solid var(--text-inverse);
       display: flex;
       align-items: center;
@@ -2204,7 +2230,8 @@ onShareAppMessage(() => ({
 
   .progress-inner {
     height: 100%;
-    background: var(--gradient-brand);
+    /* 冻结表：播放进度条纯白细条（抖音范式），不用品牌渐变 */
+    background: var(--text-inverse);
     transition: width 0.2s linear;
   }
 
@@ -2216,7 +2243,8 @@ onShareAppMessage(() => ({
     height: 20rpx;
     margin-left: -10rpx;
     border-radius: 50%;
-    background: var(--color-primary);
+    /* 冻结表：拖动把手与进度条同为纯白 */
+    background: var(--text-inverse);
     transform: translateY(-50%);
   }
 }
@@ -2396,7 +2424,8 @@ onShareAppMessage(() => ({
 
           &.ico-wechat { background: #07c160; }
           &.ico-moments { background: #ff8200; }
-          &.ico-copy { background: var(--color-primary); }
+          /* 冻结表：复制链接中性灰（原版废弃冷粉 #ff5e9c 清退）；微信/朋友圈为第三方品牌色保留 */
+          &.ico-copy { background: var(--text-hint); }
         }
 
         .share-label {
