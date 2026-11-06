@@ -131,7 +131,7 @@ const sparkOption = computed(() =>
   font-size: var(--xfjy-font-size-2xl);
   font-weight: 600;
   line-height: 1.15;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.5px; /* 大数字字距光学收紧，不归栅格（AGENTS.md §11 存量豁免） */
   color: var(--xfjy-text-primary);
   font-variant-numeric: tabular-nums;
 }
@@ -146,8 +146,8 @@ const sparkOption = computed(() =>
 .kpi-card__chip {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding: 1px var(--xfjy-space-2);
+  gap: 2px; /* chip 微间距为光学修正，不归 8px 栅格（AGENTS.md §11 存量豁免） */
+  padding: 1px var(--xfjy-space-2); /* 1px 为光学贴边修正 */
   border-radius: var(--xfjy-radius-sm);
   font-size: var(--xfjy-font-size-xs);
   font-weight: 500;

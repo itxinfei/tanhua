@@ -13,7 +13,7 @@
     </SearchBar>
 
     <TableCard>
-      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" empty-text="暂无反馈数据">
+      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
         <el-table-column v-if="!isMobile" prop="id" label="ID" width="70" align="center" />
         <el-table-column v-if="!isMobile" prop="userId" label="用户ID" width="90" align="center" />
         <el-table-column prop="content" label="反馈内容" min-width="220" show-overflow-tooltip />
@@ -56,6 +56,9 @@
             </el-button>
           </template>
         </el-table-column>
+        <template #empty>
+          <TableEmpty description="暂无反馈数据" />
+        </template>
       </el-table>
       <template #pagination>
         <el-pagination
@@ -100,7 +103,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { PageHeader, SearchBar, TableCard, StatusTag } from '@/components'
+import { PageHeader, SearchBar, TableCard, TableEmpty, StatusTag } from '@/components'
 import { useResponsive } from '@/composables/useResponsive'
 import { getFeedbackPageApi, replyFeedbackApi, closeFeedbackApi } from '@/api/kefu'
 import type { FeedbackItem, FeedbackQuery } from '@/api/kefu'

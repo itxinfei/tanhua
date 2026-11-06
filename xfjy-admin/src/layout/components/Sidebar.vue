@@ -146,6 +146,12 @@ const activeMenu = computed(() => {
   font-size: var(--xfjy-sidebar-font-size);
 }
 
+/* ------------------------------------------------------------------
+ * 以下菜单覆盖规则统一使用 !important：
+ * Element Plus el-menu 组件内部以高优先级选择器预设 hover/active
+ * 配色（如 .el-menu-item:hover），不提升优先级无法覆盖。
+ * 详见 AGENTS.md §7.2 / §11 存量豁免。
+ * ------------------------------------------------------------------ */
 /* 顶级菜单项 hover */
 :deep(.el-menu-item:hover) {
   background-color: var(--xfjy-sidebar-hover) !important;
@@ -166,7 +172,7 @@ const activeMenu = computed(() => {
   bottom: 0;
   width: 3px;
   background: var(--xfjy-sidebar-active-border);
-  border-radius: 0 2px 2px 0;
+  border-radius: 0 var(--xfjy-radius-sm) var(--xfjy-radius-sm) 0;
 }
 
 /* sub-menu 标题 hover */

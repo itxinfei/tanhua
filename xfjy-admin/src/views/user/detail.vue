@@ -51,7 +51,7 @@
         <!-- 资料编辑（客服代改） -->
         <el-tab-pane label="资料编辑" name="profile-edit">
           <div v-if="detail" v-loading="profileSaving" class="tab-content">
-            <el-form :model="profileForm" label-width="96px" class="profile-form">
+            <el-form :model="profileForm" label-width="80px" class="profile-form">
               <el-form-item label="头像">
                 <div class="avatar-edit-row">
                   <el-upload
@@ -188,18 +188,18 @@
               <el-radio-button value="match">匹配</el-radio-button>
             </el-radio-group>
             <el-table :data="relationList" stripe size="small" class="relation-table">
-              <el-table-column label="头像" width="72">
+              <el-table-column label="头像" width="80">
                 <template #default="{ row }">
                   <el-avatar :size="36" :src="row.avatar || undefined">{{ (row.nickname || '?').slice(0, 1) }}</el-avatar>
                 </template>
               </el-table-column>
               <el-table-column prop="nickname" label="昵称" min-width="120" show-overflow-tooltip />
-              <el-table-column label="性别" width="72" align="center">
+              <el-table-column label="性别" width="80" align="center">
                 <template #default="{ row }">
                   <el-tag :type="row.gender === '女' ? 'danger' : 'primary'" size="small">{{ row.gender }}</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="age" label="年龄" width="70" align="center" />
+              <el-table-column prop="age" label="年龄" width="80" align="center" />
               <el-table-column prop="city" label="城市" width="110" show-overflow-tooltip />
               <el-table-column label="关注时间" width="150">
                 <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
@@ -258,7 +258,7 @@
                 fit="cover"
                 preview-teleported
                 hide-on-click-modal
-                style="width: 110px; height: 110px; border-radius: 8px; margin: 4px"
+                style="width: 110px; height: 110px; border-radius: var(--xfjy-radius-md); margin: 4px"
                 :preview-src-list="detail?.photos"
                 :initial-index="i"
               />
@@ -346,7 +346,7 @@
                         fit="cover"
                         preview-teleported
                         hide-on-click-modal
-                        style="width: 48px; height: 48px; border-radius: 4px"
+                        style="width: 48px; height: 48px; border-radius: var(--xfjy-radius-sm)"
                         :preview-src-list="row.medias"
                       />
                       <span v-else class="text-muted">—</span>
@@ -367,7 +367,7 @@
                         fit="cover"
                         preview-teleported
                         hide-on-click-modal
-                        style="width: 48px; height: 48px; border-radius: 4px"
+                        style="width: 48px; height: 48px; border-radius: var(--xfjy-radius-sm)"
                       />
                     </template>
                   </el-table-column>
@@ -1086,7 +1086,7 @@ watch(activeTab, async (tab) => {
   text-align: center;
   padding: 16px;
   background: var(--xfjy-bg-hover);
-  border-radius: 8px;
+  border-radius: var(--xfjy-radius-md);
 }
 
 .stat-num {
@@ -1124,7 +1124,7 @@ watch(activeTab, async (tab) => {
   gap: 0;
   height: 480px;
   border: 1px solid var(--xfjy-border);
-  border-radius: 8px;
+  border-radius: var(--xfjy-radius-md);
   overflow: hidden;
   background: var(--xfjy-bg-card);
 }
@@ -1266,7 +1266,7 @@ watch(activeTab, async (tab) => {
 .bubble {
   max-width: 60%;
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: var(--xfjy-radius-md);
   font-size: 13px;
   line-height: 1.5;
   word-break: break-all;

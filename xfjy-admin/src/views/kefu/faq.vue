@@ -21,7 +21,7 @@
     </SearchBar>
 
     <TableCard>
-      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" empty-text="暂无FAQ数据">
+      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
         <el-table-column v-if="!isMobile" prop="id" label="ID" width="70" align="center" />
         <el-table-column prop="category" label="分类" width="110" align="center">
           <template #default="{ row }">
@@ -46,6 +46,9 @@
             <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
+        <template #empty>
+          <TableEmpty description="暂无FAQ数据" />
+        </template>
       </el-table>
       <template #pagination>
         <el-pagination
@@ -91,7 +94,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { PageHeader, SearchBar, TableCard } from '@/components'
+import { PageHeader, SearchBar, TableCard, TableEmpty } from '@/components'
 import { useResponsive } from '@/composables/useResponsive'
 import { useAuthStore } from '@/stores/auth'
 import {

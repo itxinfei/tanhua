@@ -36,7 +36,6 @@
         border
         style="width: 100%"
         row-key="id"
-        empty-text="暂无举报数据"
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="44" align="center" :selectable="isSelectable" reserve-selection />
@@ -80,6 +79,9 @@
             </template>
           </template>
         </el-table-column>
+        <template #empty>
+          <TableEmpty description="暂无举报数据" />
+        </template>
       </el-table>
       <template #pagination>
         <el-pagination
@@ -223,7 +225,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { UserFilled } from '@element-plus/icons-vue'
-import { PageHeader, SearchBar, TableCard, StatusTag } from '@/components'
+import { PageHeader, SearchBar, TableCard, TableEmpty, StatusTag } from '@/components'
 import { useResponsive } from '@/composables/useResponsive'
 import {
   getReportPageApi,
@@ -491,7 +493,7 @@ onMounted(() => {
   padding: 8px 12px;
   background: var(--xfjy-primary-50);
   border: 1px solid var(--xfjy-primary-100);
-  border-radius: 8px;
+  border-radius: var(--xfjy-radius-md);
 }
 
 .batch-count {
@@ -528,7 +530,7 @@ onMounted(() => {
 .reporter-meta {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 2px; /* 紧凑用户元信息行距为光学修正，不归 8px 栅格（AGENTS.md §11 存量豁免） */
 }
 
 .reporter-name {
@@ -574,7 +576,7 @@ onMounted(() => {
   flex: 0 0 auto;
   width: 96px;
   height: 96px;
-  border-radius: 8px;
+  border-radius: var(--xfjy-radius-md);
   border: 1px solid var(--xfjy-border-light);
   cursor: pointer;
 }

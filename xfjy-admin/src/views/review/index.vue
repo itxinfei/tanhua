@@ -139,7 +139,7 @@
                 v-if="currentItem.type === 'VIDEO'"
                 controls
                 :src="currentItem.medias[0]"
-                style="max-width: 100%; max-height: 320px; border-radius: 8px; background: var(--xfjy-media-bg)"
+                style="max-width: 100%; max-height: 320px; border-radius: var(--xfjy-radius-md); background: var(--xfjy-media-bg)"
               />
               <!-- 非视频：横向滚动多图，每张图都带完整预览列表，点击可在大图查看器内左右切换 -->
               <div v-else class="media-row">
@@ -524,7 +524,7 @@ onUnmounted(() => {
   padding: 8px 16px;
   background: var(--xfjy-primary-50);
   border: 1px solid var(--xfjy-primary-100);
-  border-radius: 8px;
+  border-radius: var(--xfjy-radius-md);
   color: var(--xfjy-primary);
   font-size: 13px;
 }
@@ -545,7 +545,7 @@ kbd {
   background: var(--xfjy-bg-card);
   border: 1px solid var(--xfjy-border);
   border-bottom-width: 2px;
-  border-radius: 4px;
+  border-radius: var(--xfjy-radius-sm);
   color: var(--xfjy-text-primary);
   font-family: inherit;
   font-size: 12px;
@@ -566,7 +566,7 @@ kbd {
   display: flex;
   flex-direction: column;
   background: var(--xfjy-bg-card);
-  border-radius: 8px;
+  border-radius: var(--xfjy-radius-md);
   border: 1px solid var(--xfjy-border-light);
   overflow: hidden;
 }
@@ -689,7 +689,7 @@ kbd {
   display: flex;
   flex-direction: column;
   background: var(--xfjy-bg-card);
-  border-radius: 8px;
+  border-radius: var(--xfjy-radius-md);
   border: 1px solid var(--xfjy-border-light);
   overflow: hidden;
 }
@@ -758,14 +758,14 @@ kbd {
   width: 200px;
   height: 200px;
   flex-shrink: 0;
-  border-radius: 8px;
+  border-radius: var(--xfjy-radius-md);
   background: var(--xfjy-bg-hover);
 }
 
 .review-result {
   padding: var(--xfjy-space-4) var(--xfjy-space-4);
   background: var(--xfjy-bg-hover);
-  border-radius: 8px;
+  border-radius: var(--xfjy-radius-md);
 }
 
 .review-result h4 {

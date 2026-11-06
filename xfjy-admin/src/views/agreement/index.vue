@@ -26,7 +26,7 @@
     </SearchBar>
 
     <TableCard>
-      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" empty-text="暂无协议数据">
+      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
         <el-table-column v-if="!isMobile" prop="id" label="ID" width="70" align="center" />
         <el-table-column prop="title" label="标题" min-width="160" show-overflow-tooltip />
         <el-table-column label="类型" width="100" align="center">
@@ -53,6 +53,9 @@
             <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
+        <template #empty>
+          <TableEmpty description="暂无协议数据" />
+        </template>
       </el-table>
       <template #pagination>
         <el-pagination
@@ -102,7 +105,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { PageHeader, SearchBar, TableCard, StatusTag } from '@/components'
+import { PageHeader, SearchBar, TableCard, TableEmpty, StatusTag } from '@/components'
 import { useResponsive } from '@/composables/useResponsive'
 import {
   getAgreementPageApi,

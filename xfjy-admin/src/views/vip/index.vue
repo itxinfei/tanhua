@@ -1,5 +1,7 @@
 <template>
   <div class="page-container">
+    <PageHeader title="会员管理" subtitle="VIP 套餐与增值权益配置" />
+
     <el-tabs v-model="activeTab">
       <!-- 套餐管理 -->
       <el-tab-pane label="VIP 套餐" name="package">
@@ -45,6 +47,9 @@
                 <el-button v-else v-perm="['SUPER_ADMIN','ADMIN']" link type="success" size="small" @click="handlePkgToggle(row, 1)">上架</el-button>
               </template>
             </el-table-column>
+            <template #empty>
+              <TableEmpty description="暂无套餐数据" />
+            </template>
           </el-table>
           <template #pagination>
             <el-pagination
@@ -98,6 +103,9 @@
                 <el-button v-else v-perm="['SUPER_ADMIN','ADMIN']" link type="success" size="small" @click="handleBenefitToggle(row, 1)">启用</el-button>
               </template>
             </el-table-column>
+            <template #empty>
+              <TableEmpty description="暂无权益数据" />
+            </template>
           </el-table>
           <template #pagination>
             <el-pagination
@@ -116,7 +124,7 @@
 
     <!-- 套餐新增/编辑弹窗 -->
     <el-dialog v-model="pkgFormVisible" :title="pkgEditingId ? '编辑套餐' : '新增套餐'" width="520px">
-      <el-form ref="pkgFormRef" :model="pkgForm" :rules="pkgFormRules" label-width="90px">
+      <el-form ref="pkgFormRef" :model="pkgForm" :rules="pkgFormRules" label-width="80px">
         <el-form-item label="套餐名称" prop="name">
           <el-input v-model="pkgForm.name" placeholder="如：月卡/季卡/年卡" maxlength="20" />
         </el-form-item>
@@ -153,7 +161,7 @@
 
     <!-- 权益编辑弹窗 -->
     <el-dialog v-model="benefitFormVisible" title="编辑权益" width="480px">
-      <el-form ref="benefitFormRef" :model="benefitForm" :rules="benefitFormRules" label-width="90px">
+      <el-form ref="benefitFormRef" :model="benefitForm" :rules="benefitFormRules" label-width="80px">
         <el-form-item label="权益码">
           <el-input :model-value="benefitForm.serviceCode" disabled />
         </el-form-item>
@@ -191,7 +199,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { SearchBar, TableCard, StatusTag } from '@/components'
+import { PageHeader, SearchBar, TableCard, TableEmpty, StatusTag } from '@/components'
 import { useResponsive } from '@/composables/useResponsive'
 import { formatAmount } from '@/utils/format'
 import {

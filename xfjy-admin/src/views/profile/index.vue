@@ -66,7 +66,7 @@
 
     <!-- 修改密码对话框 -->
     <el-dialog v-model="passwordVisible" title="修改密码" width="420px" :close-on-click-modal="false">
-      <el-form ref="passwordFormRef" :model="passwordForm" :rules="passwordRules" label-width="90px">
+      <el-form ref="passwordFormRef" :model="passwordForm" :rules="passwordRules" label-width="80px">
         <el-form-item label="旧密码" prop="oldPassword">
           <el-input v-model="passwordForm.oldPassword" type="password" show-password placeholder="请输入旧密码" />
         </el-form-item>
@@ -211,7 +211,7 @@ async function submitPassword() {
 <style scoped>
 .profile-card {
   background: var(--xfjy-text-inverse);
-  border-radius: 8px;
+  border-radius: var(--xfjy-radius-md);
   padding: 24px;
 }
 

@@ -42,7 +42,6 @@
         border
         stripe
         :row-class-name="rowClassName"
-        empty-text="暂无动态数据"
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="50" align="center" />
@@ -117,6 +116,9 @@
             <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
+        <template #empty>
+          <TableEmpty description="暂无动态数据" />
+        </template>
       </el-table>
       <template #pagination>
         <el-pagination
@@ -178,7 +180,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { PageHeader, SearchBar, TableCard, StatusTag } from '@/components'
+import { PageHeader, SearchBar, TableCard, TableEmpty, StatusTag } from '@/components'
 import { useResponsive } from '@/composables/useResponsive'
 import { getMovementPageApi, deleteMovementApi } from '@/api/movement'
 import type { MovementItem } from '@/api/movement'
@@ -365,7 +367,7 @@ onMounted(() => {
 .media-thumb {
   width: 44px;
   height: 44px;
-  border-radius: 4px;
+  border-radius: var(--xfjy-radius-sm);
   flex-shrink: 0;
 }
 
@@ -432,7 +434,7 @@ onMounted(() => {
   margin-top: 4px;
 }
 
-/* 举报跳转定位行高亮 */
+/* 举报跳转定位行高亮：!important 覆盖 EP el-table 行 hover 背景优先级 */
 :deep(.el-table .highlight-row) {
   background-color: var(--xfjy-primary-50) !important;
 }

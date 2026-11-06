@@ -42,16 +42,12 @@ const formattedValue = computed(() => {
   gap: var(--xfjy-space-3);
   background: var(--xfjy-bg-card);
   border: 1px solid var(--xfjy-border);
-  border-radius: var(--xfjy-radius-md);
+  border-radius: var(--xfjy-radius-lg);
   padding: var(--xfjy-space-3) var(--xfjy-space-4);
   box-shadow: var(--xfjy-shadow-card);
-  transition: box-shadow 0.3s, transform 0.3s;
 }
 
-.stat-card:hover {
-  box-shadow: var(--xfjy-shadow-hover);
-  transform: translateY(-2px);
-}
+/* 纯展示卡片不设 hover 抬升（§7.2 列表卡片禁止 hover 抬升） */
 
 .stat-card__icon {
   position: relative;
@@ -70,7 +66,7 @@ const formattedValue = computed(() => {
 .stat-card__icon-glow {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.28), transparent 65%);
+  background: var(--xfjy-glass-highlight);
 }
 
 .stat-card__info {
@@ -106,8 +102,9 @@ const formattedValue = computed(() => {
   right: var(--xfjy-space-3);
   bottom: var(--xfjy-space-2);
   font-size: var(--xfjy-font-size-xs);
+  /* 1px 为图标光学贴边修正，不归 8px 栅格（AGENTS.md §11 存量豁免） */
   padding: 1px var(--xfjy-space-2);
-  border-radius: 20px;
+  border-radius: var(--xfjy-radius-2xl);
   font-variant-numeric: tabular-nums;
 }
 

@@ -1,5 +1,7 @@
 <template>
   <div class="page-container">
+    <PageHeader title="订单管理" :subtitle="`共 ${total} 条记录`" />
+
     <!-- 汇总卡片 -->
     <el-row :gutter="16" style="margin-bottom: 16px">
       <el-col :xs="12" :sm="6">
@@ -49,7 +51,7 @@
     </SearchBar>
 
     <TableCard>
-      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" empty-text="暂无订单数据">
+      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
         <el-table-column v-if="!isMobile" prop="id" label="ID" width="70" align="center" />
         <el-table-column label="订单号" width="280">
           <template #default="{ row }">
@@ -81,6 +83,9 @@
             <el-button link type="primary" size="small" @click="showDetail(row)">详情</el-button>
           </template>
         </el-table-column>
+        <template #empty>
+          <TableEmpty description="暂无订单数据" />
+        </template>
       </el-table>
       <template #pagination>
         <el-pagination
@@ -121,7 +126,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Download, CopyDocument } from '@element-plus/icons-vue'
-import { SearchBar, TableCard, StatusTag, StatCard } from '@/components'
+import { PageHeader, SearchBar, TableCard, TableEmpty, StatusTag, StatCard } from '@/components'
 import { useResponsive } from '@/composables/useResponsive'
 import { formatAmount } from '@/utils/format'
 import { getPayOrderPageApi, getPayOrderSummaryApi, exportPayOrdersApi } from '@/api/pay'

@@ -46,7 +46,7 @@
       <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="50" align="center" :selectable="() => true" />
         <el-table-column v-if="!isMobile" type="index" label="#" width="50" align="center" />
-        <el-table-column label="头像" width="70" align="center">
+        <el-table-column label="头像" width="80" align="center">
           <template #default="{ row }">
             <el-avatar :size="36" :src="row.avatar">
               <el-icon><UserFilled /></el-icon>
@@ -55,14 +55,14 @@
         </el-table-column>
         <el-table-column prop="nickname" label="昵称" min-width="120" show-overflow-tooltip />
         <el-table-column prop="mobile" label="手机号" width="130" />
-        <el-table-column prop="gender" label="性别" width="70" align="center">
+        <el-table-column prop="gender" label="性别" width="80" align="center">
           <template #default="{ row }">
             <el-tag :type="row.gender === '女' ? 'danger' : 'primary'" size="small">{{ row.gender }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column v-if="!isMobile" prop="age" label="年龄" width="70" align="center" />
+        <el-table-column v-if="!isMobile" prop="age" label="年龄" width="80" align="center" />
         <el-table-column v-if="!isMobile" prop="city" label="城市" width="90" />
-        <el-table-column v-if="!isMobile" label="VIP" width="70" align="center">
+        <el-table-column v-if="!isMobile" label="VIP" width="80" align="center">
           <template #default="{ row }">
             <el-tag v-if="row.vipLevel > 0" type="warning" size="small">V{{ row.vipLevel }}</el-tag>
             <span v-else class="text-muted">-</span>
@@ -83,6 +83,9 @@
             <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="warning" size="small" @click="handleResetPwd(row)">重置密码</el-button>
           </template>
         </el-table-column>
+        <template #empty>
+          <TableEmpty description="暂无用户数据" />
+        </template>
       </el-table>
       <template #pagination>
         <el-pagination
@@ -149,7 +152,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
-import { PageHeader, SearchBar, TableCard, StatusTag } from '@/components'
+import { PageHeader, SearchBar, TableCard, TableEmpty, StatusTag } from '@/components'
 import { useResponsive } from '@/composables/useResponsive'
 import { getUserPageApi, freezeUserApi, unfreezeUserApi, resetUserPasswordApi, exportUsersApi } from '@/api/user'
 import type { UserItem, UserQuery } from '@/api/user'

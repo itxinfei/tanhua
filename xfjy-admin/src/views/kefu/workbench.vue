@@ -37,7 +37,7 @@
             <span v-if="s.unreadCount > 0" class="unread-badge">{{ s.unreadCount }}</span>
           </div>
         </div>
-        <div v-if="sessions.length === 0 && !loading" class="empty-tip">暂无会话</div>
+        <el-empty v-if="sessions.length === 0 && !loading" description="暂无会话" :image-size="60" />
         <div v-if="loading" class="empty-tip">连接客服通道中...</div>
       </div>
     </div>
@@ -332,7 +332,7 @@ onUnmounted(() => {
   display: flex;
   height: calc(100vh - 100px);
   background: var(--xfjy-bg-card);
-  border-radius: 8px;
+  border-radius: var(--xfjy-radius-md);
   overflow: hidden;
 }
 
@@ -390,6 +390,7 @@ onUnmounted(() => {
   }
   .unread-badge {
     background: var(--xfjy-danger); color: var(--xfjy-text-inverse);
+    /* 角标微尺寸（11px 字号 / 18px 高度）为徽标光学规格，不归 8px 栅格（AGENTS.md §11 存量豁免） */
     font-size: 11px; min-width: 18px; height: 18px; line-height: 18px;
     border-radius: var(--xfjy-radius-sm); text-align: center; padding: 0 var(--xfjy-space-1);
   }
@@ -420,7 +421,7 @@ onUnmounted(() => {
     max-width: 60%;
     /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 聊天气泡内距，气泡高度按内容自然撑开，见 AGENTS.md §11 存量豁免 */
     padding: 10px 14px;
-    border-radius: 12px;
+    border-radius: var(--xfjy-radius-lg);
     font-size: 14px;
     line-height: 1.5;
     background: var(--xfjy-bg-hover);
@@ -436,7 +437,7 @@ onUnmounted(() => {
 .media-bubble {
   width: 180px;
   max-width: 60%;
-  border-radius: 12px;
+  border-radius: var(--xfjy-radius-lg);
   overflow: hidden;
 }
 

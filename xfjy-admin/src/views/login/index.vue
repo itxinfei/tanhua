@@ -39,6 +39,7 @@
             <div class="stat-label">今日匹配</div>
           </div>
         </div>
+        <p class="stats-note">※ 示意数据</p>
 
         <ul class="feature-list">
           <li v-for="f in features" :key="f.title">
@@ -288,8 +289,8 @@ async function handleLogin() {
   position: absolute;
   inset: -48px -36px;
   z-index: -1;
-  border-radius: 36px;
-  background: radial-gradient(ellipse at center, rgba(70, 8, 84, 0.42), transparent 72%);
+  border-radius: var(--xfjy-radius-3xl);
+  background: var(--xfjy-login-veil);
   filter: blur(18px);
 }
 
@@ -297,13 +298,13 @@ async function handleLogin() {
   width: 96px;
   height: 96px;
   margin: 0 auto;
-  border-radius: 28px;
+  border-radius: var(--xfjy-radius-3xl);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.25), 0 0 0 8px rgba(255, 255, 255, 0.06);
+  background: var(--xfjy-glass-bg-strong);
+  border: 1px solid var(--xfjy-glass-border);
+  box-shadow: var(--xfjy-glass-shadow);
   backdrop-filter: blur(10px);
 }
 
@@ -323,7 +324,7 @@ async function handleLogin() {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.18);
+  text-shadow: var(--xfjy-glass-text-shadow);
 }
 
 .brand-slogan {
@@ -341,11 +342,11 @@ async function handleLogin() {
   width: fit-content;
   align-items: center;
   padding: var(--xfjy-space-3) var(--xfjy-space-2);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--xfjy-radius-2xl);
+  background: var(--xfjy-glass-bg);
+  border: 1px solid var(--xfjy-glass-border-soft);
   backdrop-filter: blur(10px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--xfjy-glass-shadow-soft);
 }
 .stat-item {
   padding: 0 20px;
@@ -365,12 +366,19 @@ async function handleLogin() {
 .stat-label {
   margin-top: 4px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--xfjy-glass-text);
 }
 .stat-divider {
   width: 1px;
   height: 34px;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--xfjy-glass-divider);
+}
+.stats-note {
+  margin-top: var(--xfjy-space-1);
+  text-align: center;
+  font-size: var(--xfjy-font-size-xs);
+  color: var(--xfjy-glass-text-faint);
+  opacity: 0.7;
 }
 
 /* 特性列表（玻璃卡片） */
@@ -386,22 +394,22 @@ async function handleLogin() {
   align-items: center;
   gap: var(--xfjy-space-3);
   padding: var(--xfjy-space-3) var(--xfjy-space-4);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--xfjy-radius-xl);
+  background: var(--xfjy-glass-bg-soft);
+  border: 1px solid var(--xfjy-glass-border-faint);
   backdrop-filter: blur(8px);
   transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease;
 }
 .feature-list li:hover {
   transform: translateX(6px);
-  background: rgba(255, 255, 255, 0.16);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: var(--xfjy-glass-bg-hover);
+  border-color: var(--xfjy-glass-border);
 }
 .feature-icon {
   width: 42px;
   height: 42px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.12));
+  border-radius: var(--xfjy-radius-lg);
+  background: var(--xfjy-glass-icon-grad);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -424,7 +432,7 @@ async function handleLogin() {
   right: 0;
   text-align: center;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--xfjy-glass-text-faint);
   z-index: 2;
 }
 

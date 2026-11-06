@@ -25,7 +25,7 @@
   /* ===== 中性色 - 文字 ===== */
   --xfjy-text-primary: #1f2329;
   --xfjy-text-regular: #4e5969;
-  --xfjy-text-secondary: #86909c;
+  --xfjy-text-secondary: #6b7280; /* 次级文字：白底对比度 4.6:1，满足 WCAG AA */
   --xfjy-text-disabled: #c9cdd4;
 
   /* ===== 中性色 - 边框/分割 ===== */
@@ -117,6 +117,8 @@
   --xfjy-radius-md: 8px;
   --xfjy-radius-lg: 12px;
   --xfjy-radius-xl: 16px;
+  --xfjy-radius-2xl: 20px; /* 品牌展示区大圆角（StatCard 图标 / 登录页数据条） */
+  --xfjy-radius-3xl: 28px; /* 品牌展示区超大圆角（登录页 logo 容器） */
 
   /* ===== 字体 Token ===== */
   --xfjy-font-family: 'Helvetica Neue', Helvetica, 'PingFang SC',
@@ -240,7 +242,7 @@ a {
 .stat-card {
   background: var(--xfjy-bg-card);
   border: 1px solid var(--xfjy-border);
-  border-radius: var(--xfjy-radius-md);
+  border-radius: var(--xfjy-radius-lg);
   padding: var(--xfjy-space-4);
   display: flex;
   align-items: center;
@@ -293,17 +295,8 @@ a {
   transition: transform 0.08s ease;
 }
 
-/* 卡片 hover 阴影抬升（统一卡片类，覆盖向后兼容容器） */
-.search-bar,
-.table-container,
-.stat-card,
-.page-header + .search-bar {
-  transition: box-shadow 0.25s ease;
-}
-.search-bar:hover,
-.table-container:hover {
-  box-shadow: var(--xfjy-shadow-hover);
-}
+/* 纯展示容器（搜索栏/表格卡/统计卡）不设 hover 抬升——§7.2 列表卡片禁止 hover 抬升；
+ * hover 反馈仅保留给可交互元素（表格行、按钮、链接） */
 
 /* 链接型按钮 hover：玫红加深 + 轻微位移，强化可点感 */
 .el-button.is-link {
@@ -329,6 +322,32 @@ a {
   --xfjy-table-cell-padding-x: 12px;
 }
 
+/* ==================== 玻璃拟态 token（登录页品牌区 / StatCard 图标高光） ==================== */
+:root {
+  /* 玻璃背景（白色半透明，配合 backdrop-filter 使用） */
+  --xfjy-glass-bg: rgba(255, 255, 255, 0.1);
+  --xfjy-glass-bg-strong: rgba(255, 255, 255, 0.18);
+  --xfjy-glass-bg-soft: rgba(255, 255, 255, 0.08);
+  --xfjy-glass-bg-hover: rgba(255, 255, 255, 0.16);
+  /* 玻璃边框 */
+  --xfjy-glass-border: rgba(255, 255, 255, 0.3);
+  --xfjy-glass-border-soft: rgba(255, 255, 255, 0.16);
+  --xfjy-glass-border-faint: rgba(255, 255, 255, 0.12);
+  /* 玻璃上的文字 / 分隔线 */
+  --xfjy-glass-text: rgba(255, 255, 255, 0.72);
+  --xfjy-glass-text-faint: rgba(255, 255, 255, 0.5);
+  --xfjy-glass-divider: rgba(255, 255, 255, 0.2);
+  /* 玻璃阴影 */
+  --xfjy-glass-shadow: 0 14px 40px rgba(0, 0, 0, 0.25), 0 0 0 8px rgba(255, 255, 255, 0.06);
+  --xfjy-glass-shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.15);
+  --xfjy-glass-text-shadow: 0 2px 14px rgba(0, 0, 0, 0.18);
+  /* 玻璃渐变 */
+  --xfjy-glass-icon-grad: linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.12));
+  --xfjy-glass-highlight: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.28), transparent 65%);
+  /* 登录页柔光遮罩 */
+  --xfjy-login-veil: radial-gradient(ellipse at center, rgba(70, 8, 84, 0.42), transparent 72%);
+}
+
 /* 移动端隐藏工具类（≤767px 隐藏，用于次要表格列） */
 .hide-on-mobile {
   display: table-cell;
@@ -341,8 +360,8 @@ a {
 .el-table .el-table__cell {
   padding: var(--xfjy-space-1) var(--xfjy-table-cell-padding-x);
 }
-/* 紧凑行高（保留表头略高以维持层级） */
-.el-table--medium .el-table__body tr > td.el-table__cell {
+/* 紧凑行高（默认/large 尺寸表格统一 44px；small 尺寸保持 EP 原生紧凑，用于详情页内嵌表格） */
+.el-table:not(.el-table--small) .el-table__body tr > td.el-table__cell {
   height: var(--xfjy-table-row-height);
 }
 /* 数字列等宽对齐 */

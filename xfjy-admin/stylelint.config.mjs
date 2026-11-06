@@ -1,5 +1,5 @@
 /* xfjy-admin stylelint 配置
-   目标：与 xfjy-app 对齐（禁硬编码颜色），并额外约束「裸数值写间距」。
+   目标：与 xfjy-app 对齐（禁硬编码颜色），并额外约束「裸数值写间距/圆角」。
    策略：存量一律 warning 分级，不阻断构建；新增代码应做到零 warning。
    真源豁免：src/style.css 是 Token 定义处，允许字面量。 */
 export default {
@@ -13,16 +13,20 @@ export default {
     // 核心 1：禁止十六进制硬编码颜色
     'color-no-hex': [true, { severity: 'warning' }],
 
-    // 核心 2：颜色属性禁止 rgb()/hsl() 直接写字面量（应走 Token 或 EP 变量）
+    // 核心 2：禁止 rgb()/rgba()/hsl()/hsla() 颜色函数（应走 Token 或 EP 变量）
+    // 比属性级禁令更彻底：覆盖所有属性，含 gradient/box-shadow 内嵌的 rgba()
+    'function-disallowed-list': [['rgb', 'rgba', 'hsl', 'hsla'], { severity: 'warning' }],
+
+    // 核心 3：属性值约束（间距魔法值 + 圆角裸 px）
     'declaration-property-value-disallowed-list': [
       {
-        '/^(color|background|background-color|border|border-color|box-shadow|fill|stroke)$/': [
-          '/rgb\\(/',
-          '/hsl\\(/',
-        ],
         // 间距：4px 栅格之外的值（5–39 中的非 4 倍数）视为魔法数值
-        '/^(margin|margin-top|margin-right|margin-bottom|margin-left|padding|padding-top|padding-right|padding-bottom|padding-left|gap|row-gap|column-gap)$/': [
+        '/^(margin|margin-top|margin-right|margin-bottom|margin-left|padding|padding-top|padding-right|padding-bottom|gap|row-gap|column-gap)$/': [
           '/\\b(5|6|7|9|10|11|13|14|15|17|18|19|21|22|23|25|26|27|29|30|31|33|34|35|37|38|39)px\\b/',
+        ],
+        // 圆角：禁止裸 px 字面量，必须走 --xfjy-radius-* token（50% 圆形/0 不受影响）
+        '/^border.*radius$/': [
+          '/\\b\\d+px\\b/',
         ],
       },
       { severity: 'warning' },

@@ -56,6 +56,9 @@
           <span v-else class="no-op">仅超管可操作</span>
         </template>
       </el-table-column>
+        <template #empty>
+          <TableEmpty description="暂无管理员数据" />
+        </template>
       </el-table>
       <template #pagination>
         <el-pagination
@@ -120,7 +123,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { PageHeader, SearchBar, TableCard, StatusTag } from '@/components'
+import { PageHeader, SearchBar, TableCard, TableEmpty, StatusTag } from '@/components'
 import { useResponsive } from '@/composables/useResponsive'
 import {
   getAdminPageApi,

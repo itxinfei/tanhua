@@ -38,7 +38,7 @@
     </SearchBar>
 
     <TableCard>
-      <el-table v-loading="loading" :data="tableData" border stripe empty-text="暂无操作日志">
+      <el-table v-loading="loading" :data="tableData" border stripe>
       <el-table-column v-if="!isMobile" label="ID" prop="id" width="70" align="center" />
       <el-table-column label="操作人" width="130">
         <template #default="{ row }">
@@ -81,6 +81,9 @@
           <el-button link type="primary" size="small" @click="showDetail(row)">详情</el-button>
         </template>
       </el-table-column>
+        <template #empty>
+          <TableEmpty description="暂无操作日志" />
+        </template>
       </el-table>
       <template #pagination>
         <el-pagination
@@ -121,7 +124,7 @@
 import { onMounted, ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
-import { PageHeader, SearchBar, TableCard } from '@/components'
+import { PageHeader, SearchBar, TableCard, TableEmpty } from '@/components'
 import { useResponsive } from '@/composables/useResponsive'
 import { getLogPageApi, getLogDetailApi, exportLogsApi } from '@/api/log'
 import type { OperationLogItem } from '@/api/log'

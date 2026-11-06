@@ -30,6 +30,9 @@
         </el-table-column>
         <el-table-column label="说明" prop="description" min-width="200" show-overflow-tooltip />
         <el-table-column v-if="!isMobile" label="更新时间" prop="updated" width="180" />
+        <template #empty>
+          <TableEmpty description="暂无配置数据" />
+        </template>
       </el-table>
     </TableCard>
   </div>
@@ -38,7 +41,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { PageHeader, TableCard } from '@/components'
+import { PageHeader, TableCard, TableEmpty } from '@/components'
 import { useResponsive } from '@/composables/useResponsive'
 import { getSysConfigListApi, type SysConfigItem } from '@/api/sysConfig'
 

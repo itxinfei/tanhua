@@ -29,7 +29,7 @@
         <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="danger" size="small" @click="handleBatchDelete">批量删除</el-button>
         <el-button size="small" @click="selectedRows = []">取消选择</el-button>
       </template>
-      <el-table v-loading="loading" :data="tableData" border stripe empty-text="暂无视频数据" @selection-change="handleSelectionChange">
+      <el-table v-loading="loading" :data="tableData" border stripe @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="50" align="center" />
         <el-table-column label="发布者" width="160">
           <template #default="{ row }">
@@ -98,6 +98,9 @@
             <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
+        <template #empty>
+          <TableEmpty description="暂无视频数据" />
+        </template>
       </el-table>
       <template #pagination>
         <el-pagination
@@ -119,7 +122,7 @@
         :src="previewUrl"
         controls
         autoplay
-        style="width: 100%; max-height: 480px; background: var(--xfjy-media-bg); border-radius: 4px"
+        style="width: 100%; max-height: 480px; background: var(--xfjy-media-bg); border-radius: var(--xfjy-radius-sm)"
       />
     </el-dialog>
 
@@ -143,7 +146,7 @@
             :src="detailRow.videoUrl"
             :poster="detailRow.picUrl"
             controls
-            style="width: 100%; max-height: 360px; background: var(--xfjy-media-bg); border-radius: 6px"
+            style="width: 100%; max-height: 360px; background: var(--xfjy-media-bg); border-radius: var(--xfjy-radius-md)"
           />
         </div>
 
@@ -165,7 +168,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { PageHeader, SearchBar, TableCard } from '@/components'
+import { PageHeader, SearchBar, TableCard, TableEmpty } from '@/components'
 import { useResponsive } from '@/composables/useResponsive'
 import { getVideoPageApi, deleteVideoApi } from '@/api/video'
 import type { VideoItem } from '@/api/video'
@@ -320,7 +323,7 @@ onMounted(() => {
 .cover-thumb {
   width: 56px;
   height: 40px;
-  border-radius: 4px;
+  border-radius: var(--xfjy-radius-sm);
 }
 
 .text-content {

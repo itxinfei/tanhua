@@ -19,9 +19,16 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
+import { provide, toRef, type Ref } from 'vue'
+
+const props = defineProps<{
   title?: string
+  emptyText?: string
 }>()
+
+provide('xfjyTableEmpty', {
+  emptyText: toRef(props, 'emptyText') as Ref<string | undefined>,
+})
 </script>
 
 <style scoped>

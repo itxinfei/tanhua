@@ -152,14 +152,16 @@ Copilot / Serena / Trae）开工前必须读完本文件。
   正文不得小于 `--xfjy-font-size-sm`（13px）。
 - 主色（`--xfjy-primary` 及 `--xfjy-gradient-*`）同屏 ≤3 处；状态色只作 Tag/状态点/图标，
   禁止作主按钮底色（功能色已由 `--el-color-*` 映射，禁止再定义第二套）。
-- 圆角只用 `--xfjy-radius-{sm,md,lg,xl}`；卡片固定 `--xfjy-radius-lg`（12px），
-  同页禁止混用 4/6/8/12；阴影只用 `--xfjy-shadow-{card,hover,dropdown}`，列表卡片禁止 hover 抬升。
+- 圆角只用 `--xfjy-radius-{sm,md,lg,xl,2xl,3xl}`；卡片固定 `--xfjy-radius-lg`（12px），
+  `2xl/3xl` 仅限品牌展示区（登录页/StatCard 图标）；同页禁止混用 4/6/8/12；阴影只用 `--xfjy-shadow-{card,hover,dropdown}`，列表卡片禁止 hover 抬升。
 - 骨架组件强制：列表页 `PageHeader + SearchBar + TableCard`；数值概览 `StatCard`；状态 `StatusTag`。
-  禁止手写 div 卡片/搜索栏/状态点；确认框用 `ElMessageBox.confirm`，空态 `el-empty`，
+  `dashboard/components/KpiCard` 是 `StatCard` 的增强变体（含趋势图/占比条），仅限 dashboard 使用，
+  不得在其他页面新造同类组件；表格空态统一用 `TableEmpty`（`el-empty` 封装，自动继承 `TableCard` 的 `emptyText`）。
+  禁止手写 div 卡片/搜索栏/状态点；确认框用 `ElMessageBox.confirm`，空态 `el-empty`/`TableEmpty`，
   加载 `v-loading`/`el-skeleton`，一手日期区间用单个 `el-date-picker type="daterange"`。
 - 表格：操作列固定右侧，列宽 ≥80px，行高 44–48px（`--xfjy-table-row-height`），
   禁止横向溢出页面容器；数字列 `font-variant-numeric: tabular-nums`。
-- 表单：`label-width` 统一 96px，一行 ≤3 字段；详情用 `el-descriptions`（2 列 border），
+- 表单：`label-width` 统一 80px，一行 ≤3 字段；详情用 `el-descriptions`（2 列 border），
   禁止用 `el-table` 冒充键值对。
 - 禁止 `!important` 覆盖 EP 内部样式；确需穿透必须 `:deep()` 且同行注释原因。
 - 视觉验收：每页 1280/1440 各截图一次，与 `src/views/user/index.vue` 并排比对
@@ -248,10 +250,11 @@ Test-Path pnpm-lock.yaml          # 期望 False
 | 分页入参 `pagesize`（xfjy-server 存量接口） | 33 处 | 新增必须 `pageSize`（§5），存量随重构迁移，迁移时前后端需同改 |
 | 非主色硬编码 hex（xfjy-app/src） | 主体已收口（2026-11-03，~200 处 → `var()`：`--text-inverse`/`--bg-card`/`--success`/`--gold*`/`--info-blue*`/`--bg-deep*` 等，token 见 `App.vue`）；残留 43 行代码均为结构性约束——21 处 `uni-icons color="…"` 原生属性、5 处 `AppTabbar.vue` 局部 token 定义（body 挂载）、3 处 `linear-gradient` 多停点、2 处 `confirmColor` 原生 API、12 处状态色对/第三方品牌色（network-status-bar、客服状态徽章、微信/朋友圈图标色） | 新增禁止；残留冻结（各类均有不可 token 化原因），收口随组件级重构 |
 | `/admin/**` 缺 `@RequireRole` | 1 处（`AdminController`） | **免登录入口 + 自身账户维护**，不补注解。依据：`AdminController` 仅 `POST admin/login`、`GET admin/info`、`PUT admin/password`、`POST admin/logout`、`PUT admin/profile`；`WebConfig` L28-30 已将 `/admin/login` 从 `AdminTokenInterceptor` 排除，其余路由依赖拦截器填充的 `AdminThreadLocal`，非业务控制器。 |
-| `xfjy-admin` 硬编码颜色（除 404 插画 4 处外） / 魔法间距 | 0 / 14 条（13 条 6px 间距 + 1 条侧栏折叠态内距，2026-11-03 收口后实测，原 26 / 38） | 新增禁止；颜色统一走 `--xfjy-*` token（本轮补充 `--xfjy-success-tint` / `--xfjy-danger-tint` / `--xfjy-primary-tint`，取值与替换前 hex 完全相同）。`npm run lint:style` 目标 **0 warning**，`npm run lint:style:gate` 不得超过 `xfjy-admin/stylelint-baseline.json` 基线（当前 total=0）；历史：65 → 43 → 19 → 0 |
+| `xfjy-admin` 硬编码颜色（除 404 插画 4 处外） / 魔法间距 | 0 / 14 条（13 条 6px 间距 + 1 条侧栏折叠态内距，2026-11-03 收口后实测，原 26 / 38） | 新增禁止；颜色统一走 `--xfjy-*` token（本轮补充 `--xfjy-success-tint` / `--xfjy-danger-tint` / `--xfjy-primary-tint`，取值与替换前 hex 完全相同）。`npm run lint:style` 目标 **0 warning**，`npm run lint:style:gate` 不得超过 `xfjy-admin/stylelint-baseline.json` 基线（当前 total=0）；历史：65 → 43 → 19 → 0；2026-11-06 规则增强（禁 rgb/rgba/hsl/hsla 函数 + border-radius 裸 px）暴露存量 49 → 同日全量 token 化清零（新增 `--xfjy-glass-*` 16 个 + `--xfjy-radius-2xl/3xl`） |
 | `xfjy-admin` 6px 间距豁免（13 条，另有侧栏折叠态 1 条，合计 14 条 `declaration-property-value-disallowed-list` 豁免） | `movement.vue` L386、`video.vue` L344（内联统计项分隔）；`kefu/workbench.vue` L422 聊天气泡内距、L448 语音图标对齐；`login/index.vue` L469 标题副文案；`review/index.vue` L543 键帽、L675 结论标签组、L754 横向滚动条留白；`report/index.vue` L472-473 头像与文字间距、L477-478 标签与昵称分隔（`.target-name`）、L569-570 横向滚动条留白；`user/detail.vue` L850 头像文字；`sensitive/index.vue` L59 敏感词标签间距（`.hit-word`） | 均为图标/文字对齐或滚动条留白类视觉微调，改 4px 或 8px 会破坏对齐；已用行级 `declaration-property-value-disallowed-list` disable 并注明理由，**禁止新增** |
 | `xfjy-admin` 404 页插画配色 | 4 处 hex（`views/error/404.vue` L102-103/L118-119/L184-185/L191-192，均为 `color-no-hex` disable） | 配色随插画整体重做才有意义，暂不 token 化；已用行级 `color-no-hex` disable 并注明理由，**禁止新增** |
 | `xfjy-admin` 侧栏折叠态内距 | 1 条（14 条间距豁免之一，`layout/components/Sidebar.vue` L211-212 `padding: 0 18px`） | 与 220px 栏宽的视觉微调，改 16px 会破坏图标对齐；已用行级 `declaration-property-value-disallowed-list` disable，**禁止新增** |
+| `xfjy-admin` 光学微调值（1px/2px/11px/18px/-0.5px，lint 未拦截类） | `StatCard.vue` 图标贴边 1px；`KpiCard.vue` chip gap 2px / 大数字字距 -0.5px / chip 贴边 1px；`report/index.vue` 用户元信息 gap 2px；`kefu/workbench.vue` 未读角标 11px 字号 / 18px 高度；`review/index.vue` 键帽 1px 6px（6px 已入 14 条豁免） | 均为徽标/贴边/字距类光学修正，不归 8px 栅格；stylelint 间距 regex 未拦截 1/2px，已加注释说明理由；**禁止新增**同类魔法值，新增必须走 token 或先入此表登记 |
 | `new SimpleDateFormat`（§13.4） | 0 处（2026-11-05 已清零：原 `AdminDashboardService`/`AdminOperationLogService` 局部变量 4 处已迁移 `DateTimeFormatter`，`AdminDashboardStatsService` 经核查原无实例） | 新增禁止；存量随重构迁移 `DateTimeFormatter`，迁移前不得提升为字段/static |
 | 日志 `+` 拼接（§13.5） | 0 处（2026-11-05 已清零：`IMController`/`QuanziApiImpl`/`VideoApiImpl`/`VideoMsgConsumer`/`QuanZiMsgConsumer` 5 处已改 `{}` 占位符；`QuanziApiImpl` L158 `相册+动态` 为字面量误报，非拼接） | 新增禁止；存量改为 `{}` 占位符，随重构迁移 |
 

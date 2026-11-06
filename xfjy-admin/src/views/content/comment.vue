@@ -35,7 +35,6 @@
         border
         stripe
         :row-class-name="rowClassName"
-        empty-text="暂无评论数据"
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="50" align="center" />
@@ -73,6 +72,9 @@
             <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
+        <template #empty>
+          <TableEmpty description="暂无评论数据" />
+        </template>
       </el-table>
       <template #pagination>
         <el-pagination
@@ -117,7 +119,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { PageHeader, SearchBar, TableCard } from '@/components'
+import { PageHeader, SearchBar, TableCard, TableEmpty } from '@/components'
 import { useResponsive } from '@/composables/useResponsive'
 import { getCommentPageApi, deleteCommentApi } from '@/api/comment'
 import type { CommentItem } from '@/api/comment'
@@ -290,7 +292,7 @@ onMounted(() => {
   font-family: monospace;
 }
 
-/* 举报跳转定位行高亮 */
+/* 举报跳转定位行高亮：!important 覆盖 EP el-table 行 hover 背景优先级 */
 :deep(.el-table .highlight-row) {
   background-color: var(--xfjy-primary-50) !important;
 }
