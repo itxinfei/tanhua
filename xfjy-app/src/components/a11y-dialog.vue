@@ -24,7 +24,7 @@
 import { ref, watch, nextTick } from "vue";
 
 interface Props {
-  visible: boolean;
+  visible?: boolean;
   /** 对话框无障碍标题（读屏在进入弹窗时朗读） */
   title?: string;
   /** 点击遮罩是否关闭，默认关闭 */

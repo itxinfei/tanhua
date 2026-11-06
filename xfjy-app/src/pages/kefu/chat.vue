@@ -348,7 +348,7 @@ async function retryLoadHistory(): Promise<void> {
   } catch (err) {
     // catch 不空吞：保留错误空态 + ux 反馈（IM SDK 直连不走 request 层，无统一 toast）
     historyLoadFailed.value = true;
-    console.warn(`[kefu-chat] 历史消息重试失败，agentId=${agentId.value}, err=${String(err)}`);
+    warn(`[kefu-chat] 历史消息重试失败，agentId=${agentId.value}, err=${String(err)}`);
     fail("历史消息加载失败，请稍后重试");
   }
 }
@@ -399,7 +399,7 @@ onLoad(async () => {
       await loadHistory();
     } catch (err) {
       historyLoadFailed.value = true;
-      console.warn(`[kefu-chat] 历史消息拉取失败，agentId=${agentId.value}, err=${String(err)}`);
+      warn(`[kefu-chat] 历史消息拉取失败，agentId=${agentId.value}, err=${String(err)}`);
       fail("历史消息加载失败，请稍后重试");
     }
   } catch {

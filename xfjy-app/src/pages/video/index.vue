@@ -543,6 +543,7 @@ import {
 import A11yDialog from "@/components/a11y-dialog.vue";
 import { formatCount } from "@/utils/format";
 import { info } from "@/utils/ux";
+import { warn } from "@/utils/logger";
 import { useSystemStore } from "@/store/system";
 import type { VideoSearchItem } from "@/api/video-search";
 
@@ -863,7 +864,7 @@ const reportedPlayIds = new Set<string>();
 
 function onVideoError(video: Video, e?: any) {
   const detail = e?.detail || {};
-  console.warn("[video] 加载失败", video.id, detail.errMsg || detail.message || video.videoUrl);
+  warn("[video] 加载失败", video.id, detail.errMsg || detail.message || video.videoUrl);
   erroredVideoIds.value = new Set(erroredVideoIds.value).add(video.id);
 }
 

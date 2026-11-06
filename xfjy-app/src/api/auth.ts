@@ -1,4 +1,4 @@
-import { post, get, put } from "@/utils/request";
+import { post, put } from "@/utils/request";
 import type { UserInfo } from "@/store/user";
 
 // 登录响应

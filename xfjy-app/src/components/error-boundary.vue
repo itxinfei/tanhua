@@ -47,8 +47,8 @@
 
 <script setup lang="ts">
 import { ref, onErrorCaptured, computed, onUnmounted } from "vue";
-import { useUserStore } from "@/store/user";
 import { info } from "@/utils/ux";
+import { reportError } from "@/utils/logger";
 
 interface Props {
   /** 是否生产环境（控制是否显示详细错误） */
@@ -107,7 +107,7 @@ const displayMessage = computed(() => {
 onErrorCaptured((err) => {
   hasError.value = true;
   errorInfo.value = err;
-  console.error("[ErrorBoundary]", err);
+  reportError("[ErrorBoundary]", err);
 
   // 生成 traceId（未来可接 Sentry / 自建上报）
   try {

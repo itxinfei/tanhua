@@ -48,7 +48,10 @@ withDefaults(
     dark?: boolean;
   }>(),
   {
+    icon: "",
     iconColor: "var(--text-hint)",
+    title: "",
+    desc: "",
     overlay: false,
     dark: false,
   }

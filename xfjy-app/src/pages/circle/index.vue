@@ -427,7 +427,6 @@ import { getContacts, getLikeMessages, getCommentMessages, getLoveMessages, getA
 import { useChatStore, type NoticeType } from "@/store/chat";
 import { ensureSelfIM, getConversations } from "@/utils/wukongim";
 import { checkBenefit } from "@/api/mine";
-import { resolveAvatar } from "@/utils/avatar";
 
 const circleStore = useCircleStore();
 const chatStore = useChatStore();

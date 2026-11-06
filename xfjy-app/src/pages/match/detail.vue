@@ -321,6 +321,7 @@ import { safeGoBack } from "@/utils/nav";
 // ux 的 loading 遮罩函数与本页三态 loading ref 同名冲突（TS2440），import 别名消歧；
 // 仅本地绑定名变化，调用的仍是同一函数，举报提交的遮罩行为零改动；hideLoading 无同名冲突保留原名
 import { success, info, fail, loading as showLoading, hideLoading } from "@/utils/ux";
+import { warn } from "@/utils/logger";
 
 /** 缘分值满分 */
 const FATE_SCORE_MAX = 100;
@@ -395,7 +396,7 @@ async function loadUserInfo(): Promise<void> {
     // 核心资料失败 → 整页错误态；request 层已统一 toast，这里不重复弹。
     // 不 rethrow：避免中断同批并发的 loadQuestion；日志带 userId 与原始错误，禁止空吞。
     loadFailed.value = true;
-    console.warn("[match-detail] getPersonalInfo 失败，userId=%s", userId.value, e);
+    warn("[match-detail] getPersonalInfo 失败，userId=%s", userId.value, e);
   }
 }
 

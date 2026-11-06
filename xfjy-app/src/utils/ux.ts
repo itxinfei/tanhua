@@ -8,8 +8,6 @@
  * 3. 接入降噪（高频失败合并计数，避免用户被 toast 轰炸）
  */
 
-import { shouldBlockRequest } from "./network-monitor";
-
 /** Toast 去重：当前显示的 toast 内容 */
 let currentToast: string | null = null;
 

@@ -66,11 +66,11 @@ import A11yButton from "@/components/a11y-button.vue";
 import { resolveAvatar } from "@/utils/avatar";
 
 interface Props {
-  visible: boolean;
+  visible?: boolean;
   /** 我方头像 URL */
-  myAvatar: string;
+  myAvatar?: string;
   /** 配对成功对方的头像 URL */
-  otherAvatar: string;
+  otherAvatar?: string;
 }
 
 withDefaults(defineProps<Props>(), {

@@ -55,10 +55,21 @@ export default [
       // TS 项目关掉 no-undef（由 tsc 负责），避免 uni / 类型名误报
       'no-undef': 'off',
       'no-unused-vars': 'off',
-      '@typescript-eslint/no-unused-vars': 'warn',
+      // 允许 _ 前缀的占位参数/变量，忽略 catch 中未使用的错误对象
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'none' },
+      ],
       '@typescript-eslint/no-explicit-any': 'off',
       // uni-app 页面/组件名单词命名常见（如 index.vue、me.vue）
       'vue/multi-word-component-names': 'off',
+    },
+  },
+  // 命令行脚本与日志工具本身就以 console 输出为目的，豁免 no-console（必须在通用规则之后声明）
+  {
+    files: ['scripts/**/*.{js,mjs}', 'src/utils/logger.ts'],
+    rules: {
+      'no-console': 'off',
     },
   },
 ]

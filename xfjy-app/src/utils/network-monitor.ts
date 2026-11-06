@@ -6,6 +6,7 @@
  */
 
 import { ref } from "vue";
+import { reportError } from "@/utils/logger";
 
 /** 是否在线（全局响应式，供组件 v-if 绑定） */
 export const isOnline = ref<boolean>(true);
@@ -29,7 +30,7 @@ function emitNetworkRestored(): void {
     try {
       cb();
     } catch (e) {
-      console.error("[network-monitor] 回调异常", e);
+      reportError("[network-monitor] 回调异常", e);
     }
   });
 }

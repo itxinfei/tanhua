@@ -5,6 +5,7 @@
  * 真实推送需打包 APP 并集成极光官方 uni-app 原生插件（JG-JPush）
  */
 import { post } from "@/utils/request";
+import { log, warn } from "@/utils/logger";
 
 /**
  * 上报设备推送标识到后端（登录后调用）
@@ -43,13 +44,13 @@ export function initPush(): void {
         }
       });
     } else {
-      console.debug("[Push] 极光插件未集成，跳过设备上报");
+      log("[Push] 极光插件未集成，跳过设备上报");
     }
   } catch (e) {
-    console.warn("[Push] 初始化失败", e);
+    warn("[Push] 初始化失败", e);
   }
   // #endif
   // #ifndef APP-PLUS
-  console.debug("[Push] H5 端不支持极光推送，跳过");
+  log("[Push] H5 端不支持极光推送，跳过");
   // #endif
 }
