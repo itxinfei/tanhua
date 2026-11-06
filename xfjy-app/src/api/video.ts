@@ -1,5 +1,5 @@
-import { get, post, upload } from "@/utils/request";
-import { getToken, BASE_URL, handleUnauthorized } from "@/utils/request";
+import { get, post, upload, getToken, BASE_URL, handleUnauthorized, UploadPromise } from "@/utils/request";
+import { fail, networkError } from "@/utils/ux";
 import type { PageResult, PageParam, Comment } from "@/api/circle";
 import type { PicUploadResult } from "@/api/mine";
 
@@ -66,15 +66,19 @@ export interface PublishVideoParam {
  *
  * @param param 封面图本地路径、视频本地路径
  */
-export function publishVideo(param: PublishVideoParam): Promise<void> {
-  return new Promise<void>((resolve, reject) => {
+export function publishVideo(
+  param: PublishVideoParam,
+  onProgress?: (percent: number) => void,
+): UploadPromise<void> {
+  let task: UniApp.UploadTask | null = null;
+  const promise = new Promise<void>((resolve, reject) => {
     const token = getToken();
     const header: Record<string, string> = {};
     if (token) {
       header["Authorization"] = `Bearer ${token}`;
     }
 
-    uni.uploadFile({
+    task = uni.uploadFile({
       url: BASE_URL + "/small-videos",
       files: [
         { name: "videoThumbnail", uri: param.thumbnailPath },
@@ -93,7 +97,7 @@ export function publishVideo(param: PublishVideoParam): Promise<void> {
           return;
         }
         if (res.statusCode >= 400) {
-          uni.showToast({ title: `发布失败(${res.statusCode})`, icon: "none" });
+          fail(`发布失败(${res.statusCode})`);
           reject(new Error(`HTTP ${res.statusCode}`));
           return;
         }
@@ -102,23 +106,35 @@ export function publishVideo(param: PublishVideoParam): Promise<void> {
         try {
           body = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
         } catch {
-          uni.showToast({ title: "服务异常，请稍后再试", icon: "none" });
+          fail("服务异常，请稍后再试");
           reject(new Error("响应格式错误"));
           return;
         }
         if (body.code !== undefined && body.code !== 200) {
-          uni.showToast({ title: body.message || "发布失败", icon: "none" });
+          fail(body.message || "发布失败");
           reject(new Error(body.message));
           return;
         }
         resolve();
       },
       fail: (err: any) => {
-        uni.showToast({ title: "网络异常，请检查网络", icon: "none" });
+        networkError();
         reject(err);
       },
     });
-  });
+    // 上传进度回调：封顶 99%，100% 在 resolve 时达成
+    task?.onProgressUpdate?.((res) => {
+      onProgress?.(Math.min(99, res.progress || 0));
+    });
+  }) as UploadPromise<void>;
+  promise.abort = () => {
+    try {
+      task?.abort();
+    } catch {
+      /* 任务已结束，忽略 */
+    }
+  };
+  return promise;
 }
 
 /**

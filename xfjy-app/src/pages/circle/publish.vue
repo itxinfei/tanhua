@@ -31,6 +31,22 @@
       </a11y-button>
     </view>
 
+    <!-- 上传进度条（M-C2）：提交中且有进度时展示，弱网不再无期等待 -->
+    <view
+      v-if="submitting && uploadProgress > 0"
+      class="upload-progress"
+      role="status"
+      :aria-label="`上传进度 ${uploadProgress}%`"
+    >
+      <view class="upload-progress-track">
+        <view
+          class="upload-progress-fill"
+          :style="{ width: uploadProgress + '%' }"
+        />
+      </view>
+      <text class="upload-progress-text">{{ uploadProgress }}%</text>
+    </view>
+
     <!-- 正文（无边框大输入，抖音式） -->
     <!-- 发布按钮禁用原因（P1）：明确告知可发布条件，避免"按钮灰了却不知道为什么" -->
     <view
@@ -314,6 +330,7 @@ import { publishVideo } from "@/api/video";
 import { CIRCLE_NEED_REFRESH_KEY } from "@/store/circle";
 import { safeGoBack } from "@/utils/nav";
 import { success, info, fail } from "@/utils/ux";
+import type { UploadPromise } from "@/utils/request";
 
 /** 内容最大字数 */
 const MAX_CONTENT_LENGTH = 500;
@@ -337,6 +354,10 @@ const selectedTopics = ref<string[]>([]);
 /** 话题选择面板是否展开（点击话题行切换） */
 const showTopicPanel = ref(false);
 const submitting = ref(false);
+/** 上传进度（0-99；0 表示未开始/纯文字无进度回传） */
+const uploadProgress = ref(0);
+/** 在途上传句柄（abort 取消用，M-C2） */
+let uploadHandle: UploadPromise<void> | null = null;
 
 /** 状态栏高度（自定义导航适配） */
 const statusBarHeight = ref(0);
@@ -351,10 +372,32 @@ function handleCancel(): void {
   safeGoBack("/pages/circle/index");
 }
 
+/** 取消在途上传并复位进度（M-C2：弱网可中断，不再无期等待） */
+function abortUpload(): void {
+  uploadHandle?.abort();
+  uploadHandle = null;
+  uploadProgress.value = 0;
+}
+
 /** 手势/系统返回拦截：有未发布内容时弹确认，避免误触丢弃（M-C3） */
 onBackPress(() => {
-  // 提交在途：禁止返回（与 handleCancel 一致，避免导航打断上传）
-  if (submitting.value) return true;
+  // 提交在途：询问是否取消上传并离开（M-C2：弱网可中断，不再无期等待）
+  if (submitting.value) {
+    uni.showModal({
+      title: "取消上传？",
+      content: "内容正在上传中，确定取消并离开吗？",
+      confirmText: "取消上传",
+      cancelText: "继续等待",
+      success: (res) => {
+        if (res.confirm) {
+          abortUpload();
+          submitting.value = false;
+          safeGoBack("/pages/circle/index");
+        }
+      },
+    });
+    return true;
+  }
   // 无内容：放行默认返回
   if (!canPublish.value) return false;
   // 有未发布内容：弹确认，拦截默认返回由回调决定去向
@@ -530,19 +573,28 @@ async function handlePublish(): Promise<void> {
     if (videoFile.value) {
       // 小视频链路：后端 POST /small-videos 接收 videoThumbnail + videoFile + 可选定位
       const loc = await resolveVideoLocation();
-      await publishVideo({ thumbnailPath: videoCover.value, videoPath: videoFile.value, ...loc });
+      uploadHandle = publishVideo(
+        { thumbnailPath: videoCover.value, videoPath: videoFile.value, ...loc },
+        (p) => { uploadProgress.value = p; },
+      );
+      await uploadHandle;
     } else {
-      await publishMovement({
-        textContent: content.value.trim(),
-        location: location.value,
-        longitude: longitude.value,
-        latitude: latitude.value,
-        imagePaths: images.value,
-        tags: selectedTopics.value,
-      });
+      uploadHandle = publishMovement(
+        {
+          textContent: content.value.trim(),
+          location: location.value,
+          longitude: longitude.value,
+          latitude: latitude.value,
+          imagePaths: images.value,
+          tags: selectedTopics.value,
+        },
+        (p) => { uploadProgress.value = p; },
+      );
+      await uploadHandle;
       // 通知圈子页：返回后刷新动态流（onShow 消费）
       uni.setStorageSync(CIRCLE_NEED_REFRESH_KEY, "1");
     }
+    uploadHandle = null;
     published = true;
     success("发布成功");
     backTimer = setTimeout(() => {
@@ -561,7 +613,10 @@ async function handlePublish(): Promise<void> {
     // request 层统一 toast
   } finally {
     // 发布成功后保持 submitting（返回前的窗口期不可重复提交），仅失败时复位
-    if (!published) submitting.value = false;
+    if (!published) {
+      submitting.value = false;
+      uploadProgress.value = 0;
+    }
   }
 }
 
@@ -648,6 +703,34 @@ onUnload(() => {
   &.disabled {
     background: var(--bg-sub);
   }
+}
+
+/* ===== 上传进度条（M-C2）===== */
+.upload-progress {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 12rpx 28rpx;
+  background: var(--bg-card);
+}
+.upload-progress-track {
+  flex: 1;
+  height: 6rpx;
+  border-radius: 3rpx;
+  background: var(--border-faint);
+  overflow: hidden;
+}
+.upload-progress-fill {
+  height: 100%;
+  border-radius: 3rpx;
+  background: var(--color-primary);
+  transition: width 0.2s ease;
+}
+.upload-progress-text {
+  font-size: var(--fs-sm);
+  color: var(--text-hint);
+  min-width: 64rpx;
+  text-align: right;
 }
 
 /* ===== 分组标题 / 禁用原因提示 ===== */

@@ -229,9 +229,9 @@ function mapAnnouncementItem(msg: MessageAnnouncement): NoticeItem {
 }
 
 /** 加载当前类型的通知列表
- * @returns 是否加载成功（失败时不清未读，避免"没看到却清零"） */
-async function loadList(): Promise<boolean> {
-  if (loading.value) return false;
+ * @returns 当前总条数（失败返回 null，不清未读，避免"没看到却清零"） */
+async function loadList(): Promise<number | null> {
+  if (loading.value) return null;
   loading.value = true;
   try {
     const params = { page: 1, pagesize: PAGE_SIZE };
@@ -244,7 +244,7 @@ async function loadList(): Promise<boolean> {
         if (!benefit?.hasBenefit) {
           locked.value = true;
           list.value = [];
-          return;
+          return null;
         }
       } catch {
         // 权益校验失败不阻断（降级放行）
@@ -255,23 +255,27 @@ async function loadList(): Promise<boolean> {
     if (currentType === "like") {
       const res = await getLikeMessages(params);
       list.value = (res.items || []).map((m) => mapLikeItem(m, TYPE_DESC.like));
+      return res.counts || 0;
     } else if (currentType === "comment") {
       const res = await getCommentMessages(params);
       list.value = (res.items || []).map((m) => mapLikeItem(m, TYPE_DESC.comment));
+      return res.counts || 0;
     } else if (currentType === "love") {
       const res = await getLoveMessages(params);
       list.value = (res.items || []).map((m) => mapLikeItem(m, TYPE_DESC.love));
+      return res.counts || 0;
     } else if (currentType === "announcement") {
       const res = await getAnnouncementMessages(params);
       list.value = (res.items || []).map(mapAnnouncementItem);
+      return res.counts || 0;
     } else {
       // visitors / fans 后端暂无接口，显示空状态
       list.value = [];
+      return null;
     }
-    return true;
   } catch {
     // 请求失败由 request 层统一 toast
-    return false;
+    return null;
   } finally {
     loading.value = false;
   }
@@ -287,9 +291,9 @@ onLoad((options: any) => {
 });
 
 onShow(async () => {
-  const ok = await loadList();
+  const total = await loadList();
   // 真正进入通知页并完成加载后才清零未读，避免入口误触或加载失败即丢计数
-  if (ok) chatStore.markNoticeRead(type.value as NoticeType);
+  if (total !== null) chatStore.markNoticeRead(type.value as NoticeType, total);
 });
 
 /** 下拉刷新：重新拉取当前类型通知列表 */

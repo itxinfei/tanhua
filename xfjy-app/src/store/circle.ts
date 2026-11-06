@@ -207,59 +207,71 @@ export const useCircleStore = defineStore("circle", () => {
 
   /**
    * 切换动态点赞状态（本地乐观更新，失败回滚；成功时用接口返回的最新计数覆盖）
+   * 同一动态可能同时出现在 friend/recommend 两个 Tab（推荐流与好友流重叠），
+   * 必须同步更新两个列表中所有 id 匹配的项，否则切 Tab 后状态不一致。
    */
   async function toggleLike(movementId: string): Promise<void> {
-    const movement = findMovement(movementId);
-    if (!movement) return;
+    const targets = findAllMovements(movementId);
+    if (targets.length === 0) return;
 
+    // 以第一个匹配项的状态为基准（两个列表状态不一致时以先找到的为准）
+    const movement = targets[0];
     const wasLiked = movement.hasLiked;
     const prevCount = movement.likeCount;
     try {
       if (wasLiked) {
-        movement.hasLiked = 0;
-        movement.likeCount = Math.max(0, movement.likeCount - 1);
+        targets.forEach((m) => {
+          m.hasLiked = 0;
+          m.likeCount = Math.max(0, m.likeCount - 1);
+        });
         const latest = await dislikeMovement(movementId);
-        if (typeof latest === "number") movement.likeCount = latest;
+        if (typeof latest === "number") targets.forEach((m) => (m.likeCount = latest));
       } else {
-        movement.hasLiked = 1;
-        movement.likeCount += 1;
+        targets.forEach((m) => {
+          m.hasLiked = 1;
+          m.likeCount += 1;
+        });
         const latest = await likeMovement(movementId);
-        if (typeof latest === "number") movement.likeCount = latest;
+        if (typeof latest === "number") targets.forEach((m) => (m.likeCount = latest));
       }
     } catch (err) {
-      // 请求失败：回滚本地状态，与服务端保持一致
-      movement.hasLiked = wasLiked;
-      movement.likeCount = prevCount;
+      // 请求失败：回滚所有匹配项的本地状态，与服务端保持一致
+      targets.forEach((m) => {
+        m.hasLiked = wasLiked;
+        m.likeCount = prevCount;
+      });
       throw err;
     }
   }
 
   /**
    * 切换动态喜欢状态（本地乐观更新，失败回滚）
+   * 同一动态可能同时出现在 friend/recommend 两个 Tab，必须同步更新。
    */
   async function toggleLove(movementId: string): Promise<void> {
-    const movement = findMovement(movementId);
-    if (!movement) return;
+    const targets = findAllMovements(movementId);
+    if (targets.length === 0) return;
 
-    const wasLoved = movement.hasLoved;
+    const wasLoved = targets[0].hasLoved;
     try {
       if (wasLoved) {
-        movement.hasLoved = 0;
+        targets.forEach((m) => (m.hasLoved = 0));
         await unloveMovement(movementId);
       } else {
-        movement.hasLoved = 1;
+        targets.forEach((m) => (m.hasLoved = 1));
         await loveMovement(movementId);
       }
     } catch (err) {
-      movement.hasLoved = wasLoved;
+      targets.forEach((m) => (m.hasLoved = wasLoved));
       throw err;
     }
   }
 
-  /** 在当前可见列表中查找动态 */
-  function findMovement(movementId: string): Movement | undefined {
-    const allMovements = [...friendMovements.value, ...recommendMovements.value];
-    return allMovements.find((item) => item.id === movementId);
+  /** 查找所有 id 匹配的动态（跨 friend/recommend 两个列表） */
+  function findAllMovements(movementId: string): Movement[] {
+    return [...friendMovements.value, ...recommendMovements.value].filter(
+      (item) => item.id === movementId
+    );
   }
 
   /** 清除状态（登出时调用，避免换账号残留上一账号的动态列表） */

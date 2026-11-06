@@ -662,8 +662,8 @@ function onTouchEnd(_e: TouchEvent, index: number) {
 const swiping = ref(false);
 /** 待执行的卡片移除定时器（页面卸载时清理） */
 let cardRemoveTimer: ReturnType<typeof setTimeout> | null = null;
-/** 上一张已完成上报的卡片（回看撤销用） */
-const lastSwipe = ref<{ id: number; action: "like" | "dislike" | "superlike" } | null>(null);
+/** 已完成上报的卡片栈（回看撤销用）：后进先出，连续撤销时按正确顺序回滚 */
+const swipeStack = ref<Array<{ id: number; action: "like" | "dislike" | "superlike" }>>([]);
 
     /** 卡片滑出并上报操作，互相喜欢时弹出匹配成功弹窗 */
     async function swipeOut(action: "like" | "dislike" | "superlike") {
@@ -694,8 +694,8 @@ const lastSwipe = ref<{ id: number; action: "like" | "dislike" | "superlike" } |
       // 延迟移除卡片（等待飞出动画完成）
       cardRemoveTimer = setTimeout(() => {
         cardRemoveTimer = null;
-        // 记录刚出栈的卡片供「回看」撤销
-        lastSwipe.value = { id: card.id, action };
+        // 压入栈顶供「回看」撤销（后进先出）
+        swipeStack.value.push({ id: card.id, action });
         currentCardIndex.value++;
         dragX.value = 0;
         dragY.value = 0;
@@ -753,7 +753,7 @@ function handleDislike() {
  * 再把卡片放回队首；无历史记录时提示。
  */
 async function handleRewind(): Promise<void> {
-  const last = lastSwipe.value;
+  const last = swipeStack.value[swipeStack.value.length - 1];
   if (swiping.value || !last) {
     info("没有可回看的卡片");
     return;
@@ -774,7 +774,7 @@ async function handleRewind(): Promise<void> {
     currentCardIndex.value = Math.max(0, currentCardIndex.value - 1);
     dragX.value = 0;
     dragY.value = 0;
-    lastSwipe.value = null;
+    swipeStack.value.pop();
     // 计入今日回看次数（仅回滚成功后累加，失败重试不消耗）
     matchStore.useRewind();
     info("已回看上一张");

@@ -1,4 +1,4 @@
-import { get, post, upload } from "@/utils/request";
+import { get, post, upload, UploadPromise } from "@/utils/request";
 
 /** 分页结果（后端 PageResult 结构） */
 export interface PageResult<T = any> {
@@ -96,7 +96,10 @@ export interface PublishParam {
  *
  * @param param 文字内容、位置、经纬度、本地图片路径列表
  */
-export function publishMovement(param: PublishParam): Promise<void> {
+export function publishMovement(
+  param: PublishParam,
+  onProgress?: (percent: number) => void,
+): UploadPromise<void> {
   const formData: Record<string, any> = {
     textContent: param.textContent,
     location: param.location,
@@ -109,9 +112,13 @@ export function publishMovement(param: PublishParam): Promise<void> {
   }
   // 纯文字发布走 JSON 接口（规避 uni.uploadFile 空文件数组在 H5 下立即失败的问题）
   if (!param.imagePaths || param.imagePaths.length === 0) {
-    return post<void>("/movements", formData);
+    const p = post<void>("/movements", formData) as UploadPromise<void>;
+    p.abort = () => {
+      /* 纯文字无上传任务，无可取消 */
+    };
+    return p;
   }
-  return upload<void>("/movements", param.imagePaths, "imageContent", formData);
+  return upload<void>("/movements", param.imagePaths, "imageContent", formData, onProgress);
 }
 
 /**

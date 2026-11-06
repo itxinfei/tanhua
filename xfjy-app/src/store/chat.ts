@@ -153,14 +153,16 @@ export const useChatStore = defineStore("chat", () => {
 
   /**
    * 标记某类通知为已读（进入通知页时调用）
-   * 将本地记录更新为当前总条数，未读清零
+   * 将本地记录更新为当前总条数，未读清零。
+   *
+   * 不依赖 noticeUnreads 的当前值推算总数：loadNoticeCounts 部分失败时
+   * currentUnread 可能是旧值，用它反推 seenCount 会写错水位（偏大导致角标
+   * 永久不亮、偏小导致永久显示旧未读）。改为直接用接口返回的最新 counts。
    * @param type 通知类型
+   * @param currentTotal 该类通知的当前总条数（由调用方从最新接口响应传入）
    */
-  function markNoticeRead(type: NoticeType): void {
-    const currentUnread = noticeUnreads.value[type];
-    if (currentUnread <= 0) return;
-    // 当前总数 = 上次查看数 + 未读数
-    setSeenCount(type, getSeenCount(type) + currentUnread);
+  function markNoticeRead(type: NoticeType, currentTotal: number): void {
+    setSeenCount(type, Math.max(0, currentTotal));
     noticeUnreads.value[type] = 0;
   }
 

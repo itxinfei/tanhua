@@ -658,9 +658,10 @@ function mapAnnouncementItem(msg: MessageAnnouncement): NoticeItem {
   };
 }
 
-/** 加载当前类型的通知列表 */
-async function loadNoticeList(type: string): Promise<boolean> {
-  if (noticeLoading.value) return false;
+/** 加载当前类型的通知列表
+ * @returns 当前总条数（失败返回 null，不清未读） */
+async function loadNoticeList(type: string): Promise<number | null> {
+  if (noticeLoading.value) return null;
   noticeLoading.value = true;
   try {
     const params = { page: 1, pagesize: NOTICE_PAGE_SIZE };
@@ -672,7 +673,7 @@ async function loadNoticeList(type: string): Promise<boolean> {
         if (!benefit?.hasBenefit) {
           noticeLocked.value = true;
           noticeList.value = [];
-          return true;
+          return null;
         }
       } catch {
         // 权益校验失败不阻断（降级放行）
@@ -683,21 +684,25 @@ async function loadNoticeList(type: string): Promise<boolean> {
     if (type === "like") {
       const res = await getLikeMessages(params);
       noticeList.value = (res.items || []).map((m) => mapLikeItem(m, NOTICE_DESC.like));
+      return res.counts || 0;
     } else if (type === "comment") {
       const res = await getCommentMessages(params);
       noticeList.value = (res.items || []).map((m) => mapLikeItem(m, NOTICE_DESC.comment));
+      return res.counts || 0;
     } else if (type === "love") {
       const res = await getLoveMessages(params);
       noticeList.value = (res.items || []).map((m) => mapLikeItem(m, NOTICE_DESC.love));
+      return res.counts || 0;
     } else if (type === "announcement") {
       const res = await getAnnouncementMessages(params);
       noticeList.value = (res.items || []).map(mapAnnouncementItem);
+      return res.counts || 0;
     } else {
       noticeList.value = [];
+      return null;
     }
-    return true;
   } catch {
-    return false;
+    return null;
   } finally {
     noticeLoading.value = false;
   }
@@ -712,9 +717,9 @@ async function toggleNoticePanel(type: string): Promise<void> {
   noticePanelType.value = type;
   noticeList.value = [];
   noticeLocked.value = false;
-  const ok = await loadNoticeList(type);
+  const total = await loadNoticeList(type);
   // 加载成功后才清零未读
-  if (ok) chatStore.markNoticeRead(type as NoticeType);
+  if (total !== null) chatStore.markNoticeRead(type as NoticeType, total);
 }
 
 function goVip(): void {

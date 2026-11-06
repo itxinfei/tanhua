@@ -6,6 +6,7 @@
 import { log, error } from "@/utils/logger";
 import { fail, info, networkError, networkOffline, networkTimeout } from "@/utils/ux";
 import { shouldBlockRequest } from "@/utils/network-monitor";
+import { isDevExemptionEnabled } from "@/config/env";
 
 /** 普通请求超时（毫秒）：小程序默认 60s 太长，弱网用户体验差 */
 const REQUEST_TIMEOUT_MS = 15000;
@@ -106,11 +107,9 @@ export function buildLoginUrlWithRedirect(): string {
  * userStore 用动态 import，避免 request.ts ← store 的循环依赖
  */
 export function handleUnauthorized(): void {
-  // 开发环境 mock：localhost / 127.0.0.1 不清除 token、不重定向，便于本地调试
-  if (
-    typeof location !== "undefined" &&
-    (location.hostname === "localhost" || location.hostname === "127.0.0.1")
-  ) {
+  // 开发环境豁免：本地开发时不清除 token、不重定向，便于本地调试
+  // （生产构建设 VITE_DISABLE_DEV_EXEMPTION=true 关闭）
+  if (isDevExemptionEnabled()) {
     return;
   }
   removeToken();
@@ -308,24 +307,30 @@ export const del = <T = any>(url: string) =>
  * @param filePaths  本地文件路径列表
  * @param fileField  文件字段名（与后端 @RequestParam 对应）
  * @param formData   附加表单字段
- * @returns 请求结果
+ * @param onProgress 上传进度回调（0-99，100 在 resolve 时达成）
+ * @returns 请求结果（附带 abort 方法，可取消在途上传）
  */
+/** 带 abort 能力的上传 Promise：await 照常，额外可调用 abort() 取消在途上传 */
+export type UploadPromise<T> = Promise<T> & { abort: () => void };
+
 export function upload<T = any>(
   url: string,
   filePaths: string[],
   fileField: string,
-  formData?: Record<string, any>
-): Promise<T> {
+  formData?: Record<string, any>,
+  onProgress?: (percent: number) => void,
+): UploadPromise<T> {
   const startAt = Date.now();
   log(`UPLOAD ${url}`, filePaths);
 
   // 断网快速失败：上传前判网络，避免大文件白等 60s 超时（S1）
   if (shouldBlockRequest()) {
     networkOffline();
-    return Promise.reject(new Error("网络已断开"));
+    return Promise.reject(new Error("网络已断开")) as UploadPromise<T>;
   }
 
-  return new Promise<T>((resolve, reject) => {
+  let task: UniApp.UploadTask | null = null;
+  const promise = new Promise<T>((resolve, reject) => {
     const token = getToken();
     const header: Record<string, string> = {};
     if (token) {
@@ -418,7 +423,19 @@ export function upload<T = any>(
         reject(err);
       },
     });
-  });
+    // 上传进度回调：封顶 99%，100% 在 resolve 时达成，避免「100% 了还在转」
+    task?.onProgressUpdate?.((res) => {
+      onProgress?.(Math.min(99, res.progress || 0));
+    });
+  }) as UploadPromise<T>;
+  promise.abort = () => {
+    try {
+      task?.abort();
+    } catch {
+      /* 任务已结束，忽略 */
+    }
+  };
+  return promise;
 }
 
 export default request;

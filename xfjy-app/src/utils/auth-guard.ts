@@ -5,6 +5,7 @@
  */
 
 import { getToken } from "@/utils/request";
+import { isDevExemptionEnabled } from "@/config/env";
 
 const LOGIN_PAGE = "/pages/auth/login";
 
@@ -21,11 +22,8 @@ function checkLogin(url: string): boolean {
   if (isWhiteListed(url)) return true;
   if (getToken()) return true;
 
-  // 开发环境 mock：localhost / 127.0.0.1 视为开发环境，允许无 token 导航
-  if (
-    typeof location !== "undefined" &&
-    (location.hostname === "localhost" || location.hostname === "127.0.0.1")
-  ) {
+  // 开发环境豁免：本地开发时允许无 token 导航（生产构建设 VITE_DISABLE_DEV_EXEMPTION=true 关闭）
+  if (isDevExemptionEnabled()) {
     return true;
   }
 
