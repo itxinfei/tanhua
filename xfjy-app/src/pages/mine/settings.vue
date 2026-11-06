@@ -30,7 +30,11 @@
         @tap="onNotificationTap(s)"
       >
         <text class="label">{{ s.label }}</text>
-        <!-- 服务端配置加载完成前禁用，避免拨动默认值覆盖服务端 -->
+        <!-- 服务端配置加载完成前禁用，避免拨动默认值覆盖服务端
+             color 写 CSS 变量：H5 端编译为 style 可解析；微信小程序端
+             <switch> 是原生组件，color 只接受 hex，会回落为默认绿。
+             属平台限制（§11.7 #43 已裁决选 B：接受 MP 端默认色），
+             不写死 hex——写死会导致暗色模式下不跟随主色。 -->
         <switch :checked="s.value" :disabled="!settingsLoaded" color="var(--color-primary)" @change="toggleNotification(s.key, $event)" @click.stop />
       </a11y-button>
     </view>
@@ -40,6 +44,7 @@
       <text class="group-title">隐私</text>
       <a11y-button class="item" :label="`显示距离，当前${showDistance ? '开启' : '关闭'}，点击切换`" @tap="onDistanceChange({ detail: { value: !showDistance } })">
         <text class="label">显示距离</text>
+        <!-- color 平台限制同上（§11.7 #43 选 B）：H5 生效，MP 端默认绿 -->
         <switch :checked="showDistance" color="var(--color-primary)" @change="onDistanceChange" @click.stop />
       </a11y-button>
     </view>
