@@ -212,6 +212,7 @@ public class VideoSearchApiImpl implements VideoSearchApi {
         item.setVid(v.getVid());
         item.setTitle(v.getText());
         item.setCover(v.getPicUrl());
+        item.setVideoUrl(v.getVideoUrl());
         item.setAuthorId(v.getUserId());
         item.setAuthorName(null);
         item.setLikeCount((int) Math.min(Integer.MAX_VALUE, likeCountMap.getOrDefault(videoId, 0L)));

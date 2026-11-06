@@ -11,6 +11,8 @@ export interface VideoSearchItem {
   title: string;
   /** 封面 */
   cover: string;
+  /** 视频播放地址（MinIO URL，TASK-20261106-04 全链路透传） */
+  videoUrl: string;
   /** 作者用户ID */
   authorId: number | null;
   /** 作者昵称（用户服务补齐，补不到时为空） */

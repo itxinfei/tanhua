@@ -101,6 +101,7 @@ public class VideoSearchService {
             vo.setVid(record.getVid());
             vo.setTitle(record.getTitle());
             vo.setCover(record.getCover());
+            vo.setVideoUrl(record.getVideoUrl());
             vo.setAuthorId(record.getAuthorId());
             vo.setAuthorName(record.getAuthorName());
             vo.setLikeCount(record.getLikeCount() == null ? 0 : record.getLikeCount());

@@ -29,6 +29,9 @@ public class VideoSearchItem implements java.io.Serializable {
     /** 封面地址 */
     private String cover;
 
+    /** 视频播放地址（MinIO URL） */
+    private String videoUrl;
+
     /** 作者用户ID */
     private Long authorId;
 

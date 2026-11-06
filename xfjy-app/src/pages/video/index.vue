@@ -312,6 +312,10 @@ import {
 import A11yDialog from "@/components/a11y-dialog.vue";
 import { formatCount } from "@/utils/format";
 import { info } from "@/utils/ux";
+import { useSystemStore } from "@/store/system";
+import type { VideoSearchItem } from "@/api/video-search";
+
+const systemStore = useSystemStore();
 
 /**
  * 分页大小。
@@ -1118,6 +1122,17 @@ watch(
 /** 分享链接携带的目标视频 ID（`#/pages/video/index?id=xxx`）；首屏数据到达后定位到它 */
 const targetVideoId = ref("");
 
+/**
+ * 当前 targetVideoId 的来源，决定「目标不在当前频道列表」时的分流处理：
+ * - share：分享链接冷启动，未找到给一次提示后放弃（既有行为，禁止改动）；
+ * - search：搜索结果深链，目标是后端确认的有效公开视频，未找到则映射后插到当前频道头部再定位，
+ *   不能像分享入口那样给「未找到」死路。
+ */
+const targetVideoSource = ref<"share" | "search">("share");
+
+/** 搜索深链携带的原始搜索条目，仅 source=search 且需要插入头部时用于字段映射 */
+const pendingSearchItem = ref<VideoSearchItem | null>(null);
+
 onLoad((query: any) => {
   const id = query?.id;
   if (typeof id === "string" && id) {
@@ -1136,39 +1151,131 @@ if (isH5 && typeof window !== "undefined") {
 }
 
 /**
- * 首屏数据就绪后定位到分享的目标视频。
- * 只在当前已加载列表里找：分享者看到的视频可能已下架或不在推荐池内，
- * 不在列表时给一次提示后清空目标，避免用户每次进页面都被反复提示。
+ * H5 无手势起播兜底：非静音 autoplay 会被浏览器拦截导致画面停在第一帧，
+ * 退回「静音起播」（muted autoplay 是策略唯一允许的自动播放），用户任意触碰屏幕即由 unlockAudio 解锁。
+ * 分享冷启动与搜索深链插入头部两条路径共用，避免平行维护两套起播逻辑。
+ */
+function h5MutedAutoplayFallback(index: number): void {
+  if (!isH5) return;
+  setTimeout(() => {
+    const el = videoEl(index);
+    if (!el || !el.paused) return;
+    isMuted.value = true;
+    el.muted = true;
+    const p = el.play();
+    if (p && typeof p.catch === "function") p.catch(() => {});
+  }, 360);
+}
+
+/**
+ * 把搜索条目显式映射为视频页 Video。
+ * 两个类型字段不同源（VideoSearchVo 仅搜索瀑布流所需字段，VideoVo 是播放页完整字段），
+ * 逐字段映射、缺项给安全默认值，禁止 as any 强转。
+ *
+ * 播放地址由 TASK-20261106-04 全链路透传（搜索 DTO/VO 补 videoUrl）；
+ * 保留空值兜底防御脏数据，为空时视频走既有「加载失败点此重试」浮层。
+ */
+function mapSearchItemToVideo(item: VideoSearchItem): Video {
+  return {
+    id: item.id,
+    // Video.userId 为 string，搜索 authorId 为 number|null；无作者时给空串，侧栏关注类操作不会误调接口
+    userId: item.authorId === null || item.authorId === undefined ? "" : String(item.authorId),
+    nickname: item.authorName || "用户",
+    // 搜索 VO 无头像字段，给空串由 image 组件走自身空态，不编造地址
+    avatar: "",
+    signature: item.title || "小视频",
+    cover: item.cover || "",
+    // 播放地址来自搜索接口透传（TASK-20261106-04）；|| "" 兜底防御脏数据
+    videoUrl: item.videoUrl || "",
+    hasFocus: 0,
+    hasLiked: 0,
+    likeCount: item.likeCount,
+    commentCount: 0,
+  };
+}
+
+/**
+ * 搜索深链目标不在当前频道列表时：映射后插到当前频道列表头部并定位到 0。
+ * 搜索结果是后端按公开+未删除条件过滤后的有效视频，不能给用户「未找到」死路。
+ */
+function insertSearchVideoToHead(item: VideoSearchItem): void {
+  const chState = channels[activeChannel.value];
+  // 防御性去重：正常走到这里说明 findIndex 未命中，这里再挡一次并发/重复消费
+  const existIdx = chState.list.value.findIndex((v) => v.id === item.id);
+  if (existIdx >= 0) {
+    swiperIndex.value = existIdx;
+    nextTick(() => {
+      playAt(existIdx);
+      h5MutedAutoplayFallback(existIdx);
+    });
+    return;
+  }
+  chState.list.value = [mapSearchItemToVideo(item), ...chState.list.value];
+  swiperIndex.value = 0;
+  isPlaying.value = true;
+  progress.value = 0;
+  erroredVideoIds.value = new Set();
+  nextTick(() => {
+    playAt(0);
+    h5MutedAutoplayFallback(0);
+  });
+}
+
+/**
+ * 首屏数据就绪后定位到目标视频（分享链接与搜索深链共用入口）。
+ * 只在当前已加载列表里找：
+ * - 分享来源：目标可能已下架或不在推荐池，未找到给一次提示后放弃，避免每次进页面反复提示；
+ * - 搜索来源：目标是有效公开视频，未找到则映射插到当前频道头部再定位（不给死路）。
+ * 无论命中与否，targetVideoId/source/pendingSearchItem 都一次性消费并复位，防止下次 onShow 重复定位。
  */
 function locateTargetVideo(): boolean {
   if (!targetVideoId.value) return false;
   const idx = displayList.value.findIndex((v) => v.id === targetVideoId.value);
-  const id = targetVideoId.value;
+  const source = targetVideoSource.value;
   targetVideoId.value = "";
+  targetVideoSource.value = "share";
+
   if (idx < 0) {
+    if (source === "search") {
+      const item = pendingSearchItem.value;
+      pendingSearchItem.value = null;
+      if (item) {
+        insertSearchVideoToHead(item);
+        return true;
+      }
+    }
+    // 分享入口既有行为：提示后放弃（搜索分支因数据缺失拿不到 item 时也安全降级到这里）
     info("分享的视频未找到，可能已下架");
     return false;
   }
+
+  pendingSearchItem.value = null;
   swiperIndex.value = idx;
   nextTick(() => {
     playAt(idx);
-    // 分享链接冷启动没有用户手势：非静音播放会被浏览器拒绝，画面停在第一帧。
-    // 退回「静音起播」（muted autoplay 是允许的），用户任意触碰屏幕即由 unlockAudio 解锁。
-    if (isH5) {
-      setTimeout(() => {
-        const el = videoEl(idx);
-        if (!el || !el.paused) return;
-        isMuted.value = true;
-        el.muted = true;
-        const p = el.play();
-        if (p && typeof p.catch === "function") p.catch(() => {});
-      }, 360);
-    }
+    h5MutedAutoplayFallback(idx);
   });
   return true;
 }
 
+/**
+ * 消费 system store 里的搜索深链（onShow 最先执行）。
+ * tab 页 onLoad 全生命周期只触发一次、switchTab 又不支持 URL 参数，
+ * 搜索入口只能经 store 中转：取走后立刻清 store，保证本次 onShow 之后切走再切回不会重复强制定位。
+ */
+function consumePendingDeepLink(): void {
+  const pending = systemStore.pendingVideoDeepLink;
+  if (!pending) return;
+  targetVideoId.value = pending.videoId;
+  targetVideoSource.value = pending.source;
+  pendingSearchItem.value = pending.sourceItem;
+  systemStore.clearPendingVideoDeepLink();
+}
+
 onShow(() => {
+  // 先消费搜索深链：把 store 里的待定视频转成 targetVideoId/source，随后本函数两条分支
+  // （空列表走 loadVideos 内定位 / 有列表走下方 nextTick 定位）都会经过 locateTargetVideo 统一处理。
+  consumePendingDeepLink();
   // H5：文档级首次手势监听（capture 阶段，先于业务 click/tap；不写 preventDefault，不拦截事件）。
   // 用户触碰屏幕任意处即解锁音频——覆盖点频道 Tab（切频道后的第一个视频也要带声）、点封面、
   // 滑动等所有入口，根治「每个频道第一个视频全程静音且无提示」。配对注销见 onHide。

@@ -108,9 +108,16 @@
         </view>
       </view>
 
-      <!-- 双列瀑布流 -->
+      <!-- 双列瀑布流：整张卡是一个大热区（a11y-button default 尺寸，禁用 sm），
+           点击写深链后 switchTab 到视频 tab；禁止裸 view 绑 @tap（AGENTS.md §7.1） -->
       <view v-else class="waterfall">
-        <view v-for="item in list" :key="item.id" class="card">
+        <a11y-button
+          v-for="item in list"
+          :key="item.id"
+          class="card"
+          :label="cardAriaLabel(item)"
+          @tap="openVideo(item)"
+        >
           <view class="cover-wrap">
             <image v-if="item.cover" class="cover" :src="item.cover" mode="aspectFill" lazy-load />
             <view v-else class="cover cover-empty" aria-hidden="true" />
@@ -134,7 +141,7 @@
               :class="{ hit: seg.hit }"
             >{{ seg.text }}</text>
           </view>
-        </view>
+        </a11y-button>
       </view>
 
       <view v-if="list.length > 0" class="list-foot">
@@ -158,6 +165,9 @@ import {
   type VideoSearchItem,
   type HotSearchWord,
 } from "@/api/video-search";
+import { useSystemStore } from "@/store/system";
+
+const systemStore = useSystemStore();
 
 /** 与后端 VideoSearchService.KEYWORD_MAX 一致 */
 const KEYWORD_MAX = 30;
@@ -287,6 +297,26 @@ async function loadRecoWords(): Promise<void> {
   } catch (e) {
     recoWords.value = FALLBACK_WORDS.slice(0, 6);
   }
+}
+
+/**
+ * 卡片无障碍名称：读屏需读出「视频标题 + 作者」才能识别这张卡可点（WCAG 4.1.2）。
+ * 标题/作者缺失时给占位，绝不读出空串。
+ */
+function cardAriaLabel(item: VideoSearchItem): string {
+  const title = item.title || "未命名视频";
+  const author = item.authorName || "未知作者";
+  return `播放视频：${title}，作者：${author}`;
+}
+
+/**
+ * 点击搜索结果：把目标视频写入 system store 深链，再 switchTab 到视频 tab。
+ * 视频页是 tabBar 页，navigateTo 不能跳、switchTab 不支持 URL 参数，只能走 store 中转；
+ * 视频页 onShow 消费一次后立即清除，切走再切回不会重复强制定位。
+ */
+function openVideo(item: VideoSearchItem): void {
+  systemStore.setPendingVideoDeepLink(item.id, item);
+  uni.switchTab({ url: "/pages/video/index" });
 }
 
 function goBack(): void {
@@ -497,7 +527,14 @@ function titleSegments(title: string): TitleSegment[] {
   justify-content: space-between;
 }
 
+/* 卡片根节点即 a11y-button（default 零样式壳，内置 inline-flex + 居中 + 88rpx 热区）。
+   这里显式改回纵向 flex，覆盖壳的 inline-flex/居中，让封面与标题保持上下排列；
+   卡片自身高度远超 88rpx，壳的 min-height 不影响版式。 */
 .card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
   width: calc((100% - var(--space-sm)) / 2);
   margin-bottom: var(--space-sm);
   border-radius: var(--radius-md);
