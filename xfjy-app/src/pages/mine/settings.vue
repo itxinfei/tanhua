@@ -148,6 +148,8 @@
     <!-- 退出登录（a11y-button 全站按钮单一真源，loading 防重复点击） -->
     <a11y-button
       class="logout-btn"
+      variant="ghost"
+      block
       label="退出登录"
       :loading="logoutLoading"
       @tap="handleLogout"
@@ -158,6 +160,8 @@
     <!-- 注销账号（破坏性操作：需可聚焦 + 语义化 + 足够对比度） -->
     <a11y-button
       class="delete-account"
+      variant="ghost"
+      block
       label="注销账号"
       @tap="handleDeleteAccount"
     >
@@ -515,15 +519,16 @@ function inputDeleteCode() {
 }
 
 .logout-btn {
-  margin: 16rpx 0 0; min-height: var(--row-h-touch-md);
-  display: flex; align-items: center; justify-content: center;
-  background: var(--bg-card); color: var(--color-danger); font-size: 30rpx; font-weight: 500;
-  border-radius: 44rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+  margin: 16rpx 0 0;
+  /* ghost variant 提供热区/按压反馈/字体，此处只覆写颜色为危险色 */
+  color: var(--color-danger);
+  border-color: var(--color-danger);
 }
 
-/* 破坏性操作：保证触摸目标 ≥88rpx（54px），原 48rpx 偏低 */
-.delete-account { text-align: center; padding: 32rpx; min-height: 88rpx; box-sizing: border-box;
-  text { font-size: 26rpx; color: var(--color-danger); }
+/* 破坏性操作：同样走 ghost variant，只覆写颜色 */
+.delete-account {
+  margin: 16rpx 0 0;
+  color: var(--color-danger);
+  border-color: var(--color-danger);
 }
 </style>
