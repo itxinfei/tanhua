@@ -628,7 +628,10 @@ export async function getChatHistory(
       .map(toReceivedMessage)
       .filter((m): m is ReceivedMessage => m !== null)
       .sort((a, b) => (a.time || 0) - (b.time || 0));
-  } catch {
-    return [];
+  } catch (err) {
+    // 不再伪装成空数组：空数组语义是「真的没有历史消息」，失败必须让调用方感知并展示错误空态。
+    // 记录会话与异常上下文后重抛，由聊天页内层 try/catch 置失败标记；前置条件分支仍返回 []。
+    console.warn(`[wukongim] 历史消息拉取失败，conversationId=${conversationId}, err=${String(err)}`);
+    throw err;
   }
 }

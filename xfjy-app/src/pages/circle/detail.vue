@@ -2,6 +2,19 @@
   <view class="post-detail">
     <scroll-view scroll-y class="detail-scroll">
     <!-- 动态内容 -->
+    <!-- 加载中骨架 -->
+    <skeleton v-if="postLoading && !post" variant="feed" />
+    <!-- 加载失败：与「动态不存在」区分，给明确原因 + 可重试入口。
+         接口失败时旧版 post=null 直接留白，用户只看到评论区无从恢复。 -->
+    <empty-state
+      v-if="!post && !postLoading && postLoadFailed"
+      role="alert"
+      icon="info"
+      title="暂时没能获取动态详情"
+      desc="服务可能开小差了，检查网络后重试"
+    >
+      <a11y-button class="detail-retry" label="重新加载动态详情" @tap="loadDetail()">重新加载</a11y-button>
+    </empty-state>
     <!-- 动态主体：接口失败 post=null 时不渲染，避免读 null 属性崩溃（评论区仍可用） -->
     <view v-if="post" class="post-card">
       <view class="post-header">
@@ -75,6 +88,8 @@
 import { ref } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
+import EmptyState from "@/components/empty-state.vue";
+import Skeleton from "@/components/skeleton.vue";
 import { getMovementById, getComments, publishComment, likeComment, dislikeComment } from "@/api/circle";
 import type { Movement, Comment } from "@/api/circle";
 import { success } from "@/utils/ux";
@@ -83,6 +98,8 @@ const PAGE_SIZE = 20;
 const postId = ref("");
 const commentText = ref("");
 const post = ref<Movement | null>(null);
+const postLoading = ref(false);
+const postLoadFailed = ref(false);
 const comments = ref<Comment[]>([]);
 const sending = ref(false);
 const commentPage = ref(1);
@@ -97,10 +114,16 @@ function previewImg(index: number | string) {
 
 /** 加载动态详情 */
 async function loadDetail() {
+  postLoading.value = true;
+  postLoadFailed.value = false;
   try {
     post.value = await getMovementById(postId.value);
   } catch {
+    // 首屏失败标记：页面据此显示错误态+重试，而非只剩空荡荡的评论区
+    postLoadFailed.value = true;
     // request 层统一 toast
+  } finally {
+    postLoading.value = false;
   }
 }
 
@@ -189,6 +212,17 @@ onLoad((options: any) => {
 /* border-box：padding 计入高度，避免 min-height:100vh 下超出视口 */
 .post-detail { box-sizing: border-box; height: calc(100vh - var(--tab-bar-height, 0px)); background: var(--bg-sub); display: flex; flex-direction: column; overflow: hidden; }
 .detail-scroll { flex: 1; min-height: 0; padding: 20rpx 24rpx 24rpx; }
+
+/* 加载失败态的重试按钮（置于 empty-state 的 slot 内） */
+.detail-retry {
+  margin-top: 32rpx;
+  padding: 16rpx 56rpx;
+  border-radius: var(--radius-pill);
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text-inverse);
+  background: var(--gradient-brand);
+}
 .post-card { background: var(--bg-card); padding: 28rpx; margin-bottom: 16rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   .post-header { display: flex; align-items: center; min-width: 0;
     .avatar { width: 76rpx; height: 76rpx; border-radius: 50%; border: 3rpx solid var(--bg-icon-soft); flex-shrink: 0; }

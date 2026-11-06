@@ -220,7 +220,19 @@ function chooseImage(): void {
       // 图片由 publishMovement 内部 upload() 直传后端，此处仅暂存本地路径
       images.value.push(...res.tempFilePaths);
     },
+    fail: handleMediaFail,
   });
+}
+
+/** chooseImage/chooseVideo fail：区分用户取消（静默）与授权拒绝（提示 + MP 端引导打开设置页） */
+function handleMediaFail(err: any): void {
+  const msg = String(err?.errMsg || "");
+  if (msg.includes("cancel")) return;
+  info("需要相册/相机权限才能选择媒体");
+  const openSetting = (uni as any).openSetting;
+  if (typeof openSetting === "function") {
+    openSetting({});
+  }
 }
 
 /** 删除图片 */
@@ -242,6 +254,7 @@ function chooseVideo(): void {
         videoFile.value = res.tempFilePath;
         videoCover.value = r.thumbTempFilePath || "";
       },
+      fail: handleMediaFail,
     });
   };
   if (!hasContent) {

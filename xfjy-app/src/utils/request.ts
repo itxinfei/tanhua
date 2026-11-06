@@ -4,13 +4,30 @@
  */
 
 import { log, error } from "@/utils/logger";
+import { networkTimeout } from "@/utils/ux";
 
-// 后端服务地址：优先读环境变量 VITE_API_BASE_URL，未配置则按构建模式回退
+/** 普通请求超时（毫秒）：小程序默认 60s 太长，弱网用户体验差 */
+const REQUEST_TIMEOUT_MS = 15000;
+/** 文件上传超时（毫秒）：大文件/弱网需要更长窗口 */
+const UPLOAD_TIMEOUT_MS = 60000;
+
+// 后端服务地址：优先读环境变量 VITE_API_BASE_URL（见 .env.development / .env.production）。
+// 未配置时按构建模式回退：
+//   - H5 生产：同源相对路径 /api，由 nginx 反代到网关 8090（见 deploy/docker/nginx.conf）
+//   - App / 小程序生产：无同源概念，必须使用绝对地址，回退内网网关
+//   - 开发：本机网关
 // 开发联调可在 xfjy-app/.env.development 配置 VITE_API_BASE_URL=http://192.168.x.x:8090
+let PRODUCTION_FALLBACK = "/api";
+// #ifndef H5
+// App / 小程序无同源概念：使用绝对地址；公网发布请把 .env.production 的
+// VITE_API_BASE_URL 改成 https 公网域名（此回退地址仅在未配置时生效）
+PRODUCTION_FALLBACK = "http://192.168.20.133:8090";
+// #endif
+
 export const BASE_URL: string =
   import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.MODE === "production"
-    ? "/api" // 生产 H5 走同源相对路径，由 nginx 反代到网关 8090（见 deploy/docker/nginx.conf）
+    ? PRODUCTION_FALLBACK
     : "http://localhost:8090"); // 统一走网关(8090，避开8080端口占用)，由网关路由到 sso/server
 
 // 请求配置类型
@@ -109,6 +126,7 @@ function request<T = any>(options: RequestOptions): Promise<T> {
       url: BASE_URL + url,
       method,
       data,
+      timeout: REQUEST_TIMEOUT_MS,
       header: {
         "Content-Type": "application/json",
         ...header,
@@ -210,7 +228,12 @@ function request<T = any>(options: RequestOptions): Promise<T> {
       fail: (err: any) => {
         error(`${method} ${url} ✗ (${Date.now() - startAt}ms)`, err);
         if (loading) uni.hideLoading();
-        uni.showToast({ title: "网络异常，请检查网络", icon: "none" });
+        // 超时单独提示（errMsg 含 "timeout"），其余走通用网络异常
+        if (String(err?.errMsg || "").includes("timeout")) {
+          networkTimeout();
+        } else {
+          uni.showToast({ title: "网络异常，请检查网络", icon: "none" });
+        }
         reject(err);
       },
     });
@@ -267,6 +290,7 @@ export function upload<T = any>(
       })),
       formData,
       header,
+      timeout: UPLOAD_TIMEOUT_MS,
       success: (res: any) => {
         log(`UPLOAD ${url} → ${res.statusCode} (${Date.now() - startAt}ms)`);
         // 401 登录过期：统一走 handleUnauthorized（与 request 函数对齐）
@@ -335,7 +359,12 @@ export function upload<T = any>(
       },
       fail: (err: any) => {
         error(`UPLOAD ${url} ✗ (${Date.now() - startAt}ms)`, err);
-        uni.showToast({ title: "网络异常，请检查网络", icon: "none" });
+        // 超时单独提示（errMsg 含 "timeout"），其余走通用网络异常
+        if (String(err?.errMsg || "").includes("timeout")) {
+          networkTimeout();
+        } else {
+          uni.showToast({ title: "网络异常，请检查网络", icon: "none" });
+        }
         reject(err);
       },
     });

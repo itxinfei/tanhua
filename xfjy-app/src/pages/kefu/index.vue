@@ -17,7 +17,20 @@
     </view>
 
     <scroll-view class="faq-scroll" scroll-y>
-      <empty-state v-if="groupedList.length === 0 && !loading" icon="chatbubble" :title="keyword ? '未找到相关问题' : '暂无常见问题'" :desc="keyword ? '换个关键词，或直接咨询在线客服' : '可直接提交意见反馈联系我们'" />
+      <!-- 加载失败：与「真的暂无 FAQ / 搜索无结果」严格区分，给明确原因 + 可重试入口。
+           失败时 faqList 未被赋值（仍为空），分组列表自然不渲染，错误态优先于本地搜索结果 -->
+      <empty-state
+        v-if="groupedList.length === 0 && !loading && faqLoadFailed"
+        role="alert"
+        icon="info"
+        title="暂时没能获取常见问题"
+        desc="服务可能开小差了，检查网络后重试"
+      >
+        <a11y-button class="faq-retry" label="重新加载常见问题" @tap="loadFaqList">重新加载</a11y-button>
+      </empty-state>
+
+      <!-- 正常空态：首屏无数据或关键词搜索无结果（两种文案分支保持原样，禁止改动） -->
+      <empty-state v-else-if="groupedList.length === 0 && !loading" icon="chatbubble" :title="keyword ? '未找到相关问题' : '暂无常见问题'" :desc="keyword ? '换个关键词，或直接咨询在线客服' : '可直接提交意见反馈联系我们'" />
 
       <view v-for="group in groupedList" :key="group.category" class="faq-group">
         <view class="group-title">
@@ -65,6 +78,8 @@ import { getFaqListApi, type FaqItem } from "@/api/kefu";
 
 const faqList = ref<FaqItem[]>([]);
 const loading = ref(false);
+/** FAQ 加载失败标记：与「真的暂无数据」区分，失败时展示错误空态 + 重试（S3 失败态/空态分离） */
+const faqLoadFailed = ref(false);
 /** 搜索关键词（本地过滤 question/answer） */
 const keyword = ref("");
 /** 当前展开的 FAQ id（手风琴：同时只展开一个） */
@@ -100,10 +115,13 @@ onMounted(() => {
 
 async function loadFaqList(): Promise<void> {
   loading.value = true;
+  // 每次加载先清失败标记：成功走正常列表/空态，失败再置回 true
+  faqLoadFailed.value = false;
   try {
     faqList.value = await getFaqListApi();
   } catch {
-    // 错误提示由 request 封装统一处理
+    // catch 不空吞：错误 toast 由 request 封装统一处理，这里置失败标记驱动错误空态 + 重试按钮
+    faqLoadFailed.value = true;
   } finally {
     loading.value = false;
   }
@@ -260,6 +278,17 @@ function goFeedback(): void {
     font-size: 24rpx;
     color: var(--text-hint);
   }
+}
+
+/* 失败空态内的重试按钮：default 变体零样式，这里补品牌色，颜色全走 CSS 变量适配暗色 */
+.faq-retry {
+  margin-top: 32rpx;
+  padding: 16rpx 56rpx;
+  border-radius: var(--radius-pill);
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text-inverse);
+  background: var(--color-primary);
 }
 
 .bottom-bar {

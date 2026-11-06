@@ -164,9 +164,22 @@
             </view>
           </view>
 
-          <!-- 进度条 -->
-          <view v-if="currentId === video.id" class="progress-bar" role="progressbar" aria-label="播放进度" :aria-valuenow="Math.round(progress)" aria-valuemin="0" aria-valuemax="100">
-            <view class="progress-inner" :style="{ width: progress + '%' }" />
+          <!-- 进度条 + 拖动定位（抖音式）：88rpx 热区保证可触摸；拖动只更新预览，松手才 seek，
+               避免拖动过程中连续 seek 造成卡顿。横拖被 .stop.prevent 吃掉，不会带动竖向 swiper。 -->
+          <view
+            v-if="currentId === video.id"
+            class="progress-hit"
+            :class="{ 'is-scrubbing': scrubbing }"
+            @touchstart="onScrubStart"
+            @touchmove.stop.prevent="onScrubMove"
+            @touchend="onScrubEnd"
+            @touchcancel="onScrubEnd"
+          >
+            <view class="progress-bar" role="progressbar" aria-label="播放进度" :aria-valuenow="Math.round(scrubbing ? scrubPercent : progress)" aria-valuemin="0" aria-valuemax="100">
+              <view class="progress-inner" :style="{ width: (scrubbing ? scrubPercent : progress) + '%' }" />
+              <view v-if="scrubbing" class="progress-thumb" :style="{ left: scrubPercent + '%' }" />
+            </view>
+            <view v-if="scrubbing" class="scrub-time" aria-hidden="true">{{ scrubLabel }}</view>
           </view>
         </view>
       </swiper-item>
@@ -389,6 +402,13 @@ const isPlaying = ref(true);
 const isH5 = uni.getSystemInfoSync().uniPlatform === "web";
 const isMuted = ref(isH5);
 const progress = ref(0);
+/** 视频总时长（秒）：由 timeupdate 回填，供进度条拖动换算 */
+const duration = ref(0);
+/** 是否正在拖进度条，以及拖动中的预览百分比（松手才真正 seek） */
+const scrubbing = ref(false);
+const scrubPercent = ref(0);
+let scrubRectLeft = 0;
+let scrubRectWidth = 0;
 const loading = ref(false);
 /** 首屏加载失败（且无任何缓存可展示）时显示重试入口，避免死在纯黑页 */
 const loadFailed = ref(false);
@@ -517,9 +537,11 @@ function safePlay(index: number) {
             /* 非手势下的非静音自动播放被浏览器拒绝：保持静音等待下一次手势，不抛到全局 */
           });
         }
-        // 刚挂载/刚换源的实例 play 可能被挂起（media 未 ready），短暂后仍是暂停态就补一次
+        // 刚挂载/刚换源的实例 play 可能被挂起（media 未 ready），短暂后仍是暂停态就补一次。
+        // 必须再判 isPlaying：用户在这 320ms 内点了暂停，这里不能再把视频拉起来。
         setTimeout(() => {
           if (!el || el !== videoEl(index) || !el.paused) return;
+          if (!isPlaying.value) return;
           el.play().catch(() => {});
         }, 320);
       } catch {
@@ -580,6 +602,8 @@ function onSwiperChange(e: any) {
   swiperIndex.value = index;
   isPlaying.value = true;
   progress.value = 0;
+  // 切条后旧时长立即作废：新条 timeupdate 之前若拖进度，用旧 duration 换算会跳到错误位置
+  duration.value = 0;
   unlockAudio();
   // 回退到「上一条」时该条 video 是 v-if 重新挂载的，此刻 DOM 里还没有它；
   // 必须等渲染完成再 play，否则 safePlay 取不到元素、getCtx 也指向未挂载实例，画面会停在 0 秒。
@@ -843,11 +867,70 @@ function spawnHeart(e: any) {
 function onTimeUpdate(e: any) {
   const cur = e?.detail?.currentTime || 0;
   const dur = e?.detail?.duration || 0;
+  if (dur > 0 && dur !== duration.value) duration.value = dur;
   const next = dur > 0 ? Math.min(100, Math.round((cur / dur) * 100)) : 0;
   if (next !== Math.round(progress.value)) {
     progress.value = next;
   }
 }
+
+/**
+ * H5 上按 DOM 实测进度条热区的几何位置；其它端拿不到 document 时返回 false，
+ * 拖动逻辑直接不生效（短视频 App/小程序仍可按原生的进度手势，不受影响）。
+ */
+function measureScrubBar(): boolean {
+  if (!isH5 || typeof document === "undefined") return false;
+  const box = document.querySelector(".progress-hit") as HTMLElement | null;
+  if (!box) return false;
+  const rect = box.getBoundingClientRect();
+  scrubRectLeft = rect.left;
+  scrubRectWidth = rect.width;
+  return scrubRectWidth > 0;
+}
+
+function firstTouchX(e: any): number {
+  const list = e?.touches || (e?.detail && e.detail.touches) || e?.changedTouches || [];
+  return list[0] && typeof list[0].clientX === "number" ? list[0].clientX : 0;
+}
+
+function percentFromX(x: number): number {
+  if (!scrubRectWidth) return scrubPercent.value;
+  return Math.max(0, Math.min(100, ((x - scrubRectLeft) / scrubRectWidth) * 100));
+}
+
+function onScrubStart(e: any) {
+  if (!measureScrubBar()) return;
+  scrubbing.value = true;
+  scrubPercent.value = percentFromX(firstTouchX(e));
+}
+
+function onScrubMove(e: any) {
+  if (!scrubbing.value) return;
+  scrubPercent.value = percentFromX(firstTouchX(e));
+}
+
+function onScrubEnd() {
+  if (!scrubbing.value) return;
+  scrubbing.value = false;
+  seekTo(scrubPercent.value);
+}
+
+/** 按百分比定位播放位置；时长未知（还未 loadedmetadata）时什么都不做，避免把视频跳到 0 */
+function seekTo(percent: number) {
+  const el = videoEl(swiperIndex.value);
+  const dur = duration.value || (el ? el.duration : 0);
+  if (!el || !dur || !Number.isFinite(dur)) return;
+  el.currentTime = (percent / 100) * dur;
+  progress.value = Math.round(percent);
+}
+
+const scrubLabel = computed(() => {
+  const total = duration.value || 0;
+  const sec = Math.round((scrubPercent.value / 100) * total);
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+});
 
 async function handleLike(video: Video) {
   const wasLiked = video.hasLiked === 1;
@@ -1862,6 +1945,35 @@ onShareAppMessage(() => ({
 }
 
 /* ===== 进度条 ===== */
+/* 拖动热区：88rpx 盖住 4rpx 细条，手指才点得准；层级高于透明点击层(5)、低于右侧操作栏(10)，
+   所以底部这一条只用于拖进度，不会误触单击暂停，也不会挡住侧栏按钮 */
+.progress-hit {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 88rpx;
+  z-index: 8;
+
+  /* 拖动中实时跟手，去掉 0.2s 平滑（否则手感发飘） */
+  &.is-scrubbing .progress-inner {
+    transition: none;
+  }
+
+  .scrub-time {
+    position: absolute;
+    bottom: 44rpx;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4rpx 16rpx;
+    border-radius: var(--radius-pill);
+    background: rgba(0, 0, 0, 0.6);
+    color: var(--text-inverse);
+    font-size: 24rpx;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
 .progress-bar {
   position: absolute;
   left: 0;
@@ -1876,6 +1988,18 @@ onShareAppMessage(() => ({
     height: 100%;
     background: var(--gradient-brand);
     transition: width 0.2s linear;
+  }
+
+  /* 拖动把手：跨在细条上的圆点，只在拖动时出现 */
+  .progress-thumb {
+    position: absolute;
+    top: 50%;
+    width: 20rpx;
+    height: 20rpx;
+    margin-left: -10rpx;
+    border-radius: 50%;
+    background: var(--color-primary);
+    transform: translateY(-50%);
   }
 }
 

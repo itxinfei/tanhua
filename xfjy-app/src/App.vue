@@ -5,9 +5,9 @@ import { installAuthGuard } from "@/utils/auth-guard";
 import { installGlobalTabbar } from "@/utils/global-tabbar";
 // #endif
 import { getToken } from "@/utils/request";
-import { loginIM, isIMLoggedIn, onMatchReceived } from "@/utils/wukongim";
+import { startNetworkMonitor } from "@/utils/network-monitor";
+import { ensureSelfIM, isIMLoggedIn, onMatchReceived } from "@/utils/wukongim";
 import { useMatchStore } from "@/store/match";
-import { useUserStore } from "@/store/user";
 import { resolveAvatar } from "@/utils/avatar";
 import { prefetchRecommendVideos } from "@/utils/video-cache";
 import { prefetchCircleFeed } from "@/utils/feed-cache";
@@ -15,6 +15,8 @@ import { prefetchCircleFeed } from "@/utils/feed-cache";
 onLaunch(() => {
   // 安装全局登录路由守卫（需先于任何页面导航）
   installAuthGuard();
+  // 启动网络状态监控：使 isOnline / shouldBlockRequest 生效，断网时可拦截请求
+  startNetworkMonitor();
   // #ifdef H5
   // 安装 H5 全局底栏：非 tab 页（vip/nearby 等）原生 tabBar 不存在，注入统一底栏
   installGlobalTabbar();
@@ -59,16 +61,12 @@ onLaunch(() => {
 });
 
 onShow(() => {
-  // WuKongIM 登录（幂等）：前端直连 WuKongIM，无需后端 token 端点
+  // WuKongIM 登录（幂等）：凭证优先由服务端签发（GET /messages/im/credential），
+  // 不再在前端按 userId 派生可预测 token，避免顶号/冒充风险
   if (!getToken() || isIMLoggedIn()) return;
-  const userStore = useUserStore();
-  const uid = String(userStore.userInfo?.id || "");
-  if (!uid) return;
-  // WuKongIM 直连模式：token 由前端按 userId 本地签发（与 wukongim.ts 同机制）
-  loginIM(uid, `xfjy_${uid}_im_token`)
-    .catch(() => {
-      // 登录失败静默降级：聊天功能在会话页级逻辑兜底
-    });
+  ensureSelfIM().catch(() => {
+    // 登录失败静默降级：聊天功能在会话页级逻辑兜底
+  });
 });
 
 </script>

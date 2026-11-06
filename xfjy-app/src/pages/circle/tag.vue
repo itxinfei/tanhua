@@ -6,10 +6,21 @@
     </view>
 
     <empty-state
-      v-if="!loading && list.length === 0"
+      v-if="!loading && list.length === 0 && !loadFailed"
       title="暂无相关动态"
       desc="换个话题看看吧"
     />
+
+    <!-- 加载失败：与「真的没动态」严格区分，给明确原因 + 可重试入口 -->
+    <empty-state
+      v-if="!loading && list.length === 0 && loadFailed"
+      role="alert"
+      icon="info"
+      title="暂时没能获取话题动态"
+      desc="服务可能开小差了，检查网络后重试"
+    >
+      <a11y-button class="tag-retry" label="重新加载话题动态" @tap="load(true)">重新加载</a11y-button>
+    </empty-state>
 
     <a11y-button
       v-for="item in list"
@@ -59,10 +70,12 @@ const page = ref(1);
 const pageSize = 10;
 const hasMore = ref(false);
 const loading = ref(false);
+const loadFailed = ref(false);
 
 async function load(reset = false): Promise<void> {
   if (loading.value) return;
   loading.value = true;
+  if (reset) loadFailed.value = false;
   try {
     const current = reset ? 1 : page.value;
     const res = await searchMovementsByTag(tag.value, { page: current, pagesize: pageSize });
@@ -71,6 +84,8 @@ async function load(reset = false): Promise<void> {
     hasMore.value = (res.pages || 1) > current;
     if (!reset) page.value = current + 1;
   } catch {
+    // 首屏失败标记：页面据此显示错误态+重试，而非误报「暂无相关动态」
+    if (reset) loadFailed.value = true;
     // request 层统一 toast
   } finally {
     loading.value = false;
@@ -182,5 +197,16 @@ onLoad((options: any) => {
   color: var(--color-primary);
   font-size: 26rpx;
   text-align: center;
+}
+
+/* 加载失败态的重试按钮（置于 empty-state 的 slot 内） */
+.tag-retry {
+  margin-top: 32rpx;
+  padding: 16rpx 56rpx;
+  border-radius: var(--radius-pill);
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text-inverse);
+  background: var(--gradient-brand);
 }
 </style>

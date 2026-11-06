@@ -39,6 +39,18 @@
         </a11y-button>
         </view>
       </template>
+
+      <!-- 历史拉取失败：与「真的没有历史消息」的欢迎语/快捷问题空态区分；重试只重拉历史，不重跑 IM 登录。
+           消息列表非空（如失败后仍发出消息）即按门控自然隐藏，无需额外清理逻辑 -->
+      <empty-state
+        v-if="messageList.length === 0 && historyLoadFailed"
+        role="alert"
+        icon="info"
+        title="暂时没能获取历史消息"
+        desc="服务可能开小差了，检查网络后重试"
+      >
+        <a11y-button class="history-retry" label="重新加载历史消息" @tap="retryLoadHistory">重新加载</a11y-button>
+      </empty-state>
     </scroll-view>
 
     <!-- 输入区 -->
@@ -81,6 +93,7 @@
 import { ref, nextTick, onUnmounted } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
+import EmptyState from "@/components/empty-state.vue";
 import { useUserStore } from "@/store/user";
 import { getAgentApi } from "@/api/kefu";
 import { getVipStatus } from "@/api/mine";
@@ -125,6 +138,13 @@ const scrollToId = ref("");
 const messageList = ref<Message[]>([]);
 /** 是否 VIP（exclusive_service 专属客服标识） */
 const isVip = ref(false);
+/** 历史消息是否已填充（填充前的实时消息进 pending 缓冲，填充后实时追加）。
+ *  原 onLoad 局部变量提升为 ref：重试 loadHistory 与消息回调需共享同一状态 */
+const historyLoaded = ref(false);
+/** 历史拉取失败标记：与「真的没有历史消息」的欢迎语/快捷问题空态区分，驱动错误空态 + 重试（S3） */
+const historyLoadFailed = ref(false);
+/** 在途实时消息缓冲：历史填充前到达的消息先缓存，loadHistory 合并后清空，供重试复用 */
+let pendingMessages: ReceivedMessage[] = [];
 
 /** 是否显示时间分隔线（与上一条间隔超过阈值） */
 function showTimeDivider(msg: Message): boolean {
@@ -208,6 +228,55 @@ async function deliver(msg: Message): Promise<void> {
 /** 接收客服新消息回调（onUnmounted 注销） */
 let unregisterMessage: (() => void) | null = null;
 
+/**
+ * 拉取历史消息并与在途缓冲合并（独立函数，失败可单独重试）。
+ * 重试只重拉历史：不重跑 IM 登录、不重复注册 onMessageReceived（监听在 onLoad 只注册一次）。
+ */
+async function loadHistory(): Promise<void> {
+  const history = await getChatHistory(agentId.value);
+  // WuKongIM 直连登录后无凭证对象，我的 uid 即当前登录用户 ID（消息归属判断用）
+  const myId = String(userStore.userInfo?.id ?? "");
+  const historyItems: Message[] = history.map((msg, i) => ({
+    id: `hist-${i}-${msg.time}`,
+    content: msg.content,
+    isMine: msg.from === myId,
+    timestamp: msg.time,
+    status: "read" as MsgStatus,
+  }));
+  // 合并缓冲：按时间排序并以 timestamp 去重（历史可能已含在途消息）
+  const buffered: Message[] = pendingMessages.map((msg) => ({
+    id: `recv-${msg.time}`,
+    content: msg.content,
+    isMine: false,
+    timestamp: msg.time,
+    status: "read" as MsgStatus,
+  }));
+  const merged = [...historyItems, ...buffered].sort((a, b) => a.timestamp - b.timestamp);
+  const seen = new Set<number>();
+  messageList.value = merged.filter((item) => {
+    if (seen.has(item.timestamp)) return false;
+    seen.add(item.timestamp);
+    return true;
+  });
+  // 合并完成后清空缓冲并切到实时通道：后续到达消息直接追加，重试也不会重复合并
+  pendingMessages = [];
+  historyLoadFailed.value = false;
+  historyLoaded.value = true;
+  scrollToBottom();
+}
+
+/** 重试拉取历史：仅重拉历史消息，禁止重跑 IM 登录/监听注册 */
+async function retryLoadHistory(): Promise<void> {
+  try {
+    await loadHistory();
+  } catch (err) {
+    // catch 不空吞：保留错误空态 + ux 反馈（IM SDK 直连不走 request 层，无统一 toast）
+    historyLoadFailed.value = true;
+    console.warn(`[kefu-chat] 历史消息重试失败，agentId=${agentId.value}, err=${String(err)}`);
+    fail("历史消息加载失败，请稍后重试");
+  }
+}
+
 onLoad(async () => {
   myAvatar.value = resolveAvatar(userStore.userInfo?.avatar);
 
@@ -228,12 +297,11 @@ onLoad(async () => {
     if (!ok) return;
 
     // 3. 先注册消息到达回调再拉历史：历史是最后一次性赋值的，
-    //    在途实时消息先进 pending 缓冲，避免注册晚于拉取导致消息丢失
-    const pending: ReceivedMessage[] = [];
-    let historyLoaded = false;
+    //    在途实时消息先进 pending 缓冲，避免注册晚于拉取导致消息丢失。
+    //    监听全程只注册这一次，重试历史拉取不会重复注册。
     unregisterMessage = onMessageReceived((msg) => {
       if (msg.from !== agentId.value) return;
-      if (historyLoaded) {
+      if (historyLoaded.value) {
         messageList.value.push({
           id: `recv-${msg.time}`,
           content: msg.content,
@@ -243,38 +311,19 @@ onLoad(async () => {
         });
         scrollToBottom();
       } else {
-        pending.push(msg);
+        pendingMessages.push(msg);
       }
     });
 
-    // 4. 拉取与客服的历史消息
-    const history = await getChatHistory(agentId.value);
-    // WuKongIM 直连登录后无凭证对象，我的 uid 即当前登录用户 ID（消息归属判断用）
-    const myId = String(userStore.userInfo?.id ?? "");
-    const historyItems: Message[] = history.map((msg, i) => ({
-      id: `hist-${i}-${msg.time}`,
-      content: msg.content,
-      isMine: msg.from === myId,
-      timestamp: msg.time,
-      status: "read" as MsgStatus,
-    }));
-    // 合并缓冲：按时间排序并以 timestamp 去重（历史可能已含在途消息）
-    const buffered: Message[] = pending.map((msg) => ({
-      id: `recv-${msg.time}`,
-      content: msg.content,
-      isMine: false,
-      timestamp: msg.time,
-      status: "read" as MsgStatus,
-    }));
-    const merged = [...historyItems, ...buffered].sort((a, b) => a.timestamp - b.timestamp);
-    const seen = new Set<number>();
-    messageList.value = merged.filter((item) => {
-      if (seen.has(item.timestamp)) return false;
-      seen.add(item.timestamp);
-      return true;
-    });
-    historyLoaded = true;
-    scrollToBottom();
+    // 4. 拉取与客服的历史消息（单独内层 try/catch：失败只置错误空态，
+    //    不影响此前已完成的 IM 登录与消息监听；外层 catch 仍兜 IM 登录失败）
+    try {
+      await loadHistory();
+    } catch (err) {
+      historyLoadFailed.value = true;
+      console.warn(`[kefu-chat] 历史消息拉取失败，agentId=${agentId.value}, err=${String(err)}`);
+      fail("历史消息加载失败，请稍后重试");
+    }
   } catch {
     // IM（WuKongIM）登录失败静默降级
   }
@@ -326,6 +375,11 @@ onUnmounted(() => {
 /* flex:1 配 min-height:0：纵向 flex 子项默认 min-height:auto，
    消息增多时会撑破容器、把输入区挤出视口 */
 .msg-list { flex: 1 1 auto; min-height: 0; min-width: 0; padding: 12rpx 24rpx; }
+
+/* 历史加载失败重试按钮：default 变体零样式，这里补品牌色，颜色全走 CSS 变量适配暗色 */
+.history-retry { margin-top: 32rpx; padding: 16rpx 56rpx; border-radius: var(--radius-pill);
+  font-size: 28rpx; font-weight: 600; color: var(--text-inverse); background: var(--color-primary);
+}
 
 .time-divider { display: flex; justify-content: center; margin: 16rpx 0 24rpx;
   .time-text { font-size: 22rpx; color: var(--text-hint); background: rgba(0, 0, 0, 0.05); padding: 6rpx 24rpx; border-radius: 24rpx; }

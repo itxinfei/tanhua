@@ -38,6 +38,8 @@ export const useCircleStore = defineStore("circle", () => {
   const friendHasMore = ref(true);
   /** 好友动态加载中（与推荐流互不阻塞，避免切 Tab 时请求被吞） */
   const friendLoading = ref(false);
+  /** 好友动态首屏加载失败（区分「真的没动态」与「服务故障」） */
+  const friendLoadFailed = ref(false);
 
   /** 推荐动态列表 */
   const recommendMovements = ref<Movement[]>([]);
@@ -46,10 +48,17 @@ export const useCircleStore = defineStore("circle", () => {
   const recommendHasMore = ref(true);
   /** 推荐动态加载中 */
   const recommendLoading = ref(false);
+  /** 推荐动态首屏加载失败 */
+  const recommendLoadFailed = ref(false);
 
   /** 当前 Tab 是否加载中（供页面骨架屏/加载提示使用） */
   const loading = computed(() =>
     activeTab.value === "friend" ? friendLoading.value : recommendLoading.value
+  );
+
+  /** 当前 Tab 首屏是否加载失败（供页面区分空态与错误态） */
+  const loadFailed = computed(() =>
+    activeTab.value === "friend" ? friendLoadFailed.value : recommendLoadFailed.value
   );
 
   /**
@@ -101,6 +110,7 @@ export const useCircleStore = defineStore("circle", () => {
       if (cached.length) friendMovements.value = dedupItems(cached);
     }
     friendLoading.value = true;
+    friendLoadFailed.value = false;
     try {
       // 复用 App 启动时的在途预取，避免同一份数据重复等 3~11s
       const inflight = getFeedPrefetchPromise();
@@ -111,6 +121,10 @@ export const useCircleStore = defineStore("circle", () => {
       writeFeedCache("friend", friendMovements.value);
       friendPage.value = 1;
       friendHasMore.value = (items?.length || 0) >= DEFAULT_PAGE_SIZE;
+    } catch (err) {
+      // 首屏失败标记：页面据此显示错误态+重试，而非误报「暂无动态」
+      friendLoadFailed.value = true;
+      throw err;
     } finally {
       friendLoading.value = false;
     }
@@ -146,6 +160,7 @@ export const useCircleStore = defineStore("circle", () => {
       if (cached.length) recommendMovements.value = dedupItems(cached);
     }
     recommendLoading.value = true;
+    recommendLoadFailed.value = false;
     try {
       const result: PageResult<Movement> = await getRecommendMovements({
         page: 1,
@@ -155,6 +170,9 @@ export const useCircleStore = defineStore("circle", () => {
       writeFeedCache("recommend", recommendMovements.value);
       recommendPage.value = 1;
       recommendHasMore.value = (result.items?.length || 0) >= DEFAULT_PAGE_SIZE;
+    } catch (err) {
+      recommendLoadFailed.value = true;
+      throw err;
     } finally {
       recommendLoading.value = false;
     }
@@ -251,10 +269,12 @@ export const useCircleStore = defineStore("circle", () => {
     friendPage.value = 1;
     friendHasMore.value = true;
     friendLoading.value = false;
+    friendLoadFailed.value = false;
     recommendMovements.value = [];
     recommendPage.value = 1;
     recommendHasMore.value = true;
     recommendLoading.value = false;
+    recommendLoadFailed.value = false;
     // 首屏缓存按账号隔离：登出 / 换号后不能残留上一账号的动态
     clearFeedCache();
   }
@@ -266,6 +286,7 @@ export const useCircleStore = defineStore("circle", () => {
     recommendMovements,
     recommendHasMore,
     loading,
+    loadFailed,
     loadFriendMovements,
     loadMoreFriendMovements,
     loadRecommendMovements,

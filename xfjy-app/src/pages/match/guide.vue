@@ -104,8 +104,8 @@
 import { ref, computed } from "vue";
 import A11yButton from "@/components/a11y-button.vue";
 import A11yRadioGroup from "@/components/a11y-radio-group.vue";
-import { updateUserProfile } from "@/api/mine";
-import { success, info } from "@/utils/ux";
+import { updateUserProfile, uploadImage } from "@/api/mine";
+import { success, info, fail, loading, hideLoading } from "@/utils/ux";
 import { resolveAvatar } from "@/utils/avatar";
 
 /** 表单字段唯一 id：用于 aria-labelledby 建立程序化标签关联（WCAG 1.3.1 / 3.3.2） */
@@ -140,12 +140,39 @@ const completeness = computed(() => {
   return Math.round((filledCount / fields.length) * 100);
 });
 
-/** 选择头像 */
+/** 选择头像：选图后立即上传 MinIO，成功存 MinIO URL（随提交一并保存后端）。
+ *  原实现只存 tempFilePath 从不上传，payload 也不含 avatar，完整度虚标 100%（M-A4）。 */
 function chooseAvatar(): void {
   uni.chooseImage({
     count: 1,
-    success: (res) => {
-      form.value.avatar = res.tempFilePaths[0];
+    sizeType: ["compressed"],
+    success: async (res) => {
+      const tempPath = res.tempFilePaths[0];
+      if (!tempPath) return;
+      loading("上传中...");
+      try {
+        const result = await uploadImage(tempPath);
+        hideLoading();
+        if (result.status === "done" && result.name) {
+          form.value.avatar = result.name;
+          success("头像已上传，完成后生效");
+        } else {
+          fail("头像上传失败，请重试");
+        }
+      } catch {
+        hideLoading();
+        fail("头像上传失败，请重试");
+      }
+    },
+    fail: (err: any) => {
+      // 区分用户取消（静默）与授权拒绝（提示 + MP 端引导打开设置页）
+      const msg = String(err?.errMsg || "");
+      if (msg.includes("cancel")) return;
+      info("需要相册权限才能更换头像");
+      const openSetting = (uni as any).openSetting;
+      if (typeof openSetting === "function") {
+        openSetting({});
+      }
     },
   });
 }
@@ -174,6 +201,7 @@ async function handleSubmit(): Promise<void> {
   submitting.value = true;
   try {
     await updateUserProfile({
+      avatar: form.value.avatar || undefined,
       nickname: form.value.nickname,
       gender: form.value.gender,
       birthday: form.value.birthday || undefined,

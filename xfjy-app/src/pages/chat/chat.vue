@@ -76,6 +76,18 @@
           </a11y-button>
         </view>
       </template>
+
+      <!-- 历史拉取失败：与「真的没有历史消息」的空白态区分；重试只重拉历史，不重跑 IM 登录。
+           消息列表非空（如失败后仍发出消息）即按门控自然隐藏，无需额外清理逻辑 -->
+      <empty-state
+        v-if="messageList.length === 0 && historyLoadFailed"
+        role="alert"
+        icon="info"
+        title="暂时没能获取历史消息"
+        desc="服务可能开小差了，检查网络后重试"
+      >
+        <a11y-button class="history-retry" label="重新加载历史消息" @tap="retryLoadHistory">重新加载</a11y-button>
+      </empty-state>
     </scroll-view>
 
     <!-- 输入区 -->
@@ -130,6 +142,7 @@
 import { ref, nextTick, onUnmounted } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
+import EmptyState from "@/components/empty-state.vue";
 import { useUserStore } from "@/store/user";
 import { uploadChatImage, uploadChatAudio, getContacts } from "@/api/chat";
 import { getUserProfile } from "@/api/mine";
@@ -329,6 +342,16 @@ function chooseImage(): void {
     success: (res) => {
       pushMessage("image", res.tempFilePaths[0]);
       activePanel.value = "none";
+    },
+    fail: (err: any) => {
+      // 区分用户取消（静默）与授权拒绝（提示 + MP 端引导打开设置页）
+      const msg = String(err?.errMsg || "");
+      if (msg.includes("cancel")) return;
+      info("需要相册权限才能发送图片");
+      const openSetting = (uni as any).openSetting;
+      if (typeof openSetting === "function") {
+        openSetting({});
+      }
     },
   });
 }
@@ -553,6 +576,11 @@ function showTodoToast(feature: string): void {
 let unregisterMessage: (() => void) | null = null;
 /** 历史消息是否已填充（填充前的实时消息进 pending 缓冲，填充后实时追加） */
 const historyLoaded = ref(false);
+/** 历史拉取失败标记：与「真的没有历史消息」的空白态区分，驱动错误空态 + 重试（S3） */
+const historyLoadFailed = ref(false);
+/** 在途实时消息缓冲：历史填充前到达的消息先缓存，loadHistory 合并后清空。
+ *  提升为组件级变量，供重试 loadHistory 时复用同一缓冲（重试不重跑 IM 登录/监听注册） */
+let pendingMessages: ReceivedMessage[] = [];
 
 /** IM 实时消息 → 本地消息结构 */
 function toReceivedItem(msg: ReceivedMessage): Message {
@@ -593,6 +621,52 @@ function appendReceivedWithTyping(msg: ReceivedMessage): void {
   }
 }
 
+/**
+ * 拉取历史消息并与在途缓冲合并（独立函数，失败可单独重试）。
+ * 重试只重拉历史：不重跑 IM 登录、不重复注册 onMessageReceived（监听在 onLoad 只注册一次）。
+ */
+async function loadHistory(): Promise<void> {
+  const history = await getChatHistory(userId.value);
+  // WuKongIM 直连登录后无凭证对象，我的 uid 即当前登录用户 ID（消息归属判断用）
+  const myId = String(userStore.userInfo?.id ?? "");
+  const historyItems: Message[] = history.map((msg, i) => ({
+    id: `hist-${i}-${msg.time}`,
+    type: msg.type,
+    content: msg.content,
+    extra: msg.extra,
+    isMine: msg.from === myId,
+    avatar: msg.from === myId ? myAvatar.value : peerAvatar.value,
+    timestamp: msg.time,
+    status: "read" as MsgStatus,
+  }));
+  // 合并缓冲：按时间排序并以 timestamp 去重（历史可能已含在途消息）
+  const buffered = pendingMessages.map(toReceivedItem);
+  const merged = [...historyItems, ...buffered].sort((a, b) => a.timestamp - b.timestamp);
+  const seen = new Set<number>();
+  messageList.value = merged.filter((item) => {
+    if (seen.has(item.timestamp)) return false;
+    seen.add(item.timestamp);
+    return true;
+  });
+  // 合并完成后清空缓冲并切到实时通道：后续到达消息直接追加，重试也不会重复合并
+  pendingMessages = [];
+  historyLoadFailed.value = false;
+  historyLoaded.value = true;
+  scrollToBottom();
+}
+
+/** 重试拉取历史：仅重拉历史消息，禁止重跑 IM 登录/监听注册 */
+async function retryLoadHistory(): Promise<void> {
+  try {
+    await loadHistory();
+  } catch (err) {
+    // catch 不空吞：保留错误空态 + ux 反馈（IM SDK 直连不走 request 层，无统一 toast）
+    historyLoadFailed.value = true;
+    console.warn(`[chat] 历史消息重试失败，userId=${userId.value}, err=${String(err)}`);
+    fail("历史消息加载失败，请稍后重试");
+  }
+}
+
 onLoad(async (options: any) => {
   userId.value = options?.userId || "";
   nickname.value = options?.nickname || "聊天";
@@ -621,43 +695,28 @@ onLoad(async (options: any) => {
     // 以「当前登录用户本人」身份连接（历史问题：曾以对方身份登录导致顶号、自发自收）
     const ok = await ensureSelfIM();
     if (ok) {
-        // 先注册消息到达回调再拉历史：历史是最后一次性赋值的，
-        // 在途实时消息先进 pending 缓冲，避免注册晚于拉取导致消息丢失
-        const pending: ReceivedMessage[] = [];
-        unregisterMessage = onMessageReceived((msg) => {
-          if (msg.from !== userId.value) return;
-          if (historyLoaded.value) {
-            appendReceivedWithTyping(msg);
-          } else {
-            pending.push(msg);
-          }
-        });
+      // 先注册消息到达回调再拉历史：历史是最后一次性赋值的，
+      // 在途实时消息先进 pending 缓冲，避免注册晚于拉取导致消息丢失。
+      // 监听全程只注册这一次，重试历史拉取不会重复注册。
+      unregisterMessage = onMessageReceived((msg) => {
+        if (msg.from !== userId.value) return;
+        if (historyLoaded.value) {
+          appendReceivedWithTyping(msg);
+        } else {
+          pendingMessages.push(msg);
+        }
+      });
 
-        const history = await getChatHistory(userId.value);
-        // WuKongIM 直连登录后无凭证对象，我的 uid 即当前登录用户 ID（消息归属判断用）
-        const myId = String(userStore.userInfo?.id ?? "");
-        const historyItems: Message[] = history.map((msg, i) => ({
-          id: `hist-${i}-${msg.time}`,
-          type: msg.type,
-          content: msg.content,
-          extra: msg.extra,
-          isMine: msg.from === myId,
-          avatar: msg.from === myId ? myAvatar.value : peerAvatar.value,
-          timestamp: msg.time,
-          status: "read" as MsgStatus,
-        }));
-        // 合并缓冲：按时间排序并以 timestamp 去重（历史可能已含在途消息）
-        const buffered = pending.map(toReceivedItem);
-        const merged = [...historyItems, ...buffered].sort((a, b) => a.timestamp - b.timestamp);
-        const seen = new Set<number>();
-        messageList.value = merged.filter((item) => {
-          if (seen.has(item.timestamp)) return false;
-          seen.add(item.timestamp);
-          return true;
-        });
-        historyLoaded.value = true;
-        scrollToBottom();
+      // 历史拉取单独内层 try/catch：失败只置错误空态，
+      // 不影响此前已完成的 IM 登录与消息监听；外层 catch 仍兜 IM 登录失败
+      try {
+        await loadHistory();
+      } catch (err) {
+        historyLoadFailed.value = true;
+        console.warn(`[chat] 历史消息拉取失败，userId=${userId.value}, err=${String(err)}`);
+        fail("历史消息加载失败，请稍后重试");
       }
+    }
   } catch {
     // IM（WuKongIM）登录失败静默降级（可发但不达，列表为空）
   }
@@ -712,6 +771,11 @@ onUnmounted(() => {
    对比度不足（--text-hint 在暗色下为 #a6a6a6） */
 .time-divider { display: flex; justify-content: center; margin: 16rpx 0 24rpx;
   .time-text { font-size: 22rpx; color: var(--text-hint); background: var(--bg-card); padding: 6rpx 24rpx; border-radius: 24rpx; }
+}
+
+/* 历史加载失败重试按钮：default 变体零样式，这里补品牌色，颜色全走 CSS 变量适配暗色 */
+.history-retry { margin-top: 32rpx; padding: 16rpx 56rpx; border-radius: var(--radius-pill);
+  font-size: 28rpx; font-weight: 600; color: var(--text-inverse); background: var(--color-primary);
 }
 
 /* ===== 对方正在输入提示 ===== */

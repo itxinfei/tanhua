@@ -49,7 +49,19 @@
         @scrolltolower="loadMore"
       >
         <skeleton v-if="feedList.length === 0 && loading" variant="feed" :count="SKELETON_CARD_COUNT" :grid-cols="GRID_COLUMN_COUNT" />
-        <empty-state v-if="feedList.length === 0 && !loading" icon="camera" title="暂无动态" desc="快来发布第一条，分享你的生活" />
+        <!-- 空状态：确实没有动态 -->
+        <empty-state v-if="feedList.length === 0 && !loading && !loadFailed" icon="camera" title="暂无动态" desc="快来发布第一条，分享你的生活" />
+        <!-- 加载失败：与「真的没动态」严格区分，给明确原因 + 可重试入口。
+             后端异常时旧版把故障误报成「暂无动态」，用户无从判断也无法恢复。 -->
+        <empty-state
+          v-if="feedList.length === 0 && !loading && loadFailed"
+          role="alert"
+          icon="info"
+          title="暂时没能获取动态"
+          desc="服务可能开小差了，检查网络后重试"
+        >
+          <a11y-button class="feed-retry" label="重新加载动态" @tap="loadFeed()">重新加载</a11y-button>
+        </empty-state>
         <view v-for="item in feedList" :key="item.id" class="post-card">
           <view class="post-header">
             <image class="avatar" :src="item.avatar" mode="aspectFill" lazy-load :aria-label="item.nickname + ' 的头像'" />
@@ -232,6 +244,7 @@ const feedList = computed<Movement[]>(() =>
     : circleStore.recommendMovements
 );
 const loading = computed(() => circleStore.loading);
+const loadFailed = computed(() => circleStore.loadFailed);
 const refreshing = ref(false);
 
 function switchTab(key: "friend" | "recommend") {
@@ -830,6 +843,17 @@ flex-direction: column;
   padding: 24rpx;
   color: var(--text-hint);
   font-size: 24rpx;
+}
+
+/* 加载失败态的重试按钮（置于 empty-state 的 slot 内） */
+.feed-retry {
+  margin-top: 32rpx;
+  padding: 16rpx 56rpx;
+  border-radius: var(--radius-pill);
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text-inverse);
+  background: var(--gradient-brand);
 }
 
 /* 消息：通知入口 */
