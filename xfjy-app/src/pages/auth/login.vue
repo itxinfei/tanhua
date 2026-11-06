@@ -151,7 +151,9 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onUnmounted } from "vue";
+import { onLoad } from "@dcloudio/uni-app";
 import { useUserStore } from "@/store/user";
+import { isTabPage } from "@/utils/request";
 import A11yButton from "@/components/a11y-button.vue";
 import A11yDialog from "@/components/a11y-dialog.vue";
 import { AGREEMENT_CONTENT, type AgreementContent } from "@/config/agreement-content";
@@ -162,6 +164,21 @@ const PHONE_LABEL_ID = "login-phone-label";
 const CODE_LABEL_ID = "login-code-label";
 
 const userStore = useUserStore();
+
+/**
+ * 登录过期回跳目标：由 request.handleUnauthorized / auth-guard 拦截时编码传入，
+ * 登录成功后优先回跳原页面，避免 token 过期打断深层页/支付流程后上下文全丢（S7）。
+ */
+let redirectTarget = "";
+
+onLoad((options) => {
+  const raw = options?.redirect || "";
+  try {
+    redirectTarget = raw ? decodeURIComponent(raw) : "";
+  } catch {
+    redirectTarget = raw;
+  }
+});
 
 /** 状态栏高度（px）：custom 导航页需动态避让刘海/挖孔，兜底 44（iOS 刘海屏典型值） */
 const statusBarHeight = uni.getWindowInfo?.().statusBarHeight || 44;
@@ -371,8 +388,16 @@ async function handleLogin() {
   try {
     await userStore.doLogin(phone.value, code.value);
     success("登录成功");
-    // 跳转主页
-    uni.switchTab({ url: "/pages/match/index" });
+    // 优先回跳登录前页面（S7）：tab 页 switchTab（不能带查询参数），非 tab 页 reLaunch 保留参数
+    if (redirectTarget) {
+      if (isTabPage(redirectTarget)) {
+        uni.switchTab({ url: redirectTarget.split("?")[0] });
+      } else {
+        uni.reLaunch({ url: redirectTarget });
+      }
+    } else {
+      uni.switchTab({ url: "/pages/match/index" });
+    }
   } catch {
     // 错误已在 request 层提示
   } finally {

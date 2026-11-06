@@ -43,6 +43,7 @@
           :key="i"
           class="grid-img"
           :label="`查看第 ${i + 1} 张配图`"
+          stop
           @tap="preview(item.imageContent, i)"
         >
           <image lazy-load class="grid-img-inner" :src="img" mode="aspectFill" aria-hidden="true" />

@@ -4,7 +4,8 @@
  */
 
 import { log, error } from "@/utils/logger";
-import { networkTimeout } from "@/utils/ux";
+import { fail, info, networkError, networkOffline, networkTimeout } from "@/utils/ux";
+import { shouldBlockRequest } from "@/utils/network-monitor";
 
 /** 普通请求超时（毫秒）：小程序默认 60s 太长，弱网用户体验差 */
 const REQUEST_TIMEOUT_MS = 15000;
@@ -63,8 +64,45 @@ export const removeToken = (): void => {
 /** 401 并发去重：多个在途请求同时过期时只清一次状态、只跳一次登录 */
 let redirectingToLogin = false;
 
+/** tab 页路径（无前导斜杠，与 getCurrentPages().route 格式一致）：回跳须 switchTab 而非 reLaunch */
+const TAB_PAGES = new Set([
+  "pages/match/index",
+  "pages/circle/index",
+  "pages/circle/publish",
+  "pages/video/index",
+  "pages/mine/index",
+]);
+
+/** 回跳目标是否 tab 页（tab 页须 switchTab，非 tab 页 reLaunch 带参数） */
+export function isTabPage(path: string): boolean {
+  const p = path.split("?")[0].replace(/^\//, "");
+  return TAB_PAGES.has(p);
+}
+
 /**
- * 登录过期统一处理：清本地 token + 重置 userStore 登录态 + reLaunch 登录页
+ * 取当前页面路由+参数，编码为 redirect 查询参数附加到登录页 URL。
+ * 登录成功后优先回跳原页面，避免 token 过期打断深层页/支付流程后上下文全丢。
+ */
+export function buildLoginUrlWithRedirect(): string {
+  const LOGIN_URL = "/pages/auth/login";
+  const pages = getCurrentPages();
+  const cur = pages[pages.length - 1] as
+    | { route?: string; options?: Record<string, string>; $page?: { options?: Record<string, string> } }
+    | undefined;
+  // 无页面栈（极早期启动）或已在登录页：不带 redirect，避免死循环回跳
+  if (!cur || !cur.route || cur.route === "pages/auth/login") return LOGIN_URL;
+  let target = "/" + cur.route;
+  const opts = cur.options || cur.$page?.options || {};
+  const query = Object.keys(opts)
+    .filter((k) => opts[k] !== undefined && opts[k] !== null)
+    .map((k) => `${k}=${encodeURIComponent(String(opts[k]))}`)
+    .join("&");
+  if (query) target += "?" + query;
+  return `${LOGIN_URL}?redirect=${encodeURIComponent(target)}`;
+}
+
+/**
+ * 登录过期统一处理：清本地 token + 重置 userStore 登录态 + reLaunch 登录页（带 redirect 回跳）
  * userStore 用动态 import，避免 request.ts ← store 的循环依赖
  */
 export function handleUnauthorized(): void {
@@ -85,7 +123,7 @@ export function handleUnauthorized(): void {
     .catch(() => {})
     .finally(() => {
       uni.reLaunch({
-        url: "/pages/auth/login",
+        url: buildLoginUrlWithRedirect(),
         complete: () => {
           redirectingToLogin = false;
         },
@@ -105,6 +143,12 @@ function request<T = any>(options: RequestOptions): Promise<T> {
     loading = false,
     auth = true,
   } = options;
+
+  // 断网快速失败：不发请求直接提示，避免弱网等满 15s 超时（S1）
+  if (shouldBlockRequest()) {
+    networkOffline();
+    return Promise.reject(new Error("网络已断开"));
+  }
 
   if (loading) {
     uni.showLoading({ title: "加载中", mask: true });
@@ -135,13 +179,13 @@ function request<T = any>(options: RequestOptions): Promise<T> {
         log(`${method} ${url} → ${res.statusCode} (${Date.now() - startAt}ms)`);
         if (loading) uni.hideLoading();
 
-        // HTTP 状态码处理
+        // HTTP 状态码处理（toast 统一走 ux 封装：同文案 5s 合并降噪，弱网并发失败不互相顶替）
         if (res.statusCode === 401) {
           // 登录接口 401=验证码错误（后端携带 message）：只提示不登出；
           // token 过期（无 body）才走统一登出流程
           const msg = (res.data as any)?.message;
           if (msg) {
-            uni.showToast({ title: msg, icon: "none", duration: 3000 });
+            fail(msg, 3000);
             reject(new Error(msg));
             return;
           }
@@ -153,7 +197,7 @@ function request<T = any>(options: RequestOptions): Promise<T> {
         // 423 账号锁定（登录连续失败 5 次）
         if (res.statusCode === 423) {
           const msg = (res.data as any)?.message || "账号已暂时锁定，请稍后再试";
-          uni.showToast({ title: msg, icon: "none", duration: 3000 });
+          fail(msg, 3000);
           reject(new Error(msg));
           return;
         }
@@ -161,7 +205,7 @@ function request<T = any>(options: RequestOptions): Promise<T> {
         // 402 付费墙拦截（滑动次数耗尽等 → 跳 VIP 引导页）
         if (res.statusCode === 402) {
           const msg = (res.data as any)?.message || "升级 VIP 解锁更多权益";
-          uni.showToast({ title: msg, icon: "none", duration: 2000 });
+          info(msg, 2000);
           setTimeout(() => {
             uni.navigateTo({ url: "/pages/mine/vip?source=swipe_out" });
           }, 1500);
@@ -171,7 +215,7 @@ function request<T = any>(options: RequestOptions): Promise<T> {
 
         // 429 风控限流：操作过于频繁
         if (res.statusCode === 429) {
-          uni.showToast({ title: "操作过于频繁，请稍后再试", icon: "none" });
+          fail("操作过于频繁，请稍后再试");
           reject(new Error("操作过于频繁"));
           return;
         }
@@ -179,7 +223,7 @@ function request<T = any>(options: RequestOptions): Promise<T> {
         // 400 参数/格式错误：优先展示后端携带的 message（如换绑手机号格式错）
         if (res.statusCode === 400) {
           const msg = (res.data as any)?.message || "操作失败，请检查输入内容";
-          uni.showToast({ title: msg, icon: "none" });
+          fail(msg);
           reject(new Error(msg));
           return;
         }
@@ -187,7 +231,7 @@ function request<T = any>(options: RequestOptions): Promise<T> {
         // 403 权限/账号状态错误：优先展示后端携带的 reason（如封禁原因）
         if (res.statusCode === 403) {
           const reason = (res.data as any)?.reason || (res.data as any)?.message;
-          uni.showToast({ title: reason || "没有操作权限", icon: "none", duration: 3000 });
+          fail(reason || "没有操作权限", 3000);
           reject(new Error(reason || "无权限"));
           return;
         }
@@ -195,13 +239,13 @@ function request<T = any>(options: RequestOptions): Promise<T> {
         // 409 资源冲突（如换绑手机号已被占用）
         if (res.statusCode === 409) {
           const msg = (res.data as any)?.message || "数据冲突，请重试";
-          uni.showToast({ title: msg, icon: "none", duration: 3000 });
+          fail(msg, 3000);
           reject(new Error(msg));
           return;
         }
 
         if (res.statusCode >= 400) {
-          uni.showToast({ title: `请求失败(${res.statusCode})`, icon: "none" });
+          fail(`请求失败(${res.statusCode})`);
           reject(new Error(`HTTP ${res.statusCode}`));
           return;
         }
@@ -218,7 +262,7 @@ function request<T = any>(options: RequestOptions): Promise<T> {
 
         // 业务状态码处理（后端约定 code=200 为成功）
         if (body.code !== undefined && body.code !== 200) {
-          uni.showToast({ title: body.message || "操作失败", icon: "none" });
+          fail(body.message || "操作失败");
           reject(new Error(body.message));
           return;
         }
@@ -232,7 +276,7 @@ function request<T = any>(options: RequestOptions): Promise<T> {
         if (String(err?.errMsg || "").includes("timeout")) {
           networkTimeout();
         } else {
-          uni.showToast({ title: "网络异常，请检查网络", icon: "none" });
+          networkError();
         }
         reject(err);
       },
@@ -275,6 +319,12 @@ export function upload<T = any>(
   const startAt = Date.now();
   log(`UPLOAD ${url}`, filePaths);
 
+  // 断网快速失败：上传前判网络，避免大文件白等 60s 超时（S1）
+  if (shouldBlockRequest()) {
+    networkOffline();
+    return Promise.reject(new Error("网络已断开"));
+  }
+
   return new Promise<T>((resolve, reject) => {
     const token = getToken();
     const header: Record<string, string> = {};
@@ -302,7 +352,7 @@ export function upload<T = any>(
         // 402 付费墙拦截
         if (res.statusCode === 402) {
           const msg = (res.data as any)?.message || "升级 VIP 解锁更多权益";
-          uni.showToast({ title: msg, icon: "none", duration: 2000 });
+          info(msg, 2000);
           setTimeout(() => {
             uni.navigateTo({ url: "/pages/mine/vip?source=swipe_out" });
           }, 1500);
@@ -311,26 +361,26 @@ export function upload<T = any>(
         }
         // 429 风控限流
         if (res.statusCode === 429) {
-          uni.showToast({ title: "操作过于频繁，请稍后再试", icon: "none" });
+          fail("操作过于频繁，请稍后再试");
           reject(new Error("操作过于频繁"));
           return;
         }
         // 400 参数/格式错误：优先展示后端携带的 message（与 request 函数对齐）
         if (res.statusCode === 400) {
           const msg = (res.data as any)?.message || "操作失败，请检查输入内容";
-          uni.showToast({ title: msg, icon: "none" });
+          fail(msg);
           reject(new Error(msg));
           return;
         }
         // 403 权限/账号状态错误：优先展示后端携带的 reason/message（与 request 函数对齐）
         if (res.statusCode === 403) {
           const msg = (res.data as any)?.reason || (res.data as any)?.message || "没有操作权限";
-          uni.showToast({ title: msg, icon: "none", duration: 3000 });
+          fail(msg, 3000);
           reject(new Error(msg));
           return;
         }
         if (res.statusCode >= 400) {
-          uni.showToast({ title: `上传失败(${res.statusCode})`, icon: "none" });
+          fail(`上传失败(${res.statusCode})`);
           reject(new Error(`HTTP ${res.statusCode}`));
           return;
         }
@@ -345,13 +395,13 @@ export function upload<T = any>(
           body = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
         } catch {
           // 网关/代理返回 HTML 错误页等非 JSON 内容
-          uni.showToast({ title: "服务异常，请稍后再试", icon: "none" });
+          fail("服务异常，请稍后再试");
           reject(new Error("响应格式错误"));
           return;
         }
         // 业务状态码校验（与 request 函数对齐：HTTP 200 但 code≠200 视为失败）
         if (body.code !== undefined && body.code !== 200) {
-          uni.showToast({ title: body.message || "上传失败", icon: "none" });
+          fail(body.message || "上传失败");
           reject(new Error(body.message));
           return;
         }
@@ -363,7 +413,7 @@ export function upload<T = any>(
         if (String(err?.errMsg || "").includes("timeout")) {
           networkTimeout();
         } else {
-          uni.showToast({ title: "网络异常，请检查网络", icon: "none" });
+          networkError();
         }
         reject(err);
       },

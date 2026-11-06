@@ -52,6 +52,8 @@ interface Props {
   block?: boolean;
   /** 加载态：显示 spinner 并阻断点击（替代原生 button 的 :loading） */
   loading?: boolean;
+  /** 阻止事件冒泡：嵌套在另一个可点击容器内时使用（如话题卡内的配图预览按钮） */
+  stop?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -64,6 +66,7 @@ const props = withDefaults(defineProps<Props>(), {
   shape: "pill",
   block: false,
   loading: false,
+  stop: false,
 });
 
 const emit = defineEmits<{ (e: "tap" | "click"): void }>();
@@ -82,7 +85,11 @@ function activate(): void {
   emit("click");
 }
 
-function handleTap(): void {
+function handleTap(e: any): void {
+  // stop=true 时阻断原生 click 冒泡：嵌套可点击容器（如卡内按钮）不再误触外层
+  if (props.stop) {
+    e?.stopPropagation?.();
+  }
   activate();
 }
 

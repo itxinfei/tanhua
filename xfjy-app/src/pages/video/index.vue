@@ -1,5 +1,7 @@
 <template>
   <view class="video-page">
+    <!-- 断网/恢复全局提示条（fixed 定位自管理显隐，S1） -->
+    <network-status-bar />
     <!-- 顶部 Tab（role=tablist 语义 + 可键盘操作） -->
     <view class="top-tabs" role="tablist" aria-label="视频频道">
       <view class="tab-group">
@@ -302,6 +304,7 @@
 import { ref, computed, watch, nextTick, getCurrentInstance } from "vue";
 import { onLoad, onShow, onHide, onShareAppMessage } from "@dcloudio/uni-app";
 import MatchPopup from "@/components/match-popup.vue";
+import NetworkStatusBar from "@/components/network-status-bar.vue";
 import {
   getVideoList,
   getFollowVideoList,

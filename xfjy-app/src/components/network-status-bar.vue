@@ -1,7 +1,14 @@
 <template>
-  <!-- 网络状态指示条：断网时黄色 / 恢复时变绿 -->
-  <view v-if="visible" class="network-bar" :class="barClass" @click="onClick">
-    <text class="network-icon">{{ icon }}</text>
+  <!-- 网络状态指示条：断网时黄色 / 恢复时变绿；role=alert + aria-live 让读屏主动播报网络变化 -->
+  <view
+    v-if="visible"
+    class="network-bar"
+    :class="barClass"
+    role="alert"
+    aria-live="assertive"
+    @click="onClick"
+  >
+    <text class="network-icon" aria-hidden="true">{{ icon }}</text>
     <text class="network-text">{{ text }}</text>
   </view>
 </template>

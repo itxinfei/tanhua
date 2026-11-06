@@ -30,8 +30,10 @@ function checkLogin(url: string): boolean {
   }
 
   uni.showToast({ title: "请先登录", icon: "none" });
-  // 统一 reLaunch，清空页面栈避免未登录页面残留在返回栈里
-  uni.reLaunch({ url: LOGIN_PAGE });
+  // 统一 reLaunch，清空页面栈避免未登录页面残留在返回栈里；
+  // 带 redirect 编码用户想去的目标页（而非当前页），登录成功后回跳到原本要去的页面
+  const target = url.startsWith("/") ? url : "/" + url;
+  uni.reLaunch({ url: `${LOGIN_PAGE}?redirect=${encodeURIComponent(target)}` });
   return false;
 }
 

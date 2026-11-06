@@ -1,5 +1,7 @@
 <template>
   <view class="publish-page">
+    <!-- 断网/恢复全局提示条（fixed 定位自管理显隐，S1） -->
+    <network-status-bar />
     <!-- 顶部栏：左侧关闭 + 居中标题 + 右侧发布按钮 -->
     <view class="top-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
       <a11y-button class="icon-btn" label="取消发布" @tap="handleCancel">
@@ -143,6 +145,7 @@
 import { ref, computed, onMounted } from "vue";
 import { onUnload } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
+import NetworkStatusBar from "@/components/network-status-bar.vue";
 import AppTabbar from "@/components/AppTabbar.vue";
 import { publishMovement } from "@/api/circle";
 import { publishVideo } from "@/api/video";

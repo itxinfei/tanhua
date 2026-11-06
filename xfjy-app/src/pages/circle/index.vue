@@ -1,5 +1,7 @@
 <template>
   <view class="social-page">
+    <!-- 断网/恢复全局提示条（fixed 定位自管理显隐，S1） -->
+    <network-status-bar />
     <!-- 顶级分区：圈子 / 消息 -->
     <view class="seg-bar" role="tablist" aria-label="社区分区">
       <a11y-button
@@ -208,6 +210,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import EmptyState from "@/components/empty-state.vue";
+import NetworkStatusBar from "@/components/network-status-bar.vue";
 import Skeleton from "@/components/skeleton.vue";
 import { onShow, onShareAppMessage } from "@dcloudio/uni-app";
 import MatchPopup from "@/components/match-popup.vue";

@@ -1,5 +1,7 @@
 <template>
   <view class="match-page">
+    <!-- 断网/恢复全局提示条（fixed 定位自管理显隐，S1） -->
+    <network-status-bar />
     <!-- 顶部栏 -->
     <view class="top-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
       <a11y-button class="city" label="选择城市" @tap="openCityPicker">
@@ -157,6 +159,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import EmptyState from "@/components/empty-state.vue";
+import NetworkStatusBar from "@/components/network-status-bar.vue";
 import Skeleton from "@/components/skeleton.vue";
 import { onShow, onShareAppMessage } from "@dcloudio/uni-app";
 import { useMatchStore } from "@/store/match";

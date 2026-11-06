@@ -1,5 +1,7 @@
 <template>
   <view class="mine-page">
+    <!-- 断网/恢复全局提示条（fixed 定位自管理显隐，S1） -->
+    <network-status-bar />
     <!-- 头部背景区 -->
     <view class="header" :style="{ paddingTop: statusBarHeight + HEADER_EXTRA_PADDING_PX + 'px' }">
       <!-- 漂浮装饰圆（纯装饰，对读屏隐藏） -->
@@ -83,6 +85,7 @@
 import { ref, computed } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import MatchPopup from "@/components/match-popup.vue";
+import NetworkStatusBar from "@/components/network-status-bar.vue";
 import A11yButton from "@/components/a11y-button.vue";
 import { useUserStore } from "@/store/user";
 import { getRelationCounts, FRIEND_TYPE, type RelationCounts } from "@/api/mine";
