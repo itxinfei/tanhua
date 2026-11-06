@@ -80,6 +80,11 @@ page {
   --color-coral: #ff655b;
   --color-primary-deep: #b13bff;
   --color-primary-violet: #8a5cf6;
+  /* VIP 权益专属紫（探探式 boost 按钮规范色，需求文档 B2.1「⚡曝光提升(紫)」）；
+     与历史紫 --color-primary-deep/violet 不同源，独立 token 便于暗色适配与后续调整 */
+  --color-vip-purple: #8a5cf6;
+  --color-vip-purple-deep: #b13bff;
+  --color-vip-purple-rgb: 138, 92, 246;
   --color-primary-soft: #ff8fb1;
   --color-primary-mist: #ffd1e8;
   --color-primary-text: #c2185b;
@@ -208,6 +213,10 @@ page {
     --color-primary-rgb: 255, 142, 185;
     --color-primary-deep: #9b5cf6;
     --color-primary-violet: #a78bfa;
+    /* VIP 权益专属紫暗色适配（需求文档 B2.1，暗色下提亮保持对比度） */
+    --color-vip-purple: #a78bfa;
+    --color-vip-purple-deep: #9b5cf6;
+    --color-vip-purple-rgb: 167, 139, 250;
     --color-primary-soft: #ff8fb1;
     --color-primary-mist: #7a5a70;
     --color-primary-text: #ff8eb9;

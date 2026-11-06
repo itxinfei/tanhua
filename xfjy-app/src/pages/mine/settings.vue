@@ -298,6 +298,8 @@ function handleDeleteAccount() {
     title: '注销账号',
     content: '注销后账号将立即无法登录，数据保留30天后永久删除。确定要注销吗？',
     confirmText: '继续',
+    // uni.showModal 是原生弹窗，confirmColor 只接受 hex（平台限制，无法传 CSS 变量）；
+    // 按 §11.7 #44 裁决属平台限制豁免，不视为 §7.1 违规
     confirmColor: '#ff3b30',
     success: (res) => {
       if (res.confirm) {
@@ -334,6 +336,7 @@ function inputDeleteCode() {
     editable: true,
     placeholderText: '6位验证码',
     confirmText: '确定注销',
+    // 同上：原生 API 平台限制，confirmColor 只接受 hex（§11.7 #44 裁决豁免）
     confirmColor: '#ff3b30',
     success: async (res) => {
       if (!res.confirm) return;

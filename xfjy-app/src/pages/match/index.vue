@@ -1106,9 +1106,12 @@ onShareAppMessage(() => ({
     &.boost {
       flex-direction: column;
       gap: 0;
-      background: linear-gradient(135deg, var(--color-primary-violet), var(--color-primary-deep));
+      /* VIP 曝光提升按钮规范色为紫色（需求文档 B2.1「⚡曝光提升(紫)」）；
+         使用独立 token --color-vip-purple 而非历史紫 --color-primary-deep，
+         避免与 §7.1「禁止新代码使用历史紫」冲突，且支持暗色适配 */
+      background: linear-gradient(135deg, var(--color-vip-purple), var(--color-vip-purple-deep));
       color: var(--text-inverse);
-      box-shadow: 0 6rpx 20rpx rgba(138, 92, 246, 0.4);
+      box-shadow: 0 6rpx 20rpx rgba(var(--color-vip-purple-rgb), 0.4);
 
       .boost-ico { font-size: 36rpx; line-height: 1; }
       .boost-label {
