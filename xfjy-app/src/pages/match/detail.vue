@@ -1,108 +1,309 @@
 <template>
   <view class="detail-page">
-    <!-- 照片轮播 -->
-    <swiper class="photo-swiper" circular indicator-dots indicator-color="rgba(255,255,255,0.4)" indicator-active-color="#fff" @change="onSwiperChange">
-      <swiper-item v-for="(photo, i) in photos" :key="i">
-        <image lazy-load
-          class="photo"
-          :src="photo"
-          mode="aspectFill"
-          :aria-label="`用户照片 ${i + 1}，共 ${photos.length} 张`"
-          @click="previewPhoto(i)"
-        />
-      </swiper-item>
-    </swiper>
-
-    <!-- 返回按钮（毛玻璃）：纯符号必须提供 aria-label，否则读屏只播符号名 -->
-    <a11y-button class="back-btn glass" :style="{ top: statusBarHeight + 8 + 'px' }" label="返回上一页" @tap="goBack">
-      <view class="i-ph-arrow-left" aria-hidden="true" />
+    <!-- 返回按钮：放在三态分支之外始终渲染，加载失败也能返回。纯符号必须提供 aria-label，否则读屏只播符号名。
+         无深色照片 hero 时（骨架/错误态/无照片）毛玻璃白按钮在浅底上对比度不足，切换为卡片表面样式（WCAG 1.4.3） -->
+    <a11y-button
+      class="back-btn"
+      :class="photos.length > 0 ? 'glass' : 'surface-btn shadow-card'"
+      :style="{ top: statusBarHeight + 8 + 'px' }"
+      label="返回上一页"
+      @tap="goBack"
+    >
+      <view
+        class="i-ph-arrow-left"
+        aria-hidden="true"
+      />
     </a11y-button>
 
-    <!-- 照片计数 -->
-    <view v-if="photos.length > 1" class="photo-count glass">
-      <text>{{ currentPhotoIndex + 1 }} / {{ photos.length }}</text>
+    <!-- 加载骨架：占位块只挂全局 .skeleton（App.vue 统一 shimmer 灰底，自动适配暗色），本页 class 只管几何布局；
+         aria-hidden 避免读屏朗读无意义占位 -->
+    <view
+      v-if="loading"
+      class="detail-skeleton"
+      aria-hidden="true"
+    >
+      <view class="skeleton skeleton-hero" />
+      <view class="info-card">
+        <view class="skeleton-name-row">
+          <view class="skeleton skeleton-name" />
+          <view class="skeleton skeleton-age" />
+        </view>
+        <view class="skeleton skeleton-fate" />
+        <view class="skeleton-meta">
+          <view
+            v-for="n in 3"
+            :key="n"
+            class="skeleton skeleton-meta-item"
+          />
+        </view>
+      </view>
     </view>
 
-    <!-- 更多按钮（毛玻璃）：举报入口，纯符号需 aria-label -->
-    <a11y-button class="more-btn glass" :style="{ top: statusBarHeight + 8 + 'px' }" label="更多操作，举报该用户" @tap="handleMore">
-      <text>⋯</text>
-    </a11y-button>
+    <!-- 加载失败：role="alert" 让读屏即时播报；与「资料确实为空」严格区分，slot 内放重试入口 -->
+    <empty-state
+      v-else-if="loadFailed"
+      role="alert"
+      icon="info"
+      title="暂时没能获取 TA 的资料"
+      desc="服务可能开小差了，检查网络后重试"
+    >
+      <a11y-button
+        class="retry-btn"
+        label="重新加载资料"
+        @tap="retryLoad"
+      >
+        重新加载
+      </a11y-button>
+    </empty-state>
 
-    <!-- 资料卡 -->
-    <view class="info-card shadow-card">
-      <view class="name-row">
-        <text class="nickname">{{ user?.nickname || '—' }}</text>
-        <view class="age-badge"><text>{{ user?.age || '—' }}</text></view>
-      </view>
-
-      <!-- 缘分值 -->
-      <!-- 缘分值：进度条需暴露数值语义，否则读屏只见一个空条 -->
-      <view class="fate-row">
-        <text class="fate-label">缘分值</text>
-        <view
-          class="fate-bar"
-          role="progressbar"
-          aria-label="缘分值"
-          :aria-valuenow="fateScore"
-          :aria-valuemin="0"
-          :aria-valuemax="FATE_SCORE_MAX"
-          :aria-valuetext="`${fateScore} 分，满分 ${FATE_SCORE_MAX} 分`"
+    <!-- 正常态 -->
+    <template v-else>
+      <!-- 照片轮播：photos 为空时不渲染，避免 750rpx 高空白块 -->
+      <swiper
+        v-if="photos.length > 0"
+        class="photo-swiper"
+        circular
+        indicator-dots
+        indicator-color="rgba(255,255,255,0.4)"
+        indicator-active-color="#fff"
+        @change="onSwiperChange"
+      >
+        <swiper-item
+          v-for="(photo, i) in photos"
+          :key="i"
         >
-          <view class="fate-fill" :style="{ width: fatePercent }" />
-        </view>
-        <text class="fate-score">{{ fateScore }}</text>
+          <image
+            lazy-load
+            class="photo"
+            :src="photo"
+            mode="aspectFill"
+            :aria-label="`用户照片 ${i + 1}，共 ${photos.length} 张`"
+            @click="previewPhoto(i)"
+          />
+        </swiper-item>
+      </swiper>
+
+      <!-- 照片计数 -->
+      <view
+        v-if="photos.length > 1"
+        class="photo-count glass"
+      >
+        <text>{{ currentPhotoIndex + 1 }} / {{ photos.length }}</text>
       </view>
 
-      <view class="meta-grid">
-        <view class="meta-item"><text class="label">城市</text><text class="value">{{ user?.city || '—' }}</text></view>
-        <view class="meta-item"><text class="label">学历</text><text class="value">{{ user?.edu || '—' }}</text></view>
-        <view class="meta-item"><text class="label">行业</text><text class="value">{{ user?.industry || '—' }}</text></view>
-      </view>
+      <!-- 更多按钮：举报入口，纯符号需 aria-label；无照片时同样切换表面样式保证对比度 -->
+      <a11y-button
+        class="more-btn"
+        :class="photos.length > 0 ? 'glass' : 'surface-btn shadow-card'"
+        :style="{ top: statusBarHeight + 8 + 'px' }"
+        label="更多操作，举报该用户"
+        @tap="handleMore"
+      >
+        <text>⋯</text>
+      </a11y-button>
 
-      <!-- 个人标签 -->
-      <view v-if="user?.tags && user.tags.length > 0" class="tags-section">
-        <text class="section-title">个人标签</text>
-        <view class="tags-wrap">
-          <view v-for="(tag, i) in user.tags" :key="i" class="tag"><text>{{ tag }}</text></view>
-        </view>
-      </view>
-
-      <!-- 陌生人问题 -->
-      <view v-if="questions.length > 0" class="question-section">
-        <text class="section-title">破冰问题</text>
-        <view v-for="(q, i) in questions" :key="i" class="question-item">
-          <view class="q-index"><text>{{ i + 1 }}</text></view>
-          <text class="question">{{ q }}</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- TA的动态 -->
-    <view v-if="movements.length > 0" class="movements-card shadow-card">
-      <text class="section-title">TA的动态</text>
-      <!-- 动态项：改为可聚焦按钮；不设 aria-label 以保留内部正文朗读 -->
-      <a11y-button v-for="m in movements" :key="m.id" class="movement-item" @tap="goMovementDetail(m.id)">
-        <image lazy-load v-if="m.imageContent && m.imageContent.length > 0" class="m-cover" :src="m.imageContent[0]" mode="aspectFill" aria-label="动态封面图片" />
-        <view class="m-body">
-          <text class="m-text ellipsis-2">{{ m.textContent }}</text>
-          <view class="m-stats">
-            <text><uni-icons type="heart-filled" size="14" color="var(--color-primary-text)"></uni-icons> {{ m.likeCount }}</text>
-            <text><uni-icons type="chatbubble" size="14" color="var(--text-hint)"></uni-icons> {{ m.commentCount }}</text>
+      <!-- 资料卡：无照片时取消负边距上叠，改为正常流间距（swiper 已不渲染） -->
+      <view
+        class="info-card shadow-card"
+        :class="{ 'info-card--no-photo': photos.length === 0 }"
+      >
+        <view class="name-row">
+          <text class="nickname">
+            {{ user?.nickname || '—' }}
+          </text>
+          <view class="age-badge">
+            <text>{{ user?.age || '—' }}</text>
           </view>
         </view>
-      </a11y-button>
-    </view>
 
-    <!-- 底部操作栏：4 键统一「白底彩环」圆形按钮（与匹配页 action-btn 同一视觉语言） -->
-    <view class="action-bar safe-area-bottom">
-      <a11y-button class="action dislike" label="不喜欢" @tap="handleDislike"><uni-icons type="close" size="22" color="var(--color-danger)"></uni-icons></a11y-button>
-      <a11y-button class="action chat" label="打招呼" @tap="handleChat"><uni-icons type="chatbubble" size="22" color="var(--info-blue)"></uni-icons></a11y-button>
-      <a11y-button class="action super-like" label="超级喜欢" @tap="handleSuperLike"><uni-icons type="star-filled" size="22" color="var(--gold)"></uni-icons></a11y-button>
-      <a11y-button class="action like" label="喜欢" @tap="handleLike"><uni-icons type="heart-filled" size="22" color="var(--success)"></uni-icons></a11y-button>
-    </view>
+        <!-- 缘分值：进度条需暴露数值语义，否则读屏只见一个空条 -->
+        <view class="fate-row">
+          <text class="fate-label">
+            缘分值
+          </text>
+          <view
+            class="fate-bar"
+            role="progressbar"
+            aria-label="缘分值"
+            :aria-valuenow="fateScore"
+            :aria-valuemin="0"
+            :aria-valuemax="FATE_SCORE_MAX"
+            :aria-valuetext="`${fateScore} 分，满分 ${FATE_SCORE_MAX} 分`"
+          >
+            <view
+              class="fate-fill"
+              :style="{ width: fatePercent }"
+            />
+          </view>
+          <text class="fate-score">
+            {{ fateScore }}
+          </text>
+        </view>
 
-    <!-- 匹配成功弹窗（与匹配页行为一致） -->
-    <MatchPopup />
+        <view class="meta-grid">
+          <view class="meta-item">
+            <text class="label">
+              城市
+            </text><text class="value">
+              {{ user?.city || '—' }}
+            </text>
+          </view>
+          <view class="meta-item">
+            <text class="label">
+              学历
+            </text><text class="value">
+              {{ user?.edu || '—' }}
+            </text>
+          </view>
+          <view class="meta-item">
+            <text class="label">
+              行业
+            </text><text class="value">
+              {{ user?.industry || '—' }}
+            </text>
+          </view>
+        </view>
+
+        <!-- 个人标签 -->
+        <view
+          v-if="user?.tags && user.tags.length > 0"
+          class="tags-section"
+        >
+          <text class="section-title">
+            个人标签
+          </text>
+          <view class="tags-wrap">
+            <view
+              v-for="(tag, i) in user.tags"
+              :key="i"
+              class="tag"
+            >
+              <text>{{ tag }}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 陌生人问题 -->
+        <view
+          v-if="questions.length > 0"
+          class="question-section"
+        >
+          <text class="section-title">
+            破冰问题
+          </text>
+          <view
+            v-for="(q, i) in questions"
+            :key="i"
+            class="question-item"
+          >
+            <view class="q-index">
+              <text>{{ i + 1 }}</text>
+            </view>
+            <text class="question">
+              {{ q }}
+            </text>
+          </view>
+        </view>
+      </view>
+
+      <!-- TA的动态 -->
+      <view
+        v-if="movements.length > 0"
+        class="movements-card shadow-card"
+      >
+        <text class="section-title">
+          TA的动态
+        </text>
+        <!-- 动态项：改为可聚焦按钮；不设 aria-label 以保留内部正文朗读 -->
+        <a11y-button
+          v-for="m in movements"
+          :key="m.id"
+          class="movement-item"
+          @tap="goMovementDetail(m.id)"
+        >
+          <image
+            v-if="m.imageContent && m.imageContent.length > 0"
+            lazy-load
+            class="m-cover"
+            :src="m.imageContent[0]"
+            mode="aspectFill"
+            aria-label="动态封面图片"
+          />
+          <view class="m-body">
+            <text class="m-text ellipsis-2">
+              {{ m.textContent }}
+            </text>
+            <view class="m-stats">
+              <text>
+                <uni-icons
+                  type="heart-filled"
+                  size="14"
+                  color="var(--color-primary-text)"
+                /> {{ m.likeCount }}
+              </text>
+              <text>
+                <uni-icons
+                  type="chatbubble"
+                  size="14"
+                  color="var(--text-hint)"
+                /> {{ m.commentCount }}
+              </text>
+            </view>
+          </view>
+        </a11y-button>
+      </view>
+
+      <!-- 底部操作栏：4 键统一「白底彩环」圆形按钮（与匹配页 action-btn 同一视觉语言） -->
+      <view class="action-bar safe-area-bottom">
+        <a11y-button
+          class="action dislike"
+          label="不喜欢"
+          @tap="handleDislike"
+        >
+          <uni-icons
+            type="close"
+            size="22"
+            color="var(--color-danger)"
+          />
+        </a11y-button>
+        <a11y-button
+          class="action chat"
+          label="打招呼"
+          @tap="handleChat"
+        >
+          <uni-icons
+            type="chatbubble"
+            size="22"
+            color="var(--info-blue)"
+          />
+        </a11y-button>
+        <a11y-button
+          class="action super-like"
+          label="超级喜欢"
+          @tap="handleSuperLike"
+        >
+          <uni-icons
+            type="star-filled"
+            size="22"
+            color="var(--gold)"
+          />
+        </a11y-button>
+        <a11y-button
+          class="action like"
+          label="喜欢"
+          @tap="handleLike"
+        >
+          <uni-icons
+            type="heart-filled"
+            size="22"
+            color="var(--success)"
+          />
+        </a11y-button>
+      </view>
+
+      <!-- 匹配成功弹窗（与匹配页行为一致）：仅正常态挂载，无用户数据时弹窗无意义 -->
+      <MatchPopup />
+    </template>
   </view>
 </template>
 
@@ -110,13 +311,16 @@
 import { ref, computed } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
+import EmptyState from "@/components/empty-state.vue";
 import MatchPopup from "@/components/match-popup.vue";
 import { useMatchStore } from "@/store/match";
 import { submitReport, REPORT_TARGET_TYPE, checkBenefit, recordBenefitUsage } from "@/api/mine";
 import { getPersonalInfo, getStrangerQuestion, loveUser, unloveUser, type TodayBest } from "@/api/match";
 import { getUserMovements, type Movement } from "@/api/circle";
 import { safeGoBack } from "@/utils/nav";
-import { success, info, fail, loading, hideLoading } from "@/utils/ux";
+// ux 的 loading 遮罩函数与本页三态 loading ref 同名冲突（TS2440），import 别名消歧；
+// 仅本地绑定名变化，调用的仍是同一函数，举报提交的遮罩行为零改动；hideLoading 无同名冲突保留原名
+import { success, info, fail, loading as showLoading, hideLoading } from "@/utils/ux";
 
 /** 缘分值满分 */
 const FATE_SCORE_MAX = 100;
@@ -137,6 +341,10 @@ const questions = ref<string[]>([]);
 const movements = ref<Movement[]>([]);
 const currentPhotoIndex = ref(0);
 const fateScore = ref(0);
+/** 整页加载中（骨架态），onLoad 即发起首屏请求，初值 true */
+const loading = ref(true);
+/** 核心资料加载失败标记：与「资料字段为空」严格区分，失败展示 role=alert 错误态 + 重试 */
+const loadFailed = ref(false);
 
 /** 缘分值百分比（用于进度条宽度） */
 const fatePercent = computed(() => `${Math.min(fateScore.value / FATE_SCORE_MAX, 1) * 100}%`);
@@ -183,8 +391,11 @@ async function loadUserInfo(): Promise<void> {
       .filter((url) => /\.(jpe?g|png|webp|gif)$/i.test(url));
     const all = [...(avatar ? [avatar] : []), ...albumPhotos, ...mediaPhotos];
     photos.value = [...new Set(all)];
-  } catch {
-    // 请求失败由 request 层统一 toast
+  } catch (e) {
+    // 核心资料失败 → 整页错误态；request 层已统一 toast，这里不重复弹。
+    // 不 rethrow：避免中断同批并发的 loadQuestion；日志带 userId 与原始错误，禁止空吞。
+    loadFailed.value = true;
+    console.warn("[match-detail] getPersonalInfo 失败，userId=%s", userId.value, e);
   }
 }
 
@@ -320,7 +531,7 @@ function chooseReportReason(): void {
     success: async (res) => {
       const reason = REPORT_REASONS[res.tapIndex];
       if (!reason || !userId.value) return;
-      loading("提交中...");
+      showLoading("提交中...");
       try {
         await submitReport({
           targetUserId: userId.value,
@@ -337,13 +548,44 @@ function chooseReportReason(): void {
   });
 }
 
+/** 重试前复位全部数据 refs，避免上一轮残留与新骨架/错误态混显 */
+function resetPageState(): void {
+  user.value = null;
+  photos.value = [];
+  questions.value = [];
+  movements.value = [];
+  currentPhotoIndex.value = 0;
+  fateScore.value = 0;
+}
+
+/**
+ * 首屏加载序列（onLoad 与错误态重试共用）：
+ * 动态先行（资料照片轮播依赖动态图片），资料与破冰问题并发。
+ * 动态是次要区块，loadMovements 内部 catch 已兜底不 rethrow，失败不拖垮整页；
+ * loadUserInfo 失败只置 loadFailed 不抛出，故 finally 一定能关闭骨架。
+ */
+async function loadAll(): Promise<void> {
+  loading.value = true;
+  loadFailed.value = false;
+  try {
+    await loadMovements();
+    await Promise.all([loadUserInfo(), loadQuestion()]);
+  } finally {
+    loading.value = false;
+  }
+}
+
+/** 错误态重试：复位后重发完整加载序列（动态/资料/问题三个请求） */
+async function retryLoad(): Promise<void> {
+  resetPageState();
+  await loadAll();
+}
+
 onLoad(async (options: any) => {
   userId.value = options?.id || "";
   const sysInfo = uni.getSystemInfoSync();
   statusBarHeight.value = sysInfo.statusBarHeight || DEFAULT_STATUS_BAR_HEIGHT;
-  // 先加载动态（照片轮播需要动态图片），再加载资料
-  await loadMovements();
-  await Promise.all([loadUserInfo(), loadQuestion()]);
+  await loadAll();
 });
 </script>
 
@@ -429,5 +671,43 @@ onLoad(async (options: any) => {
   &.chat { border-color: var(--info-blue); box-shadow: 0 6rpx 20rpx rgba(74, 144, 217, 0.25); }
   &.super-like { border-color: var(--gold); box-shadow: 0 6rpx 20rpx rgba(255, 179, 71, 0.3); }
   &.like { border-color: var(--success); box-shadow: 0 6rpx 20rpx rgba(76, 217, 100, 0.3); }
+}
+
+/* ===== 加载骨架（三态之一）=====
+   占位块颜色/闪光全部继承全局 .skeleton（App.vue），此处只编排几何布局，不写任何颜色字面量 */
+.detail-skeleton { padding-bottom: 40rpx; }
+
+/* 轮播位骨架：与 .photo-swiper 同高；真实照片是顶边方图，覆盖全局骨架的默认圆角 */
+.skeleton-hero { height: 750rpx; width: 100%; border-radius: 0; }
+
+.skeleton-name-row { display: flex; align-items: center; gap: 16rpx; }
+.skeleton-name { height: 44rpx; width: 240rpx; }
+.skeleton-age { height: 36rpx; width: 72rpx; }
+/* 与 .fate-row 同节奏：上间距 24rpx、条高 16rpx */
+.skeleton-fate { height: 16rpx; width: 100%; margin-top: 24rpx; }
+/* 与 .meta-grid 同布局：gap 20rpx、上间距 28rpx；min-width:0 防 flex 子项被撑破（AGENTS §7.1） */
+.skeleton-meta { display: flex; gap: 20rpx; margin-top: 28rpx; }
+.skeleton-meta-item { flex: 1; min-width: 0; height: 96rpx; }
+
+/* ===== 无照片正常态 =====
+   swiper 不渲染后取消 info-card 的负边距上叠，否则卡片会顶出视口 40rpx */
+.info-card--no-photo { margin-top: 24rpx; }
+
+/* ===== 无深色 hero 时悬浮按钮的表面态（骨架/错误/无照片三场景共用）=====
+   毛玻璃 .glass 是为深色照片设计的半透明白底，浅底上白色符号对比度不足（WCAG 1.4.3）；
+   切换为卡片底色 + 主文字色 + 全局卡片阴影，颜色全走 token，暗色模式自动适配 */
+.surface-btn { background: var(--bg-card); color: var(--text-primary); }
+
+/* ===== 错误态重试按钮（置于 empty-state 默认 slot）=====
+   几何对齐 nearby 页重试按钮，渐变/阴影只用品牌 token，禁止 hex 字面量 */
+.retry-btn {
+  margin-top: 32rpx;
+  padding: 16rpx 56rpx;
+  border-radius: var(--radius-pill);
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text-inverse);
+  background: var(--gradient-brand);
+  box-shadow: var(--shadow-primary);
 }
 </style>
