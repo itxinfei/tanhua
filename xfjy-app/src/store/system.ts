@@ -67,6 +67,10 @@ export const useSystemStore = defineStore("system", () => {
     settings.value = null;
     longitude.value = 0;
     latitude.value = 0;
+    // 同步清本地城市：否则换账号后残留上个账号的城市选择
+    // （与 chat.ts 已读水位同类的账号隔离缺陷）
+    currentCity.value = "北京";
+    uni.removeStorageSync(CITY_STORAGE_KEY);
   }
 
   return {

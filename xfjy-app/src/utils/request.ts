@@ -311,6 +311,12 @@ export function upload<T = any>(
           return;
         }
         let body: any;
+        // 空响应体：后端 200 + 空 body（如只返回 ResponseEntity.ok()）不应视为异常；
+        // 原实现 JSON.parse("") 抛错会被 catch 误判为「响应格式错误」
+        if (res.data === null || res.data === undefined || res.data === "") {
+          resolve(undefined as unknown as T);
+          return;
+        }
         try {
           body = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
         } catch {

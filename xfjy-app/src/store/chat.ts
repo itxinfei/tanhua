@@ -130,26 +130,25 @@ export const useChatStore = defineStore("chat", () => {
    * 未读数 = 当前总条数(counts) - 上次查看时记录的总条数
    */
   async function loadNoticeCounts(): Promise<void> {
-    try {
-      const [likeRes, commentRes, loveRes, announcementRes] = await Promise.all([
-        getLikeMessages({ page: 1, pagesize: 1 }),
-        getCommentMessages({ page: 1, pagesize: 1 }),
-        getLoveMessages({ page: 1, pagesize: 1 }),
-        getAnnouncementMessages({ page: 1, pagesize: 1 }),
-      ]);
-      const current: Record<NoticeType, number> = {
-        like: likeRes.counts || 0,
-        comment: commentRes.counts || 0,
-        love: loveRes.counts || 0,
-        announcement: announcementRes.counts || 0,
-      };
-      (Object.keys(current) as NoticeType[]).forEach((type) => {
-        const unread = Math.max(0, current[type] - getSeenCount(type));
-        noticeUnreads.value[type] = unread;
-      });
-    } catch {
-      // 请求失败由 request 层统一 toast
-    }
+    // 四个接口相互独立：用 allSettled 逐项更新，避免任一失败导致其他三类未读数全丢
+    const [likeRes, commentRes, loveRes, announcementRes] = await Promise.allSettled([
+      getLikeMessages({ page: 1, pagesize: 1 }),
+      getCommentMessages({ page: 1, pagesize: 1 }),
+      getLoveMessages({ page: 1, pagesize: 1 }),
+      getAnnouncementMessages({ page: 1, pagesize: 1 }),
+    ]);
+    const results: Array<{ counts?: number } | null> = [
+      likeRes.status === "fulfilled" ? likeRes.value : null,
+      commentRes.status === "fulfilled" ? commentRes.value : null,
+      loveRes.status === "fulfilled" ? loveRes.value : null,
+      announcementRes.status === "fulfilled" ? announcementRes.value : null,
+    ];
+    const types: NoticeType[] = ["like", "comment", "love", "announcement"];
+    results.forEach((res, i) => {
+      if (!res) return; // 该接口失败：保留旧未读数，不误清零
+      const unread = Math.max(0, (res.counts || 0) - getSeenCount(types[i]));
+      noticeUnreads.value[types[i]] = unread;
+    });
   }
 
   /**
