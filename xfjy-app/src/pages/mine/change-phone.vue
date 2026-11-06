@@ -1,18 +1,64 @@
 <template>
   <view class="change-phone-page">
-    <view class="tips">更换后需使用新手机号登录，请确保新号码可正常接收短信</view>
+    <view class="tips">
+      更换后需使用新手机号登录，请确保新号码可正常接收短信
+    </view>
     <view class="form-card">
       <view class="form-item">
-        <text :id="phoneLabelId" class="form-label">新手机号</text>
-        <input v-model="phone" type="number" maxlength="11" placeholder="请输入新手机号" placeholder-class="ph" aria-label="新手机号" :aria-labelledby="phoneLabelId" />
+        <text
+          :id="phoneLabelId"
+          class="form-label"
+        >
+          新手机号
+        </text>
+        <input
+          v-model="phone"
+          type="number"
+          maxlength="11"
+          placeholder="请输入新手机号"
+          placeholder-class="ph"
+          aria-label="新手机号"
+          :aria-labelledby="phoneLabelId"
+          @input="sanitizePhone"
+        >
       </view>
       <view class="form-item">
-        <text :id="codeLabelId" class="form-label">验证码</text>
-        <input v-model="code" type="number" maxlength="6" placeholder="6位验证码" placeholder-class="ph" aria-label="验证码" :aria-labelledby="codeLabelId" />
-        <a11y-button class="send-btn" :class="{ disabled: countdown > 0 }" :disabled="countdown > 0" :label="countdown > 0 ? `重新获取验证码，请等待 ${countdown} 秒` : '获取验证码'" @tap="sendCode">{{ countdown > 0 ? `${countdown}s` : '获取验证码' }}</a11y-button>
+        <text
+          :id="codeLabelId"
+          class="form-label"
+        >
+          验证码
+        </text>
+        <input
+          v-model="code"
+          type="number"
+          maxlength="6"
+          placeholder="6位验证码"
+          placeholder-class="ph"
+          aria-label="验证码"
+          :aria-labelledby="codeLabelId"
+          @input="sanitizeCode"
+        >
+        <a11y-button
+          class="send-btn"
+          :class="{ disabled: countdown > 0 }"
+          :disabled="countdown > 0"
+          :label="countdown > 0 ? `重新获取验证码，请等待 ${countdown} 秒` : '获取验证码'"
+          @tap="sendCode"
+        >
+          {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
+        </a11y-button>
       </view>
     </view>
-    <a11y-button class="submit-btn" variant="primary" block label="确认更换手机号" :loading="submitting" :disabled="submitting" @tap="submit">
+    <a11y-button
+      class="submit-btn"
+      variant="primary"
+      block
+      label="确认更换手机号"
+      :loading="submitting"
+      :disabled="submitting"
+      @tap="submit"
+    >
       <text>确认更换</text>
     </a11y-button>
   </view>
@@ -35,11 +81,53 @@ const countdown = ref(0);
 const submitting = ref(false);
 let timer: ReturnType<typeof setInterval> | null = null;
 
-onUnmounted(() => { if (timer) clearInterval(timer); });
+/**
+ * 输入清洗（M-A6，模式对齐 login.vue）：部分安卓机型 type="number" 仍可输入 +、-、.、空格，
+ * 残留到提交才报正则不匹配。采用「防抖清洗 + 提交前兜底」：
+ * uni-h5 input 事件有 100ms 节流，@input 里同步写回不可靠，停手后再清。
+ */
+const SANITIZE_DEBOUNCE_MS = 150;
+let phoneSanitizeTimer: ReturnType<typeof setTimeout> | null = null;
+let codeSanitizeTimer: ReturnType<typeof setTimeout> | null = null;
+
+function stripNonDigits(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
+function sanitizePhone(): void {
+  if (phoneSanitizeTimer) clearTimeout(phoneSanitizeTimer);
+  phoneSanitizeTimer = setTimeout(() => {
+    phoneSanitizeTimer = null;
+    const cleaned = stripNonDigits(phone.value);
+    if (cleaned !== phone.value) phone.value = cleaned;
+  }, SANITIZE_DEBOUNCE_MS);
+}
+
+function sanitizeCode(): void {
+  if (codeSanitizeTimer) clearTimeout(codeSanitizeTimer);
+  codeSanitizeTimer = setTimeout(() => {
+    codeSanitizeTimer = null;
+    const cleaned = stripNonDigits(code.value);
+    if (cleaned !== code.value) code.value = cleaned;
+  }, SANITIZE_DEBOUNCE_MS);
+}
+
+/** 提交前兜底清洗（同步，不可绕过的最后一道） */
+function forceSanitize(): void {
+  phone.value = stripNonDigits(phone.value);
+  code.value = stripNonDigits(code.value);
+}
+
+onUnmounted(() => {
+  if (timer) clearInterval(timer);
+  if (phoneSanitizeTimer) clearTimeout(phoneSanitizeTimer);
+  if (codeSanitizeTimer) clearTimeout(codeSanitizeTimer);
+});
 
 /** 发送验证码到新手机号（60s 倒计时防重复） */
 async function sendCode() {
   if (countdown.value > 0) return;
+  forceSanitize();
   if (!/^1[3-9]\d{9}$/.test(phone.value)) {
     info('请输入正确的手机号');
     return;
@@ -60,6 +148,7 @@ async function sendCode() {
 /** 提交换绑：200 成功 / 403 验证码错误 / 409 手机号已被占用 */
 async function submit() {
   if (submitting.value) return;
+  forceSanitize();
   if (!/^1[3-9]\d{9}$/.test(phone.value)) {
     info('请输入正确的手机号');
     return;

@@ -2,73 +2,165 @@
   <view class="settings-page">
     <!-- 账号与安全 -->
     <view class="group">
-      <text class="group-title">账号与安全</text>
-      <a11y-button class="item" :label="`手机号，当前 ${phoneMasked || '未绑定'}`" @tap="goPhone">
-        <text class="label">手机号</text>
-        <text class="value">{{ phoneMasked || '未绑定' }}</text>
-        <text class="arrow" aria-hidden="true">›</text>
+      <text class="group-title">
+        账号与安全
+      </text>
+      <a11y-button
+        class="item"
+        :label="`手机号，当前 ${phoneMasked || '未绑定'}`"
+        @tap="goPhone"
+      >
+        <text class="label">
+          手机号
+        </text>
+        <text class="value">
+          {{ phoneMasked || '未绑定' }}
+        </text>
+        <text
+          class="arrow"
+          aria-hidden="true"
+        >
+          ›
+        </text>
       </a11y-button>
-      <a11y-button class="item" :label="`实名认证，当前 ${isVerified ? '已认证' : '未认证'}`" @tap="goVerify">
-        <text class="label">实名认证</text>
-        <text class="value" :class="{ verified: isVerified }">{{ isVerified ? '已认证' : '未认证' }}</text>
-        <text class="arrow" aria-hidden="true">›</text>
+      <a11y-button
+        class="item"
+        :label="`实名认证，当前 ${isVerified ? '已认证' : '未认证'}`"
+        @tap="goVerify"
+      >
+        <text class="label">
+          实名认证
+        </text>
+        <text
+          class="value"
+          :class="{ verified: isVerified }"
+        >
+          {{ isVerified ? '已认证' : '未认证' }}
+        </text>
+        <text
+          class="arrow"
+          aria-hidden="true"
+        >
+          ›
+        </text>
       </a11y-button>
-      <a11y-button class="item" label="黑名单" @tap="goBlacklist">
-        <text class="label">黑名单</text>
-        <text class="arrow" aria-hidden="true">›</text>
+      <a11y-button
+        class="item"
+        label="黑名单"
+        @tap="goBlacklist"
+      >
+        <text class="label">
+          黑名单
+        </text>
+        <text
+          class="arrow"
+          aria-hidden="true"
+        >
+          ›
+        </text>
       </a11y-button>
     </view>
 
     <!-- 通知设置 -->
     <view class="group">
-      <text class="group-title">通知设置</text>
+      <text class="group-title">
+        通知设置
+      </text>
       <a11y-button
-        class="item"
         v-for="s in notificationSettings"
         :key="s.key"
+        class="item"
         :label="`${s.label}，当前${s.value ? '开启' : '关闭'}，点击切换`"
         @tap="onNotificationTap(s)"
       >
-        <text class="label">{{ s.label }}</text>
+        <text class="label">
+          {{ s.label }}
+        </text>
         <!-- 服务端配置加载完成前禁用，避免拨动默认值覆盖服务端
              color 写 CSS 变量：H5 端编译为 style 可解析；微信小程序端
              <switch> 是原生组件，color 只接受 hex，会回落为默认绿。
              属平台限制（§11.7 #43 已裁决选 B：接受 MP 端默认色），
              不写死 hex——写死会导致暗色模式下不跟随主色。 -->
-        <switch :checked="s.value" :disabled="!settingsLoaded" color="var(--color-primary)" @change="toggleNotification(s.key, $event)" @click.stop />
+        <switch
+          :checked="s.value"
+          :disabled="!settingsLoaded"
+          color="var(--color-primary)"
+          @change="toggleNotification(s.key, $event)"
+          @click.stop
+        />
       </a11y-button>
     </view>
 
     <!-- 隐私 -->
     <view class="group">
-      <text class="group-title">隐私</text>
-      <a11y-button class="item" :label="`显示距离，当前${showDistance ? '开启' : '关闭'}，点击切换`" @tap="onDistanceChange({ detail: { value: !showDistance } })">
-        <text class="label">显示距离</text>
+      <text class="group-title">
+        隐私
+      </text>
+      <a11y-button
+        class="item"
+        :label="`显示距离，当前${showDistance ? '开启' : '关闭'}，点击切换`"
+        @tap="onDistanceChange({ detail: { value: !showDistance } })"
+      >
+        <text class="label">
+          显示距离
+        </text>
         <!-- color 平台限制同上（§11.7 #43 选 B）：H5 生效，MP 端默认绿 -->
-        <switch :checked="showDistance" color="var(--color-primary)" @change="onDistanceChange" @click.stop />
+        <switch
+          :checked="showDistance"
+          color="var(--color-primary)"
+          @change="onDistanceChange"
+          @click.stop
+        />
       </a11y-button>
     </view>
 
     <!-- 通用 -->
     <view class="group">
-      <text class="group-title">通用</text>
-      <a11y-button class="item" :label="`清除缓存，当前 ${cacheSize}`" @tap="clearCache">
-        <text class="label">清除缓存</text>
-        <text class="value">{{ cacheSize }}</text>
+      <text class="group-title">
+        通用
+      </text>
+      <a11y-button
+        class="item"
+        :label="`清除缓存，当前 ${cacheSize}`"
+        @tap="clearCache"
+      >
+        <text class="label">
+          清除缓存
+        </text>
+        <text class="value">
+          {{ cacheSize }}
+        </text>
       </a11y-button>
-      <a11y-button class="item" label="关于心飞，版本 v1.0.0" @tap="showAbout">
-        <text class="label">关于心飞</text>
-        <text class="value">v1.0.0</text>
+      <a11y-button
+        class="item"
+        :label="`关于心飞，版本 v${appVersion}`"
+        @tap="showAbout"
+      >
+        <text class="label">
+          关于心飞
+        </text>
+        <text class="value">
+          v{{ appVersion }}
+        </text>
       </a11y-button>
     </view>
 
     <!-- 退出登录（a11y-button 全站按钮单一真源，loading 防重复点击） -->
-    <a11y-button class="logout-btn" label="退出登录" :loading="logoutLoading" @tap="handleLogout">
+    <a11y-button
+      class="logout-btn"
+      label="退出登录"
+      :loading="logoutLoading"
+      @tap="handleLogout"
+    >
       <text>退出登录</text>
     </a11y-button>
 
     <!-- 注销账号（破坏性操作：需可聚焦 + 语义化 + 足够对比度） -->
-    <a11y-button class="delete-account" label="注销账号" @tap="handleDeleteAccount">
+    <a11y-button
+      class="delete-account"
+      label="注销账号"
+      @tap="handleDeleteAccount"
+    >
       <text>注销账号</text>
     </a11y-button>
   </view>
@@ -81,7 +173,10 @@ import { useUserStore } from "@/store/user";
 import A11yButton from "@/components/a11y-button.vue";
 import { getUserSettings, deleteAccount, getVerifyStatus, updateNotificationSetting, type NotificationSettingParam } from "@/api/mine";
 import { sendSmsCode } from "@/api/auth";
-import { success, fail, info, loading, hideLoading } from "@/utils/ux";
+import { success, fail, info, loading, hideLoading, confirm } from "@/utils/ux";
+
+/** 应用版本号（M-A7）：vite define 从 package.json 注入，模板经此变量访问 */
+const appVersion = __APP_VERSION__;
 
 const userStore = useUserStore();
 const phoneMasked = ref('');
@@ -111,6 +206,12 @@ const NOTIFICATION_DEBOUNCE_MS = 300;
 let notificationTimer: ReturnType<typeof setTimeout> | null = null;
 /** 待提交的最终状态：每次点击覆盖，保证 trailing 提交的是最后一次 */
 let pendingNotificationPayload: NotificationSettingParam | null = null;
+/**
+ * 防抖窗口首次操作时的开关快照（M-A1）。
+ * 保存失败必须恢复到「这批操作前」的状态，而不是把四项全部取反——
+ * 取反会把用户没动过的开关也反转（原 BUG）。
+ */
+let notificationSnapshot: { key: string; label: string; value: boolean }[] | null = null;
 
 /**
  * 整行点击切换通知开关（热区 ≥88rpx，原 switch 仅 32px 高难以点中）
@@ -131,6 +232,10 @@ async function toggleNotification(key: string, e: any) {
   // 乐观更新：UI 立即跟随，不等服务端
   if (s) s.value = e.detail.value;
 
+  // 防抖窗口首次操作：拍快照供失败整体恢复（M-A1：不再四项全取反）
+  if (!pendingNotificationPayload) {
+    notificationSnapshot = notificationSettings.value.map(n => ({ ...n }));
+  }
   // 记录本次目标状态，覆盖前一次未提交的
   const find = (k: string) => notificationSettings.value.find(n => n.key === k)?.value ?? true;
   pendingNotificationPayload = {
@@ -147,9 +252,11 @@ async function toggleNotification(key: string, e: any) {
     pendingNotificationPayload = null;
     if (!payload) return;
     updateNotificationSetting(payload).catch(() => {
-      // 持久化失败由 request 层统一 toast；回滚四项到提交前状态
-      // （回滚为乐观更新的逆操作：把当前值取反）
-      notificationSettings.value.forEach((n) => { n.value = !n.value; });
+      // 持久化失败由 request 层统一 toast；恢复到这批操作前的快照（M-A1）
+      if (notificationSnapshot) {
+        notificationSettings.value = notificationSnapshot.map(n => ({ ...n }));
+        notificationSnapshot = null;
+      }
       fail("设置保存失败，已还原");
     });
   }, NOTIFICATION_DEBOUNCE_MS);
@@ -268,8 +375,32 @@ function clearCache() {
   });
 }
 
+/**
+ * 关于弹窗（M-A7）：版本号由构建注入；MP 端顺带检查小程序更新。
+ */
 function showAbout() {
-  uni.showModal({ title: '心飞交友', content: '版本 v1.0.0\n心飞为你飞，遇见对的人', showCancel: false });
+  uni.showModal({
+    title: '心飞交友',
+    content: `版本 v${appVersion}\n心飞为你飞，遇见对的人`,
+    showCancel: false,
+  });
+  // #ifdef MP-WEIXIN
+  // 微信小程序更新检查：有新版本时提示用户重启生效
+  const updateManager = (uni as any).getUpdateManager?.();
+  if (updateManager) {
+    updateManager.onCheckForUpdate?.((res: any) => {
+      if (!res?.hasUpdate) info('当前已是最新版本');
+    });
+    updateManager.onUpdateReady?.(() => {
+      confirm('新版本已就绪，是否重启应用？').then((ok) => {
+        if (ok) updateManager.applyUpdate?.();
+      });
+    });
+    updateManager.onUpdateFailed?.(() => {
+      fail('更新下载失败，请检查网络后重试');
+    });
+  }
+  // #endif
 }
 
 /** 退出登录中状态（signOutAll 含 IM 登出，可能耗时，期间阻断重复点击） */

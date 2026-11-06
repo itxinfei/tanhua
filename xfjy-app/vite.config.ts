@@ -2,6 +2,12 @@ import { defineConfig } from "vite";
 import uniPlugin from "@dcloudio/vite-plugin-uni";
 import UnoCSS from "unocss/vite";
 import path from "path";
+import { readFileSync } from "fs";
+
+// 构建期注入应用版本号（M-A7）：从 package.json 读取，避免页面写死 v1.0.0
+const appVersion = JSON.parse(
+  readFileSync(path.resolve(process.cwd(), "package.json"), "utf-8"),
+).version as string;
 
 // 文件名须为 vite.config.ts（HBuilderX 云打包只认 vite.config.js/.ts 来判定 Vue3 CLI 工程），
 // 配合 package.json 的 "type":"module" 以原生 ESM 加载，否则 unocss/vite（ESM-only）无法被 require。
@@ -17,6 +23,10 @@ const isH5 = process.env.UNI_PLATFORM === "h5";
 export default defineConfig({
   // UnoCSS 必须在 uni 插件之前，保证图标类先转换再交小程序编译器
   plugins: [UnoCSS(), uni()],
+  define: {
+    // 版本号单一真源：package.json version，运行时以字面量内联替换
+    __APP_VERSION__: JSON.stringify(appVersion),
+  },
   build: {
     // 分包优化：node_modules 第三方依赖单独 chunk，加速首屏加载（H5 端）
     rollupOptions: {

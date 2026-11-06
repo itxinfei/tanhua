@@ -1,16 +1,32 @@
 <template>
   <view class="friends-page">
     <!-- 页面标题：custom 导航无系统返回键，返回键 + 标题均自绘；标题随当前 Tab 变化 -->
-    <view class="page-header" :style="{ paddingTop: statusBarHeight + 10 + 'px' }">
+    <view
+      class="page-header"
+      :style="{ paddingTop: statusBarHeight + 10 + 'px' }"
+    >
       <!-- 返回按钮必须用 a11y-button（全站按钮单一真源），图标用 UnoCSS Phosphor i-ph-*，热区 88rpx 满足 WCAG 2.5.5 -->
-      <a11y-button class="back-btn" label="返回上一页" @tap="goBack">
-        <view class="i-ph-arrow-left back-icon" aria-hidden="true" />
+      <a11y-button
+        class="back-btn"
+        label="返回上一页"
+        @tap="goBack"
+      >
+        <view
+          class="i-ph-arrow-left back-icon"
+          aria-hidden="true"
+        />
       </a11y-button>
-      <text class="page-title">{{ pageTitle }}</text>
+      <text class="page-title">
+        {{ pageTitle }}
+      </text>
     </view>
 
     <!-- 统计条：数据来自 GET /users/counts，点击切换对应 Tab -->
-    <view class="stats-bar" role="tablist" aria-label="好友关系统计">
+    <view
+      class="stats-bar"
+      role="tablist"
+      aria-label="好友关系统计"
+    >
       <a11y-button
         v-for="tab in TAB_LIST"
         :key="`stat-${tab.type}`"
@@ -21,21 +37,28 @@
         :label="`${tab.label} ${counts[tab.type] ?? 0} 人，查看列表`"
         @tap="switchTab(tab.type)"
       >
-        <text class="stat-num">{{ counts[tab.type] ?? 0 }}</text>
-        <text class="stat-label">{{ tab.label }}</text>
+        <text class="stat-num">
+          {{ counts[tab.type] ?? 0 }}
+        </text>
+        <text class="stat-label">
+          {{ tab.label }}
+        </text>
       </a11y-button>
     </view>
 
     <!-- 搜索框：列表为空时隐藏（0 条数据下搜索无意义），避免"搜了还是空"的困惑 -->
-    <view v-if="userList.length > 0 || loading" class="search-bar">
+    <view
+      v-if="userList.length > 0 || loading"
+      class="search-bar"
+    >
       <input
-        class="search-input"
         v-model="keyword"
+        class="search-input"
         :placeholder="searchPlaceholder"
         :aria-label="searchPlaceholder"
         confirm-type="search"
         @confirm="handleSearch"
-      />
+      >
     </view>
 
     <!-- 列表 -->
@@ -54,7 +77,12 @@
         :desc="emptyDesc"
       >
         <!-- 空态 CTA：可点击按钮，直接去匹配页认识更多人（原为纯文本不可点） -->
-        <a11y-button class="empty-cta" variant="primary" label="去认识更多人" @tap="goMatch">
+        <a11y-button
+          class="empty-cta"
+          variant="primary"
+          label="去认识更多人"
+          @tap="goMatch"
+        >
           去认识更多人
         </a11y-button>
       </empty-state>
@@ -107,10 +135,16 @@
         </template>
       </user-list-item>
 
-      <view v-if="loading" class="loading-tip">
+      <view
+        v-if="loading"
+        class="loading-tip"
+      >
         <text>加载中...</text>
       </view>
-      <view v-if="!hasMore && userList.length > 0" class="loading-tip">
+      <view
+        v-if="!hasMore && userList.length > 0"
+        class="loading-tip"
+      >
         <text>没有更多了</text>
       </view>
     </scroll-view>
@@ -141,7 +175,7 @@ import {
   FRIEND_TYPE,
   type FriendUser,
 } from "@/api/mine";
-import { info, success } from "@/utils/ux";
+import { info, success, confirm } from "@/utils/ux";
 import { resolveAvatar } from "@/utils/avatar";
 import { safeGoBack } from "@/utils/nav";
 import { useUserStore } from "@/store/user";
@@ -341,8 +375,10 @@ function handleSearch(): void {
   loadList();
 }
 
-/** 取消喜欢 */
+/** 取消喜欢（M-A5：破坏性操作先确认，对齐黑名单移除交互） */
 async function handleCancelLike(userId: string): Promise<void> {
+  const ok = await confirm("确认取消喜欢？取消后需重新喜欢对方");
+  if (!ok) return;
   try {
     await cancelLike(userId);
     userList.value = userList.value.filter((user) => user.id !== userId);

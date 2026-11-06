@@ -3,16 +3,45 @@
     <!-- 断网/恢复全局提示条（fixed 定位自管理显隐，S1） -->
     <network-status-bar />
     <!-- 顶部栏 -->
-    <view class="top-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
-      <a11y-button class="city" label="选择城市" @tap="openCityPicker">
-        <text class="city-name">{{ currentCity }}</text>
-        <text class="arrow" aria-hidden="true">▾</text>
+    <view
+      class="top-bar"
+      :style="{ paddingTop: statusBarHeight + 'px' }"
+    >
+      <a11y-button
+        class="city"
+        label="选择城市"
+        @tap="openCityPicker"
+      >
+        <text class="city-name">
+          {{ currentCity }}
+        </text>
+        <text
+          class="arrow"
+          aria-hidden="true"
+        >
+          ▾
+        </text>
       </a11y-button>
-      <a11y-button class="locate-btn" label="重新定位" @tap="relocate">
-        <text class="locate-ico" aria-hidden="true">◎</text>
-        <text class="locate-text">定位</text>
+      <a11y-button
+        class="locate-btn"
+        label="重新定位"
+        @tap="relocate"
+      >
+        <text
+          class="locate-ico"
+          aria-hidden="true"
+        >
+          ◎
+        </text>
+        <text class="locate-text">
+          定位
+        </text>
       </a11y-button>
-      <a11y-button class="filter-btn" label="查看附近的人" @tap="goNearby">
+      <a11y-button
+        class="filter-btn"
+        label="查看附近的人"
+        @tap="goNearby"
+      >
         <text>附近</text>
       </a11y-button>
     </view>
@@ -21,7 +50,10 @@
     <view class="card-area">
       <!-- 骨架卡片：门控基于实际可见窗口而非 cardList.length——
            历史卡滑完后数组不清空，reload/补拉期间 visibleCards 为空，仍需骨架兜底防闪空白 -->
-      <skeleton v-if="loading && visibleCards.length === 0" variant="match" />
+      <skeleton
+        v-if="loading && visibleCards.length === 0"
+        variant="match"
+      />
 
       <!-- 加载失败错误态：与「候选耗尽/暂无推荐」严格区分，给明确原因 + 重试入口，
            范式同 pages/match/nearby.vue，role=alert 透传到 empty-state 根节点供读屏播报 -->
@@ -60,30 +92,43 @@
         :key="card.id"
         class="card-wrapper"
         :style="getCardStyle(index)"
+        :aria-label="`推荐卡片：${card.nickname}，${card.age}岁，轻点查看完整资料`"
         @touchstart="onTouchStart($event, index)"
         @touchmove="onTouchMove($event, index)"
         @touchend="onTouchEnd($event, index)"
         @tap="onCardTap(index)"
-        :aria-label="`推荐卡片：${card.nickname}，${card.age}岁，轻点查看完整资料`"
       >
         <!-- 主图 -->
-        <image lazy-load
+        <image
+          lazy-load
           class="card-image"
           :src="card.avatar"
           mode="aspectFill"
           :aria-label="`${card.nickname} 的照片`"
         />
         <!-- 底部渐变遮罩（纯装饰） -->
-        <view class="card-mask" aria-hidden="true" />
+        <view
+          class="card-mask"
+          aria-hidden="true"
+        />
         <!-- 用户信息 -->
         <view class="card-info">
           <view class="name-row">
-            <text class="nickname">{{ card.nickname }}</text>
-            <text class="age">{{ card.age }}</text>
+            <text class="nickname">
+              {{ card.nickname }}
+            </text>
+            <text class="age">
+              {{ card.age }}
+            </text>
           </view>
           <!-- 缘分值进度条：告知读屏当前值而非仅视觉呈现 -->
-          <view v-if="card.fateValue" class="fate-row">
-            <text class="fate-label">缘分值</text>
+          <view
+            v-if="card.fateValue"
+            class="fate-row"
+          >
+            <text class="fate-label">
+              缘分值
+            </text>
             <view
               class="fate-bar"
               role="progressbar"
@@ -97,23 +142,49 @@
                 :style="{ width: Math.min(card.fateValue, 100) + '%' }"
               />
             </view>
-            <text class="fate-value">{{ card.fateValue }}</text>
+            <text class="fate-value">
+              {{ card.fateValue }}
+            </text>
           </view>
           <!-- 决策信息：城市 / 学历 / 行业（有则显示，避免用户在缺少判断依据时做决定） -->
-          <view v-if="cardMeta(card)" class="meta-row">
-            <text class="meta-text">{{ cardMeta(card) }}</text>
+          <view
+            v-if="cardMeta(card)"
+            class="meta-row"
+          >
+            <text class="meta-text">
+              {{ cardMeta(card) }}
+            </text>
           </view>
           <!-- 标签 -->
-          <view v-if="card.tags && card.tags.length" class="tags">
-            <text v-for="tag in card.tags.slice(0, MAX_TAG_COUNT)" :key="tag" class="tag glass">{{ tag }}</text>
+          <view
+            v-if="card.tags && card.tags.length"
+            class="tags"
+          >
+            <text
+              v-for="tag in card.tags.slice(0, MAX_TAG_COUNT)"
+              :key="tag"
+              class="tag glass"
+            >
+              {{ tag }}
+            </text>
           </view>
           <!-- 轻点卡片任意处查看完整资料（onCardTap），不再放独立入口按钮 -->
         </view>
         <!-- 滑动提示（喜欢 / 不喜欢）：随手势显示的视觉反馈，对读屏隐藏 -->
-        <view v-if="index === 0" class="swipe-hint like" :style="{ opacity: likeOpacity }" aria-hidden="true">
+        <view
+          v-if="index === 0"
+          class="swipe-hint like"
+          :style="{ opacity: likeOpacity }"
+          aria-hidden="true"
+        >
           喜欢
         </view>
-        <view v-if="index === 0" class="swipe-hint nope" :style="{ opacity: nopeOpacity }" aria-hidden="true">
+        <view
+          v-if="index === 0"
+          class="swipe-hint nope"
+          :style="{ opacity: nopeOpacity }"
+          aria-hidden="true"
+        >
           不喜欢
         </view>
       </view>
@@ -121,21 +192,62 @@
 
     <!-- 底部操作栏（探探式五键：回看 / 不喜欢 / 超级喜欢 / 心动 / 曝光提升） -->
     <view class="action-bar safe-area-bottom">
-      <a11y-button class="action-btn rewind" label="回看上一张" @tap="handleRewind">
-        <text aria-hidden="true">↺</text>
+      <a11y-button
+        class="action-btn rewind"
+        label="回看上一张"
+        @tap="handleRewind"
+      >
+        <text aria-hidden="true">
+          ↺
+        </text>
       </a11y-button>
-      <a11y-button class="action-btn dislike" label="不喜欢" @tap="handleDislike">
-        <uni-icons type="close" size="24" color="#ff3b30"></uni-icons>
+      <a11y-button
+        class="action-btn dislike"
+        label="不喜欢"
+        @tap="handleDislike"
+      >
+        <uni-icons
+          type="close"
+          size="24"
+          color="#ff3b30"
+        />
       </a11y-button>
-      <a11y-button class="action-btn superlike" label="超级喜欢" @tap="handleSuperLike">
-        <uni-icons type="star-filled" size="22" color="#4dabf7"></uni-icons>
+      <a11y-button
+        class="action-btn superlike"
+        label="超级喜欢"
+        @tap="handleSuperLike"
+      >
+        <uni-icons
+          type="star-filled"
+          size="22"
+          color="#4dabf7"
+        />
       </a11y-button>
-      <a11y-button class="action-btn like" label="心动" @tap="handleLike">
-        <uni-icons type="heart-filled" size="24" color="#4cd964"></uni-icons>
+      <a11y-button
+        class="action-btn like"
+        label="心动"
+        @tap="handleLike"
+      >
+        <uni-icons
+          type="heart-filled"
+          size="24"
+          color="#4cd964"
+        />
       </a11y-button>
-      <a11y-button class="action-btn boost" label="曝光提升" @tap="handleBoost">
-        <text class="boost-ico" aria-hidden="true">⚡</text>
-        <text class="boost-label">曝光</text>
+      <a11y-button
+        class="action-btn boost"
+        label="曝光提升"
+        @tap="handleBoost"
+      >
+        <text
+          class="boost-ico"
+          aria-hidden="true"
+        >
+          ⚡
+        </text>
+        <text class="boost-label">
+          曝光
+        </text>
       </a11y-button>
     </view>
 
@@ -367,6 +479,16 @@ function syncLocation(): void {
           addrStr: `${res.longitude.toFixed(6)},${res.latitude.toFixed(6)}`,
         })
         .catch(() => {});
+    },
+    fail: (err: any) => {
+      // 定位授权拒绝（M-M3）：静默降级为默认城市，MP 端引导打开设置重新授权
+      const msg = String(err?.errMsg || "");
+      if (msg.includes("cancel")) return;
+      info("需要定位权限才能匹配附近的人");
+      const openSetting = (uni as any).openSetting;
+      if (typeof openSetting === "function") {
+        openSetting({});
+      }
     },
   });
 }

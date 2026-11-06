@@ -1,29 +1,64 @@
 <template>
   <view class="nearby-page">
     <!-- 筛选栏 -->
-    <view class="filter-bar" role="radiogroup" aria-label="筛选条件">
+    <view
+      class="filter-bar"
+      role="radiogroup"
+      aria-label="筛选条件"
+    >
       <!-- 距离维度的"全部"改为"不限距离"，与右侧性别筛选的"不限性别"明确区分 -->
-      <a11y-button class="filter-item" :class="{ active: distance === d }" v-for="d in distances" :key="d" role="radio" :checked="distance === d" :label="d === 0 ? '不限距离' : `距离 ${d} 公里以内`" @tap="distance = d">
+      <a11y-button
+        v-for="d in distances"
+        :key="d"
+        class="filter-item"
+        :class="{ active: distance === d }"
+        role="radio"
+        :checked="distance === d"
+        :label="d === 0 ? '不限距离' : `距离 ${d} 公里以内`"
+        @tap="distance = d"
+      >
         <text>{{ d === 0 ? '不限距离' : d + 'km' }}</text>
       </a11y-button>
-      <a11y-button class="filter-item gender" :class="{ active: gender !== '全部' }" role="radio" :checked="gender === '女'" :label="`性别筛选：${gender === '全部' ? '不限性别' : '女生'}`" @tap="gender = gender === '女' ? '全部' : '女'">
+      <a11y-button
+        class="filter-item gender"
+        :class="{ active: gender !== '全部' }"
+        role="radio"
+        :checked="gender === '女'"
+        :label="`性别筛选：${gender === '全部' ? '不限性别' : '女生'}`"
+        @tap="gender = gender === '女' ? '全部' : '女'"
+      >
         <text>{{ gender === '全部' ? '不限性别' : '女生' }}</text>
       </a11y-button>
     </view>
 
     <!-- 定位未授权提示 -->
-    <view v-if="!hasLocationAuth" class="location-tip" role="alert">
-      <view class="i-ph-map-pin location-tip__ico" aria-hidden="true" />
-      <text class="location-tip__text">未开启定位，可能看不到附近的人</text>
-      <a11y-button class="location-tip__btn" label="开启定位" @tap="requestLocation">开启</a11y-button>
+    <view
+      v-if="!hasLocationAuth"
+      class="location-tip"
+      role="alert"
+    >
+      <view
+        class="i-ph-map-pin location-tip__ico"
+        aria-hidden="true"
+      />
+      <text class="location-tip__text">
+        未开启定位，可能看不到附近的人
+      </text>
+      <a11y-button
+        class="location-tip__btn"
+        label="开启定位"
+        @tap="requestLocation"
+      >
+        开启
+      </a11y-button>
     </view>
 
     <!-- 用户列表 -->
     <scroll-view
       class="user-list"
       scroll-y
-      @scrolltolower="onLoadMore"
       :lower-threshold="80"
+      @scrolltolower="onLoadMore"
     >
       <user-list-item
         v-for="user in userList"
@@ -35,8 +70,14 @@
         @tap-item="goDetail(user.userId)"
       >
         <template #meta>
-          <view v-if="user.city" class="distance-tag">
-            <view class="i-ph-map-pin distance-tag__ico" aria-hidden="true" />
+          <view
+            v-if="user.city"
+            class="distance-tag"
+          >
+            <view
+              class="i-ph-map-pin distance-tag__ico"
+              aria-hidden="true"
+            />
             <text>{{ user.city }}</text>
           </view>
         </template>
@@ -46,21 +87,33 @@
             :label="`喜欢 ${user.nickname || '该用户'}`"
             @tap="handleQuickLike(user.userId)"
           >
-            <view class="i-ph-heart like-btn__ico" aria-hidden="true" />
+            <view
+              class="i-ph-heart like-btn__ico"
+              aria-hidden="true"
+            />
           </a11y-button>
         </template>
       </user-list-item>
 
       <!-- 加载更多 -->
-      <view v-if="loadingMore" class="load-more">
+      <view
+        v-if="loadingMore"
+        class="load-more"
+      >
         <text>加载中...</text>
       </view>
-      <view v-else-if="!hasMore && userList.length > 0" class="load-more">
+      <view
+        v-else-if="!hasMore && userList.length > 0"
+        class="load-more"
+      >
         <text>没有更多了</text>
       </view>
 
       <!-- 骨架 -->
-      <skeleton v-if="userList.length === 0 && loading" variant="feed" />
+      <skeleton
+        v-if="userList.length === 0 && loading"
+        variant="feed"
+      />
 
       <!-- 空状态：确实没有附近用户 -->
       <empty-state
@@ -79,7 +132,13 @@
         title="暂时没能获取附近的人"
         desc="服务可能开小差了，检查网络后重试"
       >
-        <a11y-button class="nearby-retry" label="重新加载附近的人" @tap="loadNearby(true)">重新加载</a11y-button>
+        <a11y-button
+          class="nearby-retry"
+          label="重新加载附近的人"
+          @tap="loadNearby(true)"
+        >
+          重新加载
+        </a11y-button>
       </empty-state>
     </scroll-view>
   </view>
@@ -213,8 +272,15 @@ function requestLocation(): void {
         hasLocationAuth.value = true;
         loadNearby(true);
       },
-      fail: () => {
-        info("请在系统设置中开启定位权限");
+      fail: (err: any) => {
+        // 授权拒绝（M-M3）：MP 端引导跳系统设置重新授权；H5 由浏览器层面处理
+        const msg = String(err?.errMsg || "");
+        if (msg.includes("cancel")) return;
+        info("需要定位权限才能查看附近的人");
+        const openSetting = (uni as any).openSetting;
+        if (typeof openSetting === "function") {
+          openSetting({});
+        }
       },
     });
   } catch {
@@ -276,7 +342,9 @@ onPullDownRefresh(async () => {
 
 /* ===== 筛选栏（探探式：左距离胶囊组，右性别筛选） ===== */
 .filter-bar { display: flex; align-items: center; gap: 12rpx; padding: 20rpx 24rpx; background: var(--bg-card); position: sticky; top: 0; z-index: 10; box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
-  .filter-item { display: flex; align-items: center; justify-content: center; padding: 0 26rpx; min-height: 64rpx; border-radius: 32rpx; font-size: 24rpx; line-height: 1; color: var(--text-hint-strong); background: var(--bg-sub); transition: all 0.2s;
+  /* 不写 min-height：a11y-button default 变体已内置 88rpx 保底（组件规则特异性更高，实际胜出），
+     原 64rpx 是误导性违规字面量，删除后胶囊高度按 88rpx 达标 */
+  .filter-item { display: flex; align-items: center; justify-content: center; padding: 0 26rpx; border-radius: 32rpx; font-size: 24rpx; line-height: 1; color: var(--text-hint-strong); background: var(--bg-sub); transition: all 0.2s;
     &.active { background: var(--gradient-brand); color: var(--text-inverse); box-shadow: var(--shadow-primary); }
     &.gender.active { background: var(--gradient-brand); }
   }
@@ -299,7 +367,8 @@ onPullDownRefresh(async () => {
 }
 
 /* 喜欢按钮 */
-.like-btn { width: 80rpx; height: 80rpx; border-radius: 50%; background: var(--gradient-brand); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; box-shadow: var(--shadow-primary);
+/* 宽高均 88rpx 正圆：组件 min-height 保底只顶高度，原 80×80 被撑成 80 宽 × 88 高椭圆，双维对齐后恢复正圆 */
+.like-btn { width: 88rpx; height: 88rpx; border-radius: 50%; background: var(--gradient-brand); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; box-shadow: var(--shadow-primary);
   &:active { transform: scale(0.9); }
   .like-btn__ico { width: 40rpx; height: 40rpx; color: var(--text-inverse); }
 }
@@ -317,6 +386,7 @@ onPullDownRefresh(async () => {
   font-size: 28rpx;
   font-weight: 600;
   color: var(--text-inverse);
-  background: linear-gradient(135deg, #ff4d8d, #8a5cf6);
+  /* 收口硬编码粉紫渐变：统一走品牌 token（暗色模式自动切换），与 .filter-item.active 同源 */
+  background: var(--gradient-brand);
 }
 </style>
