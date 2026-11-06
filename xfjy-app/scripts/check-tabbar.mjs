@@ -5,7 +5,7 @@
  * 页面路径、文字、图标（未选中/选中）、顺序有任何差异即非零退出，并打印「哪一项、期望值 vs 实际值」。
  *
  * 用法：node --experimental-strip-types scripts/check-tabbar.mjs
- * 说明：MP 端多一个「发布」tab（pages.json 里被 #ifdef MP-WEIXIN 注释包裹），比对时先剔除。
+ * 说明：MP / App 端多一个「发布」tab（pages.json 里被 #ifdef MP-WEIXIN || APP-PLUS 注释包裹），比对时先剔除。
  */
 import { readFile } from "node:fs/promises";
 import path from "node:path";
@@ -137,5 +137,5 @@ if (diffs.length > 0) {
   process.exit(1);
 }
 
-console.log(`✓ tabbar 一致：${TABS.length} 个主 tab + MP 端发布 tab（${PUBLISH_PAGE}）`);
+console.log(`✓ tabbar 一致：${TABS.length} 个主 tab + MP/App 端发布 tab（${PUBLISH_PAGE}）`);
 process.exit(0);

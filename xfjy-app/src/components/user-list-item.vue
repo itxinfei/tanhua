@@ -15,20 +15,39 @@
           lazy-load
           aria-hidden="true"
         />
-        <view v-if="online" class="item-online-dot" aria-hidden="true" />
+        <view
+          v-if="online"
+          class="item-online-dot"
+          aria-hidden="true"
+        />
       </view>
       <view class="item-info">
         <view class="item-name-row">
-          <text class="item-nickname">{{ nickname || '未设置昵称' }}</text>
-          <text v-if="age" class="item-age-badge">{{ age }}岁</text>
+          <text class="item-nickname">
+            {{ nickname || '未设置昵称' }}
+          </text>
+          <text
+            v-if="age"
+            class="item-age-badge"
+          >
+            {{ age }}岁
+          </text>
         </view>
         <slot name="meta">
-          <text v-if="meta" class="item-meta">{{ meta }}</text>
+          <text
+            v-if="meta"
+            class="item-meta"
+          >
+            {{ meta }}
+          </text>
         </slot>
       </view>
     </a11y-button>
     <!-- 不可点击时用普通 view 承载 -->
-    <view v-else class="item-main">
+    <view
+      v-else
+      class="item-main"
+    >
       <view class="item-avatar-wrap">
         <image
           class="item-avatar"
@@ -37,20 +56,39 @@
           lazy-load
           :aria-label="`${nickname || '未设置昵称'} 的头像`"
         />
-        <view v-if="online" class="item-online-dot" aria-hidden="true" />
+        <view
+          v-if="online"
+          class="item-online-dot"
+          aria-hidden="true"
+        />
       </view>
       <view class="item-info">
         <view class="item-name-row">
-          <text class="item-nickname">{{ nickname || '未设置昵称' }}</text>
-          <text v-if="age" class="item-age-badge">{{ age }}岁</text>
+          <text class="item-nickname">
+            {{ nickname || '未设置昵称' }}
+          </text>
+          <text
+            v-if="age"
+            class="item-age-badge"
+          >
+            {{ age }}岁
+          </text>
         </view>
         <slot name="meta">
-          <text v-if="meta" class="item-meta">{{ meta }}</text>
+          <text
+            v-if="meta"
+            class="item-meta"
+          >
+            {{ meta }}
+          </text>
         </slot>
       </view>
     </view>
     <!-- 右侧操作区（按钮嵌在卡片内右缘，不再孤立悬挂） -->
-    <view v-if="$slots.action" class="item-action">
+    <view
+      v-if="$slots.action"
+      class="item-action"
+    >
       <slot name="action" />
     </view>
   </view>

@@ -83,13 +83,14 @@ target/
 !/xfjy-app/index.html
 !/xfjy-app/package.json
 !/xfjy-app/package-lock.json
-!/xfjy-app/vite.config.mts
+!/xfjy-app/vite.config.ts
 !/xfjy-app/tsconfig.json
 !/xfjy-app/shims-uni.d.ts
 !/xfjy-app/uno.config.ts
 !/xfjy-app/eslint.config.mjs
 !/xfjy-app/stylelint.config.cjs
 !/xfjy-app/.gitignore
+!/xfjy-app/.env.production
 !/xfjy-app/scripts/gen-icons.mjs
 !/xfjy-app/scripts/check-tabbar.mjs
 !/xfjy-app/scripts/_record-demo-gif.mjs

@@ -1,7 +1,10 @@
 <template>
   <view class="vip-page">
     <!-- 顶部权益区 -->
-    <view class="header" :style="{ paddingTop: statusBarHeight + 20 + 'px' }">
+    <view
+      class="header"
+      :style="{ paddingTop: statusBarHeight + 20 + 'px' }"
+    >
       <!-- 返回按钮（custom 导航无系统返回键，必须自绘） -->
       <!-- 返回按钮必须用 a11y-button（全站按钮单一真源），图标用 UnoCSS Phosphor i-ph-*，热区 88rpx 满足 WCAG 2.5.5 -->
       <a11y-button
@@ -10,36 +13,80 @@
         :style="{ top: statusBarHeight + 10 + 'px' }"
         @tap="goBack"
       >
-        <view class="i-ph-arrow-left back-icon" aria-hidden="true" />
+        <view
+          class="i-ph-arrow-left back-icon"
+          aria-hidden="true"
+        />
       </a11y-button>
-      <view class="crown float i-ph-crown" aria-hidden="true" />
-      <text class="title gradient-gold">心飞 VIP</text>
-      <text class="subtitle">解锁全部特权，遇见更好的缘分</text>
-      <view class="glow-circle c1" aria-hidden="true" />
-      <view class="glow-circle c2" aria-hidden="true" />
+      <view
+        class="crown float i-ph-crown"
+        aria-hidden="true"
+      />
+      <text class="title gradient-gold">
+        心飞 VIP
+      </text>
+      <text class="subtitle">
+        解锁全部特权，遇见更好的缘分
+      </text>
+      <view
+        class="glow-circle c1"
+        aria-hidden="true"
+      />
+      <view
+        class="glow-circle c2"
+        aria-hidden="true"
+      />
     </view>
 
     <!-- 可滚动内容区 -->
-    <scroll-view class="content-scroll" scroll-y>
+    <scroll-view
+      class="content-scroll"
+      scroll-y
+    >
       <!-- 会员状态 -->
-      <view v-if="vipInfo.isVip" class="vip-status-card">
-        <view class="status-icon i-ph-sparkle" aria-hidden="true" />
+      <view
+        v-if="vipInfo.isVip"
+        class="vip-status-card"
+      >
+        <view
+          class="status-icon i-ph-sparkle"
+          aria-hidden="true"
+        />
         <view class="status-text">
-          <text class="status-level">{{ vipInfo.levelName }}生效中</text>
-          <text class="status-expire">{{ vipInfo.expireText }}到期</text>
+          <text class="status-level">
+            {{ vipInfo.levelName }}生效中
+          </text>
+          <text class="status-expire">
+            {{ vipInfo.expireText }}到期
+          </text>
         </view>
       </view>
 
       <!-- 加载失败提示：不再静默空白，提供重试入口 -->
-      <view v-if="loadError" class="load-error">
-        <text class="load-error-text">数据加载失败，部分内容未显示</text>
-        <a11y-button class="retry-btn" label="重新加载" @tap="loadVipData">重新加载</a11y-button>
+      <view
+        v-if="loadError"
+        class="load-error"
+      >
+        <text class="load-error-text">
+          数据加载失败，部分内容未显示
+        </text>
+        <a11y-button
+          class="retry-btn"
+          label="重新加载"
+          @tap="loadVipData"
+        >
+          重新加载
+        </a11y-button>
       </view>
 
       <!-- 套餐选择置顶：金额必须首屏可见（付费转化第一优先级） -->
       <view class="section-head">
-        <text class="section-title">会员套餐</text>
-        <text class="section-hint">开通后立即生效</text>
+        <text class="section-title">
+          会员套餐
+        </text>
+        <text class="section-hint">
+          开通后立即生效
+        </text>
       </view>
       <a11y-radio-group
         class="plans"
@@ -50,39 +97,76 @@
         @update:model-value="selectedId = $event"
       >
         <template #option="{ option }">
-          <text v-if="option.tag" class="plan-tag">{{ option.tag }}</text>
-          <text class="plan-level">VIP{{ option.level }}</text>
-          <text class="plan-name">{{ option.name }}</text>
-          <text class="plan-price">¥{{ option.priceYuan }}</text>
-          <text class="plan-unit">{{ option.unit }}</text>
+          <text
+            v-if="option.tag"
+            class="plan-tag"
+          >
+            {{ option.tag }}
+          </text>
+          <text class="plan-level">
+            VIP{{ option.level }}
+          </text>
+          <text class="plan-name">
+            {{ option.name }}
+          </text>
+          <text class="plan-price">
+            ¥{{ option.priceYuan }}
+          </text>
+          <text class="plan-unit">
+            {{ option.unit }}
+          </text>
         </template>
       </a11y-radio-group>
 
       <!-- 权益矩阵（后端 tb_value_added_service 驱动） -->
       <view class="benefits-card shadow-gold">
         <view class="benefit-head">
-          <text class="head-name">权益</text>
-          <text class="head-vip">所需等级</text>
+          <text class="head-name">
+            权益
+          </text>
+          <text class="head-vip">
+            所需等级
+          </text>
         </view>
         <!-- 等级口径说明：把 VIP1+/2+/3+ 与套餐等级对应起来 -->
         <view class="level-note">
-          <text class="level-note-text">开通对应等级的会员套餐即可解锁该权益（VIP1 / VIP2 / VIP3 依次对应上方月卡 / 季卡 / 年卡）</text>
+          <text class="level-note-text">
+            开通对应等级的会员套餐即可解锁该权益（VIP1 / VIP2 / VIP3 依次对应上方月卡 / 季卡 / 年卡）
+          </text>
         </view>
-        <view class="benefit-row" v-for="b in benefits" :key="b.serviceCode">
+        <view
+          v-for="b in benefits"
+          :key="b.serviceCode"
+          class="benefit-row"
+        >
           <view class="benefit-info">
-            <text class="benefit-name">{{ b.name }}</text>
-            <text class="benefit-desc">{{ b.description }}</text>
+            <text class="benefit-name">
+              {{ b.name }}
+            </text>
+            <text class="benefit-desc">
+              {{ b.description }}
+            </text>
           </view>
-          <text class="vip">VIP{{ b.vipLevelRequired }}+</text>
+          <text class="vip">
+            VIP{{ b.vipLevelRequired }}+
+          </text>
         </view>
       </view>
 
       <!-- 服务说明：价格口径、生效时间、续费与退款，避免付费前有疑问 -->
       <view class="service-note">
-        <text class="service-note-title">购买须知</text>
-        <text class="service-note-line">· 一次性购买，开通后立即生效，到期不自动续费</text>
-        <text class="service-note-line">· 权益等级按套餐 VIP 等级解锁，等级越高可用权益越多</text>
-        <text class="service-note-line">· 虚拟商品一经开通不支持退款，如有问题可联系在线客服</text>
+        <text class="service-note-title">
+          购买须知
+        </text>
+        <text class="service-note-line">
+          · 一次性购买，开通后立即生效，到期不自动续费
+        </text>
+        <text class="service-note-line">
+          · 权益等级按套餐 VIP 等级解锁，等级越高可用权益越多
+        </text>
+        <text class="service-note-line">
+          · 虚拟商品一经开通不支持退款，如有问题可联系在线客服
+        </text>
       </view>
 
       <!-- 底部占位：给固定操作栏留空间 -->
@@ -92,12 +176,22 @@
     <!-- 底部固定支付栏（固定在 tabbar 正上方） -->
     <view class="pay-bar">
       <!-- 明确当前选中套餐，避免 CTA 金额与实际选择脱节 -->
-      <text v-if="currentPlan" class="pay-selected">
+      <text
+        v-if="currentPlan"
+        class="pay-selected"
+      >
         已选：{{ currentPlan.name }}（VIP{{ currentPlan.level }}） · ¥{{ currentPlan.priceYuan }}
       </text>
       <!-- 未选套餐（如套餐接口失败）时禁用，避免点击「¥0」静默无动作 -->
-      <a11y-button class="pay-btn" :label="selectedId ? '立即开通会员' : '请先选择套餐'" :disabled="paying || !selectedId" @tap="handlePay">
-        <text class="pay-btn-text">{{ paying ? "支付中..." : selectedId ? `立即开通 ¥${currentPlan?.priceYuan || 0}` : "请选择套餐" }}</text>
+      <a11y-button
+        class="pay-btn"
+        :label="selectedId ? '立即开通会员' : '请先选择套餐'"
+        :disabled="paying || !selectedId"
+        @tap="handlePay"
+      >
+        <text class="pay-btn-text">
+          {{ paying ? "支付中..." : selectedId ? `立即开通 ¥${currentPlan?.priceYuan || 0}` : "请选择套餐" }}
+        </text>
       </a11y-button>
     </view>
   </view>

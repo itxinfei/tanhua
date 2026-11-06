@@ -1,5 +1,9 @@
 <template>
-  <view class="a11y-radio-group" role="radiogroup" :aria-label="label || null">
+  <view
+    class="a11y-radio-group"
+    role="radiogroup"
+    :aria-label="label || null"
+  >
     <view
       v-for="opt in normalizedOptions"
       :key="String(opt.value)"
@@ -12,7 +16,11 @@
       @click.stop="select(opt)"
       @keydown="handleKeydown($event, opt)"
     >
-      <slot name="option" :option="opt" :selected="isSelected(opt)">
+      <slot
+        name="option"
+        :option="opt"
+        :selected="isSelected(opt)"
+      >
         <text>{{ opt.label }}</text>
       </slot>
     </view>

@@ -6,18 +6,38 @@
     title="公告详情"
     @close="emit('close')"
   >
-    <view v-if="notice" class="announcement-panel">
+    <view
+      v-if="notice"
+      class="announcement-panel"
+    >
       <view class="announcement-header">
-        <view class="announcement-icon" aria-hidden="true">
+        <view
+          class="announcement-icon"
+          aria-hidden="true"
+        >
           <view class="i-ph-bell-bold" />
         </view>
-        <text class="announcement-title">{{ notice.title }}</text>
-        <text class="announcement-time">{{ notice.time }}</text>
+        <text class="announcement-title">
+          {{ notice.title }}
+        </text>
+        <text class="announcement-time">
+          {{ notice.time }}
+        </text>
       </view>
-      <scroll-view scroll-y class="announcement-body">
-        <text class="announcement-content">{{ notice.content }}</text>
+      <scroll-view
+        scroll-y
+        class="announcement-body"
+      >
+        <text class="announcement-content">
+          {{ notice.content }}
+        </text>
       </scroll-view>
-      <a11y-button variant="primary" block label="我知道了，关闭公告" @tap="emit('close')">
+      <a11y-button
+        variant="primary"
+        block
+        label="我知道了，关闭公告"
+        @tap="emit('close')"
+      >
         我知道了
       </a11y-button>
     </view>

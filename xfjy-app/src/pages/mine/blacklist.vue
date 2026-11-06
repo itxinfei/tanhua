@@ -10,14 +10,27 @@
       @scrolltolower="loadMore"
     >
       <!-- 首屏加载失败：错误态 + 重试，避免误显示「黑名单为空」 -->
-      <view v-if="loadError && userList.length === 0 && !loading" class="error-state">
-        <text class="error-text">加载失败，请检查网络后重试</text>
-        <a11y-button variant="ghost" label="重试加载黑名单" @tap="loadList">
+      <view
+        v-if="loadError && userList.length === 0 && !loading"
+        class="error-state"
+      >
+        <text class="error-text">
+          加载失败，请检查网络后重试
+        </text>
+        <a11y-button
+          variant="ghost"
+          label="重试加载黑名单"
+          @tap="loadList"
+        >
           <text>重试</text>
         </a11y-button>
       </view>
 
-      <empty-state v-if="!loadError && userList.length === 0 && !loading" title="黑名单为空" desc="被拉黑的用户将无法与你互动" />
+      <empty-state
+        v-if="!loadError && userList.length === 0 && !loading"
+        title="黑名单为空"
+        desc="被拉黑的用户将无法与你互动"
+      />
 
       <!-- 通用用户列表行：主体信息 + 右侧操作按钮 -->
       <user-list-item
@@ -39,10 +52,16 @@
         </template>
       </user-list-item>
 
-      <view v-if="loading" class="loading-tip">
+      <view
+        v-if="loading"
+        class="loading-tip"
+      >
         <text>加载中...</text>
       </view>
-      <view v-if="!hasMore && userList.length > 0" class="loading-tip">
+      <view
+        v-if="!hasMore && userList.length > 0"
+        class="loading-tip"
+      >
         <text>没有更多了</text>
       </view>
     </scroll-view>

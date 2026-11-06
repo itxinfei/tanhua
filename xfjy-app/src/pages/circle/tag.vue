@@ -1,8 +1,12 @@
 <template>
   <view class="tag-page">
     <view class="tag-header">
-      <text class="hash">#</text>
-      <text class="tag-name">{{ tag }}</text>
+      <text class="hash">
+        #
+      </text>
+      <text class="tag-name">
+        {{ tag }}
+      </text>
     </view>
 
     <empty-state
@@ -19,7 +23,13 @@
       title="暂时没能获取话题动态"
       desc="服务可能开小差了，检查网络后重试"
     >
-      <a11y-button class="tag-retry" label="重新加载话题动态" @tap="load(true)">重新加载</a11y-button>
+      <a11y-button
+        class="tag-retry"
+        label="重新加载话题动态"
+        @tap="load(true)"
+      >
+        重新加载
+      </a11y-button>
     </empty-state>
 
     <a11y-button
@@ -30,14 +40,29 @@
       @tap="goDetail(item)"
     >
       <view class="post-header">
-        <image lazy-load class="avatar" :src="item.avatar" mode="aspectFill" :aria-label="`${item.nickname} 的头像`" />
+        <image
+          lazy-load
+          class="avatar"
+          :src="item.avatar"
+          mode="aspectFill"
+          :aria-label="`${item.nickname} 的头像`"
+        />
         <view class="user-info">
-          <text class="nickname">{{ item.nickname }}</text>
-          <text class="meta">{{ item.createDate }}</text>
+          <text class="nickname">
+            {{ item.nickname }}
+          </text>
+          <text class="meta">
+            {{ item.createDate }}
+          </text>
         </view>
       </view>
-      <view class="post-content">{{ item.textContent }}</view>
-      <view v-if="item.imageContent && item.imageContent.length" class="image-grid">
+      <view class="post-content">
+        {{ item.textContent }}
+      </view>
+      <view
+        v-if="item.imageContent && item.imageContent.length"
+        class="image-grid"
+      >
         <a11y-button
           v-for="(img, i) in item.imageContent.slice(0, 9)"
           :key="i"
@@ -46,12 +71,23 @@
           stop
           @tap="preview(item.imageContent, i)"
         >
-          <image lazy-load class="grid-img-inner" :src="img" mode="aspectFill" aria-hidden="true" />
+          <image
+            lazy-load
+            class="grid-img-inner"
+            :src="img"
+            mode="aspectFill"
+            aria-hidden="true"
+          />
         </a11y-button>
       </view>
     </a11y-button>
 
-    <a11y-button v-if="hasMore" class="loading" label="加载更多" @tap="loadMore">
+    <a11y-button
+      v-if="hasMore"
+      class="loading"
+      label="加载更多"
+      @tap="loadMore"
+    >
       <text>加载更多</text>
     </a11y-button>
   </view>

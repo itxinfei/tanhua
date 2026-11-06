@@ -1,27 +1,79 @@
 <template>
   <view class="notifications-page">
     <!-- VIP 权益锁定状态（心动/谁喜欢我） -->
-    <view v-if="locked" class="locked-state">
-      <view class="locked-icon"><uni-icons type="locked" size="28" color="#fff"></uni-icons></view>
-      <text class="locked-title">VIP 专享权益</text>
-      <text class="locked-desc">开通会员即可查看谁喜欢你</text>
-      <a11y-button class="locked-btn" label="开通 VIP" @tap="goVip">开通 VIP</a11y-button>
+    <view
+      v-if="locked"
+      class="locked-state"
+    >
+      <view class="locked-icon">
+        <uni-icons
+          type="locked"
+          size="28"
+          color="#fff"
+        />
+      </view>
+      <text class="locked-title">
+        VIP 专享权益
+      </text>
+      <text class="locked-desc">
+        开通会员即可查看谁喜欢你
+      </text>
+      <a11y-button
+        class="locked-btn"
+        label="开通 VIP"
+        @tap="goVip"
+      >
+        开通 VIP
+      </a11y-button>
     </view>
 
     <!-- 空状态 + 通知列表（非锁定态时二选一） -->
     <template v-else>
-      <empty-state v-if="list.length === 0" icon="notification" title="暂无通知" desc="有人喜欢你时会在这里提醒你" />
-      <a11y-button v-for="item in list" :key="item.id" class="notice-item shadow-card" :label="noticeLabel(item)" @tap="goDetail(item)">
+      <empty-state
+        v-if="list.length === 0"
+        icon="notification"
+        title="暂无通知"
+        desc="有人喜欢你时会在这里提醒你"
+      />
+      <a11y-button
+        v-for="item in list"
+        :key="item.id"
+        class="notice-item shadow-card"
+        :label="noticeLabel(item)"
+        @tap="goDetail(item)"
+      >
         <view class="avatar-wrap">
-          <image class="avatar" :src="resolveAvatar(item.avatar)" mode="aspectFill" lazy-load :aria-label="`${item.nickname} 的头像`" />
+          <image
+            class="avatar"
+            :src="resolveAvatar(item.avatar)"
+            mode="aspectFill"
+            lazy-load
+            :aria-label="`${item.nickname} 的头像`"
+          />
           <!-- 类型徽章为纯图标，语义已由 desc 文本（赞了你的动态等）承载，避免重复朗读 -->
-          <view class="type-badge" :style="{ background: typeMeta.color }" aria-hidden="true"><uni-icons :type="typeMeta.uniIcon" size="18" color="#fff"></uni-icons></view>
+          <view
+            class="type-badge"
+            :style="{ background: typeMeta.color }"
+            aria-hidden="true"
+          >
+            <uni-icons
+              :type="typeMeta.uniIcon"
+              size="18"
+              color="#fff"
+            />
+          </view>
         </view>
         <view class="info">
-          <text class="nickname">{{ item.nickname }}</text>
-          <text class="desc">{{ item.desc }}</text>
+          <text class="nickname">
+            {{ item.nickname }}
+          </text>
+          <text class="desc">
+            {{ item.desc }}
+          </text>
         </view>
-        <text class="time">{{ item.time }}</text>
+        <text class="time">
+          {{ item.time }}
+        </text>
       </a11y-button>
     </template>
 

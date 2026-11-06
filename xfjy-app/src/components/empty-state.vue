@@ -1,11 +1,32 @@
 <template>
   <!-- 统一空状态：图标 + 标题 + 描述；overlay 用于整页遮罩，dark 用于深色背景 -->
-  <view class="empty-state" :class="{ 'empty-overlay': overlay, dark }">
-    <view v-if="icon" class="empty-icon" aria-hidden="true">
-      <uni-icons :type="icon" size="48" :color="iconColor"></uni-icons>
+  <view
+    class="empty-state"
+    :class="{ 'empty-overlay': overlay, dark }"
+  >
+    <view
+      v-if="icon"
+      class="empty-icon"
+      aria-hidden="true"
+    >
+      <uni-icons
+        :type="icon"
+        size="48"
+        :color="iconColor"
+      />
     </view>
-    <text v-if="title" class="empty-title">{{ title }}</text>
-    <text v-if="desc" class="empty-desc">{{ desc }}</text>
+    <text
+      v-if="title"
+      class="empty-title"
+    >
+      {{ title }}
+    </text>
+    <text
+      v-if="desc"
+      class="empty-desc"
+    >
+      {{ desc }}
+    </text>
     <slot />
   </view>
 </template>

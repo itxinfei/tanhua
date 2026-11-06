@@ -46,7 +46,7 @@ export function createApp() {
   const app = createSSRApp(App);
   const pinia = createPinia();
   app.use(pinia);
-  app.component("uni-icons", UniIcons);
+  app.component("UniIcons", UniIcons);
   installErrorHandler(app);
   installSlotUpdatePatch(app);
   return {

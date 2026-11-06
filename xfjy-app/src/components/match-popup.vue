@@ -7,20 +7,54 @@
     @close="matchStore.closeMatchPopup()"
   >
     <view class="match-content pop-in">
-      <text class="match-title gradient-text">It's a Match!</text>
+      <text class="match-title gradient-text">
+        It's a Match!
+      </text>
       <view class="match-avatars">
-        <image lazy-load class="match-avatar" :src="matchStore.matchPopup.avatar" mode="aspectFill" :aria-label="`${matchStore.matchPopup.nickname} 的头像`" />
-        <view class="match-heart heart-beat" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="28" height="28"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" fill="var(--color-primary)"/></svg>
+        <image
+          lazy-load
+          class="match-avatar"
+          :src="matchStore.matchPopup.avatar"
+          mode="aspectFill"
+          :aria-label="`${matchStore.matchPopup.nickname} 的头像`"
+        />
+        <view
+          class="match-heart heart-beat"
+          aria-hidden="true"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="28"
+            height="28"
+          ><path
+            d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"
+            fill="var(--color-primary)"
+          /></svg>
         </view>
-        <image lazy-load class="match-avatar" src="/static/logo/logo-icon-transparent.png" mode="aspectFill" aria-label="我的头像" />
+        <image
+          lazy-load
+          class="match-avatar"
+          src="/static/logo/logo-icon-transparent.png"
+          mode="aspectFill"
+          aria-label="我的头像"
+        />
       </view>
-      <text class="match-name">你和 {{ matchStore.matchPopup.nickname }} 互相喜欢了</text>
+      <text class="match-name">
+        你和 {{ matchStore.matchPopup.nickname }} 互相喜欢了
+      </text>
       <view class="match-actions">
-        <a11y-button class="send-msg" label="发消息" @tap.stop="goChat">
+        <a11y-button
+          class="send-msg"
+          label="发消息"
+          @tap.stop="goChat"
+        >
           <text>发消息</text>
         </a11y-button>
-        <a11y-button class="keep-swipe" label="继续逛逛" @tap.stop="matchStore.closeMatchPopup()">
+        <a11y-button
+          class="keep-swipe"
+          label="继续逛逛"
+          @tap.stop="matchStore.closeMatchPopup()"
+        >
           <text>继续逛逛</text>
         </a11y-button>
       </view>

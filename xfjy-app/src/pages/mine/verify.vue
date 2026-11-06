@@ -1,24 +1,68 @@
 <template>
   <view class="verify-page">
     <!-- 已认证 -->
-    <view v-if="verified" class="verified-card">
-      <text class="verified-icon" aria-hidden="true">✓</text>
-      <text class="verified-text">已完成实名认证</text>
+    <view
+      v-if="verified"
+      class="verified-card"
+    >
+      <text
+        class="verified-icon"
+        aria-hidden="true"
+      >
+        ✓
+      </text>
+      <text class="verified-text">
+        已完成实名认证
+      </text>
     </view>
     <!-- 未认证 -->
     <template v-else>
-      <view class="tips">实名信息仅用于身份核验，不会公开展示</view>
+      <view class="tips">
+        实名信息仅用于身份核验，不会公开展示
+      </view>
       <view class="form-card">
         <view class="form-item">
-          <text :id="realNameLabelId" class="form-label">真实姓名</text>
-          <input v-model="realName" maxlength="20" placeholder="请输入真实姓名" placeholder-class="ph" aria-label="真实姓名" :aria-labelledby="realNameLabelId" />
+          <text
+            :id="realNameLabelId"
+            class="form-label"
+          >
+            真实姓名
+          </text>
+          <input
+            v-model="realName"
+            maxlength="20"
+            placeholder="请输入真实姓名"
+            placeholder-class="ph"
+            aria-label="真实姓名"
+            :aria-labelledby="realNameLabelId"
+          >
         </view>
         <view class="form-item">
-          <text :id="idCardLabelId" class="form-label">身份证号</text>
-          <input v-model="idCard" maxlength="18" placeholder="18位身份证号" placeholder-class="ph" aria-label="身份证号" :aria-labelledby="idCardLabelId" />
+          <text
+            :id="idCardLabelId"
+            class="form-label"
+          >
+            身份证号
+          </text>
+          <input
+            v-model="idCard"
+            maxlength="18"
+            placeholder="18位身份证号"
+            placeholder-class="ph"
+            aria-label="身份证号"
+            :aria-labelledby="idCardLabelId"
+          >
         </view>
       </view>
-      <a11y-button class="submit-btn" variant="primary" block label="提交实名认证" :loading="submitting" :disabled="submitting" @tap="submit">
+      <a11y-button
+        class="submit-btn"
+        variant="primary"
+        block
+        label="提交实名认证"
+        :loading="submitting"
+        :disabled="submitting"
+        @tap="submit"
+      >
         <text>提交认证</text>
       </a11y-button>
     </template>

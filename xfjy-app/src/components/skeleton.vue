@@ -1,9 +1,17 @@
 <template>
   <!-- 统一骨架屏：信息流卡片(feed) / 视频全屏(video) / 卡片堆叠(match)。占位元素对读屏隐藏 -->
-  <view class="skeleton-root" :class="rootClass" aria-hidden="true">
+  <view
+    class="skeleton-root"
+    :class="rootClass"
+    aria-hidden="true"
+  >
     <!-- feed：信息流卡片占位（circle 首页） -->
     <template v-if="variant === 'feed'">
-      <view v-for="i in count" :key="i" class="sk-card">
+      <view
+        v-for="i in count"
+        :key="i"
+        class="sk-card"
+      >
         <view class="sk-head">
           <view class="skeleton sk-avatar" />
           <view class="skeleton sk-name" />
@@ -11,7 +19,11 @@
         <view class="skeleton sk-text" />
         <view class="skeleton sk-text sk-short" />
         <view class="skeleton sk-grid-row">
-          <view v-for="j in gridCols" :key="j" class="skeleton sk-grid" />
+          <view
+            v-for="j in gridCols"
+            :key="j"
+            class="skeleton sk-grid"
+          />
         </view>
       </view>
     </template>

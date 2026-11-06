@@ -5,16 +5,35 @@
     @click="handleCancel"
     @touchmove.stop.prevent
   >
-    <view class="picker-panel" @click.stop>
+    <view
+      class="picker-panel"
+      @click.stop
+    >
       <!-- 标题栏 -->
       <view class="picker-header">
-        <view class="picker-btn picker-cancel" @click="handleCancel">取消</view>
-        <view class="picker-title">{{ title }}</view>
-        <view class="picker-btn picker-confirm" @click="handleConfirm">完成</view>
+        <view
+          class="picker-btn picker-cancel"
+          @click="handleCancel"
+        >
+          取消
+        </view>
+        <view class="picker-title">
+          {{ title }}
+        </view>
+        <view
+          class="picker-btn picker-confirm"
+          @click="handleConfirm"
+        >
+          完成
+        </view>
       </view>
 
       <!-- 选项列表 -->
-      <scroll-view scroll-y class="picker-list" :show-scrollbar="false">
+      <scroll-view
+        scroll-y
+        class="picker-list"
+        :show-scrollbar="false"
+      >
         <!-- 手动输入选项（仅 showInput 时显示） -->
         <view
           v-if="showInput"
@@ -22,8 +41,15 @@
           :class="{ active: manualMode }"
           @click="startManualInput"
         >
-          <text class="picker-item-label">手动输入</text>
-          <text v-if="manualMode" class="picker-check">✓</text>
+          <text class="picker-item-label">
+            手动输入
+          </text>
+          <text
+            v-if="manualMode"
+            class="picker-check"
+          >
+            ✓
+          </text>
         </view>
 
         <!-- 选项 -->
@@ -34,13 +60,23 @@
           :class="{ active: !manualMode && tempValue === opt.value }"
           @click="selectOption(opt)"
         >
-          <text class="picker-item-label">{{ opt.label }}</text>
-          <text v-if="!manualMode && tempValue === opt.value" class="picker-check">✓</text>
+          <text class="picker-item-label">
+            {{ opt.label }}
+          </text>
+          <text
+            v-if="!manualMode && tempValue === opt.value"
+            class="picker-check"
+          >
+            ✓
+          </text>
         </view>
       </scroll-view>
 
       <!-- 手动输入区域 -->
-      <view v-if="manualMode && showInput" class="manual-input-area">
+      <view
+        v-if="manualMode && showInput"
+        class="manual-input-area"
+      >
         <input
           v-model="manualValue"
           class="manual-input"
@@ -48,8 +84,14 @@
           :maxlength="maxlength"
           confirm-type="done"
           @confirm="handleConfirm"
-        />
-        <view class="manual-clear" v-if="manualValue" @click="manualValue = ''">×</view>
+        >
+        <view
+          v-if="manualValue"
+          class="manual-clear"
+          @click="manualValue = ''"
+        >
+          ×
+        </view>
       </view>
     </view>
   </view>

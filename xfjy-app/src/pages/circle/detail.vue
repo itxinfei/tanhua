@@ -1,83 +1,165 @@
 <template>
   <view class="post-detail">
-    <scroll-view scroll-y class="detail-scroll">
-    <!-- 动态内容 -->
-    <!-- 加载中骨架 -->
-    <skeleton v-if="postLoading && !post" variant="feed" />
-    <!-- 加载失败：与「动态不存在」区分，给明确原因 + 可重试入口。
-         接口失败时旧版 post=null 直接留白，用户只看到评论区无从恢复。 -->
-    <empty-state
-      v-if="!post && !postLoading && postLoadFailed"
-      role="alert"
-      icon="info"
-      title="暂时没能获取动态详情"
-      desc="服务可能开小差了，检查网络后重试"
+    <scroll-view
+      scroll-y
+      class="detail-scroll"
     >
-      <a11y-button class="detail-retry" label="重新加载动态详情" @tap="loadDetail()">重新加载</a11y-button>
-    </empty-state>
-    <!-- 动态主体：接口失败 post=null 时不渲染，避免读 null 属性崩溃（评论区仍可用） -->
-    <view v-if="post" class="post-card">
-      <view class="post-header">
-        <image lazy-load class="avatar" :src="post.avatar" mode="aspectFill" :aria-label="`${post.nickname} 的头像`" />
-        <view class="user-info">
-          <text class="nickname">{{ post.nickname }}</text>
-          <text class="time">{{ post.createDate }}</text>
-        </view>
-      </view>
-      <view class="post-content">{{ post.textContent }}</view>
-      <!-- 话题标签（点击进入话题筛选） -->
-      <view v-if="post?.tags && post.tags.length" class="tag-row">
+      <!-- 动态内容 -->
+      <!-- 加载中骨架 -->
+      <skeleton
+        v-if="postLoading && !post"
+        variant="feed"
+      />
+      <!-- 加载失败：与「动态不存在」区分，给明确原因 + 可重试入口。
+         接口失败时旧版 post=null 直接留白，用户只看到评论区无从恢复。 -->
+      <empty-state
+        v-if="!post && !postLoading && postLoadFailed"
+        role="alert"
+        icon="info"
+        title="暂时没能获取动态详情"
+        desc="服务可能开小差了，检查网络后重试"
+      >
         <a11y-button
-          v-for="(tag, i) in post.tags"
-          :key="i"
-          class="tag-chip"
-          :label="`查看话题 ${tag}`"
-          @tap="goTag(tag)"
+          class="detail-retry"
+          label="重新加载动态详情"
+          @tap="loadDetail()"
         >
-          <text># {{ tag }}</text>
+          重新加载
         </a11y-button>
-      </view>
-      <view v-if="post.imageContent?.length" class="image-grid">
-        <a11y-button v-for="(img, i) in post.imageContent" :key="i" class="grid-img" :label="`查看第 ${i + 1} 张配图`" @tap="previewImg(i)">
-          <image lazy-load class="grid-img-inner" :src="img" mode="aspectFill" aria-hidden="true" />
-        </a11y-button>
-      </view>
-    </view>
-
-    <!-- 评论区 -->
-    <view class="comment-section">
-      <text class="section-title">评论 ({{ comments.length }})</text>
-      <view v-for="c in comments" :key="c.id" class="comment-item">
-        <image lazy-load class="avatar" :src="c.avatar" mode="aspectFill" :aria-label="`${c.nickname} 的头像`" />
-        <view class="comment-info">
-          <text class="nickname">{{ c.nickname }}</text>
-          <text class="content">{{ c.content }}</text>
-          <text class="time">{{ c.createDate }}</text>
-        </view>
-        <a11y-button
-          class="comment-like"
-          :class="{ liked: c.hasLiked }"
-          :label="c.hasLiked ? '取消点赞，当前 ' + (c.likeCount || 0) + ' 赞' : '点赞，当前 ' + (c.likeCount || 0) + ' 赞'"
-          @tap="toggleCommentLike(c)"
-        >
-          <view
-            class="comment-like-icon"
-            :class="{ 'i-ph-heart-fill': c.hasLiked, 'i-ph-heart': !c.hasLiked }"
-            aria-hidden="true"
+      </empty-state>
+      <!-- 动态主体：接口失败 post=null 时不渲染，避免读 null 属性崩溃（评论区仍可用） -->
+      <view
+        v-if="post"
+        class="post-card"
+      >
+        <view class="post-header">
+          <image
+            lazy-load
+            class="avatar"
+            :src="post.avatar"
+            mode="aspectFill"
+            :aria-label="`${post.nickname} 的头像`"
           />
-          <text class="comment-like-count">{{ c.likeCount > 0 ? c.likeCount : '' }}</text>
+          <view class="user-info">
+            <text class="nickname">
+              {{ post.nickname }}
+            </text>
+            <text class="time">
+              {{ post.createDate }}
+            </text>
+          </view>
+        </view>
+        <view class="post-content">
+          {{ post.textContent }}
+        </view>
+        <!-- 话题标签（点击进入话题筛选） -->
+        <view
+          v-if="post?.tags && post.tags.length"
+          class="tag-row"
+        >
+          <a11y-button
+            v-for="(tag, i) in post.tags"
+            :key="i"
+            class="tag-chip"
+            :label="`查看话题 ${tag}`"
+            @tap="goTag(tag)"
+          >
+            <text># {{ tag }}</text>
+          </a11y-button>
+        </view>
+        <view
+          v-if="post.imageContent?.length"
+          class="image-grid"
+        >
+          <a11y-button
+            v-for="(img, i) in post.imageContent"
+            :key="i"
+            class="grid-img"
+            :label="`查看第 ${i + 1} 张配图`"
+            @tap="previewImg(i)"
+          >
+            <image
+              lazy-load
+              class="grid-img-inner"
+              :src="img"
+              mode="aspectFill"
+              aria-hidden="true"
+            />
+          </a11y-button>
+        </view>
+      </view>
+
+      <!-- 评论区 -->
+      <view class="comment-section">
+        <text class="section-title">
+          评论 ({{ comments.length }})
+        </text>
+        <view
+          v-for="c in comments"
+          :key="c.id"
+          class="comment-item"
+        >
+          <image
+            lazy-load
+            class="avatar"
+            :src="c.avatar"
+            mode="aspectFill"
+            :aria-label="`${c.nickname} 的头像`"
+          />
+          <view class="comment-info">
+            <text class="nickname">
+              {{ c.nickname }}
+            </text>
+            <text class="content">
+              {{ c.content }}
+            </text>
+            <text class="time">
+              {{ c.createDate }}
+            </text>
+          </view>
+          <a11y-button
+            class="comment-like"
+            :class="{ liked: c.hasLiked }"
+            :label="c.hasLiked ? '取消点赞，当前 ' + (c.likeCount || 0) + ' 赞' : '点赞，当前 ' + (c.likeCount || 0) + ' 赞'"
+            @tap="toggleCommentLike(c)"
+          >
+            <view
+              class="comment-like-icon"
+              :class="{ 'i-ph-heart-fill': c.hasLiked, 'i-ph-heart': !c.hasLiked }"
+              aria-hidden="true"
+            />
+            <text class="comment-like-count">
+              {{ c.likeCount > 0 ? c.likeCount : '' }}
+            </text>
+          </a11y-button>
+        </view>
+        <a11y-button
+          v-if="commentHasMore"
+          class="load-more"
+          label="加载更多评论"
+          @tap="loadMoreComments"
+        >
+          <text>加载更多评论</text>
         </a11y-button>
       </view>
-      <a11y-button v-if="commentHasMore" class="load-more" label="加载更多评论" @tap="loadMoreComments">
-        <text>加载更多评论</text>
-      </a11y-button>
-    </view>
     </scroll-view>
 
     <!-- 评论输入：发送按钮 + 回车双通道（H5 浏览器/部分输入法 confirm 不可靠，仅回车会让用户以为"评论发不出去"） -->
     <view class="comment-bar safe-area-bottom">
-      <input v-model="commentText" class="comment-input" placeholder="写评论..." aria-label="写评论" confirm-type="send" adjust-position="false" @confirm="sendComment" />
-      <a11y-button class="send-btn" label="发送评论" @tap="sendComment">
+      <input
+        v-model="commentText"
+        class="comment-input"
+        placeholder="写评论..."
+        aria-label="写评论"
+        confirm-type="send"
+        adjust-position="false"
+        @confirm="sendComment"
+      >
+      <a11y-button
+        class="send-btn"
+        label="发送评论"
+        @tap="sendComment"
+      >
         <text>发送</text>
       </a11y-button>
     </view>

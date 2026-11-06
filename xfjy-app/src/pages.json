@@ -199,9 +199,9 @@
 				"iconPath": "static/tabbar/circle.png",
 				"selectedIconPath": "static/tabbar/circle-active.png"
 			},
-			// #ifdef MP-WEIXIN
-			// 微信小程序不支持 midButton，H5 的中央发布键在 mp 产物中被丢弃，
-			// 这里给 mp 端补第 5 个 tab 项，保证发布入口可达
+			// #ifdef MP-WEIXIN || APP-PLUS
+			// 微信小程序不支持 midButton；App 端原生 tabBar 未配置中央发布键，
+			// H5 的中央发布键仅 H5 产物生效，这里给 mp / App 端补第 5 个 tab 项，保证发布入口可达
 			{
 				"pagePath": "pages/circle/publish",
 				"text": "发布",

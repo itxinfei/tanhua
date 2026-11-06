@@ -1,41 +1,69 @@
 <template>
   <view class="guide-page">
     <!-- 进度指示（role=progressbar：读屏可获知完整度而非仅视觉宽度） -->
-    <view class="progress-bar" role="progressbar" aria-label="资料完整度" :aria-valuenow="completeness" aria-valuemin="0" aria-valuemax="100">
-      <view class="progress-fill" :style="{ width: completeness + '%' }" />
-      <text class="progress-text">资料完整度 {{ completeness }}%</text>
+    <view
+      class="progress-bar"
+      role="progressbar"
+      aria-label="资料完整度"
+      :aria-valuenow="completeness"
+      aria-valuemin="0"
+      aria-valuemax="100"
+    >
+      <view
+        class="progress-fill"
+        :style="{ width: completeness + '%' }"
+      />
+      <text class="progress-text">
+        资料完整度 {{ completeness }}%
+      </text>
     </view>
 
     <!-- 头像 -->
     <view class="section">
-      <text class="section-title">头像</text>
-      <a11y-button class="avatar-picker" label="更换头像" @tap="chooseAvatar">
-        <image lazy-load
+      <text class="section-title">
+        头像
+      </text>
+      <a11y-button
+        class="avatar-picker"
+        label="更换头像"
+        @tap="chooseAvatar"
+      >
+        <image
+          lazy-load
           class="avatar"
           :src="resolveAvatar(form.avatar)"
           mode="aspectFill"
           aria-hidden="true"
         />
-        <text class="avatar-hint">点击更换</text>
+        <text class="avatar-hint">
+          点击更换
+        </text>
       </a11y-button>
     </view>
 
     <!-- 昵称 -->
     <view class="section">
-      <text :id="nicknameLabelId" class="section-title">昵称</text>
+      <text
+        :id="nicknameLabelId"
+        class="section-title"
+      >
+        昵称
+      </text>
       <input
-        class="input"
         v-model="form.nickname"
+        class="input"
         placeholder="请输入昵称"
         aria-label="昵称"
         :aria-labelledby="nicknameLabelId"
         maxlength="20"
-      />
+      >
     </view>
 
     <!-- 性别（语义单选组） -->
     <view class="section">
-      <text class="section-title">性别</text>
+      <text class="section-title">
+        性别
+      </text>
       <a11y-radio-group
         class="gender-row"
         label="性别"
@@ -52,8 +80,14 @@
 
     <!-- 生日 -->
     <view class="section">
-      <text class="section-title">生日</text>
-      <picker mode="date" :value="form.birthday" @change="onBirthdayChange">
+      <text class="section-title">
+        生日
+      </text>
+      <picker
+        mode="date"
+        :value="form.birthday"
+        @change="onBirthdayChange"
+      >
         <view class="picker-value">
           <text :class="{ placeholder: !form.birthday }">
             {{ form.birthday || '请选择生日' }}
@@ -64,21 +98,31 @@
 
     <!-- 城市 -->
     <view class="section">
-      <text :id="cityLabelId" class="section-title">城市</text>
+      <text
+        :id="cityLabelId"
+        class="section-title"
+      >
+        城市
+      </text>
       <input
-        class="input"
         v-model="form.city"
+        class="input"
         placeholder="如：北京"
         aria-label="城市"
         :aria-labelledby="cityLabelId"
         maxlength="20"
-      />
+      >
     </view>
 
     <!-- 学历 -->
     <view class="section">
-      <text class="section-title">学历</text>
-      <picker :range="EDUCATION_OPTIONS" @change="onEducationChange">
+      <text class="section-title">
+        学历
+      </text>
+      <picker
+        :range="EDUCATION_OPTIONS"
+        @change="onEducationChange"
+      >
         <view class="picker-value">
           <text :class="{ placeholder: !form.education }">
             {{ form.education || '请选择学历' }}
@@ -96,7 +140,13 @@
     >
       {{ submitting ? '保存中...' : '完成' }}
     </a11y-button>
-    <a11y-button class="skip-btn" label="跳过，稍后完善资料" @tap="handleSkip">跳过，稍后完善</a11y-button>
+    <a11y-button
+      class="skip-btn"
+      label="跳过，稍后完善资料"
+      @tap="handleSkip"
+    >
+      跳过，稍后完善
+    </a11y-button>
   </view>
 </template>
 

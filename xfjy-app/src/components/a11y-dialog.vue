@@ -11,7 +11,10 @@
     @keydown="handleKeydown"
     @touchmove.stop
   >
-    <view class="a11y-dialog__panel" @click.stop>
+    <view
+      class="a11y-dialog__panel"
+      @click.stop
+    >
       <slot />
     </view>
   </view>

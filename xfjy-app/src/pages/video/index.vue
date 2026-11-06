@@ -3,7 +3,11 @@
     <!-- 断网/恢复全局提示条（fixed 定位自管理显隐，S1） -->
     <network-status-bar />
     <!-- 顶部 Tab（role=tablist 语义 + 可键盘操作） -->
-    <view class="top-tabs" role="tablist" aria-label="视频频道">
+    <view
+      class="top-tabs"
+      role="tablist"
+      aria-label="视频频道"
+    >
       <view class="tab-group">
         <a11y-button
           v-for="ch in CHANNELS"
@@ -14,17 +18,31 @@
           :checked="activeChannel === ch.key"
           :label="ch.label"
           @tap="switchChannel(ch.key)"
-        >{{ ch.label }}</a11y-button>
+        >
+          {{ ch.label }}
+        </a11y-button>
       </view>
-      <a11y-button class="side-btn" label="刷新视频列表" :loading="refreshing" @tap="onRefresh">
+      <a11y-button
+        class="side-btn"
+        label="刷新视频列表"
+        :loading="refreshing"
+        @tap="onRefresh"
+      >
         <view
           class="side-ico i-ph-arrows-clockwise-bold"
           :class="{ 'is-spinning': refreshing }"
           aria-hidden="true"
         />
       </a11y-button>
-      <a11y-button class="side-btn search-btn" label="搜索" @tap="onSearch">
-        <view class="side-ico i-ph-magnifying-glass" aria-hidden="true" />
+      <a11y-button
+        class="side-btn search-btn"
+        label="搜索"
+        @tap="onSearch"
+      >
+        <view
+          class="side-ico i-ph-magnifying-glass"
+          aria-hidden="true"
+        />
       </a11y-button>
     </view>
 
@@ -34,8 +52,14 @@
       :current="swiperIndex"
       @change="onSwiperChange"
     >
-      <swiper-item v-for="(video, idx) in displayList" :key="video.id">
-        <view class="video-item" :class="{ 'is-active': idx === swiperIndex }">
+      <swiper-item
+        v-for="(video, idx) in displayList"
+        :key="video.id"
+      >
+        <view
+          class="video-item"
+          :class="{ 'is-active': idx === swiperIndex }"
+        >
           <!-- 相邻三条挂载：上一条保留实例，回退时无需重建（重建会重新拉流、回退后要等几秒才出声）；
               但只有当前条 auto 预载，相邻条仅取元数据，避免三条同时下载视频体。 -->
           <template v-if="Math.abs(idx - swiperIndex) <= 1">
@@ -67,13 +91,28 @@
               aria-hidden="true"
             />
           </template>
-          <image v-else class="cover" :src="video.cover" mode="aspectFill" lazy-load :aria-label="`${video.nickname} 的视频封面`" />
+          <image
+            v-else
+            class="cover"
+            :src="video.cover"
+            mode="aspectFill"
+            lazy-load
+            :aria-label="`${video.nickname} 的视频封面`"
+          />
 
           <!-- 透明点击层：单击暂停/播放，双击点赞 -->
-          <view class="tap-layer" aria-hidden="true" @tap="onVideoTap(video, $event)" />
+          <view
+            class="tap-layer"
+            aria-hidden="true"
+            @tap="onVideoTap(video, $event)"
+          />
 
           <!-- 中央播放/暂停指示 -->
-          <view v-if="currentId === video.id && !isPlaying && !erroredVideoIds.has(video.id)" class="center-state" aria-hidden="true">
+          <view
+            v-if="currentId === video.id && !isPlaying && !erroredVideoIds.has(video.id)"
+            class="center-state"
+            aria-hidden="true"
+          >
             <view class="play-icon i-ph-play-fill" />
           </view>
 
@@ -84,8 +123,15 @@
             label="视频加载失败，点击重试"
             @tap="retryVideo(video)"
           >
-            <text class="video-error-title">视频加载失败</text>
-            <text class="video-error-retry" aria-hidden="true">点此重试</text>
+            <text class="video-error-title">
+              视频加载失败
+            </text>
+            <text
+              class="video-error-retry"
+              aria-hidden="true"
+            >
+              点此重试
+            </text>
           </a11y-button>
 
           <!-- 双击飞出的爱心（抖音式大爱心跳弹） -->
@@ -95,7 +141,9 @@
             class="float-heart"
             :style="{ left: h.x + 'px', top: h.y + 'px' }"
             aria-hidden="true"
-          ><view class="float-heart__ico i-ph-heart-fill" /></view>
+          >
+            <view class="float-heart__ico i-ph-heart-fill" />
+          </view>
 
           <!-- 右侧操作栏（抖音原版布局） -->
           <view class="side-bar">
@@ -106,8 +154,18 @@
                 :label="video.hasFocus ? `取消关注 ${video.nickname}` : `关注 ${video.nickname}`"
                 @tap="handleFocus(video)"
               >
-                <image class="side-avatar" :src="video.avatar" mode="aspectFill" lazy-load aria-hidden="true" />
-                <view v-if="!video.hasFocus" class="follow-plus" aria-hidden="true">
+                <image
+                  class="side-avatar"
+                  :src="video.avatar"
+                  mode="aspectFill"
+                  lazy-load
+                  aria-hidden="true"
+                />
+                <view
+                  v-if="!video.hasFocus"
+                  class="follow-plus"
+                  aria-hidden="true"
+                >
                   <view class="follow-plus__ico i-ph-plus-bold" />
                 </view>
               </a11y-button>
@@ -117,7 +175,10 @@
                 :label="video.hasLiked === 1 ? `取消点赞，当前 ${video.likeCount} 赞` : `点赞，当前 ${video.likeCount} 赞`"
                 @tap="handleLike(video)"
               >
-                <view class="side-ico" :class="{ 'like-pop': video.hasLiked === 1 }">
+                <view
+                  class="side-ico"
+                  :class="{ 'like-pop': video.hasLiked === 1 }"
+                >
                   <view
                     class="side-ico__ph"
                     :class="video.hasLiked === 1 ? 'i-ph-heart-fill side-ico__ph--liked' : 'i-ph-heart'"
@@ -125,19 +186,37 @@
                   />
                 </view>
                 <!-- 0 赞时给明确引导，避免"恒为 0、不知能否互动" -->
-                <text class="side-count">{{ video.likeCount > 0 ? formatCount(video.likeCount) : "抢首赞" }}</text>
+                <text class="side-count">
+                  {{ video.likeCount > 0 ? formatCount(video.likeCount) : "抢首赞" }}
+                </text>
               </a11y-button>
 
-              <a11y-button class="side-btn" :label="`查看评论，共 ${video.commentCount} 条`" @tap="showComments(video)">
+              <a11y-button
+                class="side-btn"
+                :label="`查看评论，共 ${video.commentCount} 条`"
+                @tap="showComments(video)"
+              >
                 <view class="side-ico">
-                  <view class="side-ico__ph i-ph-chat-circle-dots-bold" aria-hidden="true" />
+                  <view
+                    class="side-ico__ph i-ph-chat-circle-dots-bold"
+                    aria-hidden="true"
+                  />
                 </view>
-                <text class="side-count">{{ video.commentCount > 0 ? formatCount(video.commentCount) : "抢首评" }}</text>
+                <text class="side-count">
+                  {{ video.commentCount > 0 ? formatCount(video.commentCount) : "抢首评" }}
+                </text>
               </a11y-button>
 
-              <a11y-button class="side-btn" :label="`分享 ${video.nickname} 的视频`" @tap="openShare(video)">
+              <a11y-button
+                class="side-btn"
+                :label="`分享 ${video.nickname} 的视频`"
+                @tap="openShare(video)"
+              >
                 <view class="side-ico">
-                  <view class="side-ico__ph i-ph-arrow-bend-up-right-bold" aria-hidden="true" />
+                  <view
+                    class="side-ico__ph i-ph-arrow-bend-up-right-bold"
+                    aria-hidden="true"
+                  />
                 </view>
               </a11y-button>
             </view>
@@ -145,23 +224,39 @@
 
           <!-- 底部信息 + 滚动音乐条 -->
           <view class="video-info">
-            <text class="author">@{{ video.nickname }}</text>
+            <text class="author">
+              @{{ video.nickname }}
+            </text>
             <!-- 位置：城市名可空（H5 不支持逆地理），空时用距离标签，绝不展示坐标串 -->
             <text
               v-if="activeChannel === 'location' && (video.locationName || video.distance)"
               class="location-label"
-            >{{ video.locationName || formatDistance(video.distance) }}</text>
-            <text class="desc ellipsis-2">{{ video.signature }}</text>
+            >
+              {{ video.locationName || formatDistance(video.distance) }}
+            </text>
+            <text class="desc ellipsis-2">
+              {{ video.signature }}
+            </text>
             <view class="music-row">
               <view
                 class="music-disc"
                 :class="{ 'disc-paused': !isPlaying && currentId === video.id }"
                 aria-hidden="true"
               >
-                <image lazy-load class="disc-img" :src="video.cover" mode="aspectFill" />
+                <image
+                  lazy-load
+                  class="disc-img"
+                  :src="video.cover"
+                  mode="aspectFill"
+                />
               </view>
               <view class="music-track">
-                <text class="music-text" :class="{ 'text-paused': !isPlaying && currentId === video.id }">{{ video.nickname }} 创作的原声 · {{ video.signature || '小视频' }}</text>
+                <text
+                  class="music-text"
+                  :class="{ 'text-paused': !isPlaying && currentId === video.id }"
+                >
+                  {{ video.nickname }} 创作的原声 · {{ video.signature || '小视频' }}
+                </text>
               </view>
             </view>
           </view>
@@ -177,19 +272,45 @@
             @touchend="onScrubEnd"
             @touchcancel="onScrubEnd"
           >
-            <view class="progress-bar" role="progressbar" aria-label="播放进度" :aria-valuenow="Math.round(scrubbing ? scrubPercent : progress)" aria-valuemin="0" aria-valuemax="100">
-              <view class="progress-inner" :style="{ width: (scrubbing ? scrubPercent : progress) + '%' }" />
-              <view v-if="scrubbing" class="progress-thumb" :style="{ left: scrubPercent + '%' }" />
+            <view
+              class="progress-bar"
+              role="progressbar"
+              aria-label="播放进度"
+              :aria-valuenow="Math.round(scrubbing ? scrubPercent : progress)"
+              aria-valuemin="0"
+              aria-valuemax="100"
+            >
+              <view
+                class="progress-inner"
+                :style="{ width: (scrubbing ? scrubPercent : progress) + '%' }"
+              />
+              <view
+                v-if="scrubbing"
+                class="progress-thumb"
+                :style="{ left: scrubPercent + '%' }"
+              />
             </view>
-            <view v-if="scrubbing" class="scrub-time" aria-hidden="true">{{ scrubLabel }}</view>
+            <view
+              v-if="scrubbing"
+              class="scrub-time"
+              aria-hidden="true"
+            >
+              {{ scrubLabel }}
+            </view>
           </view>
         </view>
       </swiper-item>
     </swiper>
 
     <!-- 顶部/底部暗角渐变 -->
-    <view class="top-scrim" aria-hidden="true"></view>
-    <view class="bottom-scrim" aria-hidden="true"></view>
+    <view
+      class="top-scrim"
+      aria-hidden="true"
+    />
+    <view
+      class="bottom-scrim"
+      aria-hidden="true"
+    />
 
     <!-- H5 静音提示：浏览器自动播放策略禁止无交互页面带声 autoplay，首屏只能 muted 起播。
          未解锁前明示「静音中」，避免用户误以为视频本身没声音；用户首次触碰屏幕任意位置
@@ -200,8 +321,13 @@
       label="视频处于静音状态，轻触开启声音"
       @tap="unlockAudio"
     >
-      <view class="muted-hint__ico i-ph-speaker-x" aria-hidden="true" />
-      <text class="muted-hint__text">轻触开启声音</text>
+      <view
+        class="muted-hint__ico i-ph-speaker-x"
+        aria-hidden="true"
+      />
+      <text class="muted-hint__text">
+        轻触开启声音
+      </text>
     </a11y-button>
 
     <!-- 附近回退提示：未授权/半径内无数据时后端回退全站热门，必须明示而不是伪装成附近内容 -->
@@ -210,16 +336,38 @@
       class="nearby-tip"
       role="status"
     >
-      <text class="nearby-tip__text">{{ locationDenied ? "未开启定位权限，正在展示全站热门" : "附近暂无内容，正在展示全站热门" }}</text>
-      <a11y-button class="nearby-tip__btn" label="开启定位" @tap="openLocationSetting">开启定位</a11y-button>
+      <text class="nearby-tip__text">
+        {{ locationDenied ? "未开启定位权限，正在展示全站热门" : "附近暂无内容，正在展示全站热门" }}
+      </text>
+      <a11y-button
+        class="nearby-tip__btn"
+        label="开启定位"
+        @tap="openLocationSetting"
+      >
+        开启定位
+      </a11y-button>
     </view>
 
     <!-- 上滑提示（抖音式 SVG 三角 + 呼吸动画） -->
-    <view v-if="showSwipeHint" class="swipe-hint" aria-hidden="true">
-      <svg class="swipe-triangle" viewBox="0 0 24 12" aria-hidden="true">
-        <path d="M12 0L24 12H0z" fill="var(--text-inverse)" opacity="0.9"/>
+    <view
+      v-if="showSwipeHint"
+      class="swipe-hint"
+      aria-hidden="true"
+    >
+      <svg
+        class="swipe-triangle"
+        viewBox="0 0 24 12"
+        aria-hidden="true"
+      >
+        <path
+          d="M12 0L24 12H0z"
+          fill="var(--text-inverse)"
+          opacity="0.9"
+        />
       </svg>
-      <text class="swipe-text">上滑看更多</text>
+      <text class="swipe-text">
+        上滑看更多
+      </text>
     </view>
 
     <!-- 首屏加载态：后端跨服务组装 VideoVo 约需 4~5s，旧版暗色骨架叠在黑底上几乎不可见，
@@ -230,19 +378,30 @@
       role="status"
       aria-live="polite"
     >
-      <view class="video-loading__glow" aria-hidden="true"></view>
+      <view
+        class="video-loading__glow"
+        aria-hidden="true"
+      />
       <view class="video-loading__content">
-        <view v-if="!loadFailed" class="video-loading__spinner" aria-hidden="true"></view>
+        <view
+          v-if="!loadFailed"
+          class="video-loading__spinner"
+          aria-hidden="true"
+        />
         <text class="video-loading__title">
           {{ loadFailed ? "视频没能加载出来" : "正在为你挑选精彩视频" }}
         </text>
-        <text class="video-loading__desc">{{ loadFailed ? "网络似乎不太给力，点下方按钮重试" : loadingHint }}</text>
+        <text class="video-loading__desc">
+          {{ loadFailed ? "网络似乎不太给力，点下方按钮重试" : loadingHint }}
+        </text>
         <a11y-button
           v-if="loadFailed"
           class="video-loading__retry"
           label="重新加载视频"
           @tap="retryLoad"
-        >重新加载</a11y-button>
+        >
+          重新加载
+        </a11y-button>
       </view>
     </view>
 
@@ -252,9 +411,19 @@
       class="nearby-auth"
       role="status"
     >
-      <text class="nearby-auth__title">需要开启定位权限</text>
-      <text class="nearby-auth__desc">开启后可查看附近的视频；也可以先在推荐页逛逛</text>
-      <a11y-button class="nearby-auth__btn" label="开启定位权限" @tap="openLocationSetting">开启定位权限</a11y-button>
+      <text class="nearby-auth__title">
+        需要开启定位权限
+      </text>
+      <text class="nearby-auth__desc">
+        开启后可查看附近的视频；也可以先在推荐页逛逛
+      </text>
+      <a11y-button
+        class="nearby-auth__btn"
+        label="开启定位权限"
+        @tap="openLocationSetting"
+      >
+        开启定位权限
+      </a11y-button>
     </view>
 
     <empty-state
@@ -275,24 +444,70 @@
     />
 
     <!-- 底部分享面板 -->
-    <a11y-dialog class="share-mask" :visible="showShare" title="分享给好友" @close="showShare = false">
+    <a11y-dialog
+      class="share-mask"
+      :visible="showShare"
+      title="分享给好友"
+      @close="showShare = false"
+    >
       <view class="share-panel-inner">
-        <text class="share-title">分享给好友</text>
+        <text class="share-title">
+          分享给好友
+        </text>
         <view class="share-grid">
-          <a11y-button class="share-item" label="分享到微信" @tap="doShare('wechat')">
-            <view class="share-ico ico-wechat" aria-hidden="true">微</view>
-            <text class="share-label">微信</text>
+          <a11y-button
+            class="share-item"
+            label="分享到微信"
+            @tap="doShare('wechat')"
+          >
+            <view
+              class="share-ico ico-wechat"
+              aria-hidden="true"
+            >
+              微
+            </view>
+            <text class="share-label">
+              微信
+            </text>
           </a11y-button>
-          <a11y-button class="share-item" label="分享到朋友圈" @tap="doShare('moments')">
-            <view class="share-ico ico-moments" aria-hidden="true">友</view>
-            <text class="share-label">朋友圈</text>
+          <a11y-button
+            class="share-item"
+            label="分享到朋友圈"
+            @tap="doShare('moments')"
+          >
+            <view
+              class="share-ico ico-moments"
+              aria-hidden="true"
+            >
+              友
+            </view>
+            <text class="share-label">
+              朋友圈
+            </text>
           </a11y-button>
-          <a11y-button class="share-item" label="复制链接" @tap="doShare('copy')">
-            <view class="share-ico ico-copy" aria-hidden="true">链</view>
-            <text class="share-label">复制链接</text>
+          <a11y-button
+            class="share-item"
+            label="复制链接"
+            @tap="doShare('copy')"
+          >
+            <view
+              class="share-ico ico-copy"
+              aria-hidden="true"
+            >
+              链
+            </view>
+            <text class="share-label">
+              复制链接
+            </text>
           </a11y-button>
         </view>
-        <a11y-button class="share-cancel" label="取消分享" @tap="showShare = false">取消</a11y-button>
+        <a11y-button
+          class="share-cancel"
+          label="取消分享"
+          @tap="showShare = false"
+        >
+          取消
+        </a11y-button>
       </view>
     </a11y-dialog>
     <!-- 匹配成功弹窗（全局，由 match store 驱动） -->

@@ -1,42 +1,99 @@
 <template>
   <view class="chat-room">
     <!-- 消息列表 -->
-    <scroll-view scroll-y class="msg-list" :scroll-into-view="scrollToId" :scroll-with-animation="true">
+    <scroll-view
+      scroll-y
+      class="msg-list"
+      :scroll-into-view="scrollToId"
+      :scroll-with-animation="true"
+    >
       <!-- VIP 专属客服通道标识（exclusive_service 权益） -->
-      <view v-if="isVip" class="vip-banner">
-        <uni-icons class="vip-crown" type="vip" size="28"></uni-icons>
-        <text class="vip-text">VIP 专属客服通道 · 优先服务</text>
+      <view
+        v-if="isVip"
+        class="vip-banner"
+      >
+        <uni-icons
+          class="vip-crown"
+          type="vip"
+          size="28"
+        />
+        <text class="vip-text">
+          VIP 专属客服通道 · 优先服务
+        </text>
       </view>
       <!-- 客服欢迎语 -->
       <view class="welcome-tip">
         <text>您好，我是心飞交友在线客服，很高兴为您服务 🎧</text>
       </view>
-      <template v-for="msg in messageList" :key="msg.id">
-        <view v-if="showTimeDivider(msg)" class="time-divider">
-          <text class="time-text">{{ formatChatTime(msg.timestamp) }}</text>
+      <template
+        v-for="msg in messageList"
+        :key="msg.id"
+      >
+        <view
+          v-if="showTimeDivider(msg)"
+          class="time-divider"
+        >
+          <text class="time-text">
+            {{ formatChatTime(msg.timestamp) }}
+          </text>
         </view>
-        <view :id="'msg-' + msg.id" class="msg-item" :class="{ mine: msg.isMine }">
-        <!-- 装饰性 emoji 头像，语义由上下文承载 -->
-        <view class="agent-avatar" v-if="!msg.isMine" aria-hidden="true"><uni-icons type="headphones" size="40" color="var(--color-primary)"></uni-icons></view>
-        <view class="bubble-wrap" :class="{ mine: msg.isMine }">
-          <view v-if="msg.isMine && msg.status === 'sending'" class="status-loading" aria-hidden="true" />
-          <!-- 失败：红点提示 + 点击重发 -->
-          <a11y-button
-            v-else-if="msg.isMine && msg.status === 'failed'"
-            class="status-failed"
-            :label="`发送失败，重新发送：${msg.content}`"
-            @tap="retrySend(msg)"
+        <view
+          :id="'msg-' + msg.id"
+          class="msg-item"
+          :class="{ mine: msg.isMine }"
+        >
+          <!-- 装饰性 emoji 头像，语义由上下文承载 -->
+          <view
+            v-if="!msg.isMine"
+            class="agent-avatar"
+            aria-hidden="true"
           >
-            <text>!</text>
-          </a11y-button>
-          <view class="bubble pop-in" :class="{ mine: msg.isMine }">
-            <text>{{ msg.content }}</text>
+            <uni-icons
+              type="headphones"
+              size="40"
+              color="var(--color-primary)"
+            />
           </view>
-        </view>
-        <!-- 我的头像：点击打开自己的资料页 -->
-        <a11y-button v-if="msg.isMine" class="avatar-btn" label="查看我的资料" @tap="openMyProfile">
-          <image lazy-load class="avatar" :src="myAvatar" mode="aspectFill" aria-hidden="true" />
-        </a11y-button>
+          <view
+            class="bubble-wrap"
+            :class="{ mine: msg.isMine }"
+          >
+            <view
+              v-if="msg.isMine && msg.status === 'sending'"
+              class="status-loading"
+              aria-hidden="true"
+            />
+            <!-- 失败：红点提示 + 点击重发 -->
+            <a11y-button
+              v-else-if="msg.isMine && msg.status === 'failed'"
+              class="status-failed"
+              :label="`发送失败，重新发送：${msg.content}`"
+              @tap="retrySend(msg)"
+            >
+              <text>!</text>
+            </a11y-button>
+            <view
+              class="bubble pop-in"
+              :class="{ mine: msg.isMine }"
+            >
+              <text>{{ msg.content }}</text>
+            </view>
+          </view>
+          <!-- 我的头像：点击打开自己的资料页 -->
+          <a11y-button
+            v-if="msg.isMine"
+            class="avatar-btn"
+            label="查看我的资料"
+            @tap="openMyProfile"
+          >
+            <image
+              lazy-load
+              class="avatar"
+              :src="myAvatar"
+              mode="aspectFill"
+              aria-hidden="true"
+            />
+          </a11y-button>
         </view>
       </template>
 
@@ -49,14 +106,25 @@
         title="暂时没能获取历史消息"
         desc="服务可能开小差了，检查网络后重试"
       >
-        <a11y-button class="history-retry" label="重新加载历史消息" @tap="retryLoadHistory">重新加载</a11y-button>
+        <a11y-button
+          class="history-retry"
+          label="重新加载历史消息"
+          @tap="retryLoadHistory"
+        >
+          重新加载
+        </a11y-button>
       </empty-state>
     </scroll-view>
 
     <!-- 输入区 -->
     <view class="input-area safe-area-bottom">
       <!-- 快捷问题（仅新会话显示，发送首条后隐藏） -->
-      <scroll-view v-if="messageList.length === 0" scroll-x class="quick-bar" :show-scrollbar="false">
+      <scroll-view
+        v-if="messageList.length === 0"
+        scroll-x
+        class="quick-bar"
+        :show-scrollbar="false"
+      >
         <view class="quick-list">
           <a11y-button
             v-for="q in QUICK_QUESTIONS"
@@ -80,8 +148,14 @@
           @confirm="sendText"
           @focus="isInputFocus = true"
           @blur="isInputFocus = false"
-        />
-        <a11y-button class="send-btn" :class="{ disabled: !inputText.trim() || sending }" :disabled="!inputText.trim() || sending" label="发送消息" @tap="sendText">
+        >
+        <a11y-button
+          class="send-btn"
+          :class="{ disabled: !inputText.trim() || sending }"
+          :disabled="!inputText.trim() || sending"
+          label="发送消息"
+          @tap="sendText"
+        >
           <text>发送</text>
         </a11y-button>
       </view>
@@ -284,7 +358,9 @@ onLoad(async () => {
   try {
     const vip = await getVipStatus();
     isVip.value = (vip?.level ?? 0) > 0;
-  } catch {}
+  } catch {
+    // VIP 状态查询失败不阻断客服会话
+  }
 
   try {
     // 1. 获取客服 IM 账号

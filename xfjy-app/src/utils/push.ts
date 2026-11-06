@@ -21,7 +21,12 @@ export function reportDeviceApi(registrationId: string, platform?: string): Prom
  * 初始化推送：APP 端获取 registrationId 并上报，H5 端跳过
  * 建议在登录成功后调用
  */
+let pushStarted = false;
+
 export function initPush(): void {
+  // 幂等：onShow 每次进入前台都会调用，避免重复注册原生回调
+  if (pushStarted) return;
+  pushStarted = true;
   // #ifdef APP-PLUS
   try {
     // 极光 uni-app 原生插件（JG-JPush），插件未集成时静默跳过

@@ -3,11 +3,24 @@
     <!-- 断网/恢复全局提示条（fixed 定位自管理显隐，S1） -->
     <network-status-bar />
     <!-- 顶部栏：左侧关闭 + 居中标题 + 右侧发布按钮 -->
-    <view class="top-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
-      <a11y-button class="icon-btn" label="取消发布" @tap="handleCancel">
-        <uni-icons type="close" size="26" color="#161823"></uni-icons>
+    <view
+      class="top-bar"
+      :style="{ paddingTop: statusBarHeight + 'px' }"
+    >
+      <a11y-button
+        class="icon-btn"
+        label="取消发布"
+        @tap="handleCancel"
+      >
+        <uni-icons
+          type="close"
+          size="26"
+          color="#161823"
+        />
       </a11y-button>
-      <text class="top-title">发布动态</text>
+      <text class="top-title">
+        发布动态
+      </text>
       <a11y-button
         class="top-publish"
         :class="{ disabled: !canPublish || submitting }"
@@ -20,15 +33,29 @@
 
     <!-- 正文（无边框大输入，抖音式） -->
     <!-- 发布按钮禁用原因（P1）：明确告知可发布条件，避免"按钮灰了却不知道为什么" -->
-    <view v-if="!canPublish" class="publish-hint" role="status">
-      <uni-icons type="info" size="14" color="#8a5cf6"></uni-icons>
-      <text class="publish-hint-text">写点文字，或添加图片 / 视频后即可发布</text>
+    <view
+      v-if="!canPublish"
+      class="publish-hint"
+      role="status"
+    >
+      <uni-icons
+        type="info"
+        size="14"
+        color="#8a5cf6"
+      />
+      <text class="publish-hint-text">
+        写点文字，或添加图片 / 视频后即可发布
+      </text>
     </view>
 
     <!-- 正文分组标题：让"写什么 / 还能写多少"一目了然 -->
     <view class="field-head">
-      <text class="field-title">动态内容</text>
-      <text class="field-hint">最多 {{ MAX_CONTENT_LENGTH }} 字</text>
+      <text class="field-title">
+        动态内容
+      </text>
+      <text class="field-hint">
+        最多 {{ MAX_CONTENT_LENGTH }} 字
+      </text>
     </view>
     <textarea
       v-model="content"
@@ -39,86 +66,218 @@
       :maxlength="MAX_CONTENT_LENGTH"
       :auto-height="false"
     />
-    <text class="char-count" :class="{ 'char-near-limit': content.length >= MAX_CONTENT_LENGTH - 50 }">
+    <text
+      class="char-count"
+      :class="{ 'char-near-limit': content.length >= MAX_CONTENT_LENGTH - 50 }"
+    >
       {{ content.length }} / {{ MAX_CONTENT_LENGTH }} 字
     </text>
 
     <!-- 媒体分组标题：说明图片上限，避免"点了没反应" -->
     <view class="field-head">
-      <text class="field-title">添加图片或视频</text>
-      <text class="field-hint">图片最多 {{ MAX_IMAGE_COUNT }} 张 · 视频 1 个</text>
+      <text class="field-title">
+        添加图片或视频
+      </text>
+      <text class="field-hint">
+        图片最多 {{ MAX_IMAGE_COUNT }} 张 · 视频 1 个
+      </text>
     </view>
     <!-- 媒体行：横向缩略图 + 添加（抖音式）；选择视频后与图片互斥 -->
-    <scroll-view class="media-row" scroll-x :show-scrollbar="false">
+    <scroll-view
+      class="media-row"
+      scroll-x
+      :show-scrollbar="false"
+    >
       <template v-if="videoFile">
         <view class="media-item">
-          <image lazy-load class="media-img" :src="videoCover" mode="aspectFill" aria-label="已选视频封面" />
-          <view class="media-video-badge" aria-hidden="true">
-            <uni-icons type="videocam-filled" size="16" color="#fff"></uni-icons>
+          <image
+            lazy-load
+            class="media-img"
+            :src="videoCover"
+            mode="aspectFill"
+            aria-label="已选视频封面"
+          />
+          <view
+            class="media-video-badge"
+            aria-hidden="true"
+          >
+            <uni-icons
+              type="videocam-filled"
+              size="16"
+              color="#fff"
+            />
           </view>
-          <a11y-button class="media-remove" label="删除已选视频" @tap="removeVideo">
-            <uni-icons type="close" size="13" color="#ffffff"></uni-icons>
+          <a11y-button
+            class="media-remove"
+            label="删除已选视频"
+            @tap="removeVideo"
+          >
+            <uni-icons
+              type="close"
+              size="13"
+              color="#ffffff"
+            />
           </a11y-button>
         </view>
       </template>
       <template v-else>
-        <view v-for="(img, i) in images" :key="i" class="media-item">
-          <image lazy-load class="media-img" :src="img" mode="aspectFill" :aria-label="`已选图片 ${i + 1}`" />
-          <a11y-button class="media-remove" :label="`删除第 ${i + 1} 张图片`" @tap="removeImage(i)">
-            <uni-icons type="close" size="13" color="#ffffff"></uni-icons>
+        <view
+          v-for="(img, i) in images"
+          :key="i"
+          class="media-item"
+        >
+          <image
+            lazy-load
+            class="media-img"
+            :src="img"
+            mode="aspectFill"
+            :aria-label="`已选图片 ${i + 1}`"
+          />
+          <a11y-button
+            class="media-remove"
+            :label="`删除第 ${i + 1} 张图片`"
+            @tap="removeImage(i)"
+          >
+            <uni-icons
+              type="close"
+              size="13"
+              color="#ffffff"
+            />
           </a11y-button>
         </view>
-        <a11y-button v-if="images.length < MAX_IMAGE_COUNT" class="media-add" label="选择图片" @tap="chooseImage">
-          <uni-icons type="image" size="30" color="#767676"></uni-icons>
-          <text class="media-add-label">发图片</text>
+        <a11y-button
+          v-if="images.length < MAX_IMAGE_COUNT"
+          class="media-add"
+          label="选择图片"
+          @tap="chooseImage"
+        >
+          <uni-icons
+            type="image"
+            size="30"
+            color="#767676"
+          />
+          <text class="media-add-label">
+            发图片
+          </text>
         </a11y-button>
-        <a11y-button class="media-add" label="选择视频发布" @tap="chooseVideo">
-          <uni-icons type="videocam" size="30" color="#767676"></uni-icons>
-          <text class="media-add-label">发视频</text>
+        <a11y-button
+          class="media-add"
+          label="选择视频发布"
+          @tap="chooseVideo"
+        >
+          <uni-icons
+            type="videocam"
+            size="30"
+            color="#767676"
+          />
+          <text class="media-add-label">
+            发视频
+          </text>
         </a11y-button>
       </template>
     </scroll-view>
 
     <!-- 附加信息分组标题：话题 / 位置有明确归属，不再只靠 placeholder 猜 -->
-    <view v-if="!videoFile" class="field-head">
-      <text class="field-title">更多设置</text>
-      <text class="field-hint">话题最多 {{ MAX_TOPIC_COUNT }} 个 · 可选</text>
+    <view
+      v-if="!videoFile"
+      class="field-head"
+    >
+      <text class="field-title">
+        更多设置
+      </text>
+      <text class="field-hint">
+        话题最多 {{ MAX_TOPIC_COUNT }} 个 · 可选
+      </text>
     </view>
     <!-- 设置列表（抖音式分组行，右侧带箭头）；小视频发布仅接收封面+视频文件，文字/话题/位置不随视频上传，隐藏避免误导 -->
-    <view v-if="!videoFile" class="setting-list">
-      <a11y-button class="setting-row" :label="`话题，已选 ${selectedTopics.length} 个`" @tap="toggleTopicPanel">
+    <view
+      v-if="!videoFile"
+      class="setting-list"
+    >
+      <a11y-button
+        class="setting-row"
+        :label="`话题，已选 ${selectedTopics.length} 个`"
+        @tap="toggleTopicPanel"
+      >
         <view class="row-left">
-          <text class="row-hash" aria-hidden="true">#</text>
-          <text class="row-name">话题</text>
+          <text
+            class="row-hash"
+            aria-hidden="true"
+          >
+            #
+          </text>
+          <text class="row-name">
+            话题
+          </text>
         </view>
         <view class="row-right">
-          <text class="row-value" :class="{ placeholder: selectedTopics.length === 0 }">
+          <text
+            class="row-value"
+            :class="{ placeholder: selectedTopics.length === 0 }"
+          >
             {{ selectedTopics.length ? selectedTopics.join("、") : "添加话题" }}
           </text>
-          <uni-icons type="right" size="14" color="#c4c8d0"></uni-icons>
+          <uni-icons
+            type="right"
+            size="14"
+            color="#c4c8d0"
+          />
         </view>
       </a11y-button>
 
-      <a11y-button class="setting-row" :label="location ? `位置：${location}，点击修改` : '添加位置'" @tap="chooseLocation">
+      <a11y-button
+        class="setting-row"
+        :label="location ? `位置：${location}，点击修改` : '添加位置'"
+        @tap="chooseLocation"
+      >
         <view class="row-left">
-          <uni-icons type="location" size="20" color="#161823"></uni-icons>
-          <text class="row-name">位置</text>
+          <uni-icons
+            type="location"
+            size="20"
+            color="#161823"
+          />
+          <text class="row-name">
+            位置
+          </text>
         </view>
         <view class="row-right">
-          <text class="row-value" :class="{ placeholder: !location }">{{ location || "添加位置" }}</text>
-          <uni-icons type="right" size="14" color="#c4c8d0"></uni-icons>
+          <text
+            class="row-value"
+            :class="{ placeholder: !location }"
+          >
+            {{ location || "添加位置" }}
+          </text>
+          <uni-icons
+            type="right"
+            size="14"
+            color="#c4c8d0"
+          />
         </view>
       </a11y-button>
-      <a11y-button v-if="location" class="setting-row" label="清除已选位置" @tap="clearLocation">
+      <a11y-button
+        v-if="location"
+        class="setting-row"
+        label="清除已选位置"
+        @tap="clearLocation"
+      >
         <view class="row-left">
-          <uni-icons type="trash" size="20" color="#767676"></uni-icons>
-          <text class="row-name">清除位置</text>
+          <uni-icons
+            type="trash"
+            size="20"
+            color="#767676"
+          />
+          <text class="row-name">
+            清除位置
+          </text>
         </view>
       </a11y-button>
     </view>
 
     <!-- 话题选择面板（点击话题行展开/收起） -->
-    <view v-if="showTopicPanel" class="topic-panel">
+    <view
+      v-if="showTopicPanel"
+      class="topic-panel"
+    >
       <a11y-button
         v-for="topic in HOT_TOPICS"
         :key="topic"
@@ -136,7 +295,10 @@
     <!-- 非 tabBar 页原生底栏不显示，用自定义底栏补齐；键盘弹起时隐藏避免遮挡。
          mp-weixin 端发布页是原生 tab 页（底栏自带发布入口），不再叠加自定义底栏 -->
     <!-- #ifdef H5 -->
-    <app-tabbar v-if="!keyboardOpen" :active="-1" />
+    <app-tabbar
+      v-if="!keyboardOpen"
+      :active="-1"
+    />
     <!-- #endif -->
   </view>
 </template>

@@ -1,16 +1,34 @@
 <template>
   <!-- 错误边界：捕获子组件渲染异常，防止白屏 -->
-  <slot v-if="!hasError"></slot>
-  <view v-else class="error-boundary">
+  <slot v-if="!hasError" />
+  <view
+    v-else
+    class="error-boundary"
+  >
     <!-- 图标统一 UnoCSS Icons + Phosphor（AGENTS.md §7.1）：mask + currentColor，尺寸由 font-size 控制 -->
-    <text class="i-ph-warning-circle error-icon" aria-hidden="true" />
-    <text class="error-title">{{ displayTitle }}</text>
-    <text class="error-message">{{ displayMessage }}</text>
+    <text
+      class="i-ph-warning-circle error-icon"
+      aria-hidden="true"
+    />
+    <text class="error-title">
+      {{ displayTitle }}
+    </text>
+    <text class="error-message">
+      {{ displayMessage }}
+    </text>
     <view class="error-actions">
-      <a11y-button variant="primary" label="重新加载" @tap.stop="onRetry">
+      <a11y-button
+        variant="primary"
+        label="重新加载"
+        @tap.stop="onRetry"
+      >
         <text>重新加载</text>
       </a11y-button>
-      <a11y-button variant="ghost" label="反馈问题" @tap.stop="onReport">
+      <a11y-button
+        variant="ghost"
+        label="反馈问题"
+        @tap.stop="onReport"
+      >
         <text>反馈问题</text>
       </a11y-button>
     </view>
@@ -20,7 +38,9 @@
       label="复制错误码"
       @tap.stop="copyTraceId"
     >
-      <text class="trace-id">Trace: {{ traceId }}（点击复制错误码）</text>
+      <text class="trace-id">
+        Trace: {{ traceId }}（点击复制错误码）
+      </text>
     </a11y-button>
   </view>
 </template>

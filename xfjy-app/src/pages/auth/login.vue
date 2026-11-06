@@ -1,23 +1,53 @@
 <template>
   <view class="login-page">
     <!-- 漂浮装饰心形（增强品牌区氛围）：纯装饰，对读屏隐藏 -->
-    <view class="deco-heart deco-1" aria-hidden="true" />
-    <view class="deco-heart deco-2" aria-hidden="true" />
-    <view class="deco-heart deco-3" aria-hidden="true" />
-    <view class="deco-heart deco-4" aria-hidden="true" />
+    <view
+      class="deco-heart deco-1"
+      aria-hidden="true"
+    />
+    <view
+      class="deco-heart deco-2"
+      aria-hidden="true"
+    />
+    <view
+      class="deco-heart deco-3"
+      aria-hidden="true"
+    />
+    <view
+      class="deco-heart deco-4"
+      aria-hidden="true"
+    />
 
     <!-- 品牌区：padding-top 动态避让状态栏/刘海/挖孔（custom 导航页必须） -->
-    <view class="brand anim-fade-down" :style="{ paddingTop: statusBarHeight + 90 + 'px' }">
+    <view
+      class="brand anim-fade-down"
+      :style="{ paddingTop: statusBarHeight + 90 + 'px' }"
+    >
       <!-- logo 与紧随其后的 app-name 文字语义重复，标为装饰避免重复朗读 -->
-      <image lazy-load class="logo" src="/static/logo/logo-icon-transparent.png" mode="aspectFit" aria-hidden="true" />
-      <text class="app-name">心飞交友</text>
-      <text class="slogan">心飞为你飞，遇见对的人</text>
+      <image
+        lazy-load
+        class="logo"
+        src="/static/logo/logo-icon-transparent.png"
+        mode="aspectFit"
+        aria-hidden="true"
+      />
+      <text class="app-name">
+        心飞交友
+      </text>
+      <text class="slogan">
+        心飞为你飞，遇见对的人
+      </text>
     </view>
 
     <!-- 表单区 -->
     <view class="form anim-fade-up anim-delay-1">
       <view class="input-group">
-        <text :id="PHONE_LABEL_ID" class="label">手机号</text>
+        <text
+          :id="PHONE_LABEL_ID"
+          class="label"
+        >
+          手机号
+        </text>
         <input
           v-model="phone"
           class="input"
@@ -29,11 +59,16 @@
           placeholder-class="placeholder"
           :aria-labelledby="PHONE_LABEL_ID"
           @input="sanitizePhone"
-        />
+        >
       </view>
 
       <view class="input-group">
-        <text :id="CODE_LABEL_ID" class="label">验证码</text>
+        <text
+          :id="CODE_LABEL_ID"
+          class="label"
+        >
+          验证码
+        </text>
         <view class="code-row">
           <input
             v-model="code"
@@ -46,7 +81,7 @@
             placeholder-class="placeholder"
             :aria-labelledby="CODE_LABEL_ID"
             @input="sanitizeCode"
-          />
+          >
           <a11y-button
             variant="ghost"
             shape="default"
@@ -67,14 +102,34 @@
         label="我已阅读并同意《用户协议》和《隐私政策》"
         @tap="agree = !agree"
       >
-        <view class="checkbox" :class="{ checked: agree }">
-          <text v-if="agree" class="check-icon">✓</text>
+        <view
+          class="checkbox"
+          :class="{ checked: agree }"
+        >
+          <text
+            v-if="agree"
+            class="check-icon"
+          >
+            ✓
+          </text>
         </view>
         <text class="agreement-text">
           我已阅读并同意
-          <text class="link" role="link" @click.stop="openAgreement('user')">《用户协议》</text>
+          <text
+            class="link"
+            role="link"
+            @click.stop="openAgreement('user')"
+          >
+            《用户协议》
+          </text>
           和
-          <text class="link" role="link" @click.stop="openAgreement('privacy')">《隐私政策》</text>
+          <text
+            class="link"
+            role="link"
+            @click.stop="openAgreement('privacy')"
+          >
+            《隐私政策》
+          </text>
         </text>
       </a11y-button>
 
@@ -100,18 +155,37 @@
     >
       <view class="sheet-panel anim-slide-up">
         <!-- 抓手：底部弹层的可视可供性（affordance） -->
-        <view class="sheet-grabber" aria-hidden="true" />
+        <view
+          class="sheet-grabber"
+          aria-hidden="true"
+        />
         <view class="sheet-header">
-          <text class="sheet-title">{{ sheetContent.title }}</text>
-          <text class="sheet-full" role="link" @click.stop="goFullAgreement">查看全文 ›</text>
+          <text class="sheet-title">
+            {{ sheetContent.title }}
+          </text>
+          <text
+            class="sheet-full"
+            role="link"
+            @click.stop="goFullAgreement"
+          >
+            查看全文 ›
+          </text>
         </view>
 
         <!-- 阅读进度条 + 百分比反馈 -->
-        <view class="sheet-progress-row" aria-hidden="true">
+        <view
+          class="sheet-progress-row"
+          aria-hidden="true"
+        >
           <view class="sheet-progress">
-            <view class="sheet-progress-fill" :style="{ width: readProgress + '%' }" />
+            <view
+              class="sheet-progress-fill"
+              :style="{ width: readProgress + '%' }"
+            />
           </view>
-          <text class="sheet-progress-text">{{ readComplete ? "已读完" : readProgress + "%" }}</text>
+          <text class="sheet-progress-text">
+            {{ readComplete ? "已读完" : readProgress + "%" }}
+          </text>
         </view>
 
         <scroll-view
@@ -121,7 +195,13 @@
           @scroll="onSheetScroll"
           @scrolltolower="onSheetScrollToLower"
         >
-          <text class="sheet-paragraph" v-for="(p, i) in sheetContent.paragraphs" :key="i">{{ p }}</text>
+          <text
+            v-for="(p, i) in sheetContent.paragraphs"
+            :key="i"
+            class="sheet-paragraph"
+          >
+            {{ p }}
+          </text>
         </scroll-view>
 
         <!-- 主行动唯一：通栏主按钮承担视觉重量（探探/微信式）；

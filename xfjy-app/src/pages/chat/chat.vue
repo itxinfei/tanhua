@@ -1,26 +1,61 @@
 <template>
   <view class="chat-room">
     <!-- 消息列表 -->
-    <scroll-view scroll-y class="msg-list" :scroll-into-view="scrollToId" :scroll-with-animation="true">
+    <scroll-view
+      scroll-y
+      class="msg-list"
+      :scroll-into-view="scrollToId"
+      :scroll-with-animation="true"
+    >
       <!-- 对方正在输入提示（点击可打开对方资料页） -->
-      <view v-if="peerTyping" class="typing-indicator">
-        <a11y-button class="typing-btn" :label="`${nickname} 正在输入，点击查看资料`" @tap="openPeerProfile">
-          <image lazy-load class="typing-avatar" :src="resolveAvatar(peerAvatar)" mode="aspectFill" aria-hidden="true" />
+      <view
+        v-if="peerTyping"
+        class="typing-indicator"
+      >
+        <a11y-button
+          class="typing-btn"
+          :label="`${nickname} 正在输入，点击查看资料`"
+          @tap="openPeerProfile"
+        >
+          <image
+            lazy-load
+            class="typing-avatar"
+            :src="resolveAvatar(peerAvatar)"
+            mode="aspectFill"
+            aria-hidden="true"
+          />
           <view class="typing-bubble">
-            <view class="typing-dots" aria-hidden="true">
+            <view
+              class="typing-dots"
+              aria-hidden="true"
+            >
               <text class="dot" /><text class="dot" /><text class="dot" />
             </view>
           </view>
-          <text class="typing-text">{{ nickname }} 正在输入…</text>
+          <text class="typing-text">
+            {{ nickname }} 正在输入…
+          </text>
         </a11y-button>
       </view>
-      <template v-for="(msg, i) in messageList" :key="msg.id">
+      <template
+        v-for="(msg, i) in messageList"
+        :key="msg.id"
+      >
         <!-- 时间分隔线：首条或间隔超过阈值时显示 -->
-        <view v-if="showTimeDivider(i)" class="time-divider">
-          <text class="time-text">{{ formatChatTime(msg.timestamp) }}</text>
+        <view
+          v-if="showTimeDivider(i)"
+          class="time-divider"
+        >
+          <text class="time-text">
+            {{ formatChatTime(msg.timestamp) }}
+          </text>
         </view>
         <!-- 单条消息 -->
-        <view :id="'msg-' + msg.id" class="msg-item" :class="{ mine: msg.isMine }">
+        <view
+          :id="'msg-' + msg.id"
+          class="msg-item"
+          :class="{ mine: msg.isMine }"
+        >
           <!-- 对方头像：点击打开对方资料页（用户想查看对方资料） -->
           <a11y-button
             v-if="!msg.isMine"
@@ -28,39 +63,124 @@
             :label="`查看 ${nickname} 的资料`"
             @tap="openPeerProfile"
           >
-            <image lazy-load class="avatar" :src="resolveAvatar(msg.avatar)" mode="aspectFill" aria-hidden="true" />
+            <image
+              lazy-load
+              class="avatar"
+              :src="resolveAvatar(msg.avatar)"
+              mode="aspectFill"
+              aria-hidden="true"
+            />
           </a11y-button>
-          <view class="bubble-wrap" :class="{ mine: msg.isMine }">
+          <view
+            class="bubble-wrap"
+            :class="{ mine: msg.isMine }"
+          >
             <!-- 发送中转圈：纯状态动画，对读屏隐藏 -->
-            <view v-if="msg.isMine && msg.status === 'sending'" class="status-loading" aria-hidden="true" />
+            <view
+              v-if="msg.isMine && msg.status === 'sending'"
+              class="status-loading"
+              aria-hidden="true"
+            />
             <!-- 发送失败：点击重发 -->
-            <a11y-button v-else-if="msg.isMine && msg.status === 'failed'" class="status-failed" label="发送失败，点击重发" @tap="resendMessage(msg)">
-              <text class="failed-icon" aria-hidden="true">!</text>
+            <a11y-button
+              v-else-if="msg.isMine && msg.status === 'failed'"
+              class="status-failed"
+              label="发送失败，点击重发"
+              @tap="resendMessage(msg)"
+            >
+              <text
+                class="failed-icon"
+                aria-hidden="true"
+              >
+                !
+              </text>
             </a11y-button>
-            <view class="bubble pop-in" :class="{ mine: msg.isMine }">
-              <text v-if="msg.type === 'text'">{{ msg.content }}</text>
-              <a11y-button v-else-if="msg.type === 'image'" class="msg-image-wrap" label="查看图片" @tap="previewImg(msg.content)">
-                <image lazy-load class="msg-image" :src="msg.content" mode="widthFix" aria-hidden="true" />
+            <view
+              class="bubble pop-in"
+              :class="{ mine: msg.isMine }"
+            >
+              <text v-if="msg.type === 'text'">
+                {{ msg.content }}
+              </text>
+              <a11y-button
+                v-else-if="msg.type === 'image'"
+                class="msg-image-wrap"
+                label="查看图片"
+                @tap="previewImg(msg.content)"
+              >
+                <image
+                  lazy-load
+                  class="msg-image"
+                  :src="msg.content"
+                  mode="widthFix"
+                  aria-hidden="true"
+                />
               </a11y-button>
               <!-- 语音：点击播放，播放中显示波动态 -->
-              <a11y-button v-else-if="msg.type === 'voice'" class="msg-voice" :label="playingVoiceId === msg.id ? '暂停语音' : `播放语音，${msg.extra?.duration || 0} 秒`" @tap="toggleVoicePlay(msg)">
-                <text class="voice-icon" aria-hidden="true">{{ playingVoiceId === msg.id ? "❚❚" : "▶" }}</text>
-                <view class="voice-wave" :class="{ playing: playingVoiceId === msg.id }" aria-hidden="true">
-                  <text v-for="n in 4" :key="n" class="wave-bar" />
+              <a11y-button
+                v-else-if="msg.type === 'voice'"
+                class="msg-voice"
+                :label="playingVoiceId === msg.id ? '暂停语音' : `播放语音，${msg.extra?.duration || 0} 秒`"
+                @tap="toggleVoicePlay(msg)"
+              >
+                <text
+                  class="voice-icon"
+                  aria-hidden="true"
+                >
+                  {{ playingVoiceId === msg.id ? "❚❚" : "▶" }}
+                </text>
+                <view
+                  class="voice-wave"
+                  :class="{ playing: playingVoiceId === msg.id }"
+                  aria-hidden="true"
+                >
+                  <text
+                    v-for="n in 4"
+                    :key="n"
+                    class="wave-bar"
+                  />
                 </view>
-                <text class="voice-duration">{{ msg.extra?.duration || 0 }}"</text>
+                <text class="voice-duration">
+                  {{ msg.extra?.duration || 0 }}"
+                </text>
               </a11y-button>
               <!-- 位置：点击打开地图查看 -->
-              <a11y-button v-else-if="msg.type === 'location'" class="msg-location" :label="`查看位置：${msg.content}`" @tap="openLocation(msg)">
-                <uni-icons class="location-icon" type="location" size="16"></uni-icons>
-                <text class="location-address">{{ msg.content }}</text>
+              <a11y-button
+                v-else-if="msg.type === 'location'"
+                class="msg-location"
+                :label="`查看位置：${msg.content}`"
+                @tap="openLocation(msg)"
+              >
+                <uni-icons
+                  class="location-icon"
+                  type="location"
+                  size="16"
+                />
+                <text class="location-address">
+                  {{ msg.content }}
+                </text>
               </a11y-button>
               <!-- 名片：点击跳转对方主页 -->
-              <a11y-button v-else-if="msg.type === 'card'" class="msg-card" :label="`查看 ${msg.content} 的个人名片`" @tap="openCard(msg)">
-                <image lazy-load class="card-avatar" :src="resolveAvatar(msg.extra?.avatar)" mode="aspectFill" aria-hidden="true" />
+              <a11y-button
+                v-else-if="msg.type === 'card'"
+                class="msg-card"
+                :label="`查看 ${msg.content} 的个人名片`"
+                @tap="openCard(msg)"
+              >
+                <image
+                  lazy-load
+                  class="card-avatar"
+                  :src="resolveAvatar(msg.extra?.avatar)"
+                  mode="aspectFill"
+                  aria-hidden="true"
+                />
                 <view class="card-info">
-                  <text class="card-name">{{ msg.content }}</text>
-                  <text class="card-hint">个人名片</text>
+                  <text class="card-name">
+                    {{ msg.content }}
+                  </text>
+                  <text class="card-hint">
+                    个人名片
+                  </text>
                 </view>
               </a11y-button>
             </view>
@@ -72,7 +192,13 @@
             label="查看我的资料"
             @tap="openMyProfile"
           >
-            <image lazy-load class="avatar" :src="resolveAvatar(msg.avatar)" mode="aspectFill" aria-hidden="true" />
+            <image
+              lazy-load
+              class="avatar"
+              :src="resolveAvatar(msg.avatar)"
+              mode="aspectFill"
+              aria-hidden="true"
+            />
           </a11y-button>
         </view>
       </template>
@@ -86,7 +212,13 @@
         title="暂时没能获取历史消息"
         desc="服务可能开小差了，检查网络后重试"
       >
-        <a11y-button class="history-retry" label="重新加载历史消息" @tap="retryLoadHistory">重新加载</a11y-button>
+        <a11y-button
+          class="history-retry"
+          label="重新加载历史消息"
+          @tap="retryLoadHistory"
+        >
+          重新加载
+        </a11y-button>
       </empty-state>
     </scroll-view>
 
@@ -94,43 +226,127 @@
     <view class="input-area safe-area-bottom">
       <view class="input-bar">
         <!-- 语音/键盘切换 -->
-        <a11y-button class="icon-btn" :label="isVoiceMode ? '切换到键盘输入' : '切换到语音输入'" @tap="toggleVoiceMode">
-          <text aria-hidden="true">{{ isVoiceMode ? "⌨" : "🎤" }}</text>
+        <a11y-button
+          class="icon-btn"
+          :label="isVoiceMode ? '切换到键盘输入' : '切换到语音输入'"
+          @tap="toggleVoiceMode"
+        >
+          <text aria-hidden="true">
+            {{ isVoiceMode ? "⌨" : "🎤" }}
+          </text>
         </a11y-button>
         <!-- 语音模式：按住说话 -->
-        <view v-if="isVoiceMode" class="voice-btn btn-feedback" role="button" :aria-label="isVoicePressing ? '松开 发送' : '按住 说话'" tabindex="0" @touchstart="onVoiceStart" @touchend="onVoiceEnd" @keydown.enter="onVoiceStart" @keydown.space.prevent="onVoiceStart" @keyup="onVoiceEnd">
+        <view
+          v-if="isVoiceMode"
+          class="voice-btn btn-feedback"
+          role="button"
+          :aria-label="isVoicePressing ? '松开 发送' : '按住 说话'"
+          tabindex="0"
+          @touchstart="onVoiceStart"
+          @touchend="onVoiceEnd"
+          @keydown.enter="onVoiceStart"
+          @keydown.space.prevent="onVoiceStart"
+          @keyup="onVoiceEnd"
+        >
           <text>{{ isVoicePressing ? "松开 发送" : "按住 说话" }}</text>
         </view>
         <!-- 文字模式：输入框 + 表情 -->
         <template v-else>
-          <input v-model="inputText" class="text-input" :class="{ focus: isInputFocus }" placeholder="说点什么..." placeholder-class="ph" aria-label="聊天输入框" confirm-type="send" @confirm="sendText" @focus="isInputFocus = true" @blur="isInputFocus = false" />
-          <a11y-button class="icon-btn" role="tab" :checked="activePanel === 'emoji'" label="表情面板" @tap="togglePanel('emoji')">
-            <text :class="{ 'icon-active': activePanel === 'emoji' }" aria-hidden="true">😊</text>
+          <input
+            v-model="inputText"
+            class="text-input"
+            :class="{ focus: isInputFocus }"
+            placeholder="说点什么..."
+            placeholder-class="ph"
+            aria-label="聊天输入框"
+            confirm-type="send"
+            @confirm="sendText"
+            @focus="isInputFocus = true"
+            @blur="isInputFocus = false"
+          >
+          <a11y-button
+            class="icon-btn"
+            role="tab"
+            :checked="activePanel === 'emoji'"
+            label="表情面板"
+            @tap="togglePanel('emoji')"
+          >
+            <text
+              :class="{ 'icon-active': activePanel === 'emoji' }"
+              aria-hidden="true"
+            >
+              😊
+            </text>
           </a11y-button>
         </template>
         <!-- 更多面板 -->
-        <a11y-button class="icon-btn" role="tab" :checked="activePanel === 'more'" label="更多功能面板" @tap="togglePanel('more')">
-          <uni-icons :class="{ 'icon-active': activePanel === 'more' }" type="plus" size="24" color="#767676"></uni-icons>
+        <a11y-button
+          class="icon-btn"
+          role="tab"
+          :checked="activePanel === 'more'"
+          label="更多功能面板"
+          @tap="togglePanel('more')"
+        >
+          <uni-icons
+            :class="{ 'icon-active': activePanel === 'more' }"
+            type="plus"
+            size="24"
+            color="#767676"
+          />
         </a11y-button>
       </view>
 
       <!-- 表情面板 -->
-      <view v-if="activePanel === 'emoji'" class="panel emoji-panel">
-        <scroll-view scroll-y class="emoji-scroll">
+      <view
+        v-if="activePanel === 'emoji'"
+        class="panel emoji-panel"
+      >
+        <scroll-view
+          scroll-y
+          class="emoji-scroll"
+        >
           <view class="emoji-grid">
-            <a11y-button v-for="emoji in EMOJI_LIST" :key="emoji" class="emoji-item" :label="`插入表情 ${emoji}`" @tap="insertEmoji(emoji)">
-              <text aria-hidden="true">{{ emoji }}</text>
+            <a11y-button
+              v-for="emoji in EMOJI_LIST"
+              :key="emoji"
+              class="emoji-item"
+              :label="`插入表情 ${emoji}`"
+              @tap="insertEmoji(emoji)"
+            >
+              <text aria-hidden="true">
+                {{ emoji }}
+              </text>
             </a11y-button>
           </view>
         </scroll-view>
       </view>
 
       <!-- 更多面板 -->
-      <view v-if="activePanel === 'more'" class="panel more-panel">
+      <view
+        v-if="activePanel === 'more'"
+        class="panel more-panel"
+      >
         <view class="more-grid">
-          <a11y-button v-for="action in QUICK_ACTIONS" :key="action.label" class="more-item" :label="action.label" @tap="action.handler">
-            <view class="more-icon" :style="{ background: action.bg }"><uni-icons :type="action.uniIcon" size="24" color="#fff"></uni-icons></view>
-            <text class="more-label">{{ action.label }}</text>
+          <a11y-button
+            v-for="action in QUICK_ACTIONS"
+            :key="action.label"
+            class="more-item"
+            :label="action.label"
+            @tap="action.handler"
+          >
+            <view
+              class="more-icon"
+              :style="{ background: action.bg }"
+            >
+              <uni-icons
+                :type="action.uniIcon"
+                size="24"
+                color="#fff"
+              />
+            </view>
+            <text class="more-label">
+              {{ action.label }}
+            </text>
           </a11y-button>
         </view>
       </view>

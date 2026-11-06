@@ -1,23 +1,60 @@
 <template>
   <view class="profile-page">
     <!-- 头像：整行作为可访问按钮 -->
-    <a11y-button class="avatar-row anim-fade-down" label="更换头像" @tap="changeAvatar">
-      <text class="label">头像</text>
+    <a11y-button
+      class="avatar-row anim-fade-down"
+      label="更换头像"
+      @tap="changeAvatar"
+    >
+      <text class="label">
+        头像
+      </text>
       <view class="avatar-wrap">
-        <image lazy-load class="avatar" :src="resolveAvatar(form.avatar)" mode="aspectFill" aria-hidden="true" />
-        <view class="avatar-mask"><text>更换</text></view>
+        <image
+          lazy-load
+          class="avatar"
+          :src="resolveAvatar(form.avatar)"
+          mode="aspectFill"
+          aria-hidden="true"
+        />
+        <view class="avatar-mask">
+          <text>更换</text>
+        </view>
       </view>
-      <text class="arrow" aria-hidden="true">›</text>
+      <text
+        class="arrow"
+        aria-hidden="true"
+      >
+        ›
+      </text>
     </a11y-button>
 
     <!-- 照片墙 -->
     <view class="section anim-fade-up anim-delay-1">
-      <text class="section-title">照片墙 ({{ form.photoAlbum.length }}/{{ MAX_ALBUM_COUNT }})</text>
+      <text class="section-title">
+        照片墙 ({{ form.photoAlbum.length }}/{{ MAX_ALBUM_COUNT }})
+      </text>
       <view class="album-grid">
-        <view v-for="(img, i) in form.photoAlbum" :key="i" class="album-item">
-          <image lazy-load class="album-img" :src="img" mode="aspectFill" :aria-label="`照片墙第 ${i + 1} 张`" />
-          <a11y-button class="remove" label="删除这张照片" @tap="removePhoto(i)">
-            <text class="remove-icon">×</text>
+        <view
+          v-for="(img, i) in form.photoAlbum"
+          :key="i"
+          class="album-item"
+        >
+          <image
+            lazy-load
+            class="album-img"
+            :src="img"
+            mode="aspectFill"
+            :aria-label="`照片墙第 ${i + 1} 张`"
+          />
+          <a11y-button
+            class="remove"
+            label="删除这张照片"
+            @tap="removePhoto(i)"
+          >
+            <text class="remove-icon">
+              ×
+            </text>
           </a11y-button>
         </view>
         <a11y-button
@@ -26,8 +63,12 @@
           label="添加照片"
           @tap="addPhoto"
         >
-          <text class="plus">+</text>
-          <text class="add-label">{{ form.photoAlbum.length }}/{{ MAX_ALBUM_COUNT }}</text>
+          <text class="plus">
+            +
+          </text>
+          <text class="add-label">
+            {{ form.photoAlbum.length }}/{{ MAX_ALBUM_COUNT }}
+          </text>
         </a11y-button>
       </view>
     </view>
@@ -35,22 +76,56 @@
     <!-- 基本信息（每项独立保存） -->
     <view class="section anim-fade-up anim-delay-2">
       <!-- 昵称：文本输入 -->
-      <a11y-button class="form-item" label="修改昵称" @tap="editField('nickname', '昵称')">
-        <text class="label">昵称</text>
-        <text class="value" :class="{ unset: !form.nickname }">{{ form.nickname || '未设置' }}</text>
-        <text class="arrow" aria-hidden="true">›</text>
+      <a11y-button
+        class="form-item"
+        label="修改昵称"
+        @tap="editField('nickname', '昵称')"
+      >
+        <text class="label">
+          昵称
+        </text>
+        <text
+          class="value"
+          :class="{ unset: !form.nickname }"
+        >
+          {{ form.nickname || '未设置' }}
+        </text>
+        <text
+          class="arrow"
+          aria-hidden="true"
+        >
+          ›
+        </text>
       </a11y-button>
 
       <!-- 个性签名：文本输入 -->
-      <a11y-button class="form-item" label="修改个性签名" @tap="editField('signature', '个性签名')">
-        <text class="label">签名</text>
-        <text class="value ellipsis" :class="{ unset: !form.signature }">{{ form.signature || '未设置' }}</text>
-        <text class="arrow" aria-hidden="true">›</text>
+      <a11y-button
+        class="form-item"
+        label="修改个性签名"
+        @tap="editField('signature', '个性签名')"
+      >
+        <text class="label">
+          签名
+        </text>
+        <text
+          class="value ellipsis"
+          :class="{ unset: !form.signature }"
+        >
+          {{ form.signature || '未设置' }}
+        </text>
+        <text
+          class="arrow"
+          aria-hidden="true"
+        >
+          ›
+        </text>
       </a11y-button>
 
       <!-- 性别：行内 toggle（两个选项保留原位） -->
       <view class="form-item form-item-inline">
-        <text class="label">性别</text>
+        <text class="label">
+          性别
+        </text>
         <view class="gender-flex">
           <a11y-radio-group
             label="性别"
@@ -61,38 +136,104 @@
           >
             <template #option="{ option }">
               <text>{{ option.icon }}</text>
-              <text class="option-label">{{ option.label }}</text>
+              <text class="option-label">
+                {{ option.label }}
+              </text>
             </template>
           </a11y-radio-group>
         </view>
       </view>
 
       <!-- 城市：底部选择器 -->
-      <a11y-button class="form-item" label="修改城市" @tap="openPicker('city')">
-        <text class="label">城市</text>
-        <text class="value" :class="{ unset: !form.city }">{{ form.city || '未设置' }}</text>
-        <text class="arrow" aria-hidden="true">›</text>
+      <a11y-button
+        class="form-item"
+        label="修改城市"
+        @tap="openPicker('city')"
+      >
+        <text class="label">
+          城市
+        </text>
+        <text
+          class="value"
+          :class="{ unset: !form.city }"
+        >
+          {{ form.city || '未设置' }}
+        </text>
+        <text
+          class="arrow"
+          aria-hidden="true"
+        >
+          ›
+        </text>
       </a11y-button>
 
       <!-- 身高：底部选择器 -->
-      <a11y-button class="form-item" label="修改身高" @tap="openPicker('height')">
-        <text class="label">身高</text>
-        <text class="value" :class="{ unset: !form.height }">{{ form.height ? form.height + 'cm' : '未设置' }}</text>
-        <text class="arrow" aria-hidden="true">›</text>
+      <a11y-button
+        class="form-item"
+        label="修改身高"
+        @tap="openPicker('height')"
+      >
+        <text class="label">
+          身高
+        </text>
+        <text
+          class="value"
+          :class="{ unset: !form.height }"
+        >
+          {{ form.height ? form.height + 'cm' : '未设置' }}
+        </text>
+        <text
+          class="arrow"
+          aria-hidden="true"
+        >
+          ›
+        </text>
       </a11y-button>
 
       <!-- 学历：底部选择器 -->
-      <a11y-button class="form-item" label="修改学历" @tap="openPicker('education')">
-        <text class="label">学历</text>
-        <text class="value" :class="{ unset: !form.education }">{{ form.education || '未设置' }}</text>
-        <text class="arrow" aria-hidden="true">›</text>
+      <a11y-button
+        class="form-item"
+        label="修改学历"
+        @tap="openPicker('education')"
+      >
+        <text class="label">
+          学历
+        </text>
+        <text
+          class="value"
+          :class="{ unset: !form.education }"
+        >
+          {{ form.education || '未设置' }}
+        </text>
+        <text
+          class="arrow"
+          aria-hidden="true"
+        >
+          ›
+        </text>
       </a11y-button>
 
       <!-- 行业：底部选择器 -->
-      <a11y-button class="form-item" label="修改行业" @tap="openPicker('industry')">
-        <text class="label">行业</text>
-        <text class="value" :class="{ unset: !form.industry }">{{ form.industry || '未设置' }}</text>
-        <text class="arrow" aria-hidden="true">›</text>
+      <a11y-button
+        class="form-item"
+        label="修改行业"
+        @tap="openPicker('industry')"
+      >
+        <text class="label">
+          行业
+        </text>
+        <text
+          class="value"
+          :class="{ unset: !form.industry }"
+        >
+          {{ form.industry || '未设置' }}
+        </text>
+        <text
+          class="arrow"
+          aria-hidden="true"
+        >
+          ›
+        </text>
       </a11y-button>
     </view>
 

@@ -3,7 +3,12 @@
     <!-- FAQ 搜索框 -->
     <view class="search-bar">
       <view class="search-input-wrap">
-        <uni-icons class="search-icon" type="search" size="18" color="var(--text-hint)"></uni-icons>
+        <uni-icons
+          class="search-icon"
+          type="search"
+          size="18"
+          color="var(--text-hint)"
+        />
         <input
           v-model="keyword"
           class="search-input"
@@ -11,12 +16,26 @@
           aria-label="搜索常见问题关键词"
           :maxlength="30"
           confirm-type="search"
-        />
-        <a11y-button v-if="keyword" class="search-clear" label="清空搜索关键词" @tap="keyword = ''"><uni-icons type="close" size="18" color="var(--text-hint)"></uni-icons></a11y-button>
+        >
+        <a11y-button
+          v-if="keyword"
+          class="search-clear"
+          label="清空搜索关键词"
+          @tap="keyword = ''"
+        >
+          <uni-icons
+            type="close"
+            size="18"
+            color="var(--text-hint)"
+          />
+        </a11y-button>
       </view>
     </view>
 
-    <scroll-view class="faq-scroll" scroll-y>
+    <scroll-view
+      class="faq-scroll"
+      scroll-y
+    >
       <!-- 加载失败：与「真的暂无 FAQ / 搜索无结果」严格区分，给明确原因 + 可重试入口。
            失败时 faqList 未被赋值（仍为空），分组列表自然不渲染，错误态优先于本地搜索结果 -->
       <empty-state
@@ -26,15 +45,32 @@
         title="暂时没能获取常见问题"
         desc="服务可能开小差了，检查网络后重试"
       >
-        <a11y-button class="faq-retry" label="重新加载常见问题" @tap="loadFaqList">重新加载</a11y-button>
+        <a11y-button
+          class="faq-retry"
+          label="重新加载常见问题"
+          @tap="loadFaqList"
+        >
+          重新加载
+        </a11y-button>
       </empty-state>
 
       <!-- 正常空态：首屏无数据或关键词搜索无结果（两种文案分支保持原样，禁止改动） -->
-      <empty-state v-else-if="groupedList.length === 0 && !loading" icon="chatbubble" :title="keyword ? '未找到相关问题' : '暂无常见问题'" :desc="keyword ? '换个关键词，或直接咨询在线客服' : '可直接提交意见反馈联系我们'" />
+      <empty-state
+        v-else-if="groupedList.length === 0 && !loading"
+        icon="chatbubble"
+        :title="keyword ? '未找到相关问题' : '暂无常见问题'"
+        :desc="keyword ? '换个关键词，或直接咨询在线客服' : '可直接提交意见反馈联系我们'"
+      />
 
-      <view v-for="group in groupedList" :key="group.category" class="faq-group">
+      <view
+        v-for="group in groupedList"
+        :key="group.category"
+        class="faq-group"
+      >
         <view class="group-title">
-          <text class="group-tag">{{ group.category }}</text>
+          <text class="group-tag">
+            {{ group.category }}
+          </text>
         </view>
         <a11y-button
           v-for="item in group.items"
@@ -44,26 +80,54 @@
           @tap="toggleItem(item.id)"
         >
           <view class="faq-question">
-            <text class="q-text">{{ item.question }}</text>
-            <text class="q-arrow" :class="{ expanded: expandedId === item.id }" aria-hidden="true">›</text>
+            <text class="q-text">
+              {{ item.question }}
+            </text>
+            <text
+              class="q-arrow"
+              :class="{ expanded: expandedId === item.id }"
+              aria-hidden="true"
+            >
+              ›
+            </text>
           </view>
-          <view v-if="expandedId === item.id" class="faq-answer">
+          <view
+            v-if="expandedId === item.id"
+            class="faq-answer"
+          >
             <text>{{ item.answer }}</text>
           </view>
         </a11y-button>
       </view>
 
-      <view v-if="loading" class="loading-tip">
+      <view
+        v-if="loading"
+        class="loading-tip"
+      >
         <text>加载中...</text>
       </view>
     </scroll-view>
 
     <!-- 底部入口：在线咨询 + 意见反馈 -->
     <view class="bottom-bar safe-area-bottom">
-      <a11y-button class="entry-btn consult" label="在线咨询" @tap="goChat">
-        <text><uni-icons type="headphones" size="14" color="#ffffff"></uni-icons> 在线咨询</text>
+      <a11y-button
+        class="entry-btn consult"
+        label="在线咨询"
+        @tap="goChat"
+      >
+        <text>
+          <uni-icons
+            type="headphones"
+            size="14"
+            color="#ffffff"
+          /> 在线咨询
+        </text>
       </a11y-button>
-      <a11y-button class="entry-btn" label="意见反馈" @tap="goFeedback">
+      <a11y-button
+        class="entry-btn"
+        label="意见反馈"
+        @tap="goFeedback"
+      >
         <text>意见反馈</text>
       </a11y-button>
     </view>

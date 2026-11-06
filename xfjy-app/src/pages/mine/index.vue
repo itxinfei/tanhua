@@ -3,55 +3,146 @@
     <!-- 断网/恢复全局提示条（fixed 定位自管理显隐，S1） -->
     <network-status-bar />
     <!-- 头部背景区 -->
-    <view class="header" :style="{ paddingTop: statusBarHeight + HEADER_EXTRA_PADDING_PX + 'px' }">
+    <view
+      class="header"
+      :style="{ paddingTop: statusBarHeight + HEADER_EXTRA_PADDING_PX + 'px' }"
+    >
       <!-- 漂浮装饰圆（纯装饰，对读屏隐藏） -->
-      <view class="deco-circle deco-1" aria-hidden="true" />
-      <view class="deco-circle deco-2" aria-hidden="true" />
-      <a11y-button class="user-row anim-fade-up" label="编辑个人资料" @tap="goProfile">
-        <image lazy-load class="avatar" :src="resolveAvatar(userInfo?.avatar)" mode="aspectFill" aria-hidden="true" />
+      <view
+        class="deco-circle deco-1"
+        aria-hidden="true"
+      />
+      <view
+        class="deco-circle deco-2"
+        aria-hidden="true"
+      />
+      <a11y-button
+        class="user-row anim-fade-up"
+        label="编辑个人资料"
+        @tap="goProfile"
+      >
+        <image
+          lazy-load
+          class="avatar"
+          :src="resolveAvatar(userInfo?.avatar)"
+          mode="aspectFill"
+          aria-hidden="true"
+        />
         <view class="user-info">
           <view class="name-row">
-            <text class="nickname">{{ userInfo?.nickname || '点击完善资料' }}</text>
-            <view v-if="userInfo?.verified" class="verified">已认证</view>
-            <view v-if="userInfo?.vip" class="vip-badge">VIP</view>
+            <text class="nickname">
+              {{ userInfo?.nickname || '点击完善资料' }}
+            </text>
+            <view
+              v-if="userInfo?.verified"
+              class="verified"
+            >
+              已认证
+            </view>
+            <view
+              v-if="userInfo?.vip"
+              class="vip-badge"
+            >
+              VIP
+            </view>
           </view>
-          <text class="uid">ID: {{ userInfo?.id || '—' }}</text>
-          <text class="meta">{{ profileMeta }}</text>
-          <text v-if="userInfo?.signature" class="signature ellipsis">{{ userInfo.signature }}</text>
+          <text class="uid">
+            ID: {{ userInfo?.id || '—' }}
+          </text>
+          <text class="meta">
+            {{ profileMeta }}
+          </text>
+          <text
+            v-if="userInfo?.signature"
+            class="signature ellipsis"
+          >
+            {{ userInfo.signature }}
+          </text>
           <!-- 资料未完善：给明确引导而非显示空值"破相" -->
-          <text v-else class="profile-guide">完善资料，让更多人遇见你 ›</text>
+          <text
+            v-else
+            class="profile-guide"
+          >
+            完善资料，让更多人遇见你 ›
+          </text>
         </view>
         <!-- 箭头为装饰符号，避免读屏逐字朗读 -->
-        <text class="edit-arrow" aria-hidden="true">›</text>
+        <text
+          class="edit-arrow"
+          aria-hidden="true"
+        >
+          ›
+        </text>
       </a11y-button>
 
       <!-- 数据栏（与后端 CountsVo 对齐：eachLoveCount/loveCount/fanCount） -->
       <view class="stats-row anim-fade-up anim-delay-1">
-        <a11y-button class="stat-item" :label="`互相喜欢 ${counts.eachLoveCount} 人，查看列表`" @tap="goFriends(FRIEND_TYPE.MUTUAL)">
-          <text class="stat-num">{{ counts.eachLoveCount }}</text>
-          <text class="stat-label">互相喜欢</text>
+        <a11y-button
+          class="stat-item"
+          :label="`互相喜欢 ${counts.eachLoveCount} 人，查看列表`"
+          @tap="goFriends(FRIEND_TYPE.MUTUAL)"
+        >
+          <text class="stat-num">
+            {{ counts.eachLoveCount }}
+          </text>
+          <text class="stat-label">
+            互相喜欢
+          </text>
         </a11y-button>
-        <a11y-button class="stat-item" :label="`我喜欢 ${counts.loveCount} 人，查看列表`" @tap="goFriends(FRIEND_TYPE.FOLLOW)">
-          <text class="stat-num">{{ counts.loveCount }}</text>
-          <text class="stat-label">我喜欢</text>
+        <a11y-button
+          class="stat-item"
+          :label="`我喜欢 ${counts.loveCount} 人，查看列表`"
+          @tap="goFriends(FRIEND_TYPE.FOLLOW)"
+        >
+          <text class="stat-num">
+            {{ counts.loveCount }}
+          </text>
+          <text class="stat-label">
+            我喜欢
+          </text>
         </a11y-button>
-        <a11y-button class="stat-item" :label="`粉丝 ${counts.fanCount} 人，查看列表`" @tap="goFriends(FRIEND_TYPE.FANS)">
-          <text class="stat-num">{{ counts.fanCount }}</text>
-          <text class="stat-label">粉丝</text>
+        <a11y-button
+          class="stat-item"
+          :label="`粉丝 ${counts.fanCount} 人，查看列表`"
+          @tap="goFriends(FRIEND_TYPE.FANS)"
+        >
+          <text class="stat-num">
+            {{ counts.fanCount }}
+          </text>
+          <text class="stat-label">
+            粉丝
+          </text>
         </a11y-button>
       </view>
     </view>
 
     <!-- VIP 入口 -->
-    <a11y-button class="vip-card anim-fade-up anim-delay-2" :label="userInfo?.vip ? '会员中心' : '开通会员'" @tap="goVip">
+    <a11y-button
+      class="vip-card anim-fade-up anim-delay-2"
+      :label="userInfo?.vip ? '会员中心' : '开通会员'"
+      @tap="goVip"
+    >
       <view class="vip-left">
-        <uni-icons class="vip-icon" type="vip" size="24"></uni-icons>
+        <uni-icons
+          class="vip-icon"
+          type="vip"
+          size="24"
+        />
         <view>
-          <text class="vip-title">{{ userInfo?.vip ? '会员中心' : '开通会员' }}</text>
-          <text class="vip-desc">{{ userInfo?.vip ? '查看你的会员权益' : '无限滑动 · 查看谁喜欢我 · 专属标识' }}</text>
+          <text class="vip-title">
+            {{ userInfo?.vip ? '会员中心' : '开通会员' }}
+          </text>
+          <text class="vip-desc">
+            {{ userInfo?.vip ? '查看你的会员权益' : '无限滑动 · 查看谁喜欢我 · 专属标识' }}
+          </text>
         </view>
       </view>
-      <text class="vip-arrow" aria-hidden="true">›</text>
+      <text
+        class="vip-arrow"
+        aria-hidden="true"
+      >
+        ›
+      </text>
     </a11y-button>
 
     <!-- 功能列表（表驱动渲染）：行高固定，不随组内项数与视口宽度变化 -->
@@ -68,11 +159,26 @@
         :label="item.label"
         @tap="item.action()"
       >
-        <view class="menu-icon-bg" :style="{ background: item.color }">
-          <uni-icons class="menu-icon" :type="item.uniIcon" size="24" color="#fff"></uni-icons>
+        <view
+          class="menu-icon-bg"
+          :style="{ background: item.color }"
+        >
+          <uni-icons
+            class="menu-icon"
+            :type="item.uniIcon"
+            size="24"
+            color="#fff"
+          />
         </view>
-        <text class="menu-label">{{ item.label }}</text>
-        <text class="menu-arrow" aria-hidden="true">›</text>
+        <text class="menu-label">
+          {{ item.label }}
+        </text>
+        <text
+          class="menu-arrow"
+          aria-hidden="true"
+        >
+          ›
+        </text>
       </a11y-button>
     </view>
 

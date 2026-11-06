@@ -1,13 +1,18 @@
 <template>
   <view class="feedback-page">
-    <scroll-view class="fb-scroll" scroll-y>
+    <scroll-view
+      class="fb-scroll"
+      scroll-y
+    >
       <!-- 反馈表单 -->
       <view class="form-card shadow-card">
-        <text class="form-title">意见反馈</text>
+        <text class="form-title">
+          意见反馈
+        </text>
         <view class="form-content">
           <textarea
-            class="content-input"
             v-model="form.content"
+            class="content-input"
             placeholder="请描述您遇到的问题或建议（必填）"
             :maxlength="500"
             auto-height
@@ -17,32 +22,62 @@
           </view>
         </view>
         <input
-          class="contact-input"
           v-model="form.contact"
+          class="contact-input"
           placeholder="联系方式（选填，方便我们回复您）"
           :maxlength="100"
-        />
+        >
         <!-- 主提交动作：由非语义 view 改为可聚焦按钮，支持键盘 Enter/Space -->
-        <a11y-button class="submit-btn" :class="{ disabled: submitting }" :disabled="submitting" @tap="handleSubmit">
+        <a11y-button
+          class="submit-btn"
+          :class="{ disabled: submitting }"
+          :disabled="submitting"
+          @tap="handleSubmit"
+        >
           <text>{{ submitting ? '提交中...' : '提交反馈' }}</text>
         </a11y-button>
       </view>
 
       <!-- 我的反馈 -->
       <view class="history-section">
-        <text class="section-title">我的反馈</text>
-        <view v-if="myList.length === 0 && !listLoading" class="empty-tip">
+        <text class="section-title">
+          我的反馈
+        </text>
+        <view
+          v-if="myList.length === 0 && !listLoading"
+          class="empty-tip"
+        >
           <text>暂无反馈记录</text>
         </view>
-        <view v-for="item in myList" :key="item.id" class="history-item shadow-card">
+        <view
+          v-for="item in myList"
+          :key="item.id"
+          class="history-item shadow-card"
+        >
           <view class="item-header">
-            <text class="item-status" :class="statusClass(item.status)">{{ statusText(item.status) }}</text>
-            <text class="item-date">{{ item.createDate }}</text>
+            <text
+              class="item-status"
+              :class="statusClass(item.status)"
+            >
+              {{ statusText(item.status) }}
+            </text>
+            <text class="item-date">
+              {{ item.createDate }}
+            </text>
           </view>
-          <text class="item-content">{{ item.content }}</text>
-          <view v-if="item.reply" class="item-reply">
-            <text class="reply-label">客服回复：</text>
-            <text class="reply-text">{{ item.reply }}</text>
+          <text class="item-content">
+            {{ item.content }}
+          </text>
+          <view
+            v-if="item.reply"
+            class="item-reply"
+          >
+            <text class="reply-label">
+              客服回复：
+            </text>
+            <text class="reply-text">
+              {{ item.reply }}
+            </text>
           </view>
         </view>
       </view>

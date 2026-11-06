@@ -1,8 +1,19 @@
 <template>
   <view class="agreement-page">
-    <view class="title">{{ title }}</view>
-    <scroll-view scroll-y class="content">
-      <text class="paragraph" v-for="(p, i) in paragraphs" :key="i">{{ p }}</text>
+    <view class="title">
+      {{ title }}
+    </view>
+    <scroll-view
+      scroll-y
+      class="content"
+    >
+      <text
+        v-for="(p, i) in paragraphs"
+        :key="i"
+        class="paragraph"
+      >
+        {{ p }}
+      </text>
     </scroll-view>
   </view>
 </template>

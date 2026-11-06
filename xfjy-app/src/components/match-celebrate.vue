@@ -6,18 +6,36 @@
     aria-label="配对成功"
     @tap.stop="emit('close')"
   >
-    <view class="celebrate-card" @tap.stop>
+    <view
+      class="celebrate-card"
+      @tap.stop
+    >
       <!-- 双方头像交叠 -->
-      <view class="avatars" aria-hidden="true">
-        <image class="avatar" :src="resolveAvatar(myAvatar)" mode="aspectFill" />
+      <view
+        class="avatars"
+        aria-hidden="true"
+      >
+        <image
+          class="avatar"
+          :src="resolveAvatar(myAvatar)"
+          mode="aspectFill"
+        />
         <view class="heart-badge">
           <text class="i-ph-heart-fill heart-icon" />
         </view>
-        <image class="avatar" :src="resolveAvatar(otherAvatar)" mode="aspectFill" />
+        <image
+          class="avatar"
+          :src="resolveAvatar(otherAvatar)"
+          mode="aspectFill"
+        />
       </view>
 
-      <text class="title">配对成功！</text>
-      <text class="desc">你们互相喜欢，打个招呼吧</text>
+      <text class="title">
+        配对成功！
+      </text>
+      <text class="desc">
+        你们互相喜欢，打个招呼吧
+      </text>
 
       <!-- 操作区：两个按钮均为 a11y-button，热区 ≥88rpx -->
       <view class="actions">
@@ -30,7 +48,12 @@
           <text class="i-ph-chat-circle-dots" />
           <text>打个招呼</text>
         </a11y-button>
-        <a11y-button variant="ghost" block label="继续逛逛" @tap="emit('close')">
+        <a11y-button
+          variant="ghost"
+          block
+          label="继续逛逛"
+          @tap="emit('close')"
+        >
           <text>继续逛逛</text>
         </a11y-button>
       </view>

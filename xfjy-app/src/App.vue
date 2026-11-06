@@ -1,12 +1,19 @@
 <script setup lang="ts">
+import { watch } from "vue";
 import { onLaunch, onShow } from "@dcloudio/uni-app";
 import { installAuthGuard } from "@/utils/auth-guard";
 // #ifdef H5
 import { installGlobalTabbar } from "@/utils/global-tabbar";
 // #endif
 import { getToken } from "@/utils/request";
-import { startNetworkMonitor } from "@/utils/network-monitor";
+import {
+  startNetworkMonitor,
+  isOnline,
+  showNetworkBar,
+  hideNetworkBar,
+} from "@/utils/network-monitor";
 import { ensureSelfIM, isIMLoggedIn, onMatchReceived } from "@/utils/wukongim";
+import { initPush } from "@/utils/push";
 import { useMatchStore } from "@/store/match";
 import { resolveAvatar } from "@/utils/avatar";
 import { prefetchRecommendVideos } from "@/utils/video-cache";
@@ -17,6 +24,11 @@ onLaunch(() => {
   installAuthGuard();
   // 启动网络状态监控：使 isOnline / shouldBlockRequest 生效，断网时可拦截请求
   startNetworkMonitor();
+  // 断网/恢复时给出全局提示条（NetworkStatusBar 组件未全局挂载，这里用内置 toast 条兜底）
+  watch(isOnline, (online) => {
+    if (online) hideNetworkBar();
+    else showNetworkBar();
+  });
   // #ifdef H5
   // 安装 H5 全局底栏：非 tab 页（vip/nearby 等）原生 tabBar 不存在，注入统一底栏
   installGlobalTabbar();
@@ -61,9 +73,12 @@ onLaunch(() => {
 });
 
 onShow(() => {
+  if (!getToken()) return;
+  // 上报设备推送标识（APP-PLUS 端；未集成极光原生插件时静默跳过，幂等）
+  initPush();
   // WuKongIM 登录（幂等）：凭证优先由服务端签发（GET /messages/im/credential），
   // 不再在前端按 userId 派生可预测 token，避免顶号/冒充风险
-  if (!getToken() || isIMLoggedIn()) return;
+  if (isIMLoggedIn()) return;
   ensureSelfIM().catch(() => {
     // 登录失败静默降级：聊天功能在会话页级逻辑兜底
   });

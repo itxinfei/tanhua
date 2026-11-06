@@ -2,11 +2,21 @@
   <view class="search-page">
     <!-- 顶部：返回 + 输入框 + 取消（对齐抖音搜索页的操作顺序） -->
     <view class="search-header">
-      <a11y-button class="icon-btn" label="返回" @tap="goBack">
-        <view class="ico i-ph-arrow-left" aria-hidden="true" />
+      <a11y-button
+        class="icon-btn"
+        label="返回"
+        @tap="goBack"
+      >
+        <view
+          class="ico i-ph-arrow-left"
+          aria-hidden="true"
+        />
       </a11y-button>
       <view class="search-box">
-        <view class="search-box-ico i-ph-magnifying-glass" aria-hidden="true" />
+        <view
+          class="search-box-ico i-ph-magnifying-glass"
+          aria-hidden="true"
+        />
         <input
           v-model="keyword"
           class="search-input"
@@ -17,48 +27,92 @@
           placeholder="搜索视频、用户"
           placeholder-class="search-placeholder"
           @confirm="submit(keyword)"
-        />
-        <a11y-button v-if="keyword" class="clear-btn" label="清空输入" @tap="keyword = ''">
-          <view class="ico-sm i-ph-x-circle" aria-hidden="true" />
+        >
+        <a11y-button
+          v-if="keyword"
+          class="clear-btn"
+          label="清空输入"
+          @tap="keyword = ''"
+        >
+          <view
+            class="ico-sm i-ph-x-circle"
+            aria-hidden="true"
+          />
         </a11y-button>
       </view>
-      <a11y-button class="header-action" label="取消搜索" @tap="goBack">
+      <a11y-button
+        class="header-action"
+        label="取消搜索"
+        @tap="goBack"
+      >
         <text>取消</text>
       </a11y-button>
     </view>
 
     <view class="suggest-body">
       <!-- 搜索历史：本地存储，单条删除 + 全部清空 -->
-      <view v-if="history.length > 0" class="block">
+      <view
+        v-if="history.length > 0"
+        class="block"
+      >
         <view class="block-head">
-          <text class="block-title">搜索历史</text>
-          <a11y-button class="block-action" label="清空搜索历史" @tap="clearHistory">
-            <view class="ico-sm i-ph-trash" aria-hidden="true" />
+          <text class="block-title">
+            搜索历史
+          </text>
+          <a11y-button
+            class="block-action"
+            label="清空搜索历史"
+            @tap="clearHistory"
+          >
+            <view
+              class="ico-sm i-ph-trash"
+              aria-hidden="true"
+            />
           </a11y-button>
         </view>
         <view class="chips">
-        <!-- chip 主体与删除按钮拆成兄弟节点：嵌套按钮在 HTML 中非法，
+          <!-- chip 主体与删除按钮拆成兄弟节点：嵌套按钮在 HTML 中非法，
              且外层 view 直接 @tap 无键盘/读屏入口（§7.1） -->
-        <view v-for="word in history" :key="word" class="chip">
-          <a11y-button
-            class="chip-main"
-            :label="`搜索 ${word}`"
-            @tap="submit(word)"
+          <view
+            v-for="word in history"
+            :key="word"
+            class="chip"
           >
-            <text class="chip-text">{{ word }}</text>
-          </a11y-button>
-          <a11y-button class="chip-del" :label="`删除历史 ${word}`" @tap="removeHistory(word)">
-            <view class="ico-xs i-ph-x" aria-hidden="true" />
-          </a11y-button>
-        </view>
+            <a11y-button
+              class="chip-main"
+              :label="`搜索 ${word}`"
+              @tap="submit(word)"
+            >
+              <text class="chip-text">
+                {{ word }}
+              </text>
+            </a11y-button>
+            <a11y-button
+              class="chip-del"
+              :label="`删除历史 ${word}`"
+              @tap="removeHistory(word)"
+            >
+              <view
+                class="ico-xs i-ph-x"
+                aria-hidden="true"
+              />
+            </a11y-button>
+          </view>
         </view>
       </view>
 
       <!-- 热搜榜：后端带名次，前三名强调 -->
       <view class="block">
         <view class="block-head">
-          <text class="block-title">热搜榜</text>
-          <text v-if="hotFromFallback" class="block-note">离线推荐</text>
+          <text class="block-title">
+            热搜榜
+          </text>
+          <text
+            v-if="hotFromFallback"
+            class="block-note"
+          >
+            离线推荐
+          </text>
         </view>
         <a11y-button
           v-for="item in hotWords"
@@ -67,10 +121,26 @@
           :label="`搜索热搜词 ${item.word}，排名第 ${item.rank}`"
           @tap="submit(item.word)"
         >
-          <text class="hot-rank" :class="{ top: item.rank <= 3 }">{{ item.rank }}</text>
-          <text class="hot-word" :class="{ top: item.rank <= 3 }">{{ item.word }}</text>
-          <view v-if="item.rank <= 3" class="hot-flag" aria-hidden="true">
-            <text class="hot-flag-text">热</text>
+          <text
+            class="hot-rank"
+            :class="{ top: item.rank <= 3 }"
+          >
+            {{ item.rank }}
+          </text>
+          <text
+            class="hot-word"
+            :class="{ top: item.rank <= 3 }"
+          >
+            {{ item.word }}
+          </text>
+          <view
+            v-if="item.rank <= 3"
+            class="hot-flag"
+            aria-hidden="true"
+          >
+            <text class="hot-flag-text">
+              热
+            </text>
           </view>
         </a11y-button>
       </view>

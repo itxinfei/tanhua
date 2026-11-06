@@ -1,22 +1,70 @@
 <template>
-  <a11y-dialog class="drawer-mask" :visible="visible" title="评论" @close="close">
+  <a11y-dialog
+    class="drawer-mask"
+    :visible="visible"
+    title="评论"
+    @close="close"
+  >
     <view class="drawer-panel">
       <view class="drawer-header">
-        <text class="drawer-title">评论{{ total > 0 ? ` ${total}` : '' }}</text>
-        <a11y-button class="drawer-close" label="关闭评论" @tap="close">
+        <text class="drawer-title">
+          评论{{ total > 0 ? ` ${total}` : '' }}
+        </text>
+        <a11y-button
+          class="drawer-close"
+          label="关闭评论"
+          @tap="close"
+        >
           <text>×</text>
         </a11y-button>
       </view>
-      <scroll-view class="comment-list" scroll-y @scrolltolower="loadMore">
-        <view v-if="loading && list.length === 0" class="empty">加载中...</view>
-        <view v-else-if="list.length === 0" class="empty">暂无评论，快来抢沙发</view>
-        <view v-for="c in list" :key="c.id" class="comment-item">
-          <image lazy-load v-if="c.avatar" class="avatar" :src="c.avatar" mode="aspectFill" :aria-label="`${c.nickname} 的头像`" />
-          <view v-else class="avatar avatar-ph" aria-hidden="true">{{ c.nickname ? c.nickname.charAt(0) : '?' }}</view>
+      <scroll-view
+        class="comment-list"
+        scroll-y
+        @scrolltolower="loadMore"
+      >
+        <view
+          v-if="loading && list.length === 0"
+          class="empty"
+        >
+          加载中...
+        </view>
+        <view
+          v-else-if="list.length === 0"
+          class="empty"
+        >
+          暂无评论，快来抢沙发
+        </view>
+        <view
+          v-for="c in list"
+          :key="c.id"
+          class="comment-item"
+        >
+          <image
+            v-if="c.avatar"
+            lazy-load
+            class="avatar"
+            :src="c.avatar"
+            mode="aspectFill"
+            :aria-label="`${c.nickname} 的头像`"
+          />
+          <view
+            v-else
+            class="avatar avatar-ph"
+            aria-hidden="true"
+          >
+            {{ c.nickname ? c.nickname.charAt(0) : '?' }}
+          </view>
           <view class="comment-body">
-            <text class="nickname">{{ c.nickname }}</text>
-            <text class="content">{{ c.content }}</text>
-            <text class="date">{{ formatDate(c.createDate) }}</text>
+            <text class="nickname">
+              {{ c.nickname }}
+            </text>
+            <text class="content">
+              {{ c.content }}
+            </text>
+            <text class="date">
+              {{ formatDate(c.createDate) }}
+            </text>
           </view>
           <a11y-button
             class="like-box"
@@ -28,15 +76,39 @@
               :class="c.hasLiked === 1 ? 'i-ph-heart-fill liked' : 'i-ph-heart'"
               aria-hidden="true"
             />
-            <text class="like-count">{{ c.likeCount > 0 ? formatCount(c.likeCount) : '' }}</text>
+            <text class="like-count">
+              {{ c.likeCount > 0 ? formatCount(c.likeCount) : '' }}
+            </text>
           </a11y-button>
         </view>
-        <view v-if="loading && list.length > 0" class="load-more">加载中...</view>
-        <view v-else-if="!hasMore && list.length > 0" class="load-more">没有更多了</view>
+        <view
+          v-if="loading && list.length > 0"
+          class="load-more"
+        >
+          加载中...
+        </view>
+        <view
+          v-else-if="!hasMore && list.length > 0"
+          class="load-more"
+        >
+          没有更多了
+        </view>
       </scroll-view>
       <view class="input-bar">
-        <input v-model="text" placeholder="说点什么..." placeholder-class="ph" confirm-type="send" aria-label="评论内容" @confirm="send" @input="onInput" />
-        <a11y-button class="send-btn" :class="{ active: text.trim() }" @tap="send">
+        <input
+          v-model="text"
+          placeholder="说点什么..."
+          placeholder-class="ph"
+          confirm-type="send"
+          aria-label="评论内容"
+          @confirm="send"
+          @input="onInput"
+        >
+        <a11y-button
+          class="send-btn"
+          :class="{ active: text.trim() }"
+          @tap="send"
+        >
           <text>发送</text>
         </a11y-button>
       </view>

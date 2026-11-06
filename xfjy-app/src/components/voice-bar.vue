@@ -6,18 +6,30 @@
     :label="isPlaying ? `暂停语音，时长 ${duration} 秒` : `播放语音，时长 ${duration} 秒`"
     @tap="toggle"
   >
-    <view class="voice-icon" aria-hidden="true">
-      <uni-icons :type="isPlaying ? 'sound-filled' : 'play-right-filled'" size="18" color="#fff"></uni-icons>
+    <view
+      class="voice-icon"
+      aria-hidden="true"
+    >
+      <uni-icons
+        :type="isPlaying ? 'sound-filled' : 'play-right-filled'"
+        size="18"
+        color="#fff"
+      />
     </view>
-    <view class="voice-wave" aria-hidden="true">
+    <view
+      class="voice-wave"
+      aria-hidden="true"
+    >
       <view
         v-for="i in barCount"
         :key="i"
         class="wave-bar"
         :class="{ active: isPlaying && i <= activeBars }"
-      ></view>
+      />
     </view>
-    <text class="voice-duration">{{ displaySeconds }}"</text>
+    <text class="voice-duration">
+      {{ displaySeconds }}"
+    </text>
   </a11y-button>
 </template>
 

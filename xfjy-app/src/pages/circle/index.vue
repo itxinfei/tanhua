@@ -3,7 +3,11 @@
     <!-- 断网/恢复全局提示条（fixed 定位自管理显隐，S1） -->
     <network-status-bar />
     <!-- 顶级分区：圈子 / 消息 -->
-    <view class="seg-bar" role="tablist" aria-label="社区分区">
+    <view
+      class="seg-bar"
+      role="tablist"
+      aria-label="社区分区"
+    >
       <a11y-button
         class="seg"
         :class="{ active: topTab === 'circle' }"
@@ -11,7 +15,9 @@
         :checked="topTab === 'circle'"
         label="圈子"
         @tap="switchTopTab('circle')"
-      >圈子</a11y-button>
+      >
+        圈子
+      </a11y-button>
       <a11y-button
         class="seg"
         :class="{ active: topTab === 'message' }"
@@ -21,13 +27,26 @@
         @tap="switchTopTab('message')"
       >
         消息
-        <view v-if="totalUnread > 0" class="seg-badge" aria-hidden="true">{{ totalUnread > 99 ? '99+' : totalUnread }}</view>
+        <view
+          v-if="totalUnread > 0"
+          class="seg-badge"
+          aria-hidden="true"
+        >
+          {{ totalUnread > 99 ? '99+' : totalUnread }}
+        </view>
       </a11y-button>
     </view>
 
     <!-- 圈子视图 -->
-    <view v-show="topTab === 'circle'" class="tab-view">
-      <view class="tab-bar" role="tablist" aria-label="圈子频道">
+    <view
+      v-show="topTab === 'circle'"
+      class="tab-view"
+    >
+      <view
+        class="tab-bar"
+        role="tablist"
+        aria-label="圈子频道"
+      >
         <a11y-button
           v-for="tab in tabs"
           :key="tab.key"
@@ -50,9 +69,19 @@
         @refresherrefresh="onRefresh"
         @scrolltolower="loadMore"
       >
-        <skeleton v-if="feedList.length === 0 && loading" variant="feed" :count="SKELETON_CARD_COUNT" :grid-cols="GRID_COLUMN_COUNT" />
+        <skeleton
+          v-if="feedList.length === 0 && loading"
+          variant="feed"
+          :count="SKELETON_CARD_COUNT"
+          :grid-cols="GRID_COLUMN_COUNT"
+        />
         <!-- 空状态：确实没有动态 -->
-        <empty-state v-if="feedList.length === 0 && !loading && !loadFailed" icon="camera" title="暂无动态" desc="快来发布第一条，分享你的生活" />
+        <empty-state
+          v-if="feedList.length === 0 && !loading && !loadFailed"
+          icon="camera"
+          title="暂无动态"
+          desc="快来发布第一条，分享你的生活"
+        />
         <!-- 加载失败：与「真的没动态」严格区分，给明确原因 + 可重试入口。
              后端异常时旧版把故障误报成「暂无动态」，用户无从判断也无法恢复。 -->
         <empty-state
@@ -62,21 +91,60 @@
           title="暂时没能获取动态"
           desc="服务可能开小差了，检查网络后重试"
         >
-          <a11y-button class="feed-retry" label="重新加载动态" @tap="loadFeed()">重新加载</a11y-button>
+          <a11y-button
+            class="feed-retry"
+            label="重新加载动态"
+            @tap="loadFeed()"
+          >
+            重新加载
+          </a11y-button>
         </empty-state>
-        <view v-for="item in feedList" :key="item.id" class="post-card">
+        <view
+          v-for="item in feedList"
+          :key="item.id"
+          class="post-card"
+        >
           <view class="post-header">
-            <image class="avatar" :src="item.avatar" mode="aspectFill" lazy-load :aria-label="item.nickname + ' 的头像'" />
+            <image
+              class="avatar"
+              :src="item.avatar"
+              mode="aspectFill"
+              lazy-load
+              :aria-label="item.nickname + ' 的头像'"
+            />
             <view class="user-info">
-              <text class="nickname">{{ item.nickname }}</text>
-              <text class="meta">{{ item.createDate }} · {{ item.location || '未知位置' }}</text>
+              <text class="nickname">
+                {{ item.nickname }}
+              </text>
+              <text class="meta">
+                {{ item.createDate }} · {{ item.location || '未知位置' }}
+              </text>
             </view>
           </view>
-          <view v-if="item.textContent" class="post-content ellipsis-2">{{ item.textContent }}</view>
-          <view v-if="item.tags && item.tags.length" class="tag-row">
-            <view v-for="(tag, i) in item.tags" :key="i" class="tag-chip" @tap="goTag(tag)"># {{ tag }}</view>
+          <view
+            v-if="item.textContent"
+            class="post-content ellipsis-2"
+          >
+            {{ item.textContent }}
           </view>
-          <view v-if="item.imageContent && item.imageContent.length" class="image-grid" :class="'grid-' + Math.min(item.imageContent.length, GRID_COLUMN_COUNT)">
+          <view
+            v-if="item.tags && item.tags.length"
+            class="tag-row"
+          >
+            <view
+              v-for="(tag, i) in item.tags"
+              :key="i"
+              class="tag-chip"
+              @tap="goTag(tag)"
+            >
+              # {{ tag }}
+            </view>
+          </view>
+          <view
+            v-if="item.imageContent && item.imageContent.length"
+            class="image-grid"
+            :class="'grid-' + Math.min(item.imageContent.length, GRID_COLUMN_COUNT)"
+          >
             <image
               v-for="(img, i) in item.imageContent.slice(0, MAX_GRID_IMAGE_COUNT)"
               :key="i"
@@ -90,63 +158,171 @@
           </view>
           <view class="action-row">
             <!-- 计数为 0 时给"抢首赞/抢首评"引导，而非空白让人以为功能缺失 -->
-            <a11y-button class="action" :label="item.hasLiked ? '取消点赞，当前 ' + (item.likeCount || 0) + ' 赞' : '点赞，当前 ' + (item.likeCount || 0) + ' 赞'" @tap="handleLike(item)">
-              <view class="action-icon" :class="{ liked: item.hasLiked, 'heart-beat': item.hasLiked, 'i-ph-heart-fill': item.hasLiked, 'i-ph-heart': !item.hasLiked }" aria-hidden="true" />
-              <text class="count">{{ item.likeCount > 0 ? item.likeCount : '抢首赞' }}</text>
+            <a11y-button
+              class="action"
+              :label="item.hasLiked ? '取消点赞，当前 ' + (item.likeCount || 0) + ' 赞' : '点赞，当前 ' + (item.likeCount || 0) + ' 赞'"
+              @tap="handleLike(item)"
+            >
+              <view
+                class="action-icon"
+                :class="{ liked: item.hasLiked, 'heart-beat': item.hasLiked, 'i-ph-heart-fill': item.hasLiked, 'i-ph-heart': !item.hasLiked }"
+                aria-hidden="true"
+              />
+              <text class="count">
+                {{ item.likeCount > 0 ? item.likeCount : '抢首赞' }}
+              </text>
             </a11y-button>
-            <a11y-button class="action" :label="'查看评论，共 ' + (item.commentCount || 0) + ' 条'" @tap="goDetail(item)">
-              <view class="action-icon i-ph-chat-circle-dots" aria-hidden="true" />
-              <text class="count">{{ item.commentCount > 0 ? item.commentCount : '抢首评' }}</text>
+            <a11y-button
+              class="action"
+              :label="'查看评论，共 ' + (item.commentCount || 0) + ' 条'"
+              @tap="goDetail(item)"
+            >
+              <view
+                class="action-icon i-ph-chat-circle-dots"
+                aria-hidden="true"
+              />
+              <text class="count">
+                {{ item.commentCount > 0 ? item.commentCount : '抢首评' }}
+              </text>
             </a11y-button>
-            <a11y-button class="action" :label="item.hasLoved ? '取消心动' : '心动'" @tap="handleLove(item)">
-              <view class="action-icon" :class="{ loved: item.hasLoved, 'i-ph-star-fill': item.hasLoved, 'i-ph-star': !item.hasLoved }" aria-hidden="true" />
+            <a11y-button
+              class="action"
+              :label="item.hasLoved ? '取消心动' : '心动'"
+              @tap="handleLove(item)"
+            >
+              <view
+                class="action-icon"
+                :class="{ loved: item.hasLoved, 'i-ph-star-fill': item.hasLoved, 'i-ph-star': !item.hasLoved }"
+                aria-hidden="true"
+              />
             </a11y-button>
           </view>
         </view>
-        <view v-if="loading" class="loading">加载中...</view>
+        <view
+          v-if="loading"
+          class="loading"
+        >
+          加载中...
+        </view>
       </scroll-view>
     </view>
 
     <!-- 消息视图（原 chat/index 内容） -->
-    <view v-show="topTab === 'message'" class="tab-view">
+    <view
+      v-show="topTab === 'message'"
+      class="tab-view"
+    >
       <view class="notice-bar">
-        <a11y-button class="notice-item" :class="{ active: noticePanelType === item.type }" v-for="item in noticeItems" :key="item.type" :label="item.unread > 0 ? item.label + '，' + item.unread + ' 条未读' : item.label" @tap="toggleNoticePanel(item.type)">
+        <a11y-button
+          v-for="item in noticeItems"
+          :key="item.type"
+          class="notice-item"
+          :class="{ active: noticePanelType === item.type }"
+          :label="item.unread > 0 ? item.label + '，' + item.unread + ' 条未读' : item.label"
+          @tap="toggleNoticePanel(item.type)"
+        >
           <view class="notice-icon-wrap">
-            <view class="notice-icon-bg" :style="{ background: item.color }">
-              <view class="notice-icon" :class="item.iconClass" aria-hidden="true" />
+            <view
+              class="notice-icon-bg"
+              :style="{ background: item.color }"
+            >
+              <view
+                class="notice-icon"
+                :class="item.iconClass"
+                aria-hidden="true"
+              />
             </view>
-            <view v-if="item.unread > 0" class="badge pulse" aria-hidden="true">{{ item.unread > 99 ? '99+' : item.unread }}</view>
+            <view
+              v-if="item.unread > 0"
+              class="badge pulse"
+              aria-hidden="true"
+            >
+              {{ item.unread > 99 ? '99+' : item.unread }}
+            </view>
           </view>
-          <text class="notice-label">{{ item.label }}</text>
+          <text class="notice-label">
+            {{ item.label }}
+          </text>
         </a11y-button>
       </view>
 
       <!-- 通知列表面板：内联展开，不跳转页面 -->
-      <view v-if="noticePanelType" class="notice-panel">
+      <view
+        v-if="noticePanelType"
+        class="notice-panel"
+      >
         <view class="notice-panel-list">
-          <view v-if="noticeLocked" class="locked-state">
-            <view class="locked-icon"><view class="i-ph-lock" aria-hidden="true" /></view>
-            <text class="locked-title">VIP 专享权益</text>
-            <text class="locked-desc">开通会员即可查看谁喜欢你</text>
-            <a11y-button class="locked-btn" label="开通 VIP" @tap="goVip">
+          <view
+            v-if="noticeLocked"
+            class="locked-state"
+          >
+            <view class="locked-icon">
+              <view
+                class="i-ph-lock"
+                aria-hidden="true"
+              />
+            </view>
+            <text class="locked-title">
+              VIP 专享权益
+            </text>
+            <text class="locked-desc">
+              开通会员即可查看谁喜欢你
+            </text>
+            <a11y-button
+              class="locked-btn"
+              label="开通 VIP"
+              @tap="goVip"
+            >
               <text>开通 VIP</text>
             </a11y-button>
           </view>
           <template v-else>
-            <empty-state v-if="noticeList.length === 0 && !noticeLoading" icon="notification" title="暂无通知" desc="有人喜欢你时会在这里提醒你" />
-            <view v-if="noticeLoading" class="notice-loading">加载中...</view>
-            <a11y-button v-for="item in noticeList" :key="item.id" class="notice-list-item" :label="noticeItemLabel(item)" @tap="goNoticeDetail(item)">
+            <empty-state
+              v-if="noticeList.length === 0 && !noticeLoading"
+              icon="notification"
+              title="暂无通知"
+              desc="有人喜欢你时会在这里提醒你"
+            />
+            <view
+              v-if="noticeLoading"
+              class="notice-loading"
+            >
+              加载中...
+            </view>
+            <a11y-button
+              v-for="item in noticeList"
+              :key="item.id"
+              class="notice-list-item"
+              :label="noticeItemLabel(item)"
+              @tap="goNoticeDetail(item)"
+            >
               <view class="notice-avatar-wrap">
-                <image class="notice-avatar" :src="item.avatar" mode="aspectFill" lazy-load :aria-label="item.nickname + ' 的头像'" />
-                <view class="notice-type-badge" :style="{ background: noticeTypeColor }" aria-hidden="true">
+                <image
+                  class="notice-avatar"
+                  :src="item.avatar"
+                  mode="aspectFill"
+                  lazy-load
+                  :aria-label="item.nickname + ' 的头像'"
+                />
+                <view
+                  class="notice-type-badge"
+                  :style="{ background: noticeTypeColor }"
+                  aria-hidden="true"
+                >
                   <view :class="noticeTypeIcon" />
                 </view>
               </view>
               <view class="notice-info">
-                <text class="notice-nickname">{{ item.nickname }}</text>
-                <text class="notice-desc">{{ item.desc }}</text>
+                <text class="notice-nickname">
+                  {{ item.nickname }}
+                </text>
+                <text class="notice-desc">
+                  {{ item.desc }}
+                </text>
               </view>
-              <text class="notice-time">{{ item.time }}</text>
+              <text class="notice-time">
+                {{ item.time }}
+              </text>
             </a11y-button>
           </template>
 
@@ -159,8 +335,13 @@
             label="查看全部"
             @tap="goNoticeList(noticePanelType)"
           >
-            <text class="notice-more-text">查看全部</text>
-            <view class="notice-more-arrow i-ph-caret-right" aria-hidden="true" />
+            <text class="notice-more-text">
+              查看全部
+            </text>
+            <view
+              class="notice-more-arrow i-ph-caret-right"
+              aria-hidden="true"
+            />
           </a11y-button>
         </view>
       </view>
@@ -171,7 +352,11 @@
         scroll-y
         class="msg-list"
       >
-        <empty-state v-if="chatList.length === 0" title="还没有聊天" desc="去匹配页滑动，遇见新朋友吧" />
+        <empty-state
+          v-if="chatList.length === 0"
+          title="还没有聊天"
+          desc="去匹配页滑动，遇见新朋友吧"
+        />
         <a11y-button
           v-for="item in chatList"
           :key="item.userId"
@@ -180,16 +365,36 @@
           @tap="goChatDetail(item)"
         >
           <view class="avatar-wrap">
-            <image class="avatar" :src="item.avatar" mode="aspectFill" lazy-load :aria-label="item.nickname + ' 的头像'" />
-            <view v-if="item.online" class="online-dot" aria-hidden="true"></view>
+            <image
+              class="avatar"
+              :src="item.avatar"
+              mode="aspectFill"
+              lazy-load
+              :aria-label="item.nickname + ' 的头像'"
+            />
+            <view
+              v-if="item.online"
+              class="online-dot"
+              aria-hidden="true"
+            />
           </view>
           <view class="chat-info">
             <view class="top-row">
-              <text class="nickname">{{ item.nickname }}</text>
+              <text class="nickname">
+                {{ item.nickname }}
+              </text>
             </view>
             <view class="bottom-row">
-              <text class="last-msg">{{ item.lastMessage || item.city || '暂无消息' }}</text>
-              <view v-if="item.unreadCount > 0" class="unread-badge" aria-hidden="true">{{ item.unreadCount > 99 ? '99+' : item.unreadCount }}</view>
+              <text class="last-msg">
+                {{ item.lastMessage || item.city || '暂无消息' }}
+              </text>
+              <view
+                v-if="item.unreadCount > 0"
+                class="unread-badge"
+                aria-hidden="true"
+              >
+                {{ item.unreadCount > 99 ? '99+' : item.unreadCount }}
+              </view>
             </view>
           </view>
         </a11y-button>

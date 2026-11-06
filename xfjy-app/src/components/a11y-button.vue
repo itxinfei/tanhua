@@ -18,7 +18,11 @@
     @keydown="handleKeydown"
   >
     <!-- loading 指示器：border 旋转，颜色取 currentColor 自动适配各变体 -->
-    <view v-if="loading" class="a11y-btn__spinner" aria-hidden="true" />
+    <view
+      v-if="loading"
+      class="a11y-btn__spinner"
+      aria-hidden="true"
+    />
     <slot />
   </view>
 </template>

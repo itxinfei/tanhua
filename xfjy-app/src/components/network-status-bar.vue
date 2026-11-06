@@ -8,8 +8,15 @@
     aria-live="assertive"
     @click="onClick"
   >
-    <text class="network-icon" aria-hidden="true">{{ icon }}</text>
-    <text class="network-text">{{ text }}</text>
+    <text
+      class="network-icon"
+      aria-hidden="true"
+    >
+      {{ icon }}
+    </text>
+    <text class="network-text">
+      {{ text }}
+    </text>
   </view>
 </template>
 

@@ -1,9 +1,16 @@
 <template>
   <!-- 统一底部导航组件：替代原 custom-tabbar.vue（发布页）与 global-tabbar.ts 手写 DOM（H5 全局注入）
        单一数据源：config/tab-config.ts；视觉规格：BEM + CSS 语义变量（见 style） -->
-  <view class="app-tabbar" role="tablist" aria-label="主导航">
+  <view
+    class="app-tabbar"
+    role="tablist"
+    aria-label="主导航"
+  >
     <view class="app-tabbar__inner">
-      <template v-for="(tab, i) in TABS" :key="tab.pagePath">
+      <template
+        v-for="(tab, i) in TABS"
+        :key="tab.pagePath"
+      >
         <!-- 发布键插入在第 3 个 tab 之前（i === 2），布局：匹配 | 圈子 | [+] | 视频 | 我的 -->
         <a11y-button
           v-if="i === 2"
@@ -13,18 +20,23 @@
           :label="activeIndex === -1 ? '当前在发布页' : '打开发布'"
           @tap="goPublish"
         >
-          <view class="app-tabbar__plus" aria-hidden="true">
-              <view class="app-tabbar__plus-circle">
-                <view class="app-tabbar__plus-h"></view>
-                <view class="app-tabbar__plus-v"></view>
-              </view>
+          <view
+            class="app-tabbar__plus"
+            aria-hidden="true"
+          >
+            <view class="app-tabbar__plus-circle">
+              <view class="app-tabbar__plus-h" />
+              <view class="app-tabbar__plus-v" />
             </view>
-            <!-- 与小程序端一致补「发布」文字，新用户不再把中央键当成装饰 -->
-            <text
-              class="app-tabbar__label app-tabbar__mid-label"
-              :class="{ 'app-tabbar__mid-label--active': activeIndex === -1 }"
-            >发布</text>
-          </a11y-button>
+          </view>
+          <!-- 与小程序端一致补「发布」文字，新用户不再把中央键当成装饰 -->
+          <text
+            class="app-tabbar__label app-tabbar__mid-label"
+            :class="{ 'app-tabbar__mid-label--active': activeIndex === -1 }"
+          >
+            发布
+          </text>
+        </a11y-button>
         <a11y-button
           class="app-tabbar__item"
           role="tab"
@@ -41,7 +53,9 @@
           <text
             class="app-tabbar__label"
             :class="{ 'app-tabbar__label--active': activeIndex === i }"
-          >{{ tab.text }}</text>
+          >
+            {{ tab.text }}
+          </text>
         </a11y-button>
       </template>
     </view>

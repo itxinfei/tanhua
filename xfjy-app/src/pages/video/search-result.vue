@@ -2,11 +2,21 @@
   <view class="result-page">
     <!-- 顶部：返回 + 可编辑输入框 + 搜索 -->
     <view class="result-header">
-      <a11y-button class="icon-btn" label="返回" @tap="goBack">
-        <view class="ico i-ph-arrow-left" aria-hidden="true" />
+      <a11y-button
+        class="icon-btn"
+        label="返回"
+        @tap="goBack"
+      >
+        <view
+          class="ico i-ph-arrow-left"
+          aria-hidden="true"
+        />
       </a11y-button>
       <view class="search-box">
-        <view class="search-box-ico i-ph-magnifying-glass" aria-hidden="true" />
+        <view
+          class="search-box-ico i-ph-magnifying-glass"
+          aria-hidden="true"
+        />
         <input
           v-model="inputKeyword"
           class="search-input"
@@ -16,18 +26,36 @@
           placeholder="搜索视频、用户"
           placeholder-class="search-placeholder"
           @confirm="submitSearch"
-        />
-        <a11y-button v-if="inputKeyword" class="clear-btn" label="清空输入" @tap="inputKeyword = ''">
-          <view class="ico-sm i-ph-x-circle" aria-hidden="true" />
+        >
+        <a11y-button
+          v-if="inputKeyword"
+          class="clear-btn"
+          label="清空输入"
+          @tap="inputKeyword = ''"
+        >
+          <view
+            class="ico-sm i-ph-x-circle"
+            aria-hidden="true"
+          />
         </a11y-button>
       </view>
-      <a11y-button class="header-action" label="搜索" @tap="submitSearch">
-        <text class="header-action-text">搜索</text>
+      <a11y-button
+        class="header-action"
+        label="搜索"
+        @tap="submitSearch"
+      >
+        <text class="header-action-text">
+          搜索
+        </text>
       </a11y-button>
     </view>
 
     <!-- 结果分类：综合 / 视频 / 用户（a11y-button 统一交互壳，键盘可达） -->
-    <view class="result-tabs" role="tablist" aria-label="搜索结果分类">
+    <view
+      class="result-tabs"
+      role="tablist"
+      aria-label="搜索结果分类"
+    >
       <a11y-button
         v-for="tab in TABS"
         :key="tab.key"
@@ -38,20 +66,31 @@
         :label="tab.label"
         @tap="activeTab = tab.key"
       >
-        <text class="result-tab-text">{{ tab.label }}</text>
-        <view v-if="activeTab === tab.key" class="tab-line" aria-hidden="true" />
+        <text class="result-tab-text">
+          {{ tab.label }}
+        </text>
+        <view
+          v-if="activeTab === tab.key"
+          class="tab-line"
+          aria-hidden="true"
+        />
       </a11y-button>
     </view>
 
     <!-- 用户 Tab：后端暂无用户搜索接口，明确标注未实现，不给假数据 -->
-    <view v-if="activeTab === 'user'" class="state-wrap">
+    <view
+      v-if="activeTab === 'user'"
+      class="state-wrap"
+    >
       <empty-state
         icon="person"
         title="用户搜索本期未实现"
         desc="后端尚未提供按昵称检索用户的接口，这里不展示占位数据"
       />
       <view class="reco">
-        <text class="reco-title">换个视频关键词试试</text>
+        <text class="reco-title">
+          换个视频关键词试试
+        </text>
         <view class="chips">
           <a11y-button
             v-for="word in recoWords"
@@ -60,30 +99,63 @@
             :label="`搜索 ${word}`"
             @tap="searchWord(word)"
           >
-            <text class="chip-text">{{ word }}</text>
+            <text class="chip-text">
+              {{ word }}
+            </text>
           </a11y-button>
         </view>
       </view>
     </view>
 
-    <view v-else class="result-body">
+    <view
+      v-else
+      class="result-body"
+    >
       <!-- 综合 Tab：用户维度未实现，用一行说明如实告知 -->
-      <view v-if="activeTab === 'comprehensive' && !showError" class="tab-note">
-        <view class="tab-note-ico i-ph-info" aria-hidden="true" />
-        <text class="tab-note-text">用户搜索本期未实现，当前仅展示视频结果</text>
+      <view
+        v-if="activeTab === 'comprehensive' && !showError"
+        class="tab-note"
+      >
+        <view
+          class="tab-note-ico i-ph-info"
+          aria-hidden="true"
+        />
+        <text class="tab-note-text">
+          用户搜索本期未实现，当前仅展示视频结果
+        </text>
       </view>
 
       <!-- 请求失败：独立错误态 + 重试，不伪装成空态 -->
-      <view v-if="showError" class="state-wrap">
-        <empty-state icon="info" title="搜索失败" :desc="errorText" />
-        <a11y-button class="retry-btn" label="重新搜索" @tap="retry">
-          <text class="retry-text">重新搜索</text>
+      <view
+        v-if="showError"
+        class="state-wrap"
+      >
+        <empty-state
+          icon="info"
+          title="搜索失败"
+          :desc="errorText"
+        />
+        <a11y-button
+          class="retry-btn"
+          label="重新搜索"
+          @tap="retry"
+        >
+          <text class="retry-text">
+            重新搜索
+          </text>
         </a11y-button>
       </view>
 
       <!-- 首屏加载：骨架屏，避免整屏闪白 -->
-      <view v-else-if="loading && list.length === 0" class="waterfall">
-        <view v-for="n in 4" :key="`skeleton-${n}`" class="card skeleton">
+      <view
+        v-else-if="loading && list.length === 0"
+        class="waterfall"
+      >
+        <view
+          v-for="n in 4"
+          :key="`skeleton-${n}`"
+          class="card skeleton"
+        >
           <view class="cover-wrap skeleton-cover" />
           <view class="skeleton-line" />
           <view class="skeleton-line short" />
@@ -91,8 +163,15 @@
       </view>
 
       <!-- 空结果：说明 + 推荐词，不留空白页 -->
-      <view v-else-if="!loading && list.length === 0" class="state-wrap">
-        <empty-state icon="search" title="没有找到相关内容" desc="换个关键词试试，或看看这些热门搜索" />
+      <view
+        v-else-if="!loading && list.length === 0"
+        class="state-wrap"
+      >
+        <empty-state
+          icon="search"
+          title="没有找到相关内容"
+          desc="换个关键词试试，或看看这些热门搜索"
+        />
         <view class="reco">
           <view class="chips center">
             <a11y-button
@@ -102,7 +181,9 @@
               :label="`搜索 ${word}`"
               @tap="searchWord(word)"
             >
-              <text class="chip-text">{{ word }}</text>
+              <text class="chip-text">
+                {{ word }}
+              </text>
             </a11y-button>
           </view>
         </view>
@@ -110,7 +191,10 @@
 
       <!-- 双列瀑布流：整张卡是一个大热区（a11y-button default 尺寸，禁用 sm），
            点击写深链后 switchTab 到视频 tab；禁止裸 view 绑 @tap（AGENTS.md §7.1） -->
-      <view v-else class="waterfall">
+      <view
+        v-else
+        class="waterfall"
+      >
         <a11y-button
           v-for="item in list"
           :key="item.id"
@@ -119,17 +203,40 @@
           @tap="openVideo(item)"
         >
           <view class="cover-wrap">
-            <image v-if="item.cover" class="cover" :src="item.cover" mode="aspectFill" lazy-load />
-            <view v-else class="cover cover-empty" aria-hidden="true" />
-            <view class="cover-mask" aria-hidden="true" />
+            <image
+              v-if="item.cover"
+              class="cover"
+              :src="item.cover"
+              mode="aspectFill"
+              lazy-load
+            />
+            <view
+              v-else
+              class="cover cover-empty"
+              aria-hidden="true"
+            />
+            <view
+              class="cover-mask"
+              aria-hidden="true"
+            />
             <view class="cover-meta">
               <view class="author">
-                <view class="meta-ico i-ph-user" aria-hidden="true" />
-                <text class="author-name">{{ item.authorName || "用户" }}</text>
+                <view
+                  class="meta-ico i-ph-user"
+                  aria-hidden="true"
+                />
+                <text class="author-name">
+                  {{ item.authorName || "用户" }}
+                </text>
               </view>
               <view class="like">
-                <view class="meta-ico i-ph-heart" aria-hidden="true" />
-                <text class="like-num">{{ formatCount(item.likeCount) }}</text>
+                <view
+                  class="meta-ico i-ph-heart"
+                  aria-hidden="true"
+                />
+                <text class="like-num">
+                  {{ formatCount(item.likeCount) }}
+                </text>
               </view>
             </view>
           </view>
@@ -139,15 +246,35 @@
               :key="`${item.id}-seg-${idx}`"
               class="title-seg"
               :class="{ hit: seg.hit }"
-            >{{ seg.text }}</text>
+            >
+              {{ seg.text }}
+            </text>
           </view>
         </a11y-button>
       </view>
 
-      <view v-if="list.length > 0" class="list-foot">
-        <text v-if="loading" class="foot-text">加载中…</text>
-        <text v-else-if="hasMore" class="foot-text">上拉加载更多</text>
-        <text v-else class="foot-text">没有更多了</text>
+      <view
+        v-if="list.length > 0"
+        class="list-foot"
+      >
+        <text
+          v-if="loading"
+          class="foot-text"
+        >
+          加载中…
+        </text>
+        <text
+          v-else-if="hasMore"
+          class="foot-text"
+        >
+          上拉加载更多
+        </text>
+        <text
+          v-else
+          class="foot-text"
+        >
+          没有更多了
+        </text>
       </view>
     </view>
   </view>
