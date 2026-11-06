@@ -25,7 +25,7 @@ import {
 /** 挂载目标容器 id */
 const BAR_ID = "xfjy-global-tabbar";
 
-/** AppTabbar 实例（通过 defineExpose 暴露 setActive） */
+/** AppTabbar 实例（通过 setupState.setActive 调用） */
 let vm: { setActive?: (i: number) => void } | null = null;
 /** 挂载目标 div */
 let bar: HTMLElement | null = null;
@@ -86,7 +86,13 @@ export function installGlobalTabbar(): void {
 
   // 用 createApp 挂载统一 AppTabbar 组件（替代原手写 DOM + 内联 CSS）
   const app = createApp(AppTabbar);
-  vm = app.mount(bar) as unknown as { setActive?: (i: number) => void };
+  app.mount(bar);
+  // app.mount() 返回的 proxy 不暴露 defineExpose 的方法（uni-app 编译机制），
+  // 需通过 _instance.setupState 访问 setActive。
+  const instance = app._instance as unknown as {
+    setupState?: { setActive?: (i: number) => void };
+  };
+  vm = instance?.setupState ?? null;
 
   // 路由变化（hash 路由）与兜底轮询刷新显示/高亮/占位
   window.addEventListener("hashchange", refresh);
