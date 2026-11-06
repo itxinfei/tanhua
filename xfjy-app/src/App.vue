@@ -102,6 +102,7 @@ page {
 
   /* 危险操作色（删除/注销/举报等危险按钮） */
   --color-danger: #e5484d;
+  --color-danger-rgb: 229, 72, 77;
   /* 成功态（认证/操作成功反馈） */
   --success: #4cd964;
   /* 信息蓝（性别男选中、超级喜欢星等） */
@@ -227,6 +228,8 @@ page {
     --warning-text: #ffb86b;
     /* 暗色下危险色提亮一档，保证暗底对比度 */
     --color-danger: #ff6b6b;
+    /* 与上方暗色危险色 #ff6b6b 同源（RGB 分量必须同步） */
+    --color-danger-rgb: 255, 107, 107;
     --shadow-primary: 0 8rpx 24rpx rgba(249, 87, 143, 0.3);
     --skel-bg: var(--skel-bg-dark);
   }

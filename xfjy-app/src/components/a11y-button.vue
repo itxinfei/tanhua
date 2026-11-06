@@ -139,6 +139,19 @@ function handleKeydown(e: any): void {
   }
 }
 
+/* ===== default 变体：零样式行为壳，但热区由组件保证 =====
+   AGENTS §7.1 要求「a11y-button 最小热区 88rpx」。
+   原 default 变体不内置 min-height，导致 159 处使用中有 35 处需手动补，
+   遗漏处即出现 35px 热区（video 刷新按钮曾实测 35px）。 */
+.a11y-btn:not([class*="a11y-btn--"]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  /* 最小点击热区 88rpx（≈44px，WCAG 2.5.5） */
+  min-height: 88rpx;
+}
+
 /* ===== 视觉变体（variant !== default 时生效）：全站按钮单一真源，页面不再各写一套 ===== */
 .a11y-btn--primary,
 .a11y-btn--ghost,
@@ -202,11 +215,12 @@ function handleKeydown(e: any): void {
   box-shadow: none;
 }
 
-/* 危险按钮：危险色填充 */
+/* 危险按钮：危险色填充。
+   阴影走 --color-danger-rgb：写死 rgba(229,72,77,.3) 在暗色模式下与危险色不同源 */
 .a11y-btn--danger {
   color: var(--text-inverse);
   background: var(--color-danger);
-  box-shadow: 0 8rpx 24rpx rgba(229, 72, 77, 0.3);
+  box-shadow: 0 8rpx 24rpx rgba(var(--color-danger-rgb), 0.3);
 }
 
 /* 禁用/加载：视觉变体降透明度并取消按压反馈（default 变体样式由外部自理，不强制） */

@@ -1,17 +1,26 @@
 <template>
   <!-- 错误边界：捕获子组件渲染异常，防止白屏 -->
   <slot v-if="!hasError"></slot>
-  <view v-else class="error-boundary" @click="onReport">
+  <view v-else class="error-boundary">
     <text class="error-icon">⚠️</text>
     <text class="error-title">{{ displayTitle }}</text>
     <text class="error-message">{{ displayMessage }}</text>
     <view class="error-actions">
-      <button class="btn btn-primary" @click.stop="onRetry">重新加载</button>
-      <button class="btn btn-secondary" @click.stop="onReport">反馈问题</button>
+      <a11y-button variant="primary" label="重新加载" @tap.stop="onRetry">
+        <text>重新加载</text>
+      </a11y-button>
+      <a11y-button variant="ghost" label="反馈问题" @tap.stop="onReport">
+        <text>反馈问题</text>
+      </a11y-button>
     </view>
-    <text v-if="traceId" class="trace-id" @click.stop="copyTraceId">
-      Trace: {{ traceId }} (长按复制)
-    </text>
+    <a11y-button
+      v-if="traceId"
+      class="trace-btn"
+      label="复制错误码"
+      @tap.stop="copyTraceId"
+    >
+      <text class="trace-id">Trace: {{ traceId }} (长按复制)</text>
+    </a11y-button>
   </view>
 </template>
 
@@ -138,17 +147,21 @@ function copyTraceId(): void {
   border: none;
 }
 .btn-primary {
-  background: linear-gradient(135deg, #ff6b9d, var(--color-danger));
+  /* 渐变走 --gradient-brand：原硬编码 #ff6b9d 是废弃冷粉，与主色不同源 */
+  background: var(--gradient-brand);
   color: var(--text-inverse);
 }
 .btn-secondary {
   background: var(--bg-page);
   color: var(--text-secondary);
 }
+/* Trace 行原为 text @click，无最小热区且无读屏入口 */
+.trace-btn {
+  margin-top: 16rpx;
+}
 .trace-id {
   font-size: 22rpx;
   color: var(--text-hint-weak);
-  margin-top: 16rpx;
   font-family: monospace;
 }
 </style>

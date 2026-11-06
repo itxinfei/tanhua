@@ -17,8 +17,12 @@
       </view>
       <text class="match-name">你和 {{ matchStore.matchPopup.nickname }} 互相喜欢了</text>
       <view class="match-actions">
-        <button class="send-msg btn-feedback" @click.stop="goChat">发消息</button>
-        <button class="keep-swipe btn-feedback" @click.stop="matchStore.closeMatchPopup()">继续逛逛</button>
+        <a11y-button class="send-msg" label="发消息" @tap.stop="goChat">
+          <text>发消息</text>
+        </a11y-button>
+        <a11y-button class="keep-swipe" label="继续逛逛" @tap.stop="matchStore.closeMatchPopup()">
+          <text>继续逛逛</text>
+        </a11y-button>
       </view>
     </view>
   </a11y-dialog>
@@ -99,10 +103,8 @@ function goChat(): void {
         color: var(--text-inverse);
         font-size: 30rpx;
         padding: 0 48rpx;
-        height: 88rpx;
-        line-height: 88rpx;
+        min-height: 88rpx;
         border-radius: var(--radius-pill);
-        border: none;
       }
 
       .keep-swipe {
@@ -110,8 +112,7 @@ function goChat(): void {
         color: var(--text-inverse);
         font-size: 30rpx;
         padding: 0 48rpx;
-        height: 88rpx;
-        line-height: 88rpx;
+        min-height: 88rpx;
         border-radius: var(--radius-pill);
         border: 2rpx solid rgba(255, 255, 255, 0.5);
       }

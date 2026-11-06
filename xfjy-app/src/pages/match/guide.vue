@@ -88,9 +88,14 @@
     </view>
 
     <!-- 提交 -->
-    <button class="submit-btn" :disabled="submitting" @click="handleSubmit">
+    <a11y-button
+      class="submit-btn"
+      :label="submitting ? '保存中' : '完成'"
+      :disabled="submitting"
+      @tap="handleSubmit"
+    >
       {{ submitting ? '保存中...' : '完成' }}
-    </button>
+    </a11y-button>
     <a11y-button class="skip-btn" label="跳过，稍后完善资料" @tap="handleSkip">跳过，稍后完善</a11y-button>
   </view>
 </template>
@@ -302,16 +307,20 @@ function handleSkip(): void {
   }
 }
 
+/* 迁移 a11y-button 后需补布局属性：原 <button> 默认块级且居中 */
 .submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
   margin-top: 48rpx;
   background: var(--gradient-brand-h);
   color: var(--text-inverse);
   font-size: 32rpx;
   font-weight: bold;
-  height: 88rpx;
-  line-height: 88rpx;
+  min-height: 88rpx;
   border-radius: 44rpx;
-  border: none;
   box-shadow: 0 8rpx 24rpx rgba(var(--color-primary-rgb), 0.35);
 
   &[disabled] {
