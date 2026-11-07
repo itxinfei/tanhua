@@ -47,8 +47,24 @@
         <text class="section-title">
           我的反馈
         </text>
+        <!-- 历史加载失败：显式错误态 + 重试，与「暂无反馈记录」真空态区分 -->
+        <empty-state
+          v-if="myList.length === 0 && !listLoading && listLoadFailed"
+          role="alert"
+          icon="info"
+          title="反馈记录加载失败"
+          desc="服务可能开小差了，检查网络后重试"
+        >
+          <a11y-button
+            class="retry-btn"
+            label="重新加载反馈记录"
+            @tap="loadMyList"
+          >
+            重新加载
+          </a11y-button>
+        </empty-state>
         <view
-          v-if="myList.length === 0 && !listLoading"
+          v-else-if="myList.length === 0 && !listLoading"
           class="empty-tip"
         >
           <text>暂无反馈记录</text>
@@ -93,6 +109,7 @@
 import { ref, reactive } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
+import EmptyState from "@/components/empty-state.vue";
 import { submitFeedbackApi, getMyFeedbackApi, type FeedbackItem } from "@/api/kefu";
 import { info, success } from "@/utils/ux";
 
@@ -103,6 +120,8 @@ const form = reactive({
 const submitting = ref(false);
 const myList = ref<FeedbackItem[]>([]);
 const listLoading = ref(false);
+/** 反馈历史加载失败：与「暂无反馈记录」真空态区分，显式错误态 + 重试（request 层仍兜底 toast） */
+const listLoadFailed = ref(false);
 
 /** onShow：每次进入页面刷新我的反馈（提交后返回能看到最新状态） */
 onShow(() => {
@@ -113,8 +132,10 @@ async function loadMyList(): Promise<void> {
   listLoading.value = true;
   try {
     myList.value = await getMyFeedbackApi();
+    listLoadFailed.value = false;
   } catch {
-    // 错误提示由 request 封装统一处理
+    // 置错误态由模板显示重试入口，避免把加载失败伪装成「暂无反馈记录」（request 层仍兜底 toast）
+    listLoadFailed.value = true;
   } finally {
     listLoading.value = false;
   }
@@ -241,6 +262,16 @@ function statusClass(status: number): string {
       font-size: 26rpx;
       color: var(--text-hint);
     }
+  }
+
+  .retry-btn {
+    margin-top: 32rpx;
+    padding: 16rpx 56rpx;
+    border-radius: var(--radius-pill);
+    font-size: 28rpx;
+    font-weight: 600;
+    color: var(--text-inverse);
+    background: var(--color-primary);
   }
 }
 
