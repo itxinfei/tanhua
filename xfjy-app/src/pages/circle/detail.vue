@@ -1,5 +1,7 @@
 <template>
   <view class="post-detail">
+    <!-- S6：错误边界捕获详情渲染异常，@retry 重新拉取动态详情 -->
+    <error-boundary @retry="loadDetail">
     <scroll-view
       scroll-y
       class="detail-scroll"
@@ -144,6 +146,7 @@
         </a11y-button>
       </view>
     </scroll-view>
+    </error-boundary>
 
     <!-- 评论输入：发送按钮 + 回车双通道（H5 浏览器/部分输入法 confirm 不可靠，仅回车会让用户以为"评论发不出去"） -->
     <view class="comment-bar safe-area-bottom">
@@ -172,6 +175,7 @@ import { ref } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
 import SmartImage from "@/components/smart-image.vue";
+import ErrorBoundary from "@/components/error-boundary.vue";
 import EmptyState from "@/components/empty-state.vue";
 import Skeleton from "@/components/skeleton.vue";
 import { getMovementById, getComments, publishComment, likeComment, dislikeComment } from "@/api/circle";

@@ -61,6 +61,8 @@
         </a11y-button>
       </view>
 
+      <!-- S6：错误边界捕获动态列表渲染异常，@retry 重新拉取 feed -->
+      <error-boundary @retry="loadFeed">
       <scroll-view
         scroll-y
         class="feed-list"
@@ -206,6 +208,7 @@
           加载中...
         </view>
       </scroll-view>
+      </error-boundary>
     </view>
 
     <!-- 消息视图（原 chat/index 内容） -->
@@ -348,6 +351,8 @@
       </view>
 
       <!-- 通知面板打开时隐藏消息列表：同屏只保留一个列表滚动区，避免双滚动层 -->
+      <!-- S6：错误边界捕获会话列表渲染异常，@retry 重新拉取会话 -->
+      <error-boundary @retry="loadMessages">
       <scroll-view
         v-show="!noticePanelType"
         scroll-y
@@ -400,6 +405,7 @@
           </view>
         </a11y-button>
       </scroll-view>
+      </error-boundary>
     </view>
 
     <MatchPopup />
@@ -423,6 +429,7 @@ import MatchPopup from "@/components/match-popup.vue";
 import AnnouncementDetailDialog from "@/components/announcement-detail-dialog.vue";
 import A11yButton from "@/components/a11y-button.vue";
 import SmartImage from "@/components/smart-image.vue";
+import ErrorBoundary from "@/components/error-boundary.vue";
 import { useCircleStore, CIRCLE_NEED_REFRESH_KEY } from "@/store/circle";
 import type { Movement } from "@/api/circle";
 import { getContacts, getLikeMessages, getCommentMessages, getLoveMessages, getAnnouncementMessages, type Contact, type MessageLike, type MessageAnnouncement } from "@/api/chat";

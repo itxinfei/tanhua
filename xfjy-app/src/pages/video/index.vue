@@ -46,6 +46,8 @@
       </a11y-button>
     </view>
 
+    <!-- S6：错误边界捕获视频流渲染异常，@retry 重新拉取视频列表 -->
+    <error-boundary @retry="loadVideos">
     <swiper
       class="video-swiper"
       vertical
@@ -304,6 +306,7 @@
         </view>
       </swiper-item>
     </swiper>
+    </error-boundary>
 
     <!-- 顶部/底部暗角渐变 -->
     <view
@@ -538,6 +541,7 @@ import {
 import VideoCommentDrawer from "@/components/video-comment-drawer.vue";
 import A11yButton from "@/components/a11y-button.vue";
 import SmartImage from "@/components/smart-image.vue";
+import ErrorBoundary from "@/components/error-boundary.vue";
 import EmptyState from "@/components/empty-state.vue";
 import {
   readVideoCache,

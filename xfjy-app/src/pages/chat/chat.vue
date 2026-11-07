@@ -1,6 +1,8 @@
 <template>
   <view class="chat-room">
     <!-- 消息列表 -->
+    <!-- S6：错误边界捕获消息列表渲染异常，@retry 重新拉取历史消息 -->
+    <error-boundary @retry="loadHistory">
     <scroll-view
       scroll-y
       class="msg-list"
@@ -230,6 +232,7 @@
         </a11y-button>
       </empty-state>
     </scroll-view>
+    </error-boundary>
 
     <!-- 输入区 -->
     <view class="input-area safe-area-bottom">
@@ -370,6 +373,7 @@ import { ref, nextTick, onUnmounted } from "vue";
 import { onLoad, onHide } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
 import SmartImage from "@/components/smart-image.vue";
+import ErrorBoundary from "@/components/error-boundary.vue";
 import EmptyState from "@/components/empty-state.vue";
 import { useUserStore } from "@/store/user";
 import { uploadChatImage, uploadChatAudio, getContacts } from "@/api/chat";
