@@ -6,7 +6,7 @@
       scroll-y
       class="msg-list"
       :scroll-into-view="scrollToId"
-      :scroll-with-animation="true"
+      :scroll-with-animation="false"
     >
       <!-- VIP 专属客服通道标识（exclusive_service 权益） -->
       <view
@@ -74,7 +74,7 @@
               <text>!</text>
             </a11y-button>
             <view
-              class="bubble pop-in"
+              class="bubble"
               :class="{ mine: msg.isMine }"
             >
               <text>{{ msg.content }}</text>
@@ -522,14 +522,20 @@ onUnmounted(() => {
   .time-text { font-size: 22rpx; color: var(--text-hint); background: var(--bg-card); padding: 6rpx 24rpx; border-radius: 24rpx; }
 }
 
+/* DOM 顺序 [对方头像, bubble-wrap, 我的头像]，普通 row：
+   对方 → 头像在左、bubble 在右，整组靠左（默认 flex-start）；
+   我的 → bubble 在左、头像在右，整组靠右（flex-end）。
+   禁止加 row-reverse：DOM 顺序已含位置语义，反转后头像与 bubble 左右互换。 */
 .msg-item { display: flex; align-items: flex-start; margin-bottom: 28rpx; gap: 16rpx;
-  &.mine { flex-direction: row-reverse; }
+  &.mine { justify-content: flex-end; }
   /* 头像：76rpx 已 ≥44px 热区基线；外层 a11y-button 补足可点击语义与键盘可达 */
   .avatar-btn { flex-shrink: 0; display: flex; }
   /* 圆形头像（探探式，两聊天页统一），含客服图标占位 */
   .avatar { width: 76rpx; height: 76rpx; border-radius: 50%; flex-shrink: 0; background: var(--border-light); }
   .agent-avatar { width: 76rpx; height: 76rpx; border-radius: 50%; flex-shrink: 0; background: var(--bg-icon-soft); display: flex; align-items: center; justify-content: center; font-size: 40rpx; }
   .bubble-wrap { display: flex; align-items: center; gap: 12rpx; max-width: 480rpx; min-width: 0;
+    /* 我的消息：status 图标（转圈/失败）应在 bubble 与头像之间，
+       DOM [status, bubble] + row-reverse → [bubble, status]，status 靠右（近头像） */
     &.mine { flex-direction: row-reverse; }
   }
   .status-loading { width: 28rpx; height: 28rpx; border: 3rpx solid var(--border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
