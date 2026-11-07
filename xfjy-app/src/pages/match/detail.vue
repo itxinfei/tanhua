@@ -254,51 +254,59 @@
         </a11y-button>
       </view>
 
-      <!-- 底部操作栏：4 键统一「白底彩环」圆形按钮（与匹配页 action-btn 同一视觉语言） -->
+      <!-- 底部操作栏：4 键统一「图标上、文字下」竖排结构，与匹配页 action-btn 同一视觉语言 -->
       <view class="action-bar safe-area-bottom">
         <a11y-button
-          class="action dislike"
+          class="action-btn dislike"
           label="不喜欢"
           @tap="handleDislike"
         >
-          <uni-icons
-            type="close"
-            size="22"
-            color="var(--color-danger)"
+          <view
+            class="action-ico i-ph-x"
+            aria-hidden="true"
           />
+          <text class="action-label">
+            不喜欢
+          </text>
         </a11y-button>
         <a11y-button
-          class="action chat"
+          class="action-btn chat"
           label="打招呼"
           @tap="handleChat"
         >
-          <uni-icons
-            type="chatbubble"
-            size="22"
-            color="var(--info-blue)"
+          <view
+            class="action-ico i-ph-chat-circle-dots"
+            aria-hidden="true"
           />
+          <text class="action-label">
+            打招呼
+          </text>
         </a11y-button>
         <a11y-button
-          class="action super-like"
+          class="action-btn super-like"
           label="超级喜欢"
           @tap="handleSuperLike"
         >
-          <uni-icons
-            type="star-filled"
-            size="22"
-            color="var(--gold)"
+          <view
+            class="action-ico i-ph-star-fill"
+            aria-hidden="true"
           />
+          <text class="action-label">
+            超喜欢
+          </text>
         </a11y-button>
         <a11y-button
-          class="action like"
+          class="action-btn like"
           label="喜欢"
           @tap="handleLike"
         >
-          <uni-icons
-            type="heart-filled"
-            size="22"
-            color="var(--success)"
+          <view
+            class="action-ico i-ph-heart-fill"
+            aria-hidden="true"
           />
+          <text class="action-label">
+            心动
+          </text>
         </a11y-button>
       </view>
 
@@ -705,15 +713,18 @@ onLoad(async (options: any) => {
 /* background 走 --bg-card：写死 rgba(255,255,255,.92) 在暗色模式下会变成刺眼白条 */
 .action-bar { position: fixed; left: 0; right: 0; bottom: var(--tab-bar-height, 0px); display: flex; justify-content: center; align-items: center; gap: 32rpx; padding: 24rpx 0; background: var(--bg-card); backdrop-filter: blur(20px); box-shadow: 0 -8rpx 32rpx rgba(0, 0, 0, 0.08); }
 
-/* 与匹配页 action-btn 统一的「白底彩环」视觉语言：
+/* 与匹配页 action-btn 完全一致的「图标上、文字下」竖排结构：
    四键同尺寸 96rpx，4rpx 色环 + 同色系柔光阴影，功能区分交给色环 */
-.action { width: 96rpx; height: 96rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-sizing: border-box; background: var(--bg-card); border: 4rpx solid transparent; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+.action-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2rpx; border-radius: 50%; box-sizing: border-box; border: 4rpx solid transparent; width: 96rpx; height: 96rpx; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
   &:active { transform: scale(0.92); }
 
-  &.dislike { border-color: var(--color-danger); box-shadow: 0 6rpx 20rpx rgba(255, 59, 48, 0.25); }
-  &.chat { border-color: var(--info-blue); box-shadow: 0 6rpx 20rpx rgba(74, 144, 217, 0.25); }
-  &.super-like { border-color: var(--gold); box-shadow: 0 6rpx 20rpx rgba(255, 179, 71, 0.3); }
-  &.like { border-color: var(--success); box-shadow: 0 6rpx 20rpx rgba(76, 217, 100, 0.3); }
+  .action-ico { font-size: 34rpx; line-height: 1; }
+  .action-label { font-size: 17rpx; font-weight: 600; line-height: 1.1; }
+
+  &.dislike { background: var(--bg-card); color: var(--color-danger); border-color: var(--color-danger); box-shadow: 0 6rpx 20rpx rgba(var(--color-danger-rgb), 0.25); }
+  &.chat { background: var(--bg-card); color: var(--info-blue-soft); border-color: var(--info-blue-soft); box-shadow: 0 6rpx 20rpx rgba(var(--info-blue-soft-rgb), 0.25); }
+  &.super-like { background: var(--bg-card); color: var(--info-blue-soft); border-color: var(--info-blue-soft); box-shadow: 0 6rpx 20rpx rgba(var(--info-blue-soft-rgb), 0.25); }
+  &.like { background: var(--bg-card); color: var(--success); border-color: var(--success); box-shadow: 0 6rpx 20rpx rgba(var(--success-rgb), 0.3); }
 }
 
 /* ===== 加载骨架（三态之一）=====
