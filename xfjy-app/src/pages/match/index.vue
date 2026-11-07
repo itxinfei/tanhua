@@ -198,15 +198,20 @@
       </error-boundary>
     </view>
 
-    <!-- 底部操作栏（探探式五键：回看 / 不喜欢 / 超级喜欢 / 心动 / 曝光提升） -->
+    <!-- 底部操作栏（五键：回看 / 不喜欢 / 超级喜欢 / 心动 / 曝光提升）
+         统一「图标上、文字下」竖排结构，与曝光键视觉一致；图标全用 Phosphor（§7.1） -->
     <view class="action-bar safe-area-bottom">
       <a11y-button
         class="action-btn rewind"
         label="回看上一张"
         @tap="handleRewind"
       >
-        <text aria-hidden="true">
-          ↺
+        <view
+          class="action-ico i-ph-arrow-counter-clockwise"
+          aria-hidden="true"
+        />
+        <text class="action-label">
+          回看
         </text>
       </a11y-button>
       <a11y-button
@@ -214,45 +219,50 @@
         label="不喜欢"
         @tap="handleDislike"
       >
-        <uni-icons
-          type="close"
-          size="24"
-          color="#ff3b30"
+        <view
+          class="action-ico i-ph-x"
+          aria-hidden="true"
         />
+        <text class="action-label">
+          不喜欢
+        </text>
       </a11y-button>
       <a11y-button
         class="action-btn superlike"
         label="超级喜欢"
         @tap="handleSuperLike"
       >
-        <uni-icons
-          type="star-filled"
-          size="22"
-          color="#4dabf7"
+        <view
+          class="action-ico i-ph-star-fill"
+          aria-hidden="true"
         />
+        <text class="action-label">
+          超喜欢
+        </text>
       </a11y-button>
       <a11y-button
         class="action-btn like"
         label="心动"
         @tap="handleLike"
       >
-        <uni-icons
-          type="heart-filled"
-          size="24"
-          color="#4cd964"
+        <view
+          class="action-ico i-ph-heart-fill"
+          aria-hidden="true"
         />
+        <text class="action-label">
+          心动
+        </text>
       </a11y-button>
       <a11y-button
         class="action-btn boost"
         label="曝光提升"
         @tap="handleBoost"
       >
-        <!-- Phosphor 单色图标替代 emoji 字形（§7.1：图标只用 i-ph-*），继承按钮白色 currentColor -->
         <view
-          class="boost-ico i-ph-lightning-fill"
+          class="action-ico i-ph-lightning-fill"
           aria-hidden="true"
         />
-        <text class="boost-label">
+        <text class="action-label">
           曝光
         </text>
       </a11y-button>
@@ -1211,25 +1221,29 @@ onShareAppMessage(() => ({
 
   .action-btn {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 2rpx;
     border-radius: 50%;
-    font-size: 44rpx;
     /* border-box：有描边与无描边（曝光渐变底）的按钮总尺寸才一致，
-       否则描边在 content-box 下向外撑，四个 53.9px、曝光 49.9px */
+       否则描边在 content-box 下向外撑 */
     box-sizing: border-box;
     border: 4rpx solid transparent; /* 默认透明描边占位，各按钮再覆盖颜色 */
 
-    /* 五键统一尺寸：探探的"大小分层"依赖主栏只有 3 个按钮（回看小、喜欢/不喜欢大），
-       本项目 5 键平铺时 88/100 两档差异过小，传不出层级反显凌乱，故统一 96rpx，
+    /* 五键统一尺寸：96rpx 圆形容器内放「图标 + 文字」，
        功能区分交给颜色环（红=不喜欢、绿=心动、蓝=超喜欢、金=回看、紫=曝光） */
-    &.rewind,
-    &.dislike,
-    &.superlike,
-    &.like,
-    &.boost {
-      width: 96rpx;
-      height: 96rpx;
+    width: 96rpx;
+    height: 96rpx;
+
+    .action-ico {
+      font-size: 34rpx;
+      line-height: 1;
+    }
+    .action-label {
+      font-size: 17rpx;
+      font-weight: 600;
+      line-height: 1.1;
     }
 
     &.rewind {
@@ -1261,8 +1275,6 @@ onShareAppMessage(() => ({
     }
 
     &.boost {
-      flex-direction: column;
-      gap: 0;
       /* VIP 曝光提升按钮规范色为紫色（需求文档 B2.1「⚡曝光提升(紫)」）；
          使用独立 token --color-vip-purple 而非历史紫 --color-primary-deep，
          避免与 §7.1「禁止新代码使用历史紫」冲突，且支持暗色适配 */
@@ -1270,11 +1282,7 @@ onShareAppMessage(() => ({
       color: var(--text-inverse);
       box-shadow: 0 6rpx 20rpx rgba(var(--color-vip-purple-rgb), 0.4);
 
-      .boost-ico { font-size: 36rpx; line-height: 1; }
-      .boost-label {
-        font-size: 18rpx;
-        font-weight: 600;
-        line-height: 1.1;
+      .action-label {
         color: var(--text-inverse);
       }
     }
