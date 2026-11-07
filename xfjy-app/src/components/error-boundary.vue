@@ -52,6 +52,7 @@
 import { ref, onErrorCaptured, computed, onUnmounted } from "vue";
 import { info } from "@/utils/ux";
 import { reportError } from "@/utils/logger";
+import A11yButton from "@/components/a11y-button.vue";
 
 interface Props {
   /** 是否生产环境（控制是否显示详细错误） */

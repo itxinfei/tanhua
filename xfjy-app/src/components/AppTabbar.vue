@@ -7,115 +7,173 @@
     aria-label="主导航"
   >
     <view class="app-tabbar__inner">
-      <template
-        v-for="(tab, i) in TABS"
-        :key="tab.pagePath"
-      >
-        <!-- 发布键插入在第 3 个 tab 之前（i === 2），布局：匹配 | 圈子 | [+] | 视频 | 我的 -->
+      <!-- 固定 5 项（4 tab + 发布键），显式写死。
+           高亮走 Vue 响应式，但 icon/label 放在 a11y-button 之外（作为兄弟节点）：
+           uni-h5 Vue 3.5 的 updateSlots 只处理子组件 slot，普通 DOM 变化走 patchElement
+           不触发 updateSlots，从而规避「Cannot assign to read only property '_'」。
+           a11y-button 只作为点击热区（空 slot），保证 88rpx 热区与无障碍语义。
+           布局：匹配 | 圈子 | [+] | 视频 | 我的 -->
+      <view class="app-tabbar__item">
         <a11y-button
-          v-if="i === 2"
-          class="app-tabbar__item app-tabbar__mid"
+          class="app-tabbar__hit"
           role="tab"
-          :checked="activeIndex === -1"
-          :label="activeIndex === -1 ? '当前在发布页' : '打开发布'"
+          :checked="false"
+          label="切换到匹配"
+          @tap="go(TABS[0])"
+        />
+        <image
+          class="app-tabbar__icon"
+          :src="TABS[0].icon"
+          mode="aspectFit"
+          aria-hidden="true"
+        />
+        <text class="app-tabbar__label">
+          {{ TABS[0].text }}
+        </text>
+      </view>
+      <view class="app-tabbar__item">
+        <a11y-button
+          class="app-tabbar__hit"
+          role="tab"
+          :checked="false"
+          label="切换到圈子"
+          @tap="go(TABS[1])"
+        />
+        <image
+          class="app-tabbar__icon"
+          :src="TABS[1].icon"
+          mode="aspectFit"
+          aria-hidden="true"
+        />
+        <text class="app-tabbar__label">
+          {{ TABS[1].text }}
+        </text>
+      </view>
+      <!-- 中央发布键：抖音式加号圆 -->
+      <view class="app-tabbar__item app-tabbar__mid">
+        <a11y-button
+          class="app-tabbar__hit"
+          role="tab"
+          :checked="false"
+          label="打开发布"
           @tap="goPublish"
+        />
+        <view
+          class="app-tabbar__plus"
+          aria-hidden="true"
         >
-          <view
-            class="app-tabbar__plus"
-            aria-hidden="true"
-          >
-            <view class="app-tabbar__plus-circle">
-              <view class="app-tabbar__plus-h" />
-              <view class="app-tabbar__plus-v" />
-            </view>
+          <view class="app-tabbar__plus-circle">
+            <view class="app-tabbar__plus-h" />
+            <view class="app-tabbar__plus-v" />
           </view>
-          <!-- 与小程序端一致补「发布」文字，新用户不再把中央键当成装饰 -->
-          <text
-            class="app-tabbar__label app-tabbar__mid-label"
-            :class="{ 'app-tabbar__mid-label--active': activeIndex === -1 }"
-          >
-            发布
-          </text>
-        </a11y-button>
+        </view>
+        <!-- 与小程序端一致补「发布」文字，新用户不再把中央键当成装饰 -->
+        <text class="app-tabbar__label app-tabbar__mid-label">
+          发布
+        </text>
+      </view>
+      <view class="app-tabbar__item">
         <a11y-button
-          class="app-tabbar__item"
+          class="app-tabbar__hit"
           role="tab"
-          :checked="activeIndex === i"
-          :label="`切换到${tab.text}`"
-          @tap="go(tab)"
-        >
-          <image
-            class="app-tabbar__icon"
-            :src="activeIndex === i ? tab.iconActive : tab.icon"
-            mode="aspectFit"
-            aria-hidden="true"
-          />
-          <text
-            class="app-tabbar__label"
-            :class="{ 'app-tabbar__label--active': activeIndex === i }"
-          >
-            {{ tab.text }}
-          </text>
-        </a11y-button>
-      </template>
+          :checked="false"
+          label="切换到视频"
+          @tap="go(TABS[2])"
+        />
+        <image
+          class="app-tabbar__icon"
+          :src="TABS[2].icon"
+          mode="aspectFit"
+          aria-hidden="true"
+        />
+        <text class="app-tabbar__label">
+          {{ TABS[2].text }}
+        </text>
+      </view>
+      <view class="app-tabbar__item">
+        <a11y-button
+          class="app-tabbar__hit"
+          role="tab"
+          :checked="false"
+          label="切换到我的"
+          @tap="go(TABS[3])"
+        />
+        <image
+          class="app-tabbar__icon"
+          :src="TABS[3].icon"
+          mode="aspectFit"
+          aria-hidden="true"
+        />
+        <text class="app-tabbar__label">
+          {{ TABS[3].text }}
+        </text>
+      </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, onMounted, watch, getCurrentInstance } from "vue";
 import A11yButton from "@/components/a11y-button.vue";
 import { TABS, PUBLISH_PAGE } from "@/config/tab-config";
 
 /** 当前选中 tab 索引：0-3 对应 4 个 tab，-1 表示发布页（mid 发布键高亮） */
 const props = defineProps<{ active?: number }>();
 
-/** 当前高亮索引（ref 以便 global-tabbar.ts 路由变化时通过 setActive 更新） */
+/** 当前高亮索引（仅内部状态，模板不绑定：全局游离实例响应式不可靠） */
 const activeIndex = ref(props.active ?? -1);
 
+/** 页面内实例根元素缓存（挂载后赋值，供 applyActiveClass 定位） */
+let localRoot: HTMLElement | null = null;
+
 /**
- * 发布页等场景通过 :active prop 传入选中态（全局注入实例不传 prop，仅由 setActive 驱动）；
- * prop 变化时同步到 activeIndex，保证两种挂载方式共用同一高亮数据源。
- * 历史 bug：模板曾绑定 prop active，而全局实例不传 prop 且 setActive 只改 activeIndex，
- * 导致 H5 底栏选中态（主色图标/文字）永不生效。
+ * 发布页等场景通过 :active prop 传入选中态（全局注入实例不传 prop，仅由 setActive 驱动）。
  */
 watch(
   () => props.active,
   (val) => {
-    if (val !== undefined) activeIndex.value = val;
+    if (val !== undefined) {
+      activeIndex.value = val;
+      applyActiveClass(val);
+    }
   }
 );
 
-/**
- * 由 global-tabbar.ts 在路由变化时调用，更新高亮。
- *
- * 全局游离实例（createApp 挂载在 uni-app 页面树外）的 Vue 响应式不可靠：
- * 写 activeIndex.value 后 Vue 不触发重渲染（icon src / label class 均不更新），
- * $forceUpdate 也无效。故直接走 DOM 操作，同时切换 icon 图片与 label 高亮。
- */
+/** 由 global-tabbar.ts 在路由变化时调用，更新高亮。 */
 function setActive(i: number): void {
   activeIndex.value = i;
   applyActiveClass(i);
 }
 
 /**
- * 直接切换 DOM 高亮（不依赖 Vue 响应式，供全局游离实例使用）。
- * uni-image 是自定义元素，外层 setAttribute("src") 不触发内部刷新，
- * 必须同时改内部 <div> 的 background-image 与 <img> 的 src。
+ * 直接切换 DOM 高亮（不依赖 Vue 响应式）。
+ *
+ * 为什么必须用 DOM：全局游离实例（createApp 挂载在 uni-app 页面树外）的 Vue 响应式
+ * 不触发重渲染，改 activeIndex 后模板不更新；且若把高亮绑定写在 a11y-button 的
+ * slot 内，重渲染会触发 uni-h5 Vue 3.5 的 updateSlots 对只读 slot 对象做
+ * Object.assign，报「Cannot assign to read only property '_'」。
+ * 故 icon/label 放在 a11y-button 之外（slot 为空），高亮完全由本函数承担。
+ *
+ * 根元素定位：全局实例用硬编码 id（global-tabbar.ts 挂载容器），
+ * 页面内实例（发布页）用挂载时缓存的 localRoot。
  */
 function applyActiveClass(i: number): void {
-  const root = document.getElementById("xfjy-global-tabbar");
+  // 优先用挂载时缓存的 localRoot（页面内实例与全局实例各自缓存），
+  // 避免全局实例存在时误操作到全局底栏（发布页场景）
+  const root =
+    localRoot ?? document.getElementById("xfjy-global-tabbar");
   if (!root) return;
   const items = root.querySelectorAll<HTMLElement>(".app-tabbar__item");
-  items.forEach((el, idx) => {
-    // 模板中发布键插在 i===2 之前，实际 DOM 顺序：0匹配 1圈子 2发布 3视频 4我的
+  items.forEach((item, idx) => {
+    // DOM 顺序：0匹配 1圈子 2发布 3视频 4我的
     // 发布键（idx=2）仅在 i === -1 时高亮；普通 tab 用 tabIdx 与 i 比较
     const isPublish = idx === 2;
     const tabIdx = idx < 2 ? idx : idx - 1;
     const isActive = isPublish ? i === -1 : tabIdx === i;
-    const label = el.querySelector<HTMLElement>(".app-tabbar__label");
-    const icon = el.querySelector<HTMLElement>(".app-tabbar__icon");
-    el.setAttribute("aria-checked", isActive ? "true" : "false");
+    const hit = item.querySelector<HTMLElement>(".app-tabbar__hit");
+    const label = item.querySelector<HTMLElement>(".app-tabbar__label");
+    const icon = item.querySelector<HTMLElement>(".app-tabbar__icon");
+    hit?.setAttribute("aria-checked", isActive ? "true" : "false");
     label?.classList.toggle("app-tabbar__label--active", isActive);
     // 发布键使用独立的 --active class（app-tabbar__mid-label--active），需同步切换
     if (idx === 2) {
@@ -123,13 +181,19 @@ function applyActiveClass(i: number): void {
     }
     if (icon && tabIdx >= 0 && TABS[tabIdx]) {
       const target = isActive ? TABS[tabIdx].iconActive : TABS[tabIdx].icon;
-      const div = icon.querySelector<HTMLElement>("div");
       const img = icon.querySelector<HTMLImageElement>("img");
-      if (div) div.style.backgroundImage = `url("${target}")`;
       if (img) img.src = target;
     }
   });
 }
+
+/** 页面内实例挂载后缓存根元素并应用高亮（全局实例由 global-tabbar.ts 首次 refresh 触发） */
+onMounted(() => {
+  const instance = getCurrentInstance();
+  const el = instance?.proxy?.$el as HTMLElement | null;
+  localRoot = el?.closest(".app-tabbar") as HTMLElement | null;
+  applyActiveClass(activeIndex.value);
+});
 
 defineExpose({ setActive });
 
@@ -187,6 +251,7 @@ function goPublish(): void {
   }
 
   &__item {
+    position: relative;
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -197,15 +262,27 @@ function goPublish(): void {
     box-sizing: border-box;
   }
 
+  /* 点击热区：a11y-button 撑满整个 item，保证 88rpx 热区与无障碍语义。
+     icon/label 作为兄弟节点叠在热区之上（pointer-events: none 避免拦截点击）。 */
+  &__hit {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+  }
+
   &__icon {
     width: 28px;
     height: 28px;
+    pointer-events: none;
   }
 
   &__label {
     font-size: 10px;
     line-height: 1;
     color: var(--text-secondary);
+    pointer-events: none;
 
     &--active {
       color: var(--color-primary);
@@ -257,6 +334,7 @@ function goPublish(): void {
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: none;
 }
 
 .app-tabbar__plus-circle {

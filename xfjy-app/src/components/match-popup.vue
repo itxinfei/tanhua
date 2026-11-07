@@ -67,6 +67,7 @@
 <script setup lang="ts">
 import { useMatchStore } from "@/store/match";
 import A11yDialog from "@/components/a11y-dialog.vue";
+import A11yButton from "@/components/a11y-button.vue";
 import SmartImage from "@/components/smart-image.vue";
 
 const matchStore = useMatchStore();
