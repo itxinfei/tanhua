@@ -13,6 +13,7 @@
           <textarea
             v-model="form.content"
             class="content-input"
+            aria-label="问题或建议描述（必填）"
             placeholder="请描述您遇到的问题或建议（必填）"
             :maxlength="500"
             auto-height
@@ -24,6 +25,7 @@
         <input
           v-model="form.contact"
           class="contact-input"
+          aria-label="联系方式（选填）"
           placeholder="联系方式（选填，方便我们回复您）"
           :maxlength="100"
         >
@@ -36,7 +38,7 @@
           :disabled="submitting"
           @tap="handleSubmit"
         >
-          <text>{{ submitting ? '提交中...' : '提交反馈' }}</text>
+          <text>{{ submitting ? '提交中…' : '提交反馈' }}</text>
         </a11y-button>
       </view>
 

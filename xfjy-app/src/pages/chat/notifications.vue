@@ -30,11 +30,27 @@
     <!-- 空状态 + 通知列表（非锁定态时二选一） -->
     <template v-else>
       <empty-state
-        v-if="list.length === 0"
+        v-if="list.length === 0 && !loadFailed"
         icon="notification"
         title="暂无通知"
         desc="有人喜欢你时会在这里提醒你"
       />
+      <!-- 加载失败态：与空态严格区分，role=alert 让读屏立即播报，提供重试 -->
+      <empty-state
+        v-else-if="list.length === 0 && loadFailed"
+        role="alert"
+        icon="info"
+        title="暂时没能获取通知"
+        desc="服务可能开小差了，检查网络后重试"
+      >
+        <a11y-button
+          class="feed-retry"
+          label="重新加载通知"
+          @tap="loadList()"
+        >
+          重新加载
+        </a11y-button>
+      </empty-state>
       <a11y-button
         v-for="item in list"
         :key="item.id"
@@ -82,7 +98,7 @@
         role="status"
       >
         <text v-if="loading && page > 1">
-          加载中...
+          加载中…
         </text>
         <text v-else-if="!hasMore">
           没有更多了
@@ -116,7 +132,6 @@ import {
   type MessageAnnouncement,
 } from "@/api/chat";
 import { checkBenefit } from "@/api/mine";
-import { resolveAvatar } from "@/utils/avatar";
 
 /** 页面展示模型（统一映射后端两种消息结构） */
 interface NoticeItem {
@@ -175,6 +190,8 @@ const PAGE_SIZE = 20;
 const type = ref("like");
 const list = ref<NoticeItem[]>([]);
 const loading = ref(false);
+/** 首屏加载失败标记：与「暂无通知」空态严格区分，驱动失败态+重试 */
+const loadFailed = ref(false);
 /** VIP 权益锁定状态（心动/谁喜欢我：see_who_likes 权益） */
 const locked = ref(false);
 /** 当前分页页码（M-K7：通知列表分页） */
@@ -253,6 +270,8 @@ function mapAnnouncementItem(msg: MessageAnnouncement): NoticeItem {
 async function loadList(append = false): Promise<number | null> {
   if (loading.value) return null;
   loading.value = true;
+  // 首屏加载复位失败态；追加加载保留既有标记，失败时不清空已加载列表
+  if (!append) loadFailed.value = false;
   try {
     // 分页：追加加载页码+1，重置加载回第 1 页（M-K7）
     page.value = append ? page.value + 1 : 1;
@@ -304,7 +323,9 @@ async function loadList(append = false): Promise<number | null> {
       return null;
     }
   } catch {
-    // 请求失败由 request 层统一 toast
+    // 请求失败由 request 层统一 toast；首屏失败置错误态（与空态区分），
+    // 追加加载失败保留已加载列表，仅不翻页
+    if (!append) loadFailed.value = true;
     return null;
   } finally {
     loading.value = false;
@@ -345,6 +366,17 @@ onReachBottom(async () => {
 <style lang="scss" scoped>
 .notifications-page { min-height: 100vh; background: var(--bg-sub); padding: 20rpx 24rpx; }
 .load-more { text-align: center; padding: 24rpx 0; color: var(--text-hint); font-size: var(--fs-sm); }
+
+/* 加载失败态的重试按钮（置于 empty-state 的 slot 内，与 circle 页同范式） */
+.feed-retry {
+  margin-top: 32rpx;
+  padding: 16rpx 56rpx;
+  border-radius: var(--radius-pill);
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text-inverse);
+  background: var(--gradient-brand);
+}
 
 .notice-item { display: flex; align-items: center; padding: 24rpx; min-height: var(--row-h-touch-md); box-sizing: border-box; background: var(--bg-card); border-radius: 24rpx; margin-bottom: 16rpx;
   .avatar-wrap { position: relative; flex-shrink: 0;
