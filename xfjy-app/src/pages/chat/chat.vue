@@ -16,7 +16,7 @@
         class="load-more-history"
         role="status"
       >
-        <text>{{ loadingMore ? '加载中...' : '没有更多了' }}</text>
+        <text>{{ loadingMore ? '加载中…' : '没有更多了' }}</text>
       </view>
       <!-- 对方正在输入提示（点击可打开对方资料页） -->
       <view
@@ -271,7 +271,7 @@
             v-model="inputText"
             class="text-input"
             :class="{ focus: isInputFocus }"
-            placeholder="说点什么..."
+            placeholder="说点什么…"
             placeholder-class="ph"
             maxlength="500"
             aria-label="聊天输入框"

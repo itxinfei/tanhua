@@ -140,7 +140,7 @@
       :disabled="submitting"
       @tap="handleSubmit"
     >
-      {{ submitting ? '保存中...' : '完成' }}
+      {{ submitting ? '保存中…' : '完成' }}
     </a11y-button>
     <a11y-button
       class="skip-btn"
@@ -201,7 +201,7 @@ function chooseAvatar(): void {
     success: async (res) => {
       const tempPath = res.tempFilePaths[0];
       if (!tempPath) return;
-      loading("上传中...");
+      loading("上传中…");
       try {
         const result = await uploadImage(tempPath);
         hideLoading();

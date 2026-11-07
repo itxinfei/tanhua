@@ -568,7 +568,7 @@ function chooseReportReason(): void {
     success: async (res) => {
       const reason = REPORT_REASONS[res.tapIndex];
       if (!reason || !userId.value) return;
-      showLoading("提交中...");
+      showLoading("提交中…");
       try {
         await submitReport({
           targetUserId: userId.value,

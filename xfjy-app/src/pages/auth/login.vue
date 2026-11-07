@@ -167,7 +167,7 @@
         :disabled="!canLogin || logging"
         @tap="handleLogin"
       >
-        {{ logging ? "登录中..." : "登录 / 注册" }}
+        {{ logging ? "登录中…" : "登录 / 注册" }}
       </a11y-button>
     </view>
 

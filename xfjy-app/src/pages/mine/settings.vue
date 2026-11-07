@@ -481,7 +481,7 @@ function handleDeleteAccount() {
 
 /** 向当前账号手机号发送验证码 */
 async function sendDeleteCode() {
-  loading('发送验证码...');
+  loading('发送验证码…');
   try {
     const settings = await getUserSettings();
     if (!settings?.phone) {
@@ -515,7 +515,7 @@ function inputDeleteCode() {
         info('请输入6位数字验证码');
         return;
       }
-      loading('注销中...');
+      loading('注销中…');
       try {
         await deleteAccount(code);
         hideLoading();

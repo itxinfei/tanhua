@@ -193,7 +193,7 @@
         @tap="handlePay"
       >
         <text class="pay-btn-text">
-          {{ paying ? "支付中..." : selectedId ? `立即开通 ¥${currentPlan?.priceYuan || 0}` : "请选择套餐" }}
+          {{ paying ? "支付中…" : selectedId ? `立即开通 ¥${currentPlan?.priceYuan || 0}` : "请选择套餐" }}
         </text>
       </a11y-button>
     </view>

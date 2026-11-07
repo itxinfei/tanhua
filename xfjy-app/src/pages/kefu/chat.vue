@@ -142,7 +142,7 @@
           v-model="inputText"
           class="text-input"
           :class="{ focus: isInputFocus }"
-          placeholder="请描述您的问题..."
+          placeholder="请描述您的问题…"
           maxlength="500"
           aria-label="客服聊天输入框"
           confirm-type="send"

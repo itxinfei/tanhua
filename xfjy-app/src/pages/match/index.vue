@@ -375,7 +375,7 @@ function openCityPicker(): void {
 function relocate(): void {
   uni.removeStorageSync(CITY_MANUAL_KEY);
   syncLocation();
-  info("正在重新定位...");
+  info("正在重新定位…");
 }
 
 /** 城市选择确认：更新 system store（持久化）+ 标记为手动选择，后续定位不再自动覆盖 */
