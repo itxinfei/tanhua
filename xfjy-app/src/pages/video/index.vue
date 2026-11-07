@@ -523,7 +523,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, getCurrentInstance } from "vue";
-import { onLoad, onShow, onHide, onShareAppMessage } from "@dcloudio/uni-app";
+import { onLoad, onShow, onHide, onUnload, onShareAppMessage } from "@dcloudio/uni-app";
 import MatchPopup from "@/components/match-popup.vue";
 import NetworkStatusBar from "@/components/network-status-bar.vue";
 import {
@@ -1617,6 +1617,29 @@ onHide(() => {
   if (isPlaying.value) {
     isPlaying.value = false;
     pauseAt(swiperIndex.value);
+  }
+});
+
+// H5 端：监听页面可见性，切后台/最小化时暂停视频
+function onVisibilityChange() {
+  if (document.hidden && isPlaying.value) {
+    isPlaying.value = false;
+    pauseAt(swiperIndex.value);
+  }
+}
+if (isH5) {
+  document.addEventListener("visibilitychange", onVisibilityChange);
+}
+
+onUnload(() => {
+  // 页面销毁时确保视频暂停：onHide 在部分场景（如直接 reLaunch）可能不触发，
+  // 兜底防止视频在后台继续播放
+  if (isPlaying.value) {
+    isPlaying.value = false;
+    pauseAt(swiperIndex.value);
+  }
+  if (isH5) {
+    document.removeEventListener("visibilitychange", onVisibilityChange);
   }
 });
 

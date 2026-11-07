@@ -270,6 +270,7 @@
           </text>
         </a11y-button>
         <a11y-button
+          v-if="!isSelf"
           class="action-btn chat"
           label="打招呼"
           @tap="handleChat"
@@ -324,6 +325,7 @@ import SmartImage from "@/components/smart-image.vue";
 import EmptyState from "@/components/empty-state.vue";
 import MatchPopup from "@/components/match-popup.vue";
 import { useMatchStore } from "@/store/match";
+import { useUserStore } from "@/store/user";
 import { submitReport, REPORT_TARGET_TYPE, checkBenefit, recordBenefitUsage } from "@/api/mine";
 import { getPersonalInfo, getStrangerQuestion, type TodayBest } from "@/api/match";
 import { getUserMovements, type Movement } from "@/api/circle";
@@ -359,6 +361,12 @@ const loadFailed = ref(false);
 
 /** 缘分值百分比（用于进度条宽度） */
 const fatePercent = computed(() => `${Math.min(fateScore.value / FATE_SCORE_MAX, 1) * 100}%`);
+
+/** 当前查看的用户是否是当前登录用户（自己看自己时隐藏「打招呼」等互动按钮） */
+const isSelf = computed(() => {
+  const myId = String(useUserStore().userInfo?.id ?? "");
+  return myId !== "" && myId === String(userId.value);
+});
 
 /** 返回上一页（无历史栈时兜底回匹配 tab） */
 function goBack(): void {
