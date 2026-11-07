@@ -157,7 +157,7 @@
         v-if="loading"
         class="loading-tip"
       >
-        <text>加载中...</text>
+        <text>加载中…</text>
       </view>
       <view
         v-if="!hasMore && userList.length > 0"

@@ -100,7 +100,7 @@
         v-if="loadingMore"
         class="load-more"
       >
-        <text>加载中...</text>
+        <text>加载中…</text>
       </view>
       <view
         v-else-if="!hasMore && userList.length > 0"

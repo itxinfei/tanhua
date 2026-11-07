@@ -323,7 +323,7 @@ onLoad((options: any) => {
     }
   }
   /* overflow-wrap：长文本/URL/连续英文才能断行，避免撑破卡片横向溢出 */
-  .post-content { font-size: 28rpx; line-height: 1.7; margin: 20rpx 0; color: var(--text-primary); overflow-wrap: anywhere; word-break: break-word; }
+  .post-content { font-size: 28rpx; line-height: 1.7; margin: 20rpx 0; color: var(--text-primary); overflow-wrap: anywhere; }
 
   /* 话题标签（发布页勾选，落库 Movement.tags） */
   .tag-row { display: flex; flex-wrap: wrap; gap: 12rpx; margin: 0 0 20rpx; }

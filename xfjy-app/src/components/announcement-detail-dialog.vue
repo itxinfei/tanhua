@@ -138,7 +138,8 @@ const emit = defineEmits<{ (e: "close"): void }>();
     font-size: var(--fs-base);
     line-height: 1.7;
     color: var(--text-primary);
-    word-break: break-word;
+    /* break-word 关键字已废弃，统一 overflow-wrap（与聊天气泡/动态正文同范式） */
+    overflow-wrap: anywhere;
   }
 }
 </style>

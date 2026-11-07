@@ -27,7 +27,7 @@
           v-if="loading && list.length === 0"
           class="empty"
         >
-          加载中...
+          加载中…
         </view>
         <view
           v-else-if="list.length === 0"
@@ -85,7 +85,7 @@
           v-if="loading && list.length > 0"
           class="load-more"
         >
-          加载中...
+          加载中…
         </view>
         <view
           v-else-if="!hasMore && list.length > 0"
@@ -97,7 +97,7 @@
       <view class="input-bar">
         <input
           v-model="text"
-          placeholder="说点什么..."
+          placeholder="说点什么…"
           placeholder-class="ph"
           maxlength="500"
           confirm-type="send"

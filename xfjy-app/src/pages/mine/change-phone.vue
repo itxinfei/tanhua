@@ -182,8 +182,10 @@ async function submit() {
     input { flex: 1; min-height: 88rpx; font-size: 28rpx; color: var(--text-primary); }
   }
 }
-/* 发送验证码按钮：#fe3c72 on #fff ≈3.4:1 → #c2185b；禁用态 #ccc → #767676，并保证触摸目标 ≥24px */
-.send-btn { font-size: 26rpx; color: var(--color-primary-text); flex-shrink: 0; margin-left: 16rpx; padding: 12rpx 8rpx; min-height: 48rpx;
+/* 发送验证码按钮：#fe3c72 on #fff ≈3.4:1 → #c2185b；禁用态 #ccc → #767676。
+   触摸热区由 a11y-button 组件内置 min-height:88rpx 兜底（页面级 (0,2,0) 无法覆盖组件 (0,3,0)），
+   此处不再写会失效的 min-height，避免误导维护者 */
+.send-btn { font-size: 26rpx; color: var(--color-primary-text); flex-shrink: 0; margin-left: 16rpx; padding: 12rpx 8rpx;
   &.disabled { color: var(--text-hint); }
 }
 /* 占位符 #ccc → #767676 */

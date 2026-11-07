@@ -104,7 +104,7 @@
         v-if="loading"
         class="loading-tip"
       >
-        <text>加载中...</text>
+        <text>加载中…</text>
       </view>
     </scroll-view>
 
