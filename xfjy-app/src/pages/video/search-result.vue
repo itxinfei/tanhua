@@ -290,6 +290,7 @@ import A11yButton from "@/components/a11y-button.vue";
 import SmartImage from "@/components/smart-image.vue";
 import EmptyState from "@/components/empty-state.vue";
 import { formatCount } from "@/utils/format";
+import { safeGoBack } from "@/utils/nav";
 import {
   getHotSearchWords,
   searchVideos,
@@ -335,7 +336,8 @@ onLoad((options) => {
   inputKeyword.value = word;
   keyword.value = word;
   if (!word) {
-    uni.navigateBack();
+    // 无关键词时返回上一页，无历史栈则兜底回视频 tab
+    safeGoBack("/pages/video/index");
     return;
   }
   loadRecoWords();
@@ -451,7 +453,8 @@ function openVideo(item: VideoSearchItem): void {
 }
 
 function goBack(): void {
-  uni.navigateBack();
+  // 无历史栈（直达/分享/H5 刷新）时兜底回视频 tab，避免 navigateBack 静默失效
+  safeGoBack("/pages/video/index");
 }
 
 interface TitleSegment {

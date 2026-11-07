@@ -628,7 +628,10 @@ const currentVideo = computed<Video | undefined>(() => displayList.value[swiperI
 const currentId = computed(() => currentVideo.value?.id ?? "");
 
 const isPlaying = ref(true);
-const isH5 = uni.getSystemInfoSync().uniPlatform === "web";
+// getSystemInfoSync 为废弃 API，uniPlatform 改从 getAppBaseInfo 取（旧运行时无此 API 时按非 H5 处理）。
+// 当前 @dcloudio 类型声明的 GetAppBaseInfoResult 漏报 uniPlatform（H5 运行时实测返回 "web"），用结构类型断言补齐
+const isH5 =
+  (uni.getAppBaseInfo?.() as { uniPlatform?: string } | undefined)?.uniPlatform === "web";
 const isMuted = ref(isH5);
 const progress = ref(0);
 /** 视频总时长（秒）：由 timeupdate 回填，供进度条拖动换算 */

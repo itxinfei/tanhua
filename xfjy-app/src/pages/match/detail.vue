@@ -309,7 +309,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { onLoad } from "@dcloudio/uni-app";
+import { onLoad, onUnload, onHide } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
 import SmartImage from "@/components/smart-image.vue";
 import EmptyState from "@/components/empty-state.vue";
@@ -355,6 +355,34 @@ const fatePercent = computed(() => `${Math.min(fateScore.value / FATE_SCORE_MAX,
 function goBack(): void {
   safeGoBack("/pages/match/index");
 }
+
+/**
+ * 待执行的延时导航句柄表。
+ * 裸 setTimeout 的问题：用户在延时内手动返回/跳走后，回调仍会触发——
+ * 典型如无权益时 600ms 后强跳 VIP 页，用户已返回却被重新压栈劫持。
+ * onUnload（页面销毁）/ onHide（navigateTo 压新页、tab 切走）时统一清理，
+ * 用户主动导航优先于自动导航。
+ */
+const pendingNavTimers: ReturnType<typeof setTimeout>[] = [];
+
+/** 注册延时导航，回调触发后自动从句柄表移除 */
+function scheduleNav(delay: number, nav: () => void): void {
+  const timer = setTimeout(() => {
+    const idx = pendingNavTimers.indexOf(timer);
+    if (idx >= 0) pendingNavTimers.splice(idx, 1);
+    nav();
+  }, delay);
+  pendingNavTimers.push(timer);
+}
+
+/** 清空全部尚未触发的延时导航 */
+function clearPendingNav(): void {
+  pendingNavTimers.forEach((t) => clearTimeout(t));
+  pendingNavTimers.length = 0;
+}
+
+onUnload(clearPendingNav);
+onHide(clearPendingNav);
 
 /** 轮播切换回调，更新照片计数 */
 function onSwiperChange(e: any): void {
@@ -444,7 +472,7 @@ async function handleLike(): Promise<void> {
     }
     success(matched ? "互相喜欢，已匹配！" : "已喜欢");
     // 匹配成功时留在本页展示匹配弹窗，由弹窗承接后续；未匹配才自动返回
-    if (!matched) setTimeout(goBack, 800);
+    if (!matched) scheduleNav(800, goBack);
   } catch {
     // 请求失败由 request 层统一 toast
   } finally {
@@ -460,7 +488,7 @@ async function handleSuperLike(): Promise<void> {
     const benefit = await checkBenefit("super_like");
     if (!benefit.hasBenefit) {
       info("超级喜欢需开通VIP");
-      setTimeout(() => uni.navigateTo({ url: "/pages/mine/vip" }), 600);
+      scheduleNav(600, () => uni.navigateTo({ url: "/pages/mine/vip" }));
       return;
     }
     if (benefit.remainingToday === 0) {
@@ -483,7 +511,7 @@ async function handleSuperLike(): Promise<void> {
       });
     }
     success(matched ? "超级喜欢，已匹配！" : "已超级喜欢");
-    if (!matched) setTimeout(goBack, 800);
+    if (!matched) scheduleNav(800, goBack);
   } catch {
     // 请求失败由 request 层统一 toast
   } finally {
@@ -503,7 +531,7 @@ function handleChat(): void {
  */
 async function handleDislike(): Promise<void> {
   if (!userId.value) {
-    setTimeout(goBack, 300);
+    scheduleNav(300, goBack);
     return;
   }
   if (acting.value) return;
@@ -512,7 +540,7 @@ async function handleDislike(): Promise<void> {
     await matchStore.doSwipe(userId.value, "dislike");
   } finally {
     acting.value = false;
-    setTimeout(goBack, 300);
+    scheduleNav(300, goBack);
   }
 }
 
@@ -592,8 +620,9 @@ async function retryLoad(): Promise<void> {
 
 onLoad(async (options: any) => {
   userId.value = options?.id || "";
-  const sysInfo = uni.getSystemInfoSync();
-  statusBarHeight.value = sysInfo.statusBarHeight || DEFAULT_STATUS_BAR_HEIGHT;
+  // getSystemInfoSync 为废弃 API，改用 getWindowInfo（旧运行时无此 API 时取兜底常量）
+  const win = uni.getWindowInfo?.();
+  statusBarHeight.value = win?.statusBarHeight || DEFAULT_STATUS_BAR_HEIGHT;
   await loadAll();
 });
 </script>

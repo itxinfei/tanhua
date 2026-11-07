@@ -196,7 +196,6 @@ import NetworkStatusBar from "@/components/network-status-bar.vue";
 import A11yButton from "@/components/a11y-button.vue";
 import { useUserStore } from "@/store/user";
 import { getRelationCounts, FRIEND_TYPE, type RelationCounts } from "@/api/mine";
-import { resolveAvatar } from "@/utils/avatar";
 
 const userStore = useUserStore();
 const userInfo = computed(() => userStore.userInfo);
@@ -328,9 +327,10 @@ async function loadCounts() {
 }
 
 onShow(() => {
-  const sysInfo = uni.getSystemInfoSync();
+  // getSystemInfoSync 为废弃 API，改用 getWindowInfo（旧运行时无此 API 时取兜底常量）
+  const win = uni.getWindowInfo?.();
   statusBarHeight.value =
-    sysInfo.statusBarHeight || DEFAULT_STATUS_BAR_HEIGHT_PX;
+    win?.statusBarHeight || DEFAULT_STATUS_BAR_HEIGHT_PX;
   // 同步最新用户资料（头像/昵称等），避免登录态恢复或编辑资料后头部显示陈旧默认值
   userStore.fetchUserInfo().catch(() => {});
   loadCounts();
@@ -450,7 +450,7 @@ onShow(() => {
       /* 资料未完善时的引导（替代空值破相） */
       .profile-guide {
         font-size: 22rpx;
-        color: #fff;
+        color: var(--text-inverse);
         margin-top: 10rpx;
         display: inline-block;
         padding: 6rpx 18rpx;
@@ -505,10 +505,10 @@ onShow(() => {
   margin: 16rpx 32rpx;
   padding: 20rpx 32rpx;
   flex-shrink: 0;
-  background: linear-gradient(135deg, var(--bg-deep), #2c2c2c, #4a3b2a);
+  background: linear-gradient(135deg, var(--bg-deep), var(--vip-card-grad-1), var(--vip-card-grad-2));
   border-radius: 24rpx;
-  border: 2rpx solid rgba(255, 215, 0, 0.6);
-  box-shadow: 0 8rpx 32rpx rgba(255, 215, 0, 0.15);
+  border: 2rpx solid rgba(var(--gold-rgb), 0.6);
+  box-shadow: 0 8rpx 32rpx rgba(var(--gold-rgb), 0.15);
 
   .vip-left {
     display: flex;
@@ -528,7 +528,7 @@ onShow(() => {
 
     .vip-desc {
       font-size: 22rpx;
-      color: rgba(255, 215, 0, 0.95);
+      color: rgba(var(--gold-rgb), 0.95);
       margin-top: 4rpx;
       display: block;
     }

@@ -6,16 +6,19 @@
 
 import { getToken } from "@/utils/request";
 import { isDevExemptionEnabled } from "@/config/env";
+import { fail as uxFail } from "@/utils/ux";
 
 const LOGIN_PAGE = "/pages/auth/login";
 
-// 免登录页面白名单（前缀匹配）
+// 免登录页面白名单（精确匹配）
 // 协议页：匿名接口 + 本地兜底文本，登录前必须可读（合规要求：登录前先看协议）
+// 禁用 startsWith 前缀匹配：/pages/auth/login-xxx 之类未注册路径会被旁路放行；
+// 两页在 pages.json 均为叶子页面、无子路由，query 已在下方 split("?") 剥离，精确匹配即可
 const WHITE_LIST = [LOGIN_PAGE, "/pages/mine/agreement"];
 
 function isWhiteListed(url: string): boolean {
   const path = url.split("?")[0];
-  return WHITE_LIST.some((p) => path === p || path.startsWith(p));
+  return WHITE_LIST.includes(path);
 }
 
 function checkLogin(url: string): boolean {
@@ -27,7 +30,8 @@ function checkLogin(url: string): boolean {
     return true;
   }
 
-  uni.showToast({ title: "请先登录", icon: "none" });
+  // 走 ux.fail 统一出口（ux.ts 规约：禁止直接 uni.showToast），同源 5s 内自动去重
+  uxFail("请先登录");
   // 统一 reLaunch，清空页面栈避免未登录页面残留在返回栈里；
   // 带 redirect 编码用户想去的目标页（而非当前页），登录成功后回跳到原本要去的页面
   const target = url.startsWith("/") ? url : "/" + url;

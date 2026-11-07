@@ -153,6 +153,7 @@
 import { ref, onMounted } from "vue";
 import A11yButton from "@/components/a11y-button.vue";
 import { confirm } from "@/utils/ux";
+import { safeGoBack } from "@/utils/nav";
 import { getHotSearchWords, type HotSearchWord } from "@/api/video-search";
 
 /** 与后端 VideoSearchService.KEYWORD_MAX 一致 */
@@ -227,7 +228,8 @@ async function loadHotWords(): Promise<void> {
 }
 
 function goBack(): void {
-  uni.navigateBack();
+  // 无历史栈（直达/分享/H5 刷新）时兜底回视频 tab，避免 navigateBack 静默失效
+  safeGoBack("/pages/video/index");
 }
 
 /** 提交搜索：写入历史后跳结果页 */

@@ -340,7 +340,6 @@ import A11yPicker from "@/components/a11y-picker.vue";
 import A11yDialog from "@/components/a11y-dialog.vue";
 import { getUserProfile, updateUserProfile, uploadImage } from "@/api/mine";
 import { success, fail, info, loading, hideLoading, confirm } from "@/utils/ux";
-import { resolveAvatar } from "@/utils/avatar";
 
 /** 照片墙最大数量 */
 const MAX_ALBUM_COUNT = 6;

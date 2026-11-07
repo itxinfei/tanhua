@@ -627,8 +627,9 @@ function onKb(res: { height: number }): void {
 }
 
 onMounted(() => {
-  const sys = uni.getSystemInfoSync();
-  statusBarHeight.value = sys.statusBarHeight || 20;
+  // getSystemInfoSync 为废弃 API，改用 getWindowInfo（旧运行时无此 API 时取兜底值 20）
+  const win = uni.getWindowInfo?.();
+  statusBarHeight.value = win?.statusBarHeight || 20;
   // H5 端无键盘高度 API，直接调用会抛错打断页面渲染；仅支持的端注册，H5 用输入框聚焦态兜底
   if (typeof uni.onKeyboardHeightChange === "function") {
     uni.onKeyboardHeightChange(onKb);

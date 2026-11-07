@@ -888,10 +888,11 @@ async function handleReload() {
 const rpxRatio = ref(RPX_BASE_WIDTH / DEFAULT_WINDOW_WIDTH_PX);
 
 onMounted(() => {
-  const sysInfo = uni.getSystemInfoSync();
+  // getSystemInfoSync 为废弃 API，状态栏高度与窗口宽度均属窗口信息，改用 getWindowInfo
+  const win = uni.getWindowInfo?.();
   statusBarHeight.value =
-    sysInfo.statusBarHeight || DEFAULT_STATUS_BAR_HEIGHT_PX;
-  rpxRatio.value = RPX_BASE_WIDTH / (sysInfo.windowWidth || DEFAULT_WINDOW_WIDTH_PX);
+    win?.statusBarHeight || DEFAULT_STATUS_BAR_HEIGHT_PX;
+  rpxRatio.value = RPX_BASE_WIDTH / (win?.windowWidth || DEFAULT_WINDOW_WIDTH_PX);
   // 检查登录状态
   if (!userStore.isLogin) {
     uni.reLaunch({ url: "/pages/auth/login" });

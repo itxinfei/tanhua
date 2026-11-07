@@ -36,8 +36,9 @@ export function initPush(): void {
       jpush.getRegistrationID((res: any) => {
         const rid = typeof res === "string" ? res : res?.registrationID;
         if (rid) {
+          // getSystemInfoSync 为废弃 API，设备平台改从 getDeviceInfo 取
           const platform =
-            uni.getSystemInfoSync().platform === "ios" ? "IOS" : "ANDROID";
+            uni.getDeviceInfo?.()?.platform === "ios" ? "IOS" : "ANDROID";
           reportDeviceApi(rid, platform).catch(() => {
             // 上报失败不阻断主流程，下次登录会重试
           });

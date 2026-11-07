@@ -159,7 +159,6 @@ import SmartImage from "@/components/smart-image.vue";
 import A11yRadioGroup from "@/components/a11y-radio-group.vue";
 import { updateUserProfile, uploadImage } from "@/api/mine";
 import { success, info, fail, loading, hideLoading } from "@/utils/ux";
-import { resolveAvatar } from "@/utils/avatar";
 
 /** 表单字段唯一 id：用于 aria-labelledby 建立程序化标签关联（WCAG 1.3.1 / 3.3.2） */
 const nicknameLabelId = "guide-nickname-label";
