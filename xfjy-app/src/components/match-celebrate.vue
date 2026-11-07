@@ -34,7 +34,7 @@
         配对成功！
       </text>
       <text class="desc">
-        你们互相喜欢，打个招呼吧
+        你和对方互相喜欢了
       </text>
 
       <!-- 操作区：两个按钮均为 a11y-button，热区 ≥88rpx -->
@@ -42,11 +42,11 @@
         <a11y-button
           variant="primary"
           block
-          label="打个招呼"
+          label="发消息"
           @tap="emit('chat')"
         >
           <text class="i-ph-chat-circle-dots" />
-          <text>打个招呼</text>
+          <text>发消息</text>
         </a11y-button>
         <a11y-button
           variant="ghost"
@@ -96,7 +96,7 @@ const emit = defineEmits<{
   align-items: center;
   justify-content: center;
   padding: 48rpx;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.8);
   /* 遮罩层是页面级覆盖，不受页面 overflow-x 约束 */
   overflow: hidden;
 }

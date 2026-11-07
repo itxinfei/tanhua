@@ -141,6 +141,9 @@
         </a11y-button>
       </empty-state>
     </scroll-view>
+
+    <!-- 匹配成功弹窗（快速喜欢且互喜时弹出，与匹配页行为一致） -->
+    <MatchPopup />
   </view>
 </template>
 
@@ -151,9 +154,13 @@ import Skeleton from "@/components/skeleton.vue";
 import { onShow, onPullDownRefresh } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
 import UserListItem from "@/components/user-list-item.vue";
-import { getNearby, loveUser, type NearUser } from "@/api/match";
+import { getNearby, type NearUser } from "@/api/match";
 import { success, info } from "@/utils/ux";
 import { resolveAvatar } from "@/utils/avatar";
+import { useMatchStore } from "@/store/match";
+import MatchPopup from "@/components/match-popup.vue";
+
+const matchStore = useMatchStore();
 
 /** 距离筛选选项（km，0 表示全部） */
 const DISTANCE_OPTIONS = [0, 1, 3, 5, 10];
@@ -187,11 +194,20 @@ function goDetail(id: number): void {
   uni.navigateTo({ url: `/pages/match/detail?id=${id}` });
 }
 
-/** 快速喜欢 */
+/** 快速喜欢：走 store.doSwipe 统一入口（计入额度），匹配成功时弹匹配弹窗引导进聊天 */
 async function handleQuickLike(id: number): Promise<void> {
   try {
-    const matched = await loveUser(id);
-    success(matched ? "互相喜欢，匹配成功！" : "已喜欢");
+    const matched = await matchStore.doSwipe(id, "like");
+    if (matched) {
+      const user = userList.value.find((u) => u.userId === id);
+      matchStore.showMatchPopup({
+        userId: id,
+        nickname: user?.nickname || "",
+        avatar: user?.avatar || "",
+      });
+    } else {
+      success("已喜欢");
+    }
   } catch {
     // 请求失败由 request 层统一 toast
   }

@@ -70,7 +70,9 @@
           label="重新加载"
           variant="primary"
           @click="handleReload"
-        />
+        >
+          <text>重新加载</text>
+        </a11y-button>
       </empty-state>
 
       <!-- 空状态：门控基于实际可见窗口（历史卡滑完后 cardList 不清空，length 判断永不成立）。
@@ -85,7 +87,9 @@
           label="重新加载"
           variant="primary"
           @click="handleReload"
-        />
+        >
+          <text>重新加载</text>
+        </a11y-button>
       </empty-state>
 
       <!-- 卡片堆叠（从后往前渲染） -->
@@ -142,7 +146,7 @@
             >
               <view
                 class="fate-fill"
-                :style="{ width: Math.min(card.fateValue, 100) + '%' }"
+                :style="{ transform: 'scaleX(' + Math.min(card.fateValue, 100) / 100 + ')' }"
               />
             </view>
             <text class="fate-value">
@@ -243,12 +247,11 @@
         label="曝光提升"
         @tap="handleBoost"
       >
-        <text
-          class="boost-ico"
+        <!-- Phosphor 单色图标替代 emoji 字形（§7.1：图标只用 i-ph-*），继承按钮白色 currentColor -->
+        <view
+          class="boost-ico i-ph-lightning-fill"
           aria-hidden="true"
-        >
-          ⚡
-        </text>
+        />
         <text class="boost-label">
           曝光
         </text>
@@ -1004,8 +1007,8 @@ onShareAppMessage(() => ({
   .locate-btn {
     gap: 4rpx;
 
-    .locate-ico { font-size: 28rpx; color: #fff; font-weight: 700; }
-    .locate-text { font-size: 26rpx; color: #fff; font-weight: 600; }
+    .locate-ico { font-size: 28rpx; color: var(--text-inverse); font-weight: 700; }
+    .locate-text { font-size: 26rpx; color: var(--text-inverse); font-weight: 600; }
   }
 
   /* 附近按钮：几何/底色/描边已由顶栏统一胶囊规格提供，仅保留居中 */
@@ -1099,11 +1102,15 @@ onShareAppMessage(() => ({
         overflow: hidden;
       }
 
+      /* 满宽 + scaleX 模拟填充：原 width 动画每帧触发布局，transform 只走合成层；
+         父级 .fate-bar 有 overflow: hidden，视觉与 width 百分比完全等价 */
       .fate-fill {
+        width: 100%;
         height: 100%;
         background: var(--gradient-brand-h);
         border-radius: 6rpx;
-        transition: width 0.4s ease-out;
+        transform-origin: left center;
+        transition: transform 0.4s ease-out;
       }
 
       .fate-value {
@@ -1249,7 +1256,7 @@ onShareAppMessage(() => ({
         font-size: 18rpx;
         font-weight: 600;
         line-height: 1.1;
-        color: #fff;
+        color: var(--text-inverse);
       }
     }
   }

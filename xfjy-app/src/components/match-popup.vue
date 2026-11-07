@@ -8,7 +8,7 @@
   >
     <view class="match-content pop-in">
       <text class="match-title gradient-text">
-        It's a Match!
+        配对成功！
       </text>
       <view class="match-avatars">
         <smart-image

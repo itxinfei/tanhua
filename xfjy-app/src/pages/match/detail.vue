@@ -316,7 +316,7 @@ import EmptyState from "@/components/empty-state.vue";
 import MatchPopup from "@/components/match-popup.vue";
 import { useMatchStore } from "@/store/match";
 import { submitReport, REPORT_TARGET_TYPE, checkBenefit, recordBenefitUsage } from "@/api/mine";
-import { getPersonalInfo, getStrangerQuestion, loveUser, unloveUser, type TodayBest } from "@/api/match";
+import { getPersonalInfo, getStrangerQuestion, type TodayBest } from "@/api/match";
 import { getUserMovements, type Movement } from "@/api/circle";
 import { safeGoBack } from "@/utils/nav";
 // ux 的 loading 遮罩函数与本页三态 loading ref 同名冲突（TS2440），import 别名消歧；
@@ -426,12 +426,15 @@ async function loadMovements(): Promise<void> {
 /** 操作进行中标记（防连点：喜欢/超级喜欢/不喜欢在途时忽略后续点击） */
 const acting = ref(false);
 
-/** 喜欢 */
+/**
+ * 喜欢：统一走 matchStore.doSwipe，计入每日滑动额度（与匹配页口径一致）。
+ * doSwipe 内部先上报、成功后才计数，失败重试不白扣额度。
+ */
 async function handleLike(): Promise<void> {
   if (!userId.value || acting.value) return;
   acting.value = true;
   try {
-    const matched = await loveUser(userId.value);
+    const matched = await matchStore.doSwipe(userId.value, "like");
     if (matched) {
       matchStore.showMatchPopup({
         userId: userId.value,
@@ -464,8 +467,9 @@ async function handleSuperLike(): Promise<void> {
       info("今日超级喜欢次数已用完");
       return;
     }
-    // 先上报喜欢，成功后再扣权益：后端无权益回滚接口，先扣后爱会导致请求失败白扣一次
-    const matched = await loveUser(userId.value);
+    // 先上报喜欢（走 store.doSwipe，计入额度），成功后再扣权益：
+    // 后端无权益回滚接口，先扣后爱会导致请求失败白扣一次
+    const matched = await matchStore.doSwipe(userId.value, "superlike");
     const ok = await recordBenefitUsage("super_like");
     if (!ok) {
       // 并发下名额可能已被用尽：喜欢已生效，仅提示
@@ -493,7 +497,10 @@ function handleChat(): void {
   uni.navigateTo({ url: `/pages/chat/chat?userId=${userId.value}&nickname=${encodeURIComponent(name)}` });
 }
 
-/** 不喜欢 */
+/**
+ * 不喜欢：统一走 matchStore.doSwipe（dislike 不计次、无后端状态变更，store 内部直接返回）。
+ * 保持与匹配页同一入口，口径一致。
+ */
 async function handleDislike(): Promise<void> {
   if (!userId.value) {
     setTimeout(goBack, 300);
@@ -502,7 +509,7 @@ async function handleDislike(): Promise<void> {
   if (acting.value) return;
   acting.value = true;
   try {
-    await unloveUser(userId.value);
+    await matchStore.doSwipe(userId.value, "dislike");
   } finally {
     acting.value = false;
     setTimeout(goBack, 300);
