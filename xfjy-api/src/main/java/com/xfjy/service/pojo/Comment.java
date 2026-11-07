@@ -18,12 +18,13 @@ import java.util.Date;
 @AllArgsConstructor
 @Document(collection = "quanzi_comment")
 @CompoundIndexes({
-        // queryCommentListByUser：publishUserId + commentType 等值 + created DESC 排序
-        @CompoundIndex(name = "idx_pub_user_type_created",
-                def = "{'publishUserId': 1, 'commentType': 1, 'created': -1}"),
-        // queryCommentList / saveLikeComment / saveLoveComment：publishId + commentType 等值 + created ASC
-        @CompoundIndex(name = "idx_pub_id_type_created",
-                def = "{'publishId': 1, 'commentType': 1, 'created': 1}")
+        // queryCommentListByUser：publishUserId + commentType + deleted 等值 + created DESC 排序
+        // deleted 进索引：count/find 查询条件含 deleted != true，索引覆盖后无需回表（2026-11-05 503 根因）
+        @CompoundIndex(name = "idx_pub_user_type_deleted_created",
+                def = "{'publishUserId': 1, 'commentType': 1, 'deleted': 1, 'created': -1}"),
+        // queryCommentList / saveLikeComment / saveLoveComment：publishId + commentType + deleted 等值 + created ASC
+        @CompoundIndex(name = "idx_pub_id_type_deleted_created",
+                def = "{'publishId': 1, 'commentType': 1, 'deleted': 1, 'created': 1}")
 })
 public class Comment implements java.io.Serializable{
 

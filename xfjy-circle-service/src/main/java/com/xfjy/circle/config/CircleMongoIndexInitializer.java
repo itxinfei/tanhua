@@ -37,14 +37,19 @@ public class CircleMongoIndexInitializer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        // queryCommentListByUser：publishUserId + commentType 等值 + created DESC
+        // queryCommentListByUser：publishUserId + commentType + deleted 等值 + created DESC 排序
+        // 加 deleted 进索引：count/find 查询条件含 deleted != true，索引覆盖后无需回表，
+        // 解决 200 万文档下 count 回表扫全部记录撞穿 BFF 5s 读超时导致 /messages/* 503（2026-11-05 复发根因）
         Document byUser = new Document("key",
-                        new Document("publishUserId", 1).append("commentType", 1).append("created", -1))
-                .append("name", "idx_pub_user_type_created");
-        // queryCommentList / saveLikeComment / saveLoveComment：publishId + commentType 等值 + created ASC
+                        new Document("publishUserId", 1).append("commentType", 1)
+                                .append("deleted", 1).append("created", -1))
+                .append("name", "idx_pub_user_type_deleted_created");
+        // queryCommentList / saveLikeComment / saveLoveComment：publishId + commentType + deleted 等值 + created ASC
         Document byPublish = new Document("key",
-                        new Document("publishId", 1).append("commentType", 1).append("created", 1))
-                .append("name", "idx_pub_id_type_created");
+                        new Document("publishId", 1).append("commentType", 1)
+                                .append("deleted", 1).append("created", 1))
+                .append("name", "idx_pub_id_type_deleted_created");
+        // 旧索引（不含 deleted）保留：同名冲突会导致 createIndexes 失败，旧索引可减少回表范围，仍有价值
         ensureIndexes(COLLECTION_COMMENT, List.of(byUser, byPublish));
     }
 

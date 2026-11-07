@@ -573,13 +573,29 @@ public class QuanziApiImpl implements QuanZiApi {
         pageInfo.setPageNum(p);
         pageInfo.setPageSize(size);
         pageInfo.setRecords(commentList);
-        long total = this.mongoTemplate.count(new Query(Criteria
-                .where("publishUserId").is(userId)
-                .and("commentType").is(type)
-                .and("deleted").ne(true)), Comment.class);
+        // count 优化：全量 count 在 200 万文档 + 大V用户场景下扫全部索引记录，撞穿 BFF 5s 读超时导致 503。
+        // 改为「find + limit」估算：MAX_TOTAL 是前端分页有意义的上限（100 页 × 10 条），
+        // 超过后 total 会大于实际值，前端分页器多显示几页但点击后自然终止，不影响核心功能。
+        long total = this.countWithCap(userId, type);
         pageInfo.setTotal((int) total);
         pageInfo.setPages(size > 0 ? (int) ((total + size - 1) / size) : 0);
         return pageInfo;
+    }
+
+    /** count 上限：前端分页超过 100 页无意义，超过后不再全量扫描 */
+    private static final int MAX_TOTAL = 1000;
+
+    /**
+     * 估算总数：find 前 MAX_TOTAL+1 条，超过则返回 MAX_TOTAL。
+     * 避免全量 count 在大数据量用户下超时。
+     */
+    private long countWithCap(Long userId, Integer type) {
+        Query countQuery = new Query(Criteria
+                .where("publishUserId").is(userId)
+                .and("commentType").is(type)
+                .and("deleted").ne(true)).limit(MAX_TOTAL + 1);
+        List<Comment> capped = this.mongoTemplate.find(countQuery, Comment.class);
+        return Math.min(capped.size(), MAX_TOTAL);
     }
 
     @Override
