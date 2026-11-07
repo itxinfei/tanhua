@@ -492,7 +492,7 @@ async function sendDeleteCode() {
     hideLoading();
     info('验证码已发送');
     inputDeleteCode();
-  } catch (e) {
+  } catch {
     // 失败提示由 request 层统一 toast，此处仅关 loading，避免双 toast 叠显
     hideLoading();
   }
@@ -522,7 +522,7 @@ function inputDeleteCode() {
         success('账号已注销');
         // 必须 await：signOutAll 含 IM 登出等异步清理，未 await 会导致状态残留
         await userStore.signOutAll().catch(() => {});
-      } catch (e) {
+      } catch {
         // 失败提示由 request 层统一 toast（验证码错误也是 400，文案由请求层给出）
         hideLoading();
       }

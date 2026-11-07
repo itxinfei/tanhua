@@ -426,7 +426,9 @@ function onWheel(e: any): void {
   let anchorX = STAGE / 2;
   let anchorY = STAGE / 2;
   if (typeof document !== "undefined") {
-    const rect = document.querySelector("#cropCanvas")?.getBoundingClientRect();
+    // 用组件实例 $el 查询而非全局 id，避免 uni-app H5 渲染后 id 带前缀导致选择器失效
+    const root = instance?.proxy?.$el as HTMLElement | null;
+    const rect = root?.querySelector("#cropCanvas")?.getBoundingClientRect();
     if (rect) {
       anchorX = e.clientX - rect.left;
       anchorY = e.clientY - rect.top;
