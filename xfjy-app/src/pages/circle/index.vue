@@ -157,6 +157,7 @@
               mode="aspectFill"
               lazy-load
               :aria-label="'动态图片 ' + (i + 1) + '，点击查看大图'"
+              clickable
               @click="previewImage(item.imageContent, i)"
             />
           </view>

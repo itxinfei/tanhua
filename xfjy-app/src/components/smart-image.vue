@@ -6,15 +6,21 @@
     :lazy-load="lazyLoad"
     :aria-label="ariaLabel || undefined"
     :aria-hidden="ariaHidden || undefined"
+    :role="clickable ? 'button' : undefined"
+    :tabindex="clickable ? 0 : undefined"
     @error="onError"
     @click="emit('click', $event)"
+    @keydown="onKeydown"
   />
   <view
     v-else
     class="smart-image-placeholder"
     :aria-label="ariaLabel || undefined"
     :aria-hidden="ariaHidden || undefined"
+    :role="clickable ? 'button' : undefined"
+    :tabindex="clickable ? 0 : undefined"
     @click="emit('click', $event)"
+    @keydown="onKeydown"
   />
 </template>
 
@@ -39,6 +45,12 @@ interface Props {
   /** 无障碍标签；为空时不输出该属性（避免读屏读空） */
   ariaLabel?: string;
   ariaHidden?: boolean;
+  /**
+   * 是否可点击（预览大图/进详情等）。
+   * 仅可点击图片输出 role=button + tabindex 并支持键盘激活，纯展示图片默认 false，
+   * 避免把全站装饰性图片污染进键盘 Tab 序列与读屏无障碍树（WCAG 2.1.1）。
+   */
+  clickable?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -48,9 +60,25 @@ const props = withDefaults(defineProps<Props>(), {
   lazyLoad: false,
   ariaLabel: "",
   ariaHidden: false,
+  clickable: false,
 });
 
 const emit = defineEmits<{ (e: "click", event: any): void }>();
+
+/**
+ * 键盘激活：Enter(13) / Space(32) 等价点击。
+ * 小程序端 view/image 不派发 keydown，静默降级；H5 与 App-webview 生效（同 a11y-button）。
+ */
+function onKeydown(e: any): void {
+  if (!props.clickable) return;
+  const key: string = e?.key || "";
+  const keyCode: number = e?.keyCode || 0;
+  const isEnter = key === "Enter" || keyCode === 13;
+  const isSpace = key === " " || key === "Spacebar" || keyCode === 32;
+  if (!isEnter && !isSpace) return;
+  e?.preventDefault?.();
+  emit("click", e);
+}
 
 /** 当前展示地址：src 优先，失败切 fallback */
 const displaySrc = ref(props.src || props.fallback);

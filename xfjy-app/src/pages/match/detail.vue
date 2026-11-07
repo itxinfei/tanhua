@@ -78,6 +78,7 @@
             :src="photo"
             mode="aspectFill"
             :aria-label="`用户照片 ${i + 1}，共 ${photos.length} 张`"
+            clickable
             @click="previewPhoto(i)"
           />
         </swiper-item>
