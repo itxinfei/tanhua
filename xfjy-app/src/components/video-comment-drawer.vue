@@ -165,7 +165,7 @@ async function load(force = false) {
   const targetPage = page.value;
   loading.value = true;
   try {
-    const res = await getVideoComments(props.videoId, { page: targetPage, pagesize: PAGE_SIZE });
+    const res = await getVideoComments(props.videoId, { page: targetPage, pageSize: PAGE_SIZE });
     if (token !== loadToken) return;
     list.value = targetPage === 1 ? (res.items || []) : list.value.concat(res.items || []);
     pages.value = res.pages || 1;

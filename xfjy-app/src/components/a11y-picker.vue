@@ -9,23 +9,25 @@
       class="picker-panel"
       @click.stop
     >
-      <!-- 标题栏 -->
+      <!-- 标题栏：按钮必须用 a11y-button（§7.1），default 变体承载自定义样式 -->
       <view class="picker-header">
-        <view
+        <a11y-button
           class="picker-btn picker-cancel"
-          @click="handleCancel"
+          label="取消选择"
+          @tap="handleCancel"
         >
-          取消
-        </view>
+          <text>取消</text>
+        </a11y-button>
         <view class="picker-title">
           {{ title }}
         </view>
-        <view
+        <a11y-button
           class="picker-btn picker-confirm"
-          @click="handleConfirm"
+          label="完成选择"
+          @tap="handleConfirm"
         >
-          完成
-        </view>
+          <text>完成</text>
+        </a11y-button>
       </view>
 
       <!-- 选项列表 -->
@@ -34,12 +36,13 @@
         class="picker-list"
         :show-scrollbar="false"
       >
-        <!-- 手动输入选项（仅 showInput 时显示） -->
-        <view
+        <!-- 手动输入选项（仅 showInput 时显示）：a11y-button 承载点击与读屏 -->
+        <a11y-button
           v-if="showInput"
           class="picker-item"
           :class="{ active: manualMode }"
-          @click="startManualInput"
+          :label="manualMode ? `手动输入（已选中），点击切换` : '手动输入，点击切换'"
+          @tap="startManualInput"
         >
           <text class="picker-item-label">
             手动输入
@@ -50,15 +53,16 @@
           >
             ✓
           </text>
-        </view>
+        </a11y-button>
 
         <!-- 选项 -->
-        <view
+        <a11y-button
           v-for="opt in normalizedOptions"
           :key="String(opt.value)"
           class="picker-item"
           :class="{ active: !manualMode && tempValue === opt.value }"
-          @click="selectOption(opt)"
+          :label="!manualMode && tempValue === opt.value ? `${opt.label}（已选中）` : opt.label"
+          @tap="selectOption(opt)"
         >
           <text class="picker-item-label">
             {{ opt.label }}
@@ -69,7 +73,7 @@
           >
             ✓
           </text>
-        </view>
+        </a11y-button>
       </scroll-view>
 
       <!-- 手动输入区域 -->
@@ -78,20 +82,23 @@
         class="manual-input-area"
       >
         <input
+          ref="manualInputRef"
           v-model="manualValue"
           class="manual-input"
           :placeholder="inputPlaceholder"
           :maxlength="maxlength"
           confirm-type="done"
+          aria-label="手动输入内容"
           @confirm="handleConfirm"
         >
-        <view
+        <a11y-button
           v-if="manualValue"
           class="manual-clear"
-          @click="manualValue = ''"
+          label="清除输入内容"
+          @tap="manualValue = ''"
         >
-          ×
-        </view>
+          <text>×</text>
+        </a11y-button>
       </view>
     </view>
   </view>
@@ -99,6 +106,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from "vue";
+import A11yButton from "@/components/a11y-button.vue";
 
 interface Options {
   value: string;
@@ -137,6 +145,9 @@ const emit = defineEmits<{
 
 const normalizedOptions = computed(() => props.options || []);
 
+/** 手动输入框 ref：进入手动模式后自动聚焦（#72） */
+const manualInputRef = ref<HTMLInputElement | null>(null);
+
 /** 临时选中值（未确认前不影响外部） */
 const tempValue = ref("");
 /** 是否处于手动输入模式 */
@@ -166,10 +177,10 @@ watch(
   async (v) => {
     if (v) {
       syncFromProp();
-      // 下次 tick 后如果进入手动模式，聚焦 input
+      // 下次 tick 后如果进入手动模式，聚焦 input（#72）
       await nextTick();
       if (manualMode.value && props.showInput) {
-        // uni-app 小程序端 input focus 通过 ref 触发；H5 自动聚焦
+        manualInputRef.value?.focus();
       }
     }
   }
@@ -187,6 +198,8 @@ function startManualInput(): void {
   if (!manualValue.value) {
     manualValue.value = props.modelValue || "";
   }
+  // 切到手动模式后聚焦输入框，省一次点击（#72）
+  nextTick(() => manualInputRef.value?.focus());
 }
 
 function handleConfirm(): void {
@@ -268,10 +281,13 @@ defineExpose({ syncFromProp });
   color: var(--text-primary);
 }
 
+/* a11y-button default 变体已保底 min-height: 88rpx；这里只覆写视觉（字号/颜色/内距）。
+   标题栏不需要 88rpx 高，故覆写 min-height 让按钮跟随标题栏高度，热区由 padding 撑出。 */
 .picker-btn {
   font-size: 28rpx;
   padding: 8rpx 16rpx;
   min-width: 80rpx;
+  min-height: 88rpx;
   text-align: center;
   border-radius: 8rpx;
 }
@@ -291,8 +307,12 @@ defineExpose({ syncFromProp });
   min-height: 200rpx;
 }
 
+/* a11y-button default 变体是 inline-flex + justify-content:center；
+   选项行需撑满宽度且左对齐，覆写 display/justify-content。热区由组件保底 88rpx。 */
 .picker-item {
   display: flex;
+  width: 100%;
+  justify-content: flex-start;
   align-items: center;
   padding: 28rpx 32rpx;
   border-bottom: 1rpx solid var(--border-faint);
@@ -343,7 +363,8 @@ defineExpose({ syncFromProp });
   height: 80rpx;
   background: var(--bg-sub);
   border-radius: 12rpx;
-  padding: 0 60rpx 0 24rpx;
+  /* 右内距给清除键留空间：清除键 right:32rpx + width:48rpx = 80rpx */
+  padding: 0 88rpx 0 24rpx;
   font-size: 28rpx;
   color: var(--text-primary);
   border: 2rpx solid var(--border);
@@ -353,9 +374,11 @@ defineExpose({ syncFromProp });
   border-color: var(--color-primary);
 }
 
+/* 清除键：视觉仍 48rpx 圆形，但热区由 a11y-button default 变体保底 88rpx（WCAG 2.5.5）。
+   用 padding 把可点击区扩到 88rpx，视觉保持小圆。 */
 .manual-clear {
   position: absolute;
-  right: 48rpx;
+  right: 32rpx;
   width: 48rpx;
   height: 48rpx;
   display: flex;
@@ -365,5 +388,7 @@ defineExpose({ syncFromProp });
   background: var(--border);
   font-size: 28rpx;
   color: var(--text-inverse);
+  /* 扩大热区：88rpx - 48rpx = 40rpx，上下左右各 10rpx */
+  padding: 10rpx;
 }
 </style>

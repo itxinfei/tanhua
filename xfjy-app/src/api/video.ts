@@ -1,6 +1,6 @@
 import { get, post, upload, getToken, BASE_URL, handleUnauthorized, UploadPromise } from "@/utils/request";
 import { fail, networkError } from "@/utils/ux";
-import type { PageResult, PageParam, Comment } from "@/api/circle";
+import type { PageResult, Comment } from "@/api/circle";
 import type { PicUploadResult } from "@/api/mine";
 
 /**
@@ -205,7 +205,7 @@ export function dislikeVideo(id: string): Promise<number> {
  */
 export function getVideoComments(
   videoId: string,
-  params: PageParam
+  params: VideoPageParam
 ): Promise<PageResult<Comment>> {
   return get<PageResult<Comment>>(`/small-videos/${videoId}/comments`, params as any);
 }
