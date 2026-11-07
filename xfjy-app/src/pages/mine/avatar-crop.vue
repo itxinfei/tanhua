@@ -3,22 +3,22 @@
     <!-- 舞台：全宽方形，图片铺满整屏，取景框居中，框外压暗 -->
     <view
       class="crop-stage"
-      :style="{ width: STAGE + 'px', height: STAGE + 'px' }"
+      :style="stageStyle"
     >
       <canvas
         id="cropCanvas"
         canvas-id="cropCanvas"
+        type="2d"
         class="crop-canvas"
-        :style="{ width: STAGE + 'px', height: STAGE + 'px' }"
+        :style="stageStyle"
         @touchstart="onTouchStart"
         @touchmove.stop="onTouchMove"
         @touchend="onTouchEnd"
         @touchcancel="onTouchEnd"
-        @wheel="onWheel"
         @mousedown="onMouseDown"
       />
 
-      <!-- 四边遮罩：只压暗取景框外，框内保持原图亮度 -->
+      <!-- 四边遮罩：固定黑色，只压暗取景框外，框内保持原图亮度 -->
       <view
         class="crop-mask"
         :style="{ top: '0px', left: '0px', width: STAGE + 'px', height: GAP + 'px' }"
@@ -40,26 +40,27 @@
         aria-hidden="true"
       />
 
-      <!-- 1:1 取景框 + 三分网格 -->
+      <!-- 1:1 取景框 + 圆形辅助线 + 三分网格 -->
       <view
         class="crop-frame"
         :style="{ top: GAP + 'px', left: GAP + 'px', width: FRAME + 'px', height: FRAME + 'px' }"
         aria-hidden="true"
       >
+        <view class="crop-circle" />
         <view class="crop-grid-line crop-grid-line--v1" />
         <view class="crop-grid-line crop-grid-line--v2" />
         <view class="crop-grid-line crop-grid-line--h1" />
         <view class="crop-grid-line crop-grid-line--h2" />
       </view>
 
-      <!-- 缩放倍率反馈：跟随手势实时更新 -->
+      <!-- 缩放倍率反馈：常显，顶部居中 -->
       <view
         v-if="imageReady"
         class="crop-zoom"
         aria-live="polite"
       >
         <text class="crop-zoom-text">
-          ×{{ zoomLabel }}
+          {{ zoomLabel }}×
         </text>
       </view>
 
@@ -83,7 +84,7 @@
         <a11y-button
           variant="text"
           label="旋转头像 90 度"
-          :disabled="!imageReady"
+          :disabled="!imageReady || exporting"
           @tap="rotateImage"
         >
           <text class="tool-text">
@@ -93,7 +94,7 @@
         <a11y-button
           variant="text"
           label="重置裁剪"
-          :disabled="!imageReady"
+          :disabled="!imageReady || exporting"
           @tap="resetTransform"
         >
           <text class="tool-text">
@@ -106,6 +107,7 @@
           class="action-btn"
           variant="ghost"
           label="取消裁剪"
+          :disabled="exporting"
           @tap="cancel"
         >
           <text>取消</text>
@@ -115,7 +117,7 @@
           variant="primary"
           label="保存头像"
           :loading="exporting"
-          :disabled="!imageReady"
+          :disabled="!imageReady || exporting"
           @tap="confirmCrop"
         >
           <text>完成</text>
@@ -123,12 +125,15 @@
       </view>
     </view>
 
-    <!-- 离屏导出画布：固定 400×400，保证 1:1 输出 -->
+    <!-- 离屏导出画布：CSS 尺寸固定 400×400，保证 1:1 输出。
+         H5 端不关闭 hidpi：uni 的 canvasToTempFilePath 内部按全局 dpr 换算源区域，
+         只有保留框架默认背板倍率才能正确读取整块画布 -->
     <canvas
       id="exportCanvas"
       canvas-id="exportCanvas"
+      type="2d"
       class="export-canvas"
-      :style="{ width: OUT_W + 'px', height: OUT_H + 'px' }"
+      :style="exportStyle"
     />
   </view>
 </template>
@@ -153,6 +158,11 @@ const STAGE_HEIGHT_RATIO = 0.55;
 const FRAME_GAP_RPX = 48;
 /** 滚轮每档缩放倍率 */
 const WHEEL_ZOOM_STEP = 1.1;
+/**
+ * dpr 封顶：3x 屏按原始 dpr 会让画布像素与重绘成本翻倍。
+ * 预览背板统一按 min(dpr, 2) 控制，超出部分由 MutationObserver 归位。
+ */
+const DPR_MAX = 2;
 
 const sys = uni.getSystemInfoSync();
 const STAGE = Math.floor(
@@ -162,6 +172,20 @@ const GAP = uni.upx2px(FRAME_GAP_RPX);
 const FRAME = Math.max(0, STAGE - GAP * 2);
 const OUT_W = AVATAR_OUTPUT_SIZE;
 const OUT_H = Math.round(AVATAR_OUTPUT_SIZE / AVATAR_CROP_RATIO);
+
+let devicePixelRatio = 1;
+// #ifdef H5
+devicePixelRatio = typeof window === "undefined" ? 1 : window.devicePixelRatio || 1;
+// #endif
+// #ifdef MP-WEIXIN
+devicePixelRatio = Number(uni.getSystemInfoSync().pixelRatio || 1);
+// #endif
+const DPR = Math.min(DPR_MAX, Math.max(1, devicePixelRatio));
+/** 预览 canvas 的实际像素边长：CSS 尺寸 × dpr */
+const PREVIEW_PIXELS = Math.round(STAGE * DPR);
+
+const stageStyle = { width: `${STAGE}px`, height: `${STAGE}px` };
+const exportStyle = { width: `${OUT_W}px`, height: `${OUT_H}px` };
 
 const instance = getCurrentInstance();
 
@@ -180,12 +204,62 @@ const pageReady = ref(false);
 
 const zoomLabel = ref("1.0");
 
-onReady(() => {
+/** 小程序 2d canvas 节点（H5 / App 走 canvas-id 旧版接口） */
+interface CanvasImageLike {
+  src: string;
+  onload: (() => void) | null;
+  onerror: ((error: unknown) => void) | null;
+  width: number;
+  height: number;
+}
+
+interface CanvasNodeLike {
+  width: number;
+  height: number;
+  getContext: (type: "2d") => any;
+  createImage: () => CanvasImageLike;
+}
+
+let mpPreviewNode: CanvasNodeLike | null = null;
+let mpExportNode: CanvasNodeLike | null = null;
+let mpPreviewImage: CanvasImageLike | null = null;
+let mpExportImage: CanvasImageLike | null = null;
+/** H5 预览用已解码图片：直接画到 DOM canvas，避免 uni 旧版 context 的异步图片加载 */
+let h5PreviewImage: HTMLImageElement | null = null;
+
+// #ifdef H5
+function loadH5Image(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("image decode failed"));
+    img.src = src;
+  });
+}
+// #endif
+
+onReady(async () => {
   pageReady.value = true;
+  // #ifdef H5
+  bindWheelListener();
+  await nextTick();
+  watchPreviewCanvasSize();
+  // #endif
+  // #ifdef MP-WEIXIN
+  await initMpCanvases();
+  if (imagePath.value) await prepareCanvasImages();
+  // #endif
   if (imagePath.value) drawPreview();
 });
 
-onUnload(() => onMouseUp());
+onUnload(() => {
+  onMouseUp();
+  // #ifdef H5
+  unbindWheelListener();
+  previewObserver?.disconnect();
+  previewObserver = null;
+  // #endif
+});
 
 onLoad((options) => {
   let src = "";
@@ -195,20 +269,24 @@ onLoad((options) => {
     src = "";
   }
   if (!src) {
-    fail("图片地址无效，请重新选择");
-    uni.navigateBack();
+    failAndBack("图片地址无效，请重新选择");
     return;
   }
   loadImage(src);
 });
 
+/** 失败提示后自动返回上一页，避免停在不可用状态 */
+function failAndBack(message: string, delay = 1500): void {
+  fail(message);
+  setTimeout(() => uni.navigateBack(), delay);
+}
+
 function loadImage(src: string): void {
   uni.getImageInfo({
     src,
-    success: (res) => {
+    success: async (res) => {
       if (Math.min(res.width, res.height) < AVATAR_MIN_SOURCE_SIZE) {
-        fail(`图片分辨率过低（需 ≥${AVATAR_MIN_SOURCE_SIZE}×${AVATAR_MIN_SOURCE_SIZE}），请重新选择`);
-        uni.navigateBack();
+        failAndBack(`图片分辨率过低（需 ≥${AVATAR_MIN_SOURCE_SIZE}×${AVATAR_MIN_SOURCE_SIZE}），请重新选择`);
         return;
       }
       imageW.value = res.width;
@@ -218,20 +296,130 @@ function loadImage(src: string): void {
       zoom.value = 1;
       offsetX.value = 0;
       offsetY.value = 0;
+      zoomLabel.value = "1.0";
+      // #ifdef H5
+      try {
+        h5PreviewImage = await loadH5Image(imagePath.value);
+      } catch {
+        failAndBack("图片读取失败，请重新选择");
+        return;
+      }
+      // #endif
+      // #ifdef MP-WEIXIN
+      try {
+        await prepareCanvasImages();
+      } catch {
+        failAndBack("图片读取失败，请重新选择");
+        return;
+      }
+      // #endif
       imageReady.value = true;
       nextTick(() => drawPreview());
     },
-    fail: () => {
-      fail("图片读取失败，请重新选择");
-      // 与「src 无效」一致：无法读取时返回上级，避免停留在 loading 空页
-      uni.navigateBack({
-        fail: () => {
-          // 无上级页面时保留页面，用户可手动关闭
-        },
-      });
-    },
+    fail: () => failAndBack("图片读取失败，请重新选择"),
   });
 }
+
+/** 小程序端获取 2d canvas 节点并设置真实像素尺寸 */
+async function initMpCanvases(): Promise<void> {
+  try {
+    mpPreviewNode = await queryCanvasNode("cropCanvas");
+    mpPreviewNode.width = PREVIEW_PIXELS;
+    mpPreviewNode.height = PREVIEW_PIXELS;
+    mpExportNode = await queryCanvasNode("exportCanvas");
+    mpExportNode.width = OUT_W;
+    mpExportNode.height = OUT_H;
+  } catch {
+    failAndBack("裁剪画布初始化失败，请重试");
+  }
+}
+
+/** fields 在部分平台的类型里不含 node 字段，这里做一次结构化读取 */
+function readCanvasNode(result: unknown): CanvasNodeLike | null {
+  const info = Array.isArray(result) ? result[0] : result;
+  if (!info || typeof info !== "object") return null;
+  return (info as { node?: CanvasNodeLike }).node ?? null;
+}
+
+function queryCanvasNode(id: string): Promise<CanvasNodeLike> {
+  return new Promise((resolve, reject) => {
+    uni
+      .createSelectorQuery()
+      .select(`#${id}`)
+      .fields({ node: true, size: true }, (res: unknown) => {
+        const node = readCanvasNode(res);
+        if (node) resolve(node);
+        else reject(new Error("canvas node missing"));
+      })
+      .exec();
+  });
+}
+
+/** 小程序 2d canvas 不支持直接传图片路径，必须用 node.createImage() */
+function loadCanvasImage(node: CanvasNodeLike, src: string): Promise<CanvasImageLike> {
+  return new Promise((resolve, reject) => {
+    const image = node.createImage();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("image decode failed"));
+    image.src = src;
+  });
+}
+
+async function prepareCanvasImages(): Promise<void> {
+  // #ifdef MP-WEIXIN
+  if (!imagePath.value) return;
+  if (mpPreviewNode && !mpPreviewImage) {
+    mpPreviewImage = await loadCanvasImage(mpPreviewNode, imagePath.value);
+  }
+  if (mpExportNode && !mpExportImage) {
+    mpExportImage = await loadCanvasImage(mpExportNode, imagePath.value);
+  }
+  // #endif
+}
+
+// #ifdef H5
+let previewObserver: MutationObserver | null = null;
+
+/** H5：定位真实 canvas 元素（非 H5 端返回 null） */
+function getPreviewCanvasEl(): HTMLCanvasElement | null {
+  // #ifdef H5
+  if (typeof document === "undefined") return null;
+  const host = document.querySelector("#cropCanvas");
+  if (!host) return null;
+  return (host.tagName === "CANVAS" ? host : host.querySelector("canvas")) as HTMLCanvasElement | null;
+  // #endif
+  // #ifndef H5
+  return null;
+  // #endif
+}
+
+/**
+ * uni 的 ResizeSensor 会在挂载后按它自己认定的倍率重置 canvas 背板，
+ * 可能把 dpr 封顶后的尺寸改回去。监听 width/height 属性，
+ * 被改动时立即恢复目标像素并重绘；尺寸已一致时直接跳过。
+ */
+function watchPreviewCanvasSize(): void {
+  if (previewObserver || typeof MutationObserver === "undefined") return;
+  const el = getPreviewCanvasEl();
+  if (!el) return;
+  previewObserver = new MutationObserver(() => {
+    if (el.width === PREVIEW_PIXELS && el.height === PREVIEW_PIXELS) return;
+    el.width = PREVIEW_PIXELS;
+    el.height = PREVIEW_PIXELS;
+    drawPreview();
+  });
+  previewObserver.observe(el, { attributes: true, attributeFilter: ["width", "height"] });
+}
+// #endif
+
+// #ifdef APP-PLUS
+/** APP 端：沿用 uni 旧版 canvas context（H5 已改走 DOM 直绘） */
+function drawPreviewByLegacyContext(): void {
+  const ctx = uni.createCanvasContext("cropCanvas", instance?.proxy ?? undefined);
+  drawInto(ctx, PREVIEW_PIXELS, PREVIEW_PIXELS);
+  ctx.draw();
+}
+// #endif
 
 /** 旋转 90° 后参与覆盖计算的宽高 */
 function rotatedWidth(): number {
@@ -242,7 +430,7 @@ function rotatedHeight(): number {
   return rotation.value % 180 === 0 ? imageH.value : imageW.value;
 }
 
-/** 铺满舞台的最小缩放（保证取景框内不露底） */
+/** 铺满舞台的最小缩放：等价 cover 取景框并每边多留 GAP 余量 */
 function baseScale(): number {
   const w = rotatedWidth();
   const h = rotatedHeight();
@@ -275,10 +463,10 @@ function updateZoomLabel(): void {
 }
 
 /**
- * 统一绘制：预览与导出共用同一套变换，
- * 导出画布按 W/STAGE 等比换算位移与缩放，保证所见即所得。
+ * 统一绘制：预览与导出共用同一套变换。
+ * W 为画布实际像素边长，factor = W / STAGE 同时承担 dpr 与导出比例换算。
  */
-function drawInto(ctx: any, W: number, H: number): void {
+function drawInto(ctx: any, W: number, H: number, source: any = imagePath.value): void {
   const factor = W / STAGE;
   const scale = baseScale() * zoom.value * factor;
   ctx.clearRect(0, 0, W, H);
@@ -287,7 +475,7 @@ function drawInto(ctx: any, W: number, H: number): void {
   ctx.rotate((rotation.value * Math.PI) / 180);
   ctx.scale(scale, scale);
   ctx.drawImage(
-    imagePath.value,
+    source,
     -imageW.value / 2,
     -imageH.value / 2,
     imageW.value,
@@ -298,9 +486,29 @@ function drawInto(ctx: any, W: number, H: number): void {
 
 function drawPreview(): void {
   if (!pageReady.value || !imagePath.value) return;
-  const ctx = uni.createCanvasContext("cropCanvas", instance?.proxy ?? undefined);
-  drawInto(ctx, STAGE, STAGE);
-  ctx.draw();
+  // #ifdef MP-WEIXIN
+  if (!mpPreviewNode || !mpPreviewImage) return;
+  drawInto(
+    mpPreviewNode.getContext("2d"),
+    PREVIEW_PIXELS,
+    PREVIEW_PIXELS,
+    mpPreviewImage,
+  );
+  // #endif
+  // #ifdef H5
+  const el = getPreviewCanvasEl();
+  if (!el || !h5PreviewImage) return;
+  if (el.width !== PREVIEW_PIXELS) el.width = PREVIEW_PIXELS;
+  if (el.height !== PREVIEW_PIXELS) el.height = PREVIEW_PIXELS;
+  const ctx = el.getContext("2d");
+  if (!ctx) return;
+  // 关闭 uni 的 hidpi 包装：坐标已按实际像素换算，不能再被乘以 dpr
+  (ctx as any).__hidpi__ = false;
+  drawInto(ctx, PREVIEW_PIXELS, PREVIEW_PIXELS, h5PreviewImage);
+  // #endif
+  // #ifdef APP-PLUS
+  drawPreviewByLegacyContext();
+  // #endif
 }
 
 let dragStartX = 0;
@@ -416,6 +624,28 @@ function onMouseUp(): void {
   // #endif
 }
 
+/**
+ * H5 滚轮必须走原生监听：uni 组件事件会把 DOM 事件裁剪成只含 type/target 的对象，
+ * deltaY 丢失，模板里的 @wheel 拿不到滚动量。
+ */
+// #ifdef H5
+let wheelHost: HTMLElement | null = null;
+
+function bindWheelListener(): void {
+  if (typeof document === "undefined") return;
+  const host = document.querySelector("#cropCanvas") as HTMLElement | null;
+  if (!host) return;
+  wheelHost = host;
+  host.addEventListener("wheel", onWheel, { passive: false });
+}
+
+function unbindWheelListener(): void {
+  if (!wheelHost) return;
+  wheelHost.removeEventListener("wheel", onWheel);
+  wheelHost = null;
+}
+// #endif
+
 /** H5 桌面端滚轮缩放（移动端由双指手势覆盖） */
 function onWheel(e: any): void {
   if (exporting.value || !imageReady.value) return;
@@ -426,9 +656,7 @@ function onWheel(e: any): void {
   let anchorX = STAGE / 2;
   let anchorY = STAGE / 2;
   if (typeof document !== "undefined") {
-    // 用组件实例 $el 查询而非全局 id，避免 uni-app H5 渲染后 id 带前缀导致选择器失效
-    const root = instance?.proxy?.$el as HTMLElement | null;
-    const rect = root?.querySelector("#cropCanvas")?.getBoundingClientRect();
+    const rect = document.querySelector("#cropCanvas")?.getBoundingClientRect();
     if (rect) {
       anchorX = e.clientX - rect.left;
       anchorY = e.clientY - rect.top;
@@ -455,52 +683,75 @@ function rotateImage(): void {
 }
 
 function cancel(): void {
+  if (exporting.value) return;
   onMouseUp();
   uni.navigateBack();
+}
+
+/** 两端统一：H5/App 走 canvas-id，微信小程序走 2d canvas 节点 */
+function finishExport(): void {
+  const payload = {
+    x: 0,
+    y: 0,
+    width: OUT_W,
+    height: OUT_H,
+    destWidth: OUT_W,
+    destHeight: OUT_H,
+    fileType: AVATAR_CROP_FILE_TYPE,
+    quality: AVATAR_CROP_QUALITY,
+    success: (res: { tempFilePath: string }) => {
+      uni.$emit("avatar:cropped", res.tempFilePath);
+      uni.navigateBack();
+    },
+    fail: () => {
+      exporting.value = false;
+      fail("裁剪失败，请重试");
+    },
+  };
+  // #ifdef MP-WEIXIN
+  uni.canvasToTempFilePath(
+    { ...payload, canvasId: "exportCanvas", canvas: mpExportNode ?? undefined },
+    instance?.proxy ?? undefined,
+  );
+  // #endif
+  // #ifndef MP-WEIXIN
+  uni.canvasToTempFilePath(
+    { ...payload, canvasId: "exportCanvas" },
+    instance?.proxy ?? undefined,
+  );
+  // #endif
 }
 
 function confirmCrop(): void {
   if (exporting.value || !imageReady.value) return;
   exporting.value = true;
   nextTick(() => {
+    // #ifdef MP-WEIXIN
+    if (!mpExportNode || !mpExportImage) {
+      exporting.value = false;
+      fail("裁剪失败，请重试");
+      return;
+    }
+    drawInto(mpExportNode.getContext("2d"), OUT_W, OUT_H, mpExportImage);
+    finishExport();
+    // #endif
+    // #ifndef MP-WEIXIN
     const ctx = uni.createCanvasContext("exportCanvas", instance?.proxy ?? undefined);
     drawInto(ctx, OUT_W, OUT_H);
-    ctx.draw(false, () => {
-      uni.canvasToTempFilePath(
-        {
-          canvasId: "exportCanvas",
-          x: 0,
-          y: 0,
-          width: OUT_W,
-          height: OUT_H,
-          destWidth: OUT_W,
-          destHeight: OUT_H,
-          fileType: AVATAR_CROP_FILE_TYPE,
-          quality: AVATAR_CROP_QUALITY,
-          success: (res) => {
-            uni.$emit("avatar:cropped", res.tempFilePath);
-            uni.navigateBack({
-              fail: () => {
-                // 无上级页面时 navigateBack 失败，复位 exporting 避免按钮永久 loading
-                exporting.value = false;
-                fail("无法返回，请手动关闭页面");
-              },
-            });
-          },
-          fail: () => {
-            exporting.value = false;
-            fail("裁剪失败，请重试");
-          },
-        },
-        instance?.proxy ?? undefined,
-      );
-    });
+    ctx.draw(false, () => finishExport());
+    // #endif
   });
 }
 </script>
 
 <style lang="scss" scoped>
-$crop-mask-opacity: 0.9;
+/* 规范固定值：遮罩/描边必须压在任何照片上成立，故不随主题 token 变化 */
+$crop-mask-color: rgba(0, 0, 0, .55);
+$crop-edge-color: rgba(255, 255, 255, .9);
+$crop-grid-color: rgba(255, 255, 255, .25);
+$crop-circle-color: rgba(255, 255, 255, .35);
+$crop-badge-bg: rgba(0, 0, 0, .45);
+$crop-badge-text: rgba(255, 255, 255, .95);
 
 .crop-page { min-height: 100vh; display: flex; flex-direction: column; background: var(--bg-sub); }
 
@@ -508,25 +759,30 @@ $crop-mask-opacity: 0.9;
 
 .crop-canvas { display: block; }
 
-/* 框外压暗：页面底色 + 透明度，随主题切换 */
-.crop-mask { position: absolute; pointer-events: none; background: var(--bg-page); opacity: $crop-mask-opacity; }
+/* 框外压暗：固定黑 55%，框内保持原图亮度 */
+.crop-mask { position: absolute; pointer-events: none; background: $crop-mask-color; }
 
-.crop-frame { position: absolute; box-sizing: border-box; pointer-events: none; border: 2rpx solid var(--bg-card); box-shadow: var(--shadow-float); }
+/* 取景框：1px 内描边（box-sizing: border-box），保证外尺寸仍是 FRAME */
+.crop-frame { position: absolute; box-sizing: border-box; pointer-events: none; border: 1px solid $crop-edge-color; box-shadow: var(--shadow-float); }
 
-.crop-grid-line { position: absolute; background: var(--bg-card); opacity: 0.6; }
+.crop-circle { position: absolute; top: 0; left: 0; right: 0; bottom: 0; box-sizing: border-box; border: 1px solid $crop-circle-color; border-radius: 50%; }
+
+.crop-grid-line { position: absolute; background: $crop-grid-color; }
 .crop-grid-line--v1 { top: 0; bottom: 0; left: 33.33%; width: 1px; }
 .crop-grid-line--v2 { top: 0; bottom: 0; left: 66.66%; width: 1px; }
 .crop-grid-line--h1 { left: 0; right: 0; top: 33.33%; height: 1px; }
 .crop-grid-line--h2 { left: 0; right: 0; top: 66.66%; height: 1px; }
 
-.crop-zoom { position: absolute; top: var(--space-sm); right: var(--space-sm); padding: 0 var(--space-xs); border-radius: var(--radius-pill); background: var(--bg-card); box-shadow: var(--shadow-card); }
-.crop-zoom-text { font-size: var(--fs-sm); line-height: 44rpx; color: var(--text-hint); }
+/* 倍率徽标：舞台上沿居中，常显，格式 `1.0×` */
+.crop-zoom { position: absolute; top: 2px; left: 0; right: 0; display: flex; justify-content: center; pointer-events: none; }
+.crop-zoom-text { padding: 0 var(--space-sm); border-radius: var(--radius-pill); background: $crop-badge-bg; color: $crop-badge-text; font-size: var(--fs-sm); line-height: 20px; }
 
 .crop-loading { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-sm); background: var(--bg-card); }
-.crop-spinner { width: 48rpx; height: 48rpx; border: 4rpx solid var(--border); border-top-color: var(--color-primary); border-radius: var(--radius-pill); animation: crop-spin 0.8s linear infinite; }
+.crop-spinner { width: 48rpx; height: 48rpx; border: 4rpx solid var(--border-light); border-top-color: var(--color-primary); border-radius: var(--radius-pill); animation: crop-spin 0.8s linear infinite; }
 .crop-loading-text { font-size: var(--fs-sm); color: var(--text-hint); }
 
-.crop-panel { flex: 1; display: flex; flex-direction: column; padding: var(--space-lg) var(--space-lg) calc(var(--space-lg) + env(safe-area-inset-bottom)); border-radius: var(--radius-lg) var(--radius-lg) 0 0; background: var(--bg-card); }
+/* 操作面板吸底，底部叠加安全区 */
+.crop-panel { position: fixed; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; padding: var(--space-lg) var(--space-lg) calc(var(--space-lg) + env(safe-area-inset-bottom)); border-radius: var(--radius-lg) var(--radius-lg) 0 0; background: var(--bg-card); }
 
 .crop-hint { font-size: var(--fs-sm); color: var(--text-hint); text-align: center; }
 

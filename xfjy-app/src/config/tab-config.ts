@@ -28,11 +28,13 @@ export const PUBLISH_PAGE = "pages/circle/publish";
  * 不显示全局注入底栏的页面路径前缀：
  *  - pages/auth：登录等全屏页
  *  - pages/mine/agreement：用户协议/隐私政策（登录前可读的合规全屏页，不归属「我的」tab）
+ *  - pages/mine/avatar-crop：头像裁剪全屏编辑页，底部操作区吸底，不能被底栏遮挡
  *  - publish：H5 端由 custom-tabbar 组件渲染底栏，排除注入避免双栏重叠
  */
 export const EXCLUDED_PREFIXES = [
   "pages/auth",
   "pages/mine/agreement",
+  "pages/mine/avatar-crop",
   PUBLISH_PAGE,
   "pages/video/search",
   "pages/video/search-result",

@@ -331,7 +331,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { onShow, onUnload } from "@dcloudio/uni-app";
 import { useUserStore } from "@/store/user";
 import A11yRadioGroup from "@/components/a11y-radio-group.vue";
 import A11yButton from "@/components/a11y-button.vue";
@@ -340,6 +340,11 @@ import A11yPicker from "@/components/a11y-picker.vue";
 import A11yDialog from "@/components/a11y-dialog.vue";
 import { getUserProfile, updateUserProfile, uploadImage } from "@/api/mine";
 import { success, fail, info, loading, hideLoading, confirm } from "@/utils/ux";
+import {
+  AVATAR_ACCEPTED_EXTS,
+  AVATAR_ACCEPTED_TYPES,
+  AVATAR_MAX_FILE_SIZE,
+} from "@/constants/avatar";
 
 /** 照片墙最大数量 */
 const MAX_ALBUM_COUNT = 6;
@@ -517,27 +522,22 @@ function handleChooseImageFail(err: any): void {
   }
 }
 
-/** 头像上限 2MB（与需求一致；超大图先拦截，避免无效上传） */
-const AVATAR_MAX_SIZE = 2 * 1024 * 1024;
-const AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const AVATAR_EXTS = ["jpg", "jpeg", "png", "webp"];
-
 /** 选图后校验：返回错误文案，通过返回 null（部分平台无 type 时按扩展名兜底） */
 function validateAvatarFile(file: { size?: number; type?: string }, path: string): string | null {
-  if (Number(file.size || 0) > AVATAR_MAX_SIZE) return "图片不能超过 2MB";
+  if (Number(file.size || 0) > AVATAR_MAX_FILE_SIZE) return "图片不能超过 2MB";
   const type = String(file.type || "").toLowerCase();
   const ext = path.split(".").pop()?.toLowerCase() || "";
-  const typeOk = type ? AVATAR_TYPES.includes(type) : AVATAR_EXTS.includes(ext);
+  const typeOk = type ? AVATAR_ACCEPTED_TYPES.includes(type) : AVATAR_ACCEPTED_EXTS.includes(ext);
   return typeOk ? null : "仅支持 JPG/PNG/WebP 图片";
 }
 
-/** 更换头像：选图 → 校验 → 上传 MinIO → 保存成功后写入 form */
+/** 更换头像：选图 → 校验 → 进入独立裁剪页（1:1 导出后回传上传） */
 function changeAvatar(): void {
   if (avatarUploading.value) return;
   uni.chooseImage({
     count: 1,
     sizeType: ["compressed"],
-    success: async (res) => {
+    success: (res) => {
       const tempPath = res.tempFilePaths[0];
       if (!tempPath) return; // 用户取消
       const file = (res.tempFiles?.[0] || {}) as { size?: number; type?: string };
@@ -546,26 +546,39 @@ function changeAvatar(): void {
         fail(invalid);
         return;
       }
-      avatarUploading.value = true;
-      try {
-        const result = await uploadImage(tempPath);
-        if (result.status === "done" && result.name) {
-          // 交由 saveField 在保存成功后写入 form：失败时头像保持旧图，
-          // 避免「界面显示新头像但后端仍是旧图」的不一致
-          const ok = await saveField("avatar", result.name);
-          if (ok) success("头像已更新");
-        } else {
-          fail("上传失败，请检查网络后重试");
-        }
-      } catch {
-        fail("网络异常，头像未更新，请重试");
-      } finally {
-        avatarUploading.value = false;
-      }
+      uni.navigateTo({
+        url: `/pages/mine/avatar-crop?src=${encodeURIComponent(tempPath)}`,
+        fail: () => fail("无法打开裁剪页，请重试"),
+      });
     },
     fail: handleChooseImageFail,
   });
 }
+
+/**
+ * 裁剪页回传（uni.$emit "avatar:cropped"）：上传裁剪后的 1:1 图。
+ * 只有后端保存成功才写入 form，失败时头像保持旧图。
+ */
+async function handleCroppedAvatar(path: string): Promise<void> {
+  if (!path || avatarUploading.value) return;
+  avatarUploading.value = true;
+  try {
+    const result = await uploadImage(path);
+    if (result.status === "done" && result.name) {
+      const ok = await saveField("avatar", result.name);
+      if (ok) success("头像已更新");
+    } else {
+      fail("上传失败，请检查网络后重试");
+    }
+  } catch {
+    fail("网络异常，头像未更新，请重试");
+  } finally {
+    avatarUploading.value = false;
+  }
+}
+
+uni.$on("avatar:cropped", handleCroppedAvatar);
+onUnload(() => uni.$off("avatar:cropped", handleCroppedAvatar));
 
 /** 添加照片墙图片：逐张上传 MinIO，成功 URL 入数组 */
 function addPhoto(): void {
@@ -577,7 +590,7 @@ function addPhoto(): void {
     success: async (res) => {
       const tempPaths = res.tempFilePaths || [];
       if (tempPaths.length === 0) return; // 用户取消
-      loading("上传中...");
+      loading("上传中…");
       try {
         let failed = 0;
         const uploaded: string[] = [];

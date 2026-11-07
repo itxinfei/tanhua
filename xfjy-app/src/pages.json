@@ -107,6 +107,12 @@
 			}
 		},
 		{
+			"path": "pages/mine/avatar-crop",
+			"style": {
+				"navigationBarTitleText": "裁剪头像"
+			}
+		},
+		{
 			"path": "pages/mine/vip",
 			"style": {
 				"navigationStyle": "custom"
