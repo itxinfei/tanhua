@@ -51,15 +51,28 @@
         <input
           v-model="phone"
           class="input"
+          :class="{ 'input--error': errors.phone }"
           type="number"
           inputmode="numeric"
           maxlength="11"
           confirm-type="next"
           placeholder="请输入手机号"
           placeholder-class="placeholder"
+          autocomplete="tel"
           :aria-labelledby="PHONE_LABEL_ID"
+          :aria-invalid="errors.phone ? 'true' : 'false'"
+          :aria-describedby="errors.phone ? PHONE_ERROR_ID : null"
           @input="sanitizePhone"
+          @blur="validatePhone"
         >
+        <text
+          v-if="errors.phone"
+          :id="PHONE_ERROR_ID"
+          class="field-error"
+          role="alert"
+        >
+          {{ errors.phone }}
+        </text>
       </view>
 
       <view class="input-group">
@@ -73,14 +86,19 @@
           <input
             v-model="code"
             class="input code-input"
+            :class="{ 'input--error': errors.code }"
             type="number"
             inputmode="numeric"
             maxlength="6"
             confirm-type="done"
             placeholder="请输入验证码"
             placeholder-class="placeholder"
+            autocomplete="one-time-code"
             :aria-labelledby="CODE_LABEL_ID"
+            :aria-invalid="errors.code ? 'true' : 'false'"
+            :aria-describedby="errors.code ? CODE_ERROR_ID : null"
             @input="sanitizeCode"
+            @blur="validateCode"
           >
           <a11y-button
             variant="ghost"
@@ -92,6 +110,14 @@
             {{ countdown > 0 ? `${countdown}s` : "获取验证码" }}
           </a11y-button>
         </view>
+        <text
+          v-if="errors.code"
+          :id="CODE_ERROR_ID"
+          class="field-error"
+          role="alert"
+        >
+          {{ errors.code }}
+        </text>
       </view>
 
       <!-- 用户协议：整行作为语义 checkbox，支持键盘 Space 切换（WCAG 2.1.1 / 4.1.2） -->
@@ -230,7 +256,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onUnmounted } from "vue";
+import { ref, reactive, computed, watch, nextTick, onUnmounted } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import { useUserStore } from "@/store/user";
 import { isTabPage } from "@/utils/request";
@@ -242,6 +268,9 @@ import { success, info, fail } from "@/utils/ux";
 /** 表单标签 id：供 input 的 aria-labelledby 关联，保证读屏能读出字段名 */
 const PHONE_LABEL_ID = "login-phone-label";
 const CODE_LABEL_ID = "login-code-label";
+/** 错误提示 id：供 input 的 aria-describedby 关联，读屏能读出错误内容（WCAG 3.3.1） */
+const PHONE_ERROR_ID = "login-phone-error";
+const CODE_ERROR_ID = "login-code-error";
 
 const userStore = useUserStore();
 
@@ -322,6 +351,40 @@ const agree = ref(false);
 const countdown = ref(0);
 const logging = ref(false);
 
+/**
+ * 字段级内联错误：blur / 提交时写入，输入内容变化时清空。
+ * 用 toast 做全局反馈的同时保留字段定位，让读屏与键盘用户能准确找到问题字段
+ * （WCAG 3.3.1 Error Identification + 3.3.3 Error Suggestion）。
+ */
+const errors = reactive<{ phone: string; code: string }>({ phone: "", code: "" });
+
+/** 手机号校验：写入 errors.phone */
+function validatePhone(): void {
+  if (!phone.value) {
+    errors.phone = "请输入手机号";
+  } else if (!PHONE_REGEX.test(phone.value)) {
+    errors.phone = "请输入正确的 11 位手机号";
+  } else {
+    errors.phone = "";
+  }
+}
+
+/** 验证码校验：写入 errors.code */
+function validateCode(): void {
+  if (!code.value) {
+    errors.code = "请输入验证码";
+  } else if (code.value.length < MIN_CODE_LENGTH) {
+    errors.code = "请输入完整的验证码";
+  } else {
+    errors.code = "";
+  }
+}
+
+/** 输入变化时清掉该字段的错误（避免错误信息残留到已修正的字段） */
+watch(phone, () => {
+  if (errors.phone) errors.phone = "";
+});
+
 // 计算属性
 const phoneValid = computed(() => PHONE_REGEX.test(phone.value));
 /**
@@ -339,6 +402,9 @@ const canLogin = computed(
 /** 验证码输满自动提交（探探式体验）：仅在手机号有效、协议已勾选、非登录中时触发，不打扰用户 */
 const CODE_AUTO_SUBMIT_LENGTH = 6;
 watch(code, (val) => {
+  // 输入变化即清掉该字段错误
+  if (errors.code) errors.code = "";
+  // 输满自动提交
   if (val.length >= CODE_AUTO_SUBMIT_LENGTH && phoneValid.value && agree.value && !logging.value) {
     handleLogin();
   }
@@ -347,8 +413,9 @@ watch(code, (val) => {
 // 发送验证码
 async function handleSendCode() {
   forceSanitize();
+  validatePhone();
   if (!phoneValid.value) {
-    info("请输入正确的手机号");
+    info(errors.phone || "请输入正确的手机号");
     return;
   }
   try {
@@ -380,6 +447,9 @@ function startCountdown() {
 
 onUnmounted(() => {
   if (countdownTimer) clearInterval(countdownTimer);
+  // 防抖清洗定时器同样要清，避免页面销毁后回调写已卸载组件的状态
+  if (phoneSanitizeTimer) clearTimeout(phoneSanitizeTimer);
+  if (codeSanitizeTimer) clearTimeout(codeSanitizeTimer);
 });
 
 // 跳转用户协议 / 隐私政策落地页
@@ -451,12 +521,14 @@ function goFullAgreement(): void {
 // 登录
 async function handleLogin() {
   forceSanitize();
+  validatePhone();
+  validateCode();
   if (!phoneValid.value) {
-    info("请输入正确的手机号");
+    info(errors.phone || "请输入正确的手机号");
     return;
   }
   if (code.value.length < MIN_CODE_LENGTH) {
-    info("请输入验证码");
+    info(errors.code || "请输入验证码");
     return;
   }
   // 协议未勾选：明确告知而非静默无响应
@@ -674,10 +746,30 @@ async function handleLogin() {
       box-shadow: 0 0 0 4rpx rgba(var(--color-primary-rgb), 0.12);
       background: var(--bg-card);
     }
+
+    /* 错误态：危险色描边 + 浅红底（token 化，适配暗色） */
+    &.input--error {
+      border-color: var(--color-danger);
+      background: var(--color-danger-tint, var(--bg-sub));
+
+      &:focus {
+        border-color: var(--color-danger);
+        box-shadow: 0 0 0 4rpx rgba(var(--color-danger-rgb, 229, 72, 77), 0.12);
+      }
+    }
   }
 
   .placeholder {
     color: var(--text-hint);
+  }
+
+  /* 字段级内联错误：位置紧邻输入框，色走 --color-danger（token 化） */
+  .field-error {
+    display: block;
+    margin-top: 8rpx;
+    font-size: 22rpx;
+    line-height: 1.4;
+    color: var(--color-danger);
   }
 }
 

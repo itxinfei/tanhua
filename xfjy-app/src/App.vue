@@ -133,6 +133,8 @@ page {
   --success-text: #1a7f37;
   --warning-tint: #fff7e6;
   --warning-text: #b35c00;
+  /* 危险色浅底：输入框错误态等场景（亮底浅红） */
+  --color-danger-tint: #fdebec;
   /* VIP 金（会员皇冠/标签/渐变） */
   --gold: #ffd700;
   --gold-rgb: 255, 215, 0;
@@ -142,6 +144,9 @@ page {
   /* VIP 页固定深色体系（有意恒暗，亮/暗模式同值，不随主题变） */
   --bg-deep: #1a1a2e;
   --bg-deep-grad: #2c2c54;
+  /* 个人页 VIP 卡暖棕黑渐变停点（有意恒暗，亮/暗模式同值） */
+  --vip-card-grad-1: #2c2c2c;
+  --vip-card-grad-2: #4a3b2a;
   /* 深色品牌按钮上的反色文字（恒白，不随暗色模式变） */
   --text-inverse: #ffffff;
   /* 主色 RGB 分量：供 rgba()/color-mix() 使用（box-shadow / drop-shadow 光晕）。
@@ -152,6 +157,10 @@ page {
   --color-primary-rgb: 254, 60, 114;
   /* 主按钮投影（跟随主色，暗色模式下由下方 media 覆盖为暗色主色的分量） */
   --shadow-primary: 0 8rpx 24rpx rgba(var(--color-primary-rgb), 0.35);
+  /* 中性卡片阴影：卡片/气泡轻投影；--shadow-float 用于贴层浮起元素（更多面板图标等）。
+     暗色模式下黑色阴影需加深才可见，由下方 media 覆盖 */
+  --shadow-card: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+  --shadow-float: 0 6rpx 16rpx rgba(0, 0, 0, 0.08);
 
   /* ===== 视频沉浸页专属 token（2026-11-06 用户裁决：抖音基线对齐 + 视觉冻结）=====
      播放页是永恒深色沉浸环境，强调色不随系统主题翻转；亮/暗模式同值，禁止用于视频页以外场景。
@@ -261,11 +270,19 @@ page {
     --success-text: #6ee787;
     --warning-tint: #3a2a12;
     --warning-text: #ffb86b;
+    /* 危险色浅底暗色配对：深底浅红（与暗色危险色 #ff6b6b 同源） */
+    --color-danger-tint: #3a1a1a;
     /* 暗色下危险色提亮一档，保证暗底对比度 */
     --color-danger: #ff6b6b;
     /* 与上方暗色危险色 #ff6b6b 同源（RGB 分量必须同步） */
     --color-danger-rgb: 255, 107, 107;
     --shadow-primary: 0 8rpx 24rpx rgba(249, 87, 143, 0.3);
+    /* 暗色下卡片与浮层阴影加深，保证在 #1a1a1a 底上仍有层次 */
+    --shadow-card: 0 2rpx 12rpx rgba(0, 0, 0, 0.4);
+    --shadow-float: 0 6rpx 16rpx rgba(0, 0, 0, 0.5);
+    /* VIP 卡渐变有意恒暗，暗色下与亮色同值显式声明 */
+    --vip-card-grad-1: #2c2c2c;
+    --vip-card-grad-2: #4a3b2a;
     /* 以下功能色亮/暗同值，RGB 分量与上方亮色段保持同源 */
     --success-rgb: 76, 217, 100;
     --info-blue-rgb: 74, 144, 217;
@@ -286,6 +303,24 @@ page {
    同样中招）。scroll-view 的 padding 计入宽度才是正确语义，全站统一。 */
 scroll-view {
   box-sizing: border-box;
+}
+
+/* 响应系统「减弱动态效果」（WCAG 2.3.3，Reduced Motion 高优先级）：
+   H5/APP-webview 识别后把动画/过渡压到近无；微信小程序 WXSS 不支持该媒体查询，静默忽略。
+   显式列举标签而非 * 通配（小程序 WXSS 不支持通配选择器）；
+   !important 是 reduced-motion 全局兜底的标准范式，用于压过页面级 animation 简写。 */
+@media (prefers-reduced-motion: reduce) {
+  view,
+  text,
+  scroll-view,
+  image,
+  button,
+  input,
+  navigator {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* 安全区域 */
@@ -551,7 +586,7 @@ scroll-view {
 /* 渐变主按钮 */
 .btn-gradient {
   background: linear-gradient(90deg, var(--color-primary-deep), var(--color-primary));
-  color: #fff;
+  color: var(--text-inverse);
   border: none;
   box-shadow: 0 8rpx 24rpx rgba(177, 59, 255, 0.35);
   transition: transform 0.15s ease, box-shadow 0.15s ease;

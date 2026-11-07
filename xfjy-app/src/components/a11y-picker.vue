@@ -360,7 +360,8 @@ defineExpose({ syncFromProp });
 
 .manual-input {
   flex: 1;
-  height: 80rpx;
+  /* 热区 ≥88rpx（44px）：原 80rpx 低于基线，提至 88 */
+  height: 88rpx;
   background: var(--bg-sub);
   border-radius: 12rpx;
   /* 右内距给清除键留空间：清除键 right:32rpx + width:48rpx = 80rpx */

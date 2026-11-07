@@ -133,14 +133,15 @@
             v-if="item.tags && item.tags.length"
             class="tag-row"
           >
-            <view
+            <a11y-button
               v-for="(tag, i) in item.tags"
               :key="i"
               class="tag-chip"
+              :label="`查看话题 ${tag}`"
               @tap="goTag(tag)"
             >
-              # {{ tag }}
-            </view>
+              <text># {{ tag }}</text>
+            </a11y-button>
           </view>
           <view
             v-if="item.imageContent && item.imageContent.length"
@@ -205,7 +206,7 @@
           v-if="loading"
           class="loading"
         >
-          加载中...
+          加载中…
         </view>
         <!-- P2-4：全部加载完给明确终点，避免用户反复上拉以为卡了 -->
         <view
@@ -288,17 +289,33 @@
             </a11y-button>
           </view>
           <template v-else>
+            <!-- 失败态与「真的没通知」严格区分；love 权益锁定走上方锁定视图，不进此分支 -->
             <empty-state
-              v-if="noticeList.length === 0 && !noticeLoading"
+              v-if="noticeList.length === 0 && !noticeLoading && !noticeLoadFailed"
               icon="notification"
               title="暂无通知"
               desc="有人喜欢你时会在这里提醒你"
             />
+            <empty-state
+              v-else-if="noticeList.length === 0 && !noticeLoading && noticeLoadFailed"
+              role="alert"
+              icon="info"
+              title="暂时没能获取通知"
+              desc="服务可能开小差了，检查网络后重试"
+            >
+              <a11y-button
+                class="feed-retry"
+                label="重新加载通知"
+                @tap="fetchAndMarkNotice(noticePanelType)"
+              >
+                重新加载
+              </a11y-button>
+            </empty-state>
             <view
               v-if="noticeLoading"
               class="notice-loading"
             >
-              加载中...
+              加载中…
             </view>
             <a11y-button
               v-for="item in noticeList"
@@ -365,11 +382,27 @@
         scroll-y
         class="msg-list"
       >
+        <!-- 空状态：确实没有会话；失败态严格区分，给重试入口，避免把故障误报成「没聊天」 -->
         <empty-state
-          v-if="chatList.length === 0"
+          v-if="chatList.length === 0 && !chatLoadFailed"
           title="还没有聊天"
           desc="去匹配页滑动，遇见新朋友吧"
         />
+        <empty-state
+          v-else-if="chatList.length === 0 && chatLoadFailed"
+          role="alert"
+          icon="info"
+          title="暂时没能获取聊天列表"
+          desc="服务可能开小差了，检查网络后重试"
+        >
+          <a11y-button
+            class="feed-retry"
+            label="重新加载聊天列表"
+            @tap="loadMessages()"
+          >
+            重新加载
+          </a11y-button>
+        </empty-state>
         <a11y-button
           v-for="item in chatList"
           :key="item.userId"
@@ -564,6 +597,8 @@ const NOTICE_META: Record<NoticeType, { iconClass: string; label: string; color:
 };
 
 const chatList = ref<ChatListItem[]>([]);
+/** 会话列表加载失败标记：失败且列表为空时渲染失败态，与「确实没有会话」区分 */
+const chatLoadFailed = ref(false);
 
 const noticeItems = computed(() =>
   (Object.keys(NOTICE_META) as NoticeType[]).map((type) => ({
@@ -615,8 +650,10 @@ unreadCount: s.unreadCount,
 };
 });
 updateTabBarBadge();
+chatLoadFailed.value = false;
 } catch {
-// 请求失败由 request 层统一 toast
+// 请求失败由 request 层统一 toast；置失败态，空列表时展示重试入口（已有旧数据则保留不清空）
+chatLoadFailed.value = true;
 }
 }
 
@@ -653,6 +690,8 @@ const noticePanelType = ref<string>("");
 const noticeList = ref<NoticeItem[]>([]);
 const noticeLoading = ref(false);
 const noticeLocked = ref(false);
+/** 通知列表加载失败标记：love 权益锁定（noticeLocked）是产品设计而非故障，不得置位 */
+const noticeLoadFailed = ref(false);
 
 const noticeTypeColor = computed(() => NOTICE_TYPE_COLORS[noticePanelType.value] || "var(--color-primary)");
 const noticeTypeIcon = computed(() => NOTICE_TYPE_ICONS[noticePanelType.value] || "i-ph-bell");
@@ -682,6 +721,7 @@ function mapAnnouncementItem(msg: MessageAnnouncement): NoticeItem {
 async function loadNoticeList(type: string): Promise<number | null> {
   if (noticeLoading.value) return null;
   noticeLoading.value = true;
+  noticeLoadFailed.value = false;
   try {
     const params = { page: 1, pagesize: NOTICE_PAGE_SIZE };
 
@@ -721,10 +761,20 @@ async function loadNoticeList(type: string): Promise<number | null> {
       return null;
     }
   } catch {
+    // 请求失败由 request 层统一 toast；置失败态与「确实没有通知」区分（旧数据保留不清空）
+    noticeLoadFailed.value = true;
     return null;
   } finally {
     noticeLoading.value = false;
   }
+}
+
+/** 拉取通知并在成功后清零未读；失败（返回 null）时保留角标，避免漏提醒。
+ *  面板切换与失败态重试共用同一套语义，防止两处实现分叉 */
+async function fetchAndMarkNotice(type: string): Promise<void> {
+  const total = await loadNoticeList(type);
+  // 加载成功后才清零未读
+  if (total !== null) chatStore.markNoticeRead(type as NoticeType, total);
 }
 
 /** 切换通知面板：同一类型再次点击收起 */
@@ -736,9 +786,8 @@ async function toggleNoticePanel(type: string): Promise<void> {
   noticePanelType.value = type;
   noticeList.value = [];
   noticeLocked.value = false;
-  const total = await loadNoticeList(type);
-  // 加载成功后才清零未读
-  if (total !== null) chatStore.markNoticeRead(type as NoticeType, total);
+  noticeLoadFailed.value = false;
+  await fetchAndMarkNotice(type);
 }
 
 function goVip(): void {
@@ -973,7 +1022,7 @@ flex-direction: column;
   border-radius: 24rpx;
   padding: 24rpx;
   margin-bottom: 16rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-card);
 
   .post-header {
     display: flex;
