@@ -166,7 +166,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onUnmounted } from "vue";
+import { ref, computed, nextTick, onUnmounted } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
 import SmartImage from "@/components/smart-image.vue";
@@ -210,7 +210,10 @@ const userStore = useUserStore();
 const myAvatar = ref(DEFAULT_AVATAR);
 const agentId = ref("");
 const inputText = ref("");
-const sending = ref(false);
+const sendingMsgs = new Set<string>();
+
+/** 是否有消息在途（仅用于发送按钮禁用态，不阻断消息投递） */
+const sending = computed(() => sendingMsgs.size > 0);
 const isInputFocus = ref(false);
 const scrollToId = ref("");
 const messageList = ref<Message[]>([]);
@@ -257,17 +260,16 @@ function scrollToBottom(): void {
   });
 }
 
-/** 发送文字消息 */
+/** 发送文字消息：不再被全局 sending 阻断，允许多条消息排队投递 */
 async function sendText(): Promise<void> {
   const text = inputText.value.trim();
-  if (!text || sending.value) return;
+  if (!text) return;
   inputText.value = "";
   await sendMessage(text);
 }
 
 /** 点击快捷问题直接发送 */
 async function sendQuick(text: string): Promise<void> {
-  if (sending.value) return;
   await sendMessage(text);
 }
 
@@ -288,22 +290,29 @@ async function sendMessage(text: string): Promise<void> {
   await deliver(msg);
 }
 
-/** 失败重发：复用原气泡 */
+/** 失败重发：复用原气泡（同一消息在途时忽略，不同消息可并行） */
 async function retrySend(msg: Message): Promise<void> {
-  if (sending.value) return;
+  if (msg.status === "sending") return;
   await deliver(msg);
 }
 
-/** 实际投递：成功置 sent，失败置 failed（可点击重发） */
+/** 实际投递：成功置 sent，失败置 failed（可点击重发）。
+ *  锁粒度为「单条消息」而非全局：sendingMsgs 记录在途消息 id，
+ *  避免全局锁导致连发第二条被静默丢弃、重发点击无反应。
+ */
 async function deliver(msg: Message): Promise<void> {
-  sending.value = true;
+  if (sendingMsgs.has(msg.id)) return;
+  sendingMsgs.add(msg.id);
   msg.status = "sending";
-  const ok = await sendTextMessage(agentId.value, msg.content);
-  msg.status = ok ? "sent" : "failed";
-  if (!ok) {
-    fail("发送失败，点击气泡旁的 ! 重发");
+  try {
+    const ok = await sendTextMessage(agentId.value, msg.content);
+    msg.status = ok ? "sent" : "failed";
+    if (!ok) {
+      fail("发送失败，点击气泡旁的 ! 重发");
+    }
+  } finally {
+    sendingMsgs.delete(msg.id);
   }
-  sending.value = false;
 }
 
 /** 接收客服新消息回调（onUnmounted 注销） */
@@ -333,10 +342,11 @@ async function loadHistory(): Promise<void> {
     status: "read" as MsgStatus,
   }));
   const merged = [...historyItems, ...buffered].sort((a, b) => a.timestamp - b.timestamp);
-  const seen = new Set<number>();
+  // 用 id 去重而非 timestamp：同一毫秒可有多条消息，timestamp 去重会误丢
+  const seen = new Set<string>();
   messageList.value = merged.filter((item) => {
-    if (seen.has(item.timestamp)) return false;
-    seen.add(item.timestamp);
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
     return true;
   });
   // 合并完成后清空缓冲并切到实时通道：后续到达消息直接追加，重试也不会重复合并
