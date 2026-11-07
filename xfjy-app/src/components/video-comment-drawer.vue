@@ -192,18 +192,26 @@ function onInput(e: any): void {
 }
 
 async function toggleLike(c: Comment) {
+  // 乐观更新：先改本地状态，请求失败再回滚到请求前的精确值
+  // （不用 += 反推，避免请求期间计数被改导致回滚错误）
+  const wasLiked = c.hasLiked === 1;
+  const prevCount = c.likeCount;
   try {
-    if (c.hasLiked === 1) {
-      const count = await dislikeVideoComment(c.id);
+    if (wasLiked) {
       c.hasLiked = 0;
+      c.likeCount = Math.max(0, c.likeCount - 1);
+      const count = await dislikeVideoComment(c.id);
       if (typeof count === "number") c.likeCount = count;
     } else {
-      const count = await likeVideoComment(c.id);
       c.hasLiked = 1;
+      c.likeCount += 1;
+      const count = await likeVideoComment(c.id);
       if (typeof count === "number") c.likeCount = count;
     }
   } catch {
-    // request 层统一 toast
+    // 请求失败：回滚（request 层统一 toast）
+    c.hasLiked = wasLiked ? 1 : 0;
+    c.likeCount = prevCount;
   }
 }
 

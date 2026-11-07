@@ -26,6 +26,7 @@
           :maxlength="KEYWORD_MAX"
           placeholder="搜索视频、用户"
           placeholder-class="search-placeholder"
+          aria-label="搜索视频、用户"
           @confirm="submit(keyword)"
         >
         <a11y-button

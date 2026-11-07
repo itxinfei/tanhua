@@ -287,7 +287,7 @@
             >
               <view
                 class="progress-inner"
-                :style="{ width: (scrubbing ? scrubPercent : progress) + '%' }"
+                :style="{ transform: 'scaleX(' + (scrubbing ? scrubPercent : progress) / 100 + ')' }"
               />
               <view
                 v-if="scrubbing"
@@ -2251,10 +2251,14 @@ onShareAppMessage(() => ({
   pointer-events: none;
 
   .progress-inner {
+    /* 满宽 + scaleX 模拟进度：timeupdate 高频触发，transform 只走合成层不触发布局；
+       视觉与 width 百分比等价，冻结表约束（纯白细条）不变 */
+    width: 100%;
     height: 100%;
     /* 冻结表：播放进度条纯白细条（抖音范式），不用品牌渐变 */
     background: var(--text-inverse);
-    transition: width 0.2s linear;
+    transform-origin: left center;
+    transition: transform 0.2s linear;
   }
 
   /* 拖动把手：跨在细条上的圆点，只在拖动时出现 */
@@ -2305,7 +2309,8 @@ onShareAppMessage(() => ({
   flex-direction: column;
   align-items: center;
   pointer-events: none;
-  animation: hintBounce 1.6s ease-in-out infinite;
+  /* ease-out-quart 曲线替代 ease-in-out 回弹感，仅上下轻提示，不抢视频内容 */
+  animation: hintFloat 1.6s cubic-bezier(0.25, 1, 0.5, 1) infinite;
 
   .swipe-triangle {
     width: 36rpx;
@@ -2321,7 +2326,7 @@ onShareAppMessage(() => ({
   }
 }
 
-@keyframes hintBounce {
+@keyframes hintFloat {
   0%, 100% { transform: translateX(-50%) translateY(0); }
   50% { transform: translateX(-50%) translateY(-10rpx); }
 }
