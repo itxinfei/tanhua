@@ -561,7 +561,7 @@ const systemStore = useSystemStore();
  * 分页大小。
  * 取 30 而非 10：视频源按发布时间聚集，最新十几条常常全部来自同一作者，
  * 若每页只取 10 条会出现"连续刷到的视频都是同一个人"（用户误以为是自己的账号）。
- * 一次多取一批后由 interleaveByAuthor 按作者轮转打散，保证首屏即作者多样。
+ * 一次多取一批后由 arrangeForChannel 保留后端顺序，各频道统一尊重后端排序（热点按热度分、关注按时间倒序）。
  * swiper 仅渲染当前 ±1 项，30 条不会带来渲染压力。
  */
 const PAGE_SIZE = 30;
@@ -1001,48 +1001,12 @@ async function switchChannel(ch: ChannelKey) {
 }
 
 /**
- * 按作者打散：避免视频流顶部连续多条都来自同一作者（如最新 12 条全是某用户），
- * 导致用户误以为"所有视频都是自己"。轮转排列，保证相邻视频作者不同（作者数≥2 时）。
+ * 按频道排布首屏列表：后端返回顺序是各频道唯一真源，前端不再打散。
+ * 原实现曾对 hot/follow 做 interleaveByAuthor 打散，会破坏后端排序
+ * （热点应按热度分、关注应按时间倒序），2026-11-07 统一改为保留后端顺序。
  */
-function interleaveByAuthor<T extends { userId: string | number }>(list: T[]): T[] {
-  if (!list || list.length <= 2) return list;
-  const byAuthor = new Map<string | number, T[]>();
-  for (const v of list) {
-    const k = v.userId;
-    if (!byAuthor.has(k)) byAuthor.set(k, []);
-    byAuthor.get(k)!.push(v);
-  }
-  const queues = Array.from(byAuthor.values()).sort((a, b) => b.length - a.length);
-  const result: T[] = [];
-  const maxLen = Math.max(...queues.map((q) => q.length));
-  for (let i = 0; i < maxLen; i++) {
-    for (const q of queues) {
-      if (i < q.length) result.push(q[i]);
-    }
-  }
-  return result;
-}
-
-/** 合并下一页时已打散列表，并消除跨页边界处的同作者相邻 */
-function mergeInterleaved<T extends { id: string | number; userId: string | number }>(current: T[], next: T[]): T[] {
-  if (!next.length) return current;
-  const interleaved = interleaveByAuthor(next);
-  const last = current[current.length - 1];
-  if (last && interleaved.length && interleaved[0].userId === last.userId) {
-    interleaved.push(interleaved.shift() as T);
-  }
-  return appendUnique(current, interleaved);
-}
-
-/** 推荐/附近必须保持后端顺序（热度分/距离），二次打散会破坏排序与稳定分页 */
-const KEEP_BACKEND_ORDER: ChannelKey[] = ["recommend", "location"];
-
-function arrangeForChannel(key: ChannelKey, items: Video[]): Video[] {
-  return KEEP_BACKEND_ORDER.indexOf(key) >= 0 ? items : interleaveByAuthor(items);
-}
-
-function mergeForChannel(key: ChannelKey, current: Video[], next: Video[]): Video[] {
-  return KEEP_BACKEND_ORDER.indexOf(key) >= 0 ? appendUnique(current, next) : mergeInterleaved(current, next);
+function arrangeForChannel(_key: ChannelKey, items: Video[]): Video[] {
+  return items;
 }
 
 const TAP_GAP = 280;
@@ -1297,7 +1261,7 @@ async function loadVideos() {
   if (chState.list.value.length === 0) {
     const cached = readVideoCache(ch);
     if (cached.length) {
-      chState.list.value = interleaveByAuthor(cached);
+      chState.list.value = arrangeForChannel(ch, cached);
       isPlaying.value = true;
       nextTick(() => playAt(0));
     }
@@ -1408,7 +1372,7 @@ async function loadMoreVideos() {
     if (token !== loadToken || activeChannel.value !== channel) return;
     if (res.items && res.items.length > 0) {
       const before = chState.list.value.length;
-      chState.list.value = mergeForChannel(channel, chState.list.value, res.items);
+      chState.list.value = appendUnique(chState.list.value, res.items);
       trimLoadedList(chState);
       // 本页全为重复视频时同样推进页码，避免反复请求同一页
       chState.page.value = nextPage;
