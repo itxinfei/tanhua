@@ -129,7 +129,8 @@ async function submit() {
 </script>
 
 <style lang="scss" scoped>
-.verify-page { min-height: 100vh; background: var(--bg-sub); padding: 24rpx; }
+/* 原生导航页：min-height 需减去导航栏，否则内容不足时底部仍溢出 44px */
+.verify-page { min-height: calc(100vh - var(--window-top, 0px)); background: var(--bg-sub); padding: 24rpx; }
 .tips { font-size: 24rpx; color: var(--text-hint); line-height: 1.6; margin-bottom: 24rpx; }
 .form-card { background: var(--bg-card); border-radius: 24rpx; padding: 8rpx 32rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   .form-item { display: flex; align-items: center; padding: 26rpx 0; border-bottom: 1rpx solid var(--border-faint);

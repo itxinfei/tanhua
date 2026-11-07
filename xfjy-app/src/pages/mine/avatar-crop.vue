@@ -164,7 +164,7 @@ const WHEEL_ZOOM_STEP = 1.1;
  */
 const DPR_MAX = 2;
 
-const sys = uni.getSystemInfoSync();
+const sys = uni.getWindowInfo();
 const STAGE = Math.floor(
   Math.min(sys.windowWidth, sys.windowHeight * STAGE_HEIGHT_RATIO, uni.upx2px(750)),
 );
@@ -178,7 +178,7 @@ let devicePixelRatio = 1;
 devicePixelRatio = typeof window === "undefined" ? 1 : window.devicePixelRatio || 1;
 // #endif
 // #ifdef MP-WEIXIN
-devicePixelRatio = Number(uni.getSystemInfoSync().pixelRatio || 1);
+devicePixelRatio = Number(uni.getWindowInfo().pixelRatio || 1);
 // #endif
 const DPR = Math.min(DPR_MAX, Math.max(1, devicePixelRatio));
 /** 预览 canvas 的实际像素边长：CSS 尺寸 × dpr */
@@ -753,7 +753,8 @@ $crop-circle-color: rgba(255, 255, 255, .35);
 $crop-badge-bg: rgba(0, 0, 0, .45);
 $crop-badge-text: rgba(255, 255, 255, .95);
 
-.crop-page { min-height: 100vh; display: flex; flex-direction: column; background: var(--bg-sub); }
+/* 原生导航页 + 排除全局 tabbar：min-height 只需减去导航栏 */
+.crop-page { min-height: calc(100vh - var(--window-top, 0px)); display: flex; flex-direction: column; background: var(--bg-sub); }
 
 .crop-stage { position: relative; flex: none; overflow: hidden; background: var(--bg-sub); }
 

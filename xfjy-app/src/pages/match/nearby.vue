@@ -353,7 +353,8 @@ onPullDownRefresh(async () => {
 /* 纵向 flex：筛选栏与定位提示固定，列表吸收剩余高度。
    原先 .user-list 写死 calc(100vh - 112rpx)，未计入定位提示条与
    安全区，提示出现时列表底部被裁切、小屏更明显。 */
-.nearby-page { display: flex; flex-direction: column; min-height: 100vh; background: var(--bg-page); }
+/* 原生导航页：min-height 需减去导航栏，否则内容不足时底部仍溢出 44px */
+.nearby-page { display: flex; flex-direction: column; min-height: calc(100vh - var(--window-top, 0px)); background: var(--bg-page); }
 
 /* ===== 定位提示 ===== */
 .location-tip { display: flex; align-items: center; gap: 12rpx; padding: 20rpx 32rpx; background: var(--bg-icon-soft); border-bottom: 1rpx solid var(--border-faint);
@@ -363,7 +364,8 @@ onPullDownRefresh(async () => {
 }
 
 /* ===== 筛选栏（探探式：左距离胶囊组，右性别筛选） ===== */
-.filter-bar { display: flex; align-items: center; gap: 12rpx; padding: 20rpx 24rpx; background: var(--bg-card); position: sticky; top: 0; z-index: 10; box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+/* top 用 --window-top：原生导航页 sticky 会吸附到视口顶（y=0），被 44px 导航栏盖住一半 */
+.filter-bar { display: flex; align-items: center; gap: 12rpx; padding: 20rpx 24rpx; background: var(--bg-card); position: sticky; top: var(--window-top, 0px); z-index: 10; box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
   /* 不写 min-height：a11y-button default 变体已内置 88rpx 保底（组件规则特异性更高，实际胜出），
      原 64rpx 是误导性违规字面量，删除后胶囊高度按 88rpx 达标 */
   .filter-item { display: flex; align-items: center; justify-content: center; padding: 0 26rpx; border-radius: 32rpx; font-size: 24rpx; line-height: 1; color: var(--text-hint-strong); background: var(--bg-sub); transition: background 0.2s, color 0.2s, box-shadow 0.2s;

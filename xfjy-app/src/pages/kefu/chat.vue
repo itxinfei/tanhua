@@ -1,6 +1,7 @@
 <template>
   <view class="chat-room">
-    <!-- 消息列表 -->
+    <!-- 消息列表：错误边界兜底渲染异常，重试重拉历史（与好友聊天页一致） -->
+    <error-boundary @retry="retryLoadHistory">
     <scroll-view
       scroll-y
       class="msg-list"
@@ -132,6 +133,7 @@
         </a11y-button>
       </empty-state>
     </scroll-view>
+    </error-boundary>
 
     <!-- 输入区 -->
     <view class="input-area safe-area-bottom">
@@ -188,6 +190,7 @@ import { onLoad } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
 import SmartImage from "@/components/smart-image.vue";
 import EmptyState from "@/components/empty-state.vue";
+import ErrorBoundary from "@/components/error-boundary.vue";
 import { useUserStore } from "@/store/user";
 import { getAgentApi } from "@/api/kefu";
 import { getVipStatus } from "@/api/mine";
@@ -495,19 +498,20 @@ onUnmounted(() => {
 
 .vip-banner { display: flex; align-items: center; justify-content: center; gap: 8rpx;
   margin: 24rpx 24rpx 0; padding: 16rpx 24rpx;
-  background: linear-gradient(135deg, var(--color-primary-deep), var(--color-primary)); border-radius: 20rpx;
+  /* 用 --gradient-brand（同源主色渐变）替代已废弃的 --color-primary-deep 历史紫 */
+  background: var(--gradient-brand); border-radius: 20rpx;
   box-shadow: 0 4rpx 16rpx rgba(var(--color-primary-rgb), 0.25);
   .vip-crown { font-size: 28rpx; color: var(--text-inverse); }
   .vip-text { font-size: 24rpx; color: var(--text-inverse); letter-spacing: 1rpx; font-weight: 500; }
 }
 
 .welcome-tip { display: flex; justify-content: center; margin: 24rpx 0;
-  text { font-size: 24rpx; color: var(--text-hint); background: rgba(0, 0, 0, 0.05); padding: 10rpx 28rpx; border-radius: 24rpx; }
+  text { font-size: 24rpx; color: var(--text-hint); background: var(--bg-card); padding: 10rpx 28rpx; border-radius: 24rpx; }
 }
 
 /* flex:1 配 min-height:0：纵向 flex 子项默认 min-height:auto，
    消息增多时会撑破容器、把输入区挤出视口 */
-.msg-list { flex: 1 1 auto; min-height: 0; min-width: 0; padding: 12rpx 24rpx; }
+.msg-list { flex: 1 1 auto; min-height: 0; min-width: 0; padding: 24rpx 24rpx 12rpx; }
 
 /* 历史加载失败重试按钮：default 变体零样式，这里补品牌色，颜色全走 CSS 变量适配暗色 */
 .history-retry { margin-top: 32rpx; padding: 16rpx 56rpx; border-radius: var(--radius-pill);
@@ -515,7 +519,7 @@ onUnmounted(() => {
 }
 
 .time-divider { display: flex; justify-content: center; margin: 16rpx 0 24rpx;
-  .time-text { font-size: 22rpx; color: var(--text-hint); background: rgba(0, 0, 0, 0.05); padding: 6rpx 24rpx; border-radius: 24rpx; }
+  .time-text { font-size: 22rpx; color: var(--text-hint); background: var(--bg-card); padding: 6rpx 24rpx; border-radius: 24rpx; }
 }
 
 .msg-item { display: flex; align-items: flex-start; margin-bottom: 28rpx; gap: 16rpx;
@@ -524,7 +528,7 @@ onUnmounted(() => {
   .avatar-btn { flex-shrink: 0; display: flex; }
   .avatar { width: 76rpx; height: 76rpx; border-radius: 16rpx; flex-shrink: 0; background: var(--border-light); }
   .agent-avatar { width: 76rpx; height: 76rpx; border-radius: 16rpx; flex-shrink: 0; background: var(--bg-icon-soft); display: flex; align-items: center; justify-content: center; font-size: 40rpx; }
-  .bubble-wrap { display: flex; align-items: center; gap: 12rpx; max-width: 70%;
+  .bubble-wrap { display: flex; align-items: center; gap: 12rpx; max-width: 480rpx; min-width: 0;
     &.mine { flex-direction: row-reverse; }
   }
   .status-loading { width: 28rpx; height: 28rpx; border: 3rpx solid var(--border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
@@ -532,15 +536,11 @@ onUnmounted(() => {
   .status-failed { width: 88rpx; height: 88rpx; border-radius: 50%; background: var(--color-danger); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     text { font-size: 24rpx; color: var(--text-inverse); font-weight: bold; line-height: 1; }
   }
-  .bubble { position: relative; max-width: 70%; padding: 20rpx 24rpx; border-radius: 24rpx; background: var(--bg-card); font-size: 28rpx; line-height: 1.5; color: var(--text-primary); box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
-    &::before { content: ""; position: absolute; top: 24rpx; width: 0; height: 0; border-top: 10rpx solid transparent; border-bottom: 10rpx solid transparent; }
-    &:not(.mine) { border-top-left-radius: 6rpx;
-      &::before { left: -14rpx; border-right: 14rpx solid var(--bg-card); }
-    }
-    /* color 用 --text-inverse：原 --bg-card 在暗色模式下是深色，文字会消失 */
-    &.mine { background: var(--color-primary); color: var(--text-inverse); border-top-right-radius: 6rpx;
-      &::before { right: -14rpx; border-left: 14rpx solid var(--color-primary); }
-    }
+  /* min-width:0 + 断行：长文本/连续英文/URL 收在气泡内，防止撑破 flex 容器致页面横向滚动；
+     去三角尾巴（与好友聊天页统一），四角 20rpx，收发靠头像与左右位置区分 */
+  .bubble { position: relative; min-width: 0; overflow-wrap: anywhere; padding: 20rpx 24rpx; border-radius: 20rpx; background: var(--bg-card); font-size: 28rpx; line-height: 1.5; color: var(--text-primary); box-shadow: var(--shadow-card);
+    /* color 用 --text-inverse：mine 为品牌渐变深底，需反白字保证对比 */
+    &.mine { background: var(--gradient-brand); color: var(--text-inverse); }
   }
 }
 
@@ -555,15 +555,17 @@ onUnmounted(() => {
   text { font-size: 24rpx; color: var(--color-primary-text); white-space: nowrap; }
 }
 
-.input-bar { display: flex; align-items: center; gap: 16rpx; padding: 14rpx 16rpx; }
+.input-bar { display: flex; align-items: center; gap: 12rpx; padding: 14rpx 16rpx; }
 .text-input { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; transition: background 0.2s, box-shadow 0.2s;
   &.focus { background: var(--bg-card); box-shadow: 0 0 0 3rpx rgba(var(--color-primary-rgb), 0.35); }
 }
-/* 发送按钮：primary variant 提供底色/热区/按压反馈，此处只处理禁用态 */
+/* 发送按钮：primary variant 提供底色/热区/按压反馈，此处只处理禁用态。
+   禁用态灰底灰字（--border 底 + --text-hint-strong 字，明暗双模式对比均 ≥4.5:1）；
+   组件对 primary 禁用自带 opacity:.4 会把灰字压得过淡，这里重置为 1，靠配色本身表达禁用。
+   间距由父级 input-bar 的 gap 提供，不再额外加 margin-left（与好友聊天页一致） */
 .send-btn {
-  margin-left: 20rpx;
   flex-shrink: 0;
 
-  &.disabled { background: var(--border); box-shadow: none; }
+  &.disabled { background: var(--border); color: var(--text-hint-strong); box-shadow: none; opacity: 1; }
 }
 </style>

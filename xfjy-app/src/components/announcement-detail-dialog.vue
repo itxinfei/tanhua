@@ -65,17 +65,9 @@ const emit = defineEmits<{ (e: "close"): void }>();
 </script>
 
 <style lang="scss" scoped>
+/* 遮罩/定位/背景已收进 a11y-dialog 组件；此处仅保留本弹窗的差异（左右留白） */
 .announcement-dialog {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-  /* 左右对称留白，弹窗不贴边、不溢出视口 */
   padding: 0 48rpx;
-  box-sizing: border-box;
 
   .announcement-panel {
     width: 100%;

@@ -376,7 +376,7 @@ defineExpose({ syncFromProp });
 }
 
 /* 清除键：视觉仍 48rpx 圆形，但热区由 a11y-button default 变体保底 88rpx（WCAG 2.5.5）。
-   用 padding 把可点击区扩到 88rpx，视觉保持小圆。 */
+   用 ::before 负 inset 把可点击区扩到 88rpx，视觉保持小圆。 */
 .manual-clear {
   position: absolute;
   right: 32rpx;
@@ -388,6 +388,8 @@ defineExpose({ syncFromProp });
   border-radius: 50%;
   background: var(--border);
   font-size: 28rpx;
+  /* 热区扩到 88rpx（44px）：与注释一致，原实现只有 48×88rpx */
+  &::before { content: ""; position: absolute; inset: -20rpx; }
   color: var(--text-inverse);
   /* 扩大热区：88rpx - 48rpx = 40rpx，上下左右各 10rpx */
   padding: 10rpx;

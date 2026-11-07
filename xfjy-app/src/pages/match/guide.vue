@@ -300,7 +300,8 @@ function handleSkip(): void {
 
 <style lang="scss" scoped>
 .guide-page {
-  min-height: 100vh;
+  /* 原生导航页：min-height 需减去导航栏，否则内容不足时底部仍溢出 44px */
+  min-height: calc(100vh - var(--window-top, 0px));
   background: var(--bg-sub);
   padding: 32rpx;
 }

@@ -32,13 +32,16 @@
         desc="被拉黑的用户将无法与你互动"
       />
 
-      <!-- 通用用户列表行：主体信息 + 右侧操作按钮 -->
+      <!-- 通用用户列表行：主体信息 + 右侧操作按钮。
+           clickable 让行主体可进详情作为主热区，右侧 sm 按钮才符合 §7.1 例外 -->
       <user-list-item
         v-for="user in userList"
         :key="user.id"
         :avatar="resolveAvatar(user.avatar)"
         :nickname="user.nickname"
         :meta="`${user.gender === 'man' ? '男' : user.gender === 'woman' ? '女' : '未知'} · ${user.age || '—'}岁`"
+        clickable
+        @tap-item="goDetail(user.id)"
       >
         <template #action>
           <a11y-button
@@ -146,6 +149,11 @@ async function loadMore(): Promise<void> {
   }
 }
 
+/** 跳转用户详情（行主体主热区） */
+function goDetail(userId: string): void {
+  uni.navigateTo({ url: `/pages/match/detail?id=${userId}` });
+}
+
 /** 移除黑名单 */
 async function handleRemove(userId: string): Promise<void> {
   uni.showModal({
@@ -186,7 +194,8 @@ async function loadPrevPage(): Promise<void> {
 
 <style lang="scss" scoped>
 .blacklist-page {
-  height: calc(100vh - var(--tab-bar-height, 0px));
+  /* 原生导航页：必须同时减去导航栏与全局 tabbar，否则底部被遮挡 44px */
+  height: calc(100vh - var(--window-top, 0px) - var(--tab-bar-height, 0px));
   background: var(--bg-sub);
 }
 

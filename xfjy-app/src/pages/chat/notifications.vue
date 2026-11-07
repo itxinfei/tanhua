@@ -364,7 +364,8 @@ onReachBottom(async () => {
 </script>
 
 <style lang="scss" scoped>
-.notifications-page { min-height: 100vh; background: var(--bg-sub); padding: 20rpx 24rpx; }
+/* 原生导航页：min-height 需减去导航栏，否则内容不足时底部仍溢出 44px */
+.notifications-page { min-height: calc(100vh - var(--window-top, 0px)); background: var(--bg-sub); padding: 20rpx 24rpx; }
 .load-more { text-align: center; padding: 24rpx 0; color: var(--text-hint); font-size: var(--fs-sm); }
 
 /* 加载失败态的重试按钮（置于 empty-state 的 slot 内，与 circle 页同范式） */

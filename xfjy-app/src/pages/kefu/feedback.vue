@@ -172,7 +172,8 @@ function statusClass(status: number): string {
 
 <style lang="scss" scoped>
 .feedback-page {
-  height: calc(100vh - var(--tab-bar-height, 0px));
+  /* 原生导航页：必须同时减去导航栏与全局 tabbar，否则底部回复记录被遮挡 44px */
+  height: calc(100vh - var(--window-top, 0px) - var(--tab-bar-height, 0px));
   background: var(--bg-sub);
 }
 

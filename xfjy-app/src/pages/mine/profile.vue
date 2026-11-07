@@ -738,7 +738,8 @@ onShow(async () => {
 </script>
 
 <style lang="scss" scoped>
-.profile-page { min-height: calc(100vh - var(--tab-bar-height, 0px)); background: var(--bg-sub); padding-bottom: calc(var(--tab-bar-height, 50px) + 60rpx); }
+/* 原生导航页：min-height 需同时减去导航栏与全局 tabbar */
+.profile-page { min-height: calc(100vh - var(--window-top, 0px) - var(--tab-bar-height, 0px)); background: var(--bg-sub); padding-bottom: calc(var(--tab-bar-height, 50px) + 60rpx); }
 
 /* ===== 头像块：独立垂直居中，与下方左对齐表单解耦 ===== */
 .avatar-block { display: flex; flex-direction: column; align-items: center; padding: var(--space-xl) var(--space-lg); background: var(--bg-card);
@@ -766,7 +767,8 @@ onShow(async () => {
   .album-item { position: relative; width: 180rpx; height: 180rpx; border-radius: 16rpx; overflow: visible;
     .album-img { width: 100%; height: 100%; border-radius: 16rpx; border: 2rpx solid var(--border-light); }
     .remove { position: absolute; top: -16rpx; right: -16rpx; width: 56rpx; height: 56rpx; background: rgba(0, 0, 0, 0.55); color: var(--bg-card); border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      /* 热区 56rpx：行内紧凑操作（§7.1 sm 例外），照片卡片 180rpx 为主热区 */
+      /* 视觉 56rpx + ::before 扩热区至 88rpx（§7.1 sm 例外：照片卡片 180rpx 为主热区） */
+      &::before { content: ""; position: absolute; inset: -16rpx; }
       .remove-icon { font-size: 32rpx; line-height: 1; color: var(--text-inverse); }
     }
   }

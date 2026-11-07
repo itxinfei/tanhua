@@ -3,6 +3,7 @@
     class="drawer-mask"
     :visible="visible"
     title="评论"
+    placement="bottom"
     @close="close"
   >
     <view class="drawer-panel">
@@ -264,14 +265,16 @@ async function send() {
 </script>
 
 <style lang="scss" scoped>
-.drawer-mask { position: fixed; left: 0; top: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 999; display: flex; align-items: flex-end; }
-.drawer-panel { width: 100%; height: 70vh; background: var(--bg-card); border-radius: 32rpx 32rpx 0 0; display: flex; flex-direction: column; animation: slideUp 0.25s ease; }
+/* 遮罩/定位已收进 a11y-dialog 组件；此处仅保留本抽屉差异（遮罩深度） */
+.drawer-mask { background: rgba(0, 0, 0, 0.5); }
+/* 高度用 vh 但加 max-height 兼窄屏：列表区 flex 伸缩，小屏不会把输入栏挤出面板 */
+.drawer-panel { width: 100%; height: min(70vh, 900rpx); background: var(--bg-card); border-radius: 32rpx 32rpx 0 0; display: flex; flex-direction: column; animation: slideUp 0.25s ease; box-sizing: border-box; }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .drawer-header { display: flex; align-items: center; justify-content: space-between; padding: var(--space-md) var(--space-lg); border-bottom: 1rpx solid var(--border-faint);
   .drawer-title { font-size: var(--fs-md); font-weight: 600; color: var(--text-primary); }
   .drawer-close { font-size: 40rpx; color: var(--text-hint); padding: 0 var(--space-sm); min-height: 88rpx; line-height: 1; }
 }
-.comment-list { flex: 1; padding: 0 var(--space-lg); }
+.comment-list { flex: 1; min-height: 0; padding: 0 var(--space-lg); }
 .empty { text-align: center; color: var(--text-hint); font-size: var(--fs-base); padding: 80rpx 0; }
 .retry-btn { margin-top: 32rpx; padding: 16rpx 56rpx; border-radius: var(--radius-pill);
   font-size: 28rpx; font-weight: 600; color: var(--text-inverse); background: var(--color-primary);

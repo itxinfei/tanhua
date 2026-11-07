@@ -58,8 +58,9 @@ onLoad((query: any) => {
 <style lang="scss" scoped>
 .agreement-page {
   /* 固定高度而非 min-height：scroll-view 需父容器有界才能滚动，
-     否则被内容撑高后 overflow 失效，长协议无法滚动阅读 */
-  height: calc(100vh - var(--tab-bar-height, 0px));
+     否则被内容撑高后 overflow 失效，长协议无法滚动阅读。
+     原生导航页必须同时减去导航栏与全局 tabbar，否则底部溢出 44px */
+  height: calc(100vh - var(--window-top, 0px) - var(--tab-bar-height, 0px));
   background: var(--bg-card);
   display: flex;
   flex-direction: column;

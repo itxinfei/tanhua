@@ -108,6 +108,8 @@ function onError(): void {
 .smart-image-placeholder {
   width: 100%;
   height: 100%;
-  background-color: var(--color-fill, #f5f5f5);
+  /* --color-fill 在 token 中不存在，实际恒为 #f5f5f5；暗色下是刺眼亮灰块。
+     改用 --bg-sub（亮 #f5f5f5 / 暗 #262626） */
+  background-color: var(--bg-sub);
 }
 </style>

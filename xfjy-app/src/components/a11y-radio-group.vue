@@ -88,6 +88,7 @@ function handleKeydown(e: any, opt: RadioOption): void {
 </script>
 
 <style lang="scss" scoped>
+/* display:contents 让 radiogroup 不生成盒模型，选项直接参与父级 flex/grid 布局 */
 .a11y-radio-group {
   display: contents;
 }

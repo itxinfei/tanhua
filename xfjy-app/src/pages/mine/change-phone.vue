@@ -190,7 +190,8 @@ async function submit() {
 </script>
 
 <style lang="scss" scoped>
-.change-phone-page { min-height: 100vh; background: var(--bg-sub); padding: 24rpx; }
+/* 原生导航页：min-height 需减去导航栏，否则内容不足时底部仍溢出 44px */
+.change-phone-page { min-height: calc(100vh - var(--window-top, 0px)); background: var(--bg-sub); padding: 24rpx; }
 /* 提示文案 #999（≈2.85:1）→ #767676 */
 .tips { font-size: 24rpx; color: var(--text-hint); line-height: 1.6; margin-bottom: 24rpx; }
 .form-card { background: var(--bg-card); border-radius: 24rpx; padding: 8rpx 32rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);

@@ -152,7 +152,7 @@
                   />
                 </view>
                 <text class="voice-duration">
-                  {{ msg.extra?.duration || 0 }}"
+                  {{ msg.extra?.duration || 0 }}秒
                 </text>
               </a11y-button>
               <!-- 位置：点击打开地图查看 -->
@@ -1251,19 +1251,11 @@ onUnmounted(() => {
   .status-failed { width: 88rpx; height: 88rpx; border-radius: 50%; background: var(--color-danger); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     .failed-icon { font-size: 22rpx; color: var(--text-inverse); font-weight: bold; line-height: 1; }
   }
-  /* min-width:0 + 断行：长文本/连续英文/URL 才能收在气泡内，
-     否则会撑破 flex 容器导致页面横向滚动 */
+  /* 去三角尾巴（与客服聊天页统一），四角 20rpx，收发靠头像与左右位置区分；
+     min-width:0 + 断行：长文本/连续英文/URL 收在气泡内，否则会撑破 flex 容器导致页面横向滚动 */
   .bubble { position: relative; min-width: 0; overflow-wrap: anywhere; padding: 20rpx 24rpx; border-radius: 20rpx; background: var(--bg-card); font-size: 28rpx; line-height: 1.5; color: var(--text-primary); box-shadow: var(--shadow-card);
-    /* 气泡尾巴 */
-    &::before { content: ""; position: absolute; top: 28rpx; width: 0; height: 0; border-top: 10rpx solid transparent; border-bottom: 10rpx solid transparent; }
-    &:not(.mine) { border-top-left-radius: 6rpx;
-      /* 尾巴跟随气泡底色：原 --text-inverse 恒白，与 --bg-card 暗色值不同源 */
-      &::before { left: -16rpx; border-right: 16rpx solid var(--bg-card); }
-    }
-    /* color 用 --text-inverse：原 --bg-card 在暗色模式下是深色，文字会消失 */
-    &.mine { background: var(--gradient-brand); color: var(--text-inverse); border-top-right-radius: 6rpx;
-      &::before { right: -16rpx; border-left: 16rpx solid var(--color-primary); }
-    }
+    /* color 用 --text-inverse：mine 为品牌渐变深底，需反白字保证对比 */
+    &.mine { background: var(--gradient-brand); color: var(--text-inverse); }
     .msg-image { max-width: 360rpx; border-radius: 12rpx; display: block; }
 
     /* 语音气泡 */
@@ -1322,7 +1314,8 @@ onUnmounted(() => {
 
 .emoji-panel .emoji-scroll { height: 100%; }
 .emoji-grid { display: flex; flex-wrap: wrap; padding: 16rpx 12rpx; }
-.emoji-item { width: 12.5%; height: 80rpx; display: flex; align-items: center; justify-content: center; font-size: 44rpx; }
+/* height 88rpx：满足 44px 最小可点击热区（原 80rpx≈40px 不达标），宽度 12.5% 一行 8 个不变 */
+.emoji-item { width: 12.5%; height: 88rpx; display: flex; align-items: center; justify-content: center; font-size: 44rpx; }
 
 .more-grid { display: flex; flex-wrap: wrap; padding: 36rpx 16rpx; }
 .more-item { width: 25%; display: flex; flex-direction: column; align-items: center; gap: 14rpx; }

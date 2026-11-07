@@ -596,7 +596,10 @@ function goChat(user: FriendUser): void {
 }
 
 .list-scroll {
-  flex: 1;
+  flex: 1 1 auto;
+  /* min-height:0 必须：纵向 flex 子项默认 min-height:auto，scroll-view 内容超高会撑破
+     固定高度容器，导致列表无法滚动（与 kefu/index.vue 同范式） */
+  min-height: 0;
   /* min-width:0 防止 flex 子项被内部宽卡片撑破，保证右侧 24rpx 留白不溢出屏幕 */
   min-width: 0;
   width: 100%;

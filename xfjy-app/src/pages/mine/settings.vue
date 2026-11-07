@@ -533,9 +533,10 @@ function inputDeleteCode() {
 
 <style lang="scss" scoped>
 /* 底部留出「固定 TabBar 高度 + 安全区 + 呼吸余量」，否则「退出登录 / 注销账号」
-   会被导航栏遮住，滚到底也点不到（S1）。--tab-bar-height 由 App.vue 全局注入。 */
+   会被导航栏遮住，滚到底也点不到（S1）。--tab-bar-height 由 App.vue 全局注入。
+   原生导航页：min-height 需减去导航栏，否则内容不足时底部仍溢出 44px */
 .settings-page {
-  min-height: 100vh;
+  min-height: calc(100vh - var(--window-top, 0px));
   background: var(--bg-sub);
   padding: 20rpx 24rpx calc(var(--tab-bar-height, 50px) + env(safe-area-inset-bottom, 0px) + 80rpx);
 }

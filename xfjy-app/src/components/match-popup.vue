@@ -82,14 +82,9 @@ function goChat(): void {
 </script>
 
 <style lang="scss" scoped>
+/* 遮罩/定位已收进 a11y-dialog 组件；此处仅保留本弹窗差异（更深的遮罩） */
 .match-popup {
-  position: fixed;
-  inset: 0;
   background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
 
   .match-content {
     display: flex;

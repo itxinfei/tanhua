@@ -3,6 +3,7 @@
     v-if="visible"
     ref="rootRef"
     class="a11y-dialog"
+    :class="`a11y-dialog--${placement}`"
     role="dialog"
     aria-modal="true"
     :aria-label="title || null"
@@ -29,12 +30,19 @@ interface Props {
   title?: string;
   /** 点击遮罩是否关闭，默认关闭 */
   maskClosable?: boolean;
+  /**
+   * 面板在遮罩中的对齐方式：
+   *  - center（默认）：居中弹窗
+   *  - bottom：底部抽屉（面板贴底、顶部圆角）
+   */
+  placement?: "center" | "bottom";
 }
 
 const props = withDefaults(defineProps<Props>(), {
   visible: false,
   title: "",
   maskClosable: true,
+  placement: "center",
 });
 
 const emit = defineEmits<{ (e: "close"): void }>();
@@ -101,7 +109,27 @@ function handleKeydown(e: any): void {
 </script>
 
 <style lang="scss" scoped>
+/* 遮罩与定位收在组件内：调用方不再需要各自补 position/inset/background/z-index，
+   避免新调用方漏传 class 时弹窗原地行内展开、role=dialog 语义与渲染不符。
+   placement 只切换对齐轴，不重复遮罩声明。 */
 .a11y-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  background: rgba(0, 0, 0, 0.6);
+  box-sizing: border-box;
+
+  &--center {
+    align-items: center;
+    justify-content: center;
+  }
+
+  &--bottom {
+    align-items: flex-end;
+    justify-content: stretch;
+  }
+
   &:focus-visible,
   &:focus {
     outline: none;

@@ -90,13 +90,14 @@ onUnmounted(() => {
   line-height: 1.4;
   animation: slideDown 0.2s ease-out;
 }
+/* 走 token：写死 hex 在暗色模式下会变成刺眼亮色条 */
 .bar-offline {
-  background-color: #fff3cd;
-  color: #856404;
+  background-color: var(--warning-tint);
+  color: var(--warning-text);
 }
 .bar-restored {
-  background-color: #d4edda;
-  color: #155724;
+  background-color: var(--success-tint);
+  color: var(--success-text);
 }
 .network-icon {
   font-size: 28rpx;

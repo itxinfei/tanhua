@@ -32,17 +32,19 @@ let bar: HTMLElement | null = null;
 
 /** 当前路由（去掉 #/ 前缀与查询串），如 pages/mine/vip */
 function currentRoute(): string {
-  // 优先取 uni-app 运行时页面栈栈顶（navigateTo/switchTab/reLaunch 之后以它为权威来源），
-  // 避免仅依赖 hashchange 在路由已变、事件未触发时底栏“卡在隐藏态”导致二级页 tabbar 消失
+  // hash 路由下 hash 与显示页严格一致，是主真源；
+  // getCurrentPages() 栈顶在 navigateBack 过渡期间可能仍是已出栈页，仅作 hash 为空时的兜底。
+  const hash = location.hash.replace(/^#/, "");
+  const fromHash = hash.split("?")[0].replace(/^\//, "");
+  if (fromHash) return fromHash;
   try {
     const pages = getCurrentPages();
     const top = pages[pages.length - 1];
     if (top && top.route) {
       return top.route;
     }
-  } catch (_) { /* 非 H5 或不支持时忽略，走 hash 兜底 */ }
-  const hash = location.hash.replace(/^#/, "");
-  return hash.split("?")[0].replace(/^\//, "");
+  } catch (_) { /* 非 H5 或不支持时忽略 */ }
+  return "";
 }
 
 function isExcluded(route: string): boolean {
@@ -54,7 +56,21 @@ function activeTabIndex(route: string): number {
   return TABS.findIndex((t) => t.prefixes.some((p) => route.startsWith(p)));
 }
 
-/** 与原生 tabbar 对齐：把 --window-bottom / --tab-bar-height 写到所有页面 body 上 */
+/**
+ * 与原生 tabbar 对齐：把 --window-bottom / --tab-bar-height 写到所有页面 body 上。
+ * 值取底栏**真实渲染高度**（含 env(safe-area-inset-bottom)）：
+ * 有刘海/底部横条的设备上恒为 TAB_BAR_HEIGHT_PX，会导致所有用
+ * calc(100vh - var(--tab-bar-height)) 的页面多算一个安全区高度，底部被遮挡。
+ */
+function currentTabBarHeight(): string {
+  const el = document.getElementById(BAR_ID);
+  const barEl = el?.querySelector(".app-tabbar") as HTMLElement | null;
+  const h = barEl?.getBoundingClientRect().height;
+  if (h && Number.isFinite(h) && h > 0) return `${h}px`;
+  // 兜底：内容高度 + 安全区（与 AppTabbar.vue 的 min-height + padding-bottom 等价）
+  return `calc(${TAB_BAR_HEIGHT_PX}px + env(safe-area-inset-bottom, 0px))`;
+}
+
 function applyWindowBottom(value: string): void {
   document.querySelectorAll("uni-page-body").forEach((el) => {
     (el as HTMLElement).style.setProperty("--window-bottom", value);
@@ -69,7 +85,10 @@ function refresh(): void {
   // 避免依赖 uni-app H5 原生 midButton（渲染不可靠）导致加号不显示
   const show = !!route && !isExcluded(route);
   bar.style.display = show ? "flex" : "none";
-  applyWindowBottom(show ? `${TAB_BAR_HEIGHT_PX}px` : "0px");
+  // display 变更后立即读取高度可能仍是旧值，下一帧再写变量；
+  // 轮询 400ms 会兜底纠正，这里先写一次避免首帧抖动。
+  const height = show ? currentTabBarHeight() : "0px";
+  applyWindowBottom(height);
   if (show && vm) {
     const active = activeTabIndex(route);
     vm.setActive?.(active);

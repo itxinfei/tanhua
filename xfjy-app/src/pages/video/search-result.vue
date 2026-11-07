@@ -514,7 +514,7 @@ function titleSegments(title: string): TitleSegment[] {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56rpx;
+  width: 88rpx;
   height: 56rpx;
   flex-shrink: 0;
 
@@ -556,6 +556,8 @@ function titleSegments(title: string): TitleSegment[] {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    /* 宽度扩到 88rpx：仅靠图标宽会形成竖条热区，不足 44px */
+    width: 88rpx;
 
     .ico-sm {
       width: 32rpx;

@@ -325,9 +325,10 @@ onLoad((options: any) => {
 </script>
 
 <style lang="scss" scoped>
-/* border-box：padding 计入高度，避免 min-height:100vh 下超出视口 */
-.post-detail { box-sizing: border-box; height: calc(100vh - var(--tab-bar-height, 0px)); background: var(--bg-sub); display: flex; flex-direction: column; overflow: hidden; }
-.detail-scroll { flex: 1; min-height: 0; padding: 20rpx 24rpx 24rpx; }
+/* border-box：padding 计入高度，避免超出视口 */
+.post-detail { box-sizing: border-box; height: calc(100vh - var(--window-top, 0px) - var(--tab-bar-height, 0px)); background: var(--bg-sub); display: flex; flex-direction: column; overflow: hidden; }
+/* 底部内边距必须 >= 固定输入栏高度（108rpx），否则最后一条评论永远滚不到输入栏上方 */
+.detail-scroll { flex: 1; min-height: 0; padding: 20rpx 24rpx calc(108rpx + var(--tab-bar-height, 0px) + env(safe-area-inset-bottom, 0px) + 24rpx); }
 
 /* 加载失败态的重试按钮（置于 empty-state 的 slot 内） */
 .detail-retry {

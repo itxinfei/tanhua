@@ -36,7 +36,7 @@
 <script setup lang="ts">
 import { ref, computed, onUnmounted } from "vue";
 import A11yButton from "@/components/a11y-button.vue";
-import { playVoice, stopVoice, type VoicePlayerHandle } from "@/utils/recorder";
+import { playVoice, type VoicePlayerHandle } from "@/utils/recorder";
 
 const props = defineProps<{
   /** 音频地址（MinIO URL） */
@@ -99,9 +99,6 @@ onUnmounted(() => {
 
 // 抽屉关闭时由父级统一调用 stopVoice 兜底
 defineExpose({ stop: () => { handle?.stop(); handle = null; isPlaying.value = false; } });
-
-// 引用避免未使用告警：stopVoice 由抽屉统一调用
-void stopVoice;
 </script>
 
 <style lang="scss" scoped>

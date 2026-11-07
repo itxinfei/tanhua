@@ -349,7 +349,8 @@ onShow(() => {
 }
 
 .header {
-  background: linear-gradient(180deg, var(--color-primary-deep) 0%, var(--color-primary) 100%);
+  /* 用 --gradient-brand（同源主色渐变）替代已废弃的 --color-primary-deep 历史紫 */
+  background: linear-gradient(180deg, var(--color-primary) 0%, var(--color-primary-text) 100%);
   padding: 0 32rpx 16rpx;
   border-radius: 0 0 40rpx 40rpx;
   position: relative;

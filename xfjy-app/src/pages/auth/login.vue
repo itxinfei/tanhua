@@ -177,6 +177,7 @@
       :title="sheetContent.title"
       :mask-closable="true"
       class="sheet anim-fade-in"
+      placement="bottom"
       @close="sheetVisible = false"
     >
       <view class="sheet-panel anim-slide-up">
@@ -838,13 +839,9 @@ async function handleLogin() {
   }
 }
 
-/* ===== 协议半屏弹窗（a11y-dialog 壳 + 探探式阅读流） ===== */
+/* ===== 协议半屏弹窗（a11y-dialog 壳 + 探探式阅读流） =====
+   遮罩/定位已收进 a11y-dialog 组件；此处仅保留本弹窗差异（遮罩深度） */
 .sheet {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: flex-end;
   background: rgba(0, 0, 0, 0.5);
 }
 
