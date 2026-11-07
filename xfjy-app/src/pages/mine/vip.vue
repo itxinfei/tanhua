@@ -583,7 +583,7 @@ onLoad(() => {
  */
 .pay-btn {
   /* 覆写品牌粉渐变为 VIP 金色渐变（保留原视觉语义） */
-  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-soft) 50%, #ff9a3c 100%);
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-soft) 50%, var(--gold-deep) 100%);
   color: var(--bg-deep);
   font-size: 36rpx;
   font-weight: 900;

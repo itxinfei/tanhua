@@ -141,6 +141,8 @@ page {
   --gold-soft: #ffb347;
   --gold-soft-rgb: 255, 179, 71;
   --gold-light: #fff5c0;
+  /* 深橙金：VIP 支付按钮渐变收尾停点（VIP 金色系，亮暗同值，随 --gold 不进暗色块重声明） */
+  --gold-deep: #ff9a3c;
   /* VIP 页固定深色体系（有意恒暗，亮/暗模式同值，不随主题变） */
   --bg-deep: #1a1a2e;
   --bg-deep-grad: #2c2c54;
