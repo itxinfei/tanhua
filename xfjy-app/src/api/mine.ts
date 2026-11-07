@@ -1,4 +1,4 @@
-import { get, post, put, del, upload, BASE_URL } from "@/utils/request";
+import { get, post, put, del, upload, BASE_URL, HttpError } from "@/utils/request";
 import type { PageResult, PageParam } from "@/api/circle";
 
 /** 关系列表类型 */
@@ -450,13 +450,24 @@ export function checkBenefit(serviceCode: string): Promise<BenefitCheck> {
 /**
  * 记录权益使用（每日限次权益扣减次数）
  * 对接后端: POST /users/vip/benefit/usage
- * @returns true=扣减成功/不限次；false=今日已用尽
+ *
+ * 后端契约：200=扣减成功；429=今日次数已用尽；404=权益不存在；500=服务异常。
+ *
+ * @returns "ok"=扣减成功/不限次；"exhausted"=今日已用尽；"error"=请求失败（网络/服务异常，
+ *          已由 request 层 toast，调用方不应再提示「次数已用完」）
  */
-export async function recordBenefitUsage(serviceCode: string): Promise<boolean> {
+export async function recordBenefitUsage(
+  serviceCode: string,
+): Promise<"ok" | "exhausted" | "error"> {
   try {
     await post<void>("/users/vip/benefit/usage", { serviceCode });
-    return true;
+    return "ok";
   } catch (e) {
-    return false;
+    // 429 有两种语义：网关风控限流 与 权益次数用尽（后端 PayController 返回 429）。
+    // 此处只关心后者，但仍归入 exhausted——两者用户侧都应「稍后再试/次数已尽」处理。
+    if (e instanceof HttpError && e.statusCode === 429) {
+      return "exhausted";
+    }
+    return "error";
   }
 }

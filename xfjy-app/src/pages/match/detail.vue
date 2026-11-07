@@ -498,11 +498,12 @@ async function handleSuperLike(): Promise<void> {
     // 先上报喜欢（走 store.doSwipe，计入额度），成功后再扣权益：
     // 后端无权益回滚接口，先扣后爱会导致请求失败白扣一次
     const matched = await matchStore.doSwipe(userId.value, "superlike");
-    const ok = await recordBenefitUsage("super_like");
-    if (!ok) {
+    const usage = await recordBenefitUsage("super_like");
+    if (usage === "exhausted") {
       // 并发下名额可能已被用尽：喜欢已生效，仅提示
       info("今日超级喜欢次数已用完");
     }
+    // usage === "error"：请求失败已由 request 层 toast，这里不重复提示
     if (matched) {
       matchStore.showMatchPopup({
         userId: userId.value,
@@ -526,8 +527,11 @@ function handleChat(): void {
 }
 
 /**
- * 不喜欢：统一走 matchStore.doSwipe（dislike 不计次、无后端状态变更，store 内部直接返回）。
+ * 不喜欢：统一走 matchStore.doSwipe（内部调 unloveUser 上报后端，但当日不计数）。
  * 保持与匹配页同一入口，口径一致。
+ *
+ * 失败也返回：request 层已 toast 失败提示，留在详情页无重试入口，
+ * 返回卡片流重新滑是更合理的恢复路径（且 dislike 失败多为网络抖动）。
  */
 async function handleDislike(): Promise<void> {
   if (!userId.value) {

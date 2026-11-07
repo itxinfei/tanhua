@@ -29,6 +29,21 @@ const SENSITIVE_KEY_PARTS = [
 ];
 const MASKED_LOG_VALUE = "***";
 
+/**
+ * HTTP 错误：携带 statusCode，供调用方区分「业务失败」与「网络/服务异常」。
+ *
+ * 背景：recordBenefitUsage 等接口需要区分 429（次数用尽）与 500/网络错误，
+ * 后者不应提示「次数已用完」。统一在此类上携带 statusCode，避免各处自行判断 errMsg。
+ */
+export class HttpError extends Error {
+  readonly statusCode: number;
+  constructor(statusCode: number, message: string) {
+    super(message);
+    this.name = "HttpError";
+    this.statusCode = statusCode;
+  }
+}
+
 /** 递归脱敏请求日志数据：仅用于日志输出，不改变实际发送的请求体 */
 function maskSensitive(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(maskSensitive);
@@ -231,11 +246,11 @@ function request<T = any>(options: RequestOptions): Promise<T> {
           const msg = (res.data as any)?.message;
           if (msg) {
             fail(msg, 3000);
-            reject(new Error(msg));
+            reject(new HttpError(401, msg));
             return;
           }
           handleUnauthorized();
-          reject(new Error("登录已过期，请重新登录"));
+          reject(new HttpError(401, "登录已过期，请重新登录"));
           return;
         }
 
@@ -243,20 +258,20 @@ function request<T = any>(options: RequestOptions): Promise<T> {
         if (res.statusCode === 423) {
           const msg = (res.data as any)?.message || "账号已暂时锁定，请稍后再试";
           fail(msg, 3000);
-          reject(new Error(msg));
+          reject(new HttpError(423, msg));
           return;
         }
 
         // 402 付费墙拦截（滑动次数耗尽等 → 跳 VIP 引导页）
         if (res.statusCode === 402) {
-          reject(new Error(handlePaywall(res)));
+          reject(new HttpError(402, handlePaywall(res)));
           return;
         }
 
-        // 429 风控限流：操作过于频繁
+        // 429 风控限流：操作过于频繁 / 权益次数用尽
         if (res.statusCode === 429) {
           fail("操作过于频繁，请稍后再试");
-          reject(new Error("操作过于频繁"));
+          reject(new HttpError(429, "操作过于频繁"));
           return;
         }
 
@@ -264,7 +279,7 @@ function request<T = any>(options: RequestOptions): Promise<T> {
         if (res.statusCode === 400) {
           const msg = (res.data as any)?.message || "操作失败，请检查输入内容";
           fail(msg);
-          reject(new Error(msg));
+          reject(new HttpError(400, msg));
           return;
         }
 
@@ -272,7 +287,7 @@ function request<T = any>(options: RequestOptions): Promise<T> {
         if (res.statusCode === 403) {
           const reason = (res.data as any)?.reason || (res.data as any)?.message;
           fail(reason || "没有操作权限", 3000);
-          reject(new Error(reason || "无权限"));
+          reject(new HttpError(403, reason || "无权限"));
           return;
         }
 
@@ -280,13 +295,13 @@ function request<T = any>(options: RequestOptions): Promise<T> {
         if (res.statusCode === 409) {
           const msg = (res.data as any)?.message || "数据冲突，请重试";
           fail(msg, 3000);
-          reject(new Error(msg));
+          reject(new HttpError(409, msg));
           return;
         }
 
         if (res.statusCode >= 400) {
           fail(`请求失败(${res.statusCode})`);
-          reject(new Error(`HTTP ${res.statusCode}`));
+          reject(new HttpError(res.statusCode, `HTTP ${res.statusCode}`));
           return;
         }
 

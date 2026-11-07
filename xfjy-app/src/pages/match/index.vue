@@ -745,8 +745,9 @@ const swipeStack = ref<Array<{ id: number; action: "like" | "dislike" | "superli
             // 超级喜欢为 VIP 权益：上报成功后再扣次数（与 detail 页一致，避免失败白扣）
             if (action === "superlike") {
               recordBenefitUsage("super_like")
-                .then((ok) => {
-                  if (!ok) info("今日超级喜欢次数已用完");
+                .then((usage) => {
+                  // error：请求失败已由 request 层 toast，不重复提示
+                  if (usage === "exhausted") info("今日超级喜欢次数已用完");
                 })
                 .catch(() => {});
             }
@@ -824,8 +825,15 @@ async function handleSuperLike(): Promise<void> {
     // 请求失败由 request 层统一 toast
   }
 }
-function handleBoost() {
-  info("曝光提升（VIP专属）");
+/**
+ * 曝光提升（需求文档 B2.1 定义按钮样式，但 B2.3 未定义行为、后端无接口）。
+ *
+ * 当前为占位：引导去 VIP 页，而非仅弹提示——用户看到「VIP 专属」后
+ * 最自然的下一步就是了解/开通 VIP。待后端提供 boost 接口后替换为真实逻辑。
+ */
+function handleBoost(): void {
+  info("曝光提升为 VIP 专属权益");
+  scheduleNav(600, () => uni.navigateTo({ url: "/pages/mine/vip" }));
 }
 
 // ===== 跳转 =====
