@@ -11,7 +11,7 @@
         It's a Match!
       </text>
       <view class="match-avatars">
-        <image
+        <smart-image
           lazy-load
           class="match-avatar"
           :src="matchStore.matchPopup.avatar"
@@ -66,6 +66,7 @@
 <script setup lang="ts">
 import { useMatchStore } from "@/store/match";
 import A11yDialog from "@/components/a11y-dialog.vue";
+import SmartImage from "@/components/smart-image.vue";
 
 const matchStore = useMatchStore();
 

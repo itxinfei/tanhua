@@ -43,9 +43,9 @@
         @tap="goDetail(item)"
       >
         <view class="avatar-wrap">
-          <image
+          <smart-image
             class="avatar"
-            :src="resolveAvatar(item.avatar)"
+            :src="item.avatar"
             mode="aspectFill"
             lazy-load
             :aria-label="`${item.nickname} 的头像`"
@@ -104,6 +104,7 @@ import { ref, computed } from "vue";
 import EmptyState from "@/components/empty-state.vue";
 import { onLoad, onShow, onPullDownRefresh, onReachBottom } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
+import SmartImage from "@/components/smart-image.vue";
 import AnnouncementDetailDialog from "@/components/announcement-detail-dialog.vue";
 import { useChatStore, type NoticeType } from "@/store/chat";
 import {

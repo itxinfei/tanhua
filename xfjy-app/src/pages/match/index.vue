@@ -99,10 +99,11 @@
         @tap="onCardTap(index)"
       >
         <!-- 主图 -->
-        <image
+        <smart-image
           lazy-load
           class="card-image"
           :src="card.avatar"
+          :fallback="''"
           mode="aspectFill"
           :aria-label="`${card.nickname} 的照片`"
         />
@@ -281,6 +282,7 @@ import { checkBenefit, recordBenefitUsage } from "@/api/mine";
 import { useUserStore } from "@/store/user";
 import MatchPopup from "@/components/match-popup.vue";
 import A11yButton from "@/components/a11y-button.vue";
+import SmartImage from "@/components/smart-image.vue";
 import A11yPicker from "@/components/a11y-picker.vue";
 import { info, fail } from "@/utils/ux";
 

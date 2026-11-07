@@ -28,12 +28,12 @@
         label="更换头像"
         @tap="chooseAvatar"
       >
-        <image
+        <smart-image
           lazy-load
           class="avatar"
-          :src="resolveAvatar(form.avatar)"
+          :src="form.avatar"
           mode="aspectFill"
-          aria-hidden="true"
+          :aria-hidden="true"
         />
         <text class="avatar-hint">
           点击更换
@@ -155,6 +155,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import A11yButton from "@/components/a11y-button.vue";
+import SmartImage from "@/components/smart-image.vue";
 import A11yRadioGroup from "@/components/a11y-radio-group.vue";
 import { updateUserProfile, uploadImage } from "@/api/mine";
 import { success, info, fail, loading, hideLoading } from "@/utils/ux";

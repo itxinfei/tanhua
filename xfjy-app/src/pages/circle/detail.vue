@@ -33,7 +33,7 @@
         class="post-card"
       >
         <view class="post-header">
-          <image
+          <smart-image
             lazy-load
             class="avatar"
             :src="post.avatar"
@@ -78,10 +78,11 @@
             :label="`查看第 ${i + 1} 张配图`"
             @tap="previewImg(i)"
           >
-            <image
+            <smart-image
               lazy-load
               class="grid-img-inner"
               :src="img"
+              :fallback="''"
               mode="aspectFill"
               aria-hidden="true"
             />
@@ -99,7 +100,7 @@
           :key="c.id"
           class="comment-item"
         >
-          <image
+          <smart-image
             lazy-load
             class="avatar"
             :src="c.avatar"
@@ -170,6 +171,7 @@
 import { ref } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
+import SmartImage from "@/components/smart-image.vue";
 import EmptyState from "@/components/empty-state.vue";
 import Skeleton from "@/components/skeleton.vue";
 import { getMovementById, getComments, publishComment, likeComment, dislikeComment } from "@/api/circle";

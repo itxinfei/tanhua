@@ -10,12 +10,12 @@
         头像
       </text>
       <view class="avatar-wrap">
-        <image
+        <smart-image
           lazy-load
           class="avatar"
-          :src="resolveAvatar(form.avatar)"
+          :src="form.avatar"
           mode="aspectFill"
-          aria-hidden="true"
+          :aria-hidden="true"
         />
         <view class="avatar-mask">
           <text>更换</text>
@@ -40,7 +40,7 @@
           :key="i"
           class="album-item"
         >
-          <image
+          <smart-image
             lazy-load
             class="album-img"
             :src="img"
@@ -257,6 +257,7 @@ import { onShow } from "@dcloudio/uni-app";
 import { useUserStore } from "@/store/user";
 import A11yRadioGroup from "@/components/a11y-radio-group.vue";
 import A11yButton from "@/components/a11y-button.vue";
+import SmartImage from "@/components/smart-image.vue";
 import A11yPicker from "@/components/a11y-picker.vue";
 import { getUserProfile, updateUserProfile, uploadImage } from "@/api/mine";
 import { success, fail, info, loading, hideLoading, confirm } from "@/utils/ux";

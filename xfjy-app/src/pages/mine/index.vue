@@ -21,12 +21,12 @@
         label="编辑个人资料"
         @tap="goProfile"
       >
-        <image
+        <smart-image
           lazy-load
           class="avatar"
-          :src="resolveAvatar(userInfo?.avatar)"
+          :src="userInfo?.avatar"
           mode="aspectFill"
-          aria-hidden="true"
+          :aria-hidden="true"
         />
         <view class="user-info">
           <view class="name-row">
@@ -191,6 +191,7 @@
 import { ref, computed } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import MatchPopup from "@/components/match-popup.vue";
+import SmartImage from "@/components/smart-image.vue";
 import NetworkStatusBar from "@/components/network-status-bar.vue";
 import A11yButton from "@/components/a11y-button.vue";
 import { useUserStore } from "@/store/user";

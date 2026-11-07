@@ -26,12 +26,12 @@
           :label="`${nickname} 正在输入，点击查看资料`"
           @tap="openPeerProfile"
         >
-          <image
+          <smart-image
             lazy-load
             class="typing-avatar"
-            :src="resolveAvatar(peerAvatar)"
+            :src="peerAvatar"
             mode="aspectFill"
-            aria-hidden="true"
+            :aria-hidden="true"
           />
           <view class="typing-bubble">
             <view
@@ -72,12 +72,12 @@
             :label="`查看 ${nickname} 的资料`"
             @tap="openPeerProfile"
           >
-            <image
+            <smart-image
               lazy-load
               class="avatar"
-              :src="resolveAvatar(msg.avatar)"
+              :src="msg.avatar"
               mode="aspectFill"
-              aria-hidden="true"
+              :aria-hidden="true"
             />
           </a11y-button>
           <view
@@ -117,12 +117,12 @@
                 label="查看图片"
                 @tap="previewImg(msg.content)"
               >
-                <image
+                <smart-image
                   lazy-load
                   class="msg-image"
                   :src="msg.content"
                   mode="widthFix"
-                  aria-hidden="true"
+                  :aria-hidden="true"
                 />
               </a11y-button>
               <!-- 语音：点击播放，播放中显示波动态 -->
@@ -176,12 +176,12 @@
                 :label="`查看 ${msg.content} 的个人名片`"
                 @tap="openCard(msg)"
               >
-                <image
+                <smart-image
                   lazy-load
                   class="card-avatar"
-                  :src="resolveAvatar(msg.extra?.avatar)"
+                  :src="msg.extra?.avatar"
                   mode="aspectFill"
-                  aria-hidden="true"
+                  :aria-hidden="true"
                 />
                 <view class="card-info">
                   <text class="card-name">
@@ -201,12 +201,12 @@
             label="查看我的资料"
             @tap="openMyProfile"
           >
-            <image
+            <smart-image
               lazy-load
               class="avatar"
-              :src="resolveAvatar(msg.avatar)"
+              :src="msg.avatar"
               mode="aspectFill"
-              aria-hidden="true"
+              :aria-hidden="true"
             />
           </a11y-button>
         </view>
@@ -369,6 +369,7 @@
 import { ref, nextTick, onUnmounted } from "vue";
 import { onLoad, onHide } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
+import SmartImage from "@/components/smart-image.vue";
 import EmptyState from "@/components/empty-state.vue";
 import { useUserStore } from "@/store/user";
 import { uploadChatImage, uploadChatAudio, getContacts } from "@/api/chat";

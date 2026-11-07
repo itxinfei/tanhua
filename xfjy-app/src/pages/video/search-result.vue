@@ -204,10 +204,11 @@
           @tap="openVideo(item)"
         >
           <view class="cover-wrap">
-            <image
+            <smart-image
               v-if="item.cover"
               class="cover"
               :src="item.cover"
+              :fallback="''"
               mode="aspectFill"
               lazy-load
             />
@@ -285,6 +286,7 @@
 import { computed, ref } from "vue";
 import { onLoad, onPullDownRefresh, onReachBottom } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
+import SmartImage from "@/components/smart-image.vue";
 import EmptyState from "@/components/empty-state.vue";
 import { formatCount } from "@/utils/format";
 import {

@@ -86,12 +86,12 @@
             label="查看我的资料"
             @tap="openMyProfile"
           >
-            <image
+            <smart-image
               lazy-load
               class="avatar"
               :src="myAvatar"
               mode="aspectFill"
-              aria-hidden="true"
+              :aria-hidden="true"
             />
           </a11y-button>
         </view>
@@ -168,6 +168,7 @@
 import { ref, nextTick, onUnmounted } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
+import SmartImage from "@/components/smart-image.vue";
 import EmptyState from "@/components/empty-state.vue";
 import { useUserStore } from "@/store/user";
 import { getAgentApi } from "@/api/kefu";

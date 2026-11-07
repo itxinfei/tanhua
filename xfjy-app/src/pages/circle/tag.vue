@@ -40,7 +40,7 @@
       @tap="goDetail(item)"
     >
       <view class="post-header">
-        <image
+        <smart-image
           lazy-load
           class="avatar"
           :src="item.avatar"
@@ -71,10 +71,11 @@
           stop
           @tap="preview(item.imageContent, i)"
         >
-          <image
+          <smart-image
             lazy-load
             class="grid-img-inner"
             :src="img"
+            :fallback="''"
             mode="aspectFill"
             aria-hidden="true"
           />
@@ -98,6 +99,7 @@ import { ref } from "vue";
 import EmptyState from "@/components/empty-state.vue";
 import { onLoad } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
+import SmartImage from "@/components/smart-image.vue";
 import { searchMovementsByTag } from "@/api/circle";
 import type { Movement } from "@/api/circle";
 

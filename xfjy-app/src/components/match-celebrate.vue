@@ -15,7 +15,7 @@
         class="avatars"
         aria-hidden="true"
       >
-        <image
+        <smart-image
           class="avatar"
           :src="resolveAvatar(myAvatar)"
           mode="aspectFill"
@@ -23,7 +23,7 @@
         <view class="heart-badge">
           <text class="i-ph-heart-fill heart-icon" />
         </view>
-        <image
+        <smart-image
           class="avatar"
           :src="resolveAvatar(otherAvatar)"
           mode="aspectFill"
@@ -63,6 +63,7 @@
 
 <script setup lang="ts">
 import A11yButton from "@/components/a11y-button.vue";
+import SmartImage from "@/components/smart-image.vue";
 import { resolveAvatar } from "@/utils/avatar";
 
 interface Props {

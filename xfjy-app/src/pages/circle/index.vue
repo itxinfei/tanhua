@@ -105,7 +105,7 @@
           class="post-card"
         >
           <view class="post-header">
-            <image
+            <smart-image
               class="avatar"
               :src="item.avatar"
               mode="aspectFill"
@@ -145,11 +145,12 @@
             class="image-grid"
             :class="'grid-' + Math.min(item.imageContent.length, GRID_COLUMN_COUNT)"
           >
-            <image
+            <smart-image
               v-for="(img, i) in item.imageContent.slice(0, MAX_GRID_IMAGE_COUNT)"
               :key="i"
               class="grid-image"
               :src="img"
+              :fallback="''"
               mode="aspectFill"
               lazy-load
               :aria-label="'动态图片 ' + (i + 1) + '，点击查看大图'"
@@ -297,7 +298,7 @@
               @tap="goNoticeDetail(item)"
             >
               <view class="notice-avatar-wrap">
-                <image
+                <smart-image
                   class="notice-avatar"
                   :src="item.avatar"
                   mode="aspectFill"
@@ -365,7 +366,7 @@
           @tap="goChatDetail(item)"
         >
           <view class="avatar-wrap">
-            <image
+            <smart-image
               class="avatar"
               :src="item.avatar"
               mode="aspectFill"
@@ -421,6 +422,7 @@ import { onShow, onShareAppMessage } from "@dcloudio/uni-app";
 import MatchPopup from "@/components/match-popup.vue";
 import AnnouncementDetailDialog from "@/components/announcement-detail-dialog.vue";
 import A11yButton from "@/components/a11y-button.vue";
+import SmartImage from "@/components/smart-image.vue";
 import { useCircleStore, CIRCLE_NEED_REFRESH_KEY } from "@/store/circle";
 import type { Movement } from "@/api/circle";
 import { getContacts, getLikeMessages, getCommentMessages, getLoveMessages, getAnnouncementMessages, type Contact, type MessageLike, type MessageAnnouncement } from "@/api/chat";

@@ -8,12 +8,12 @@
       @tap="emit('tap-item')"
     >
       <view class="item-avatar-wrap">
-        <image
+        <smart-image
           class="item-avatar"
           :src="avatar"
           mode="aspectFill"
           lazy-load
-          aria-hidden="true"
+          :aria-hidden="true"
         />
         <view
           v-if="online"
@@ -49,7 +49,7 @@
       class="item-main"
     >
       <view class="item-avatar-wrap">
-        <image
+        <smart-image
           class="item-avatar"
           :src="avatar"
           mode="aspectFill"
@@ -117,6 +117,7 @@
  *  - tap-item：主体点击（仅 clickable=true 时触发）
  */
 import A11yButton from "@/components/a11y-button.vue";
+import SmartImage from "@/components/smart-image.vue";
 
 interface Props {
   avatar: string;

@@ -83,18 +83,20 @@
               @pause="onVideoPause(idx)"
               @error="onVideoError(video, $event)"
             />
-            <image
+            <smart-image
               v-if="idx !== swiperIndex"
               class="cover-residue"
               :src="video.cover"
+              :fallback="''"
               mode="aspectFill"
               aria-hidden="true"
             />
           </template>
-          <image
+          <smart-image
             v-else
             class="cover"
             :src="video.cover"
+            :fallback="''"
             mode="aspectFill"
             lazy-load
             :aria-label="`${video.nickname} 的视频封面`"
@@ -154,7 +156,7 @@
                 :label="video.hasFocus ? `取消关注 ${video.nickname}` : `关注 ${video.nickname}`"
                 @tap="handleFocus(video)"
               >
-                <image
+                <smart-image
                   class="side-avatar"
                   :src="video.avatar"
                   mode="aspectFill"
@@ -243,10 +245,11 @@
                 :class="{ 'disc-paused': !isPlaying && currentId === video.id }"
                 aria-hidden="true"
               >
-                <image
+                <smart-image
                   lazy-load
                   class="disc-img"
                   :src="video.cover"
+                  :fallback="''"
                   mode="aspectFill"
                 />
               </view>
@@ -534,6 +537,7 @@ import {
 } from "@/api/video";
 import VideoCommentDrawer from "@/components/video-comment-drawer.vue";
 import A11yButton from "@/components/a11y-button.vue";
+import SmartImage from "@/components/smart-image.vue";
 import EmptyState from "@/components/empty-state.vue";
 import {
   readVideoCache,

@@ -72,7 +72,7 @@
           v-for="(photo, i) in photos"
           :key="i"
         >
-          <image
+          <smart-image
             lazy-load
             class="photo"
             :src="photo"
@@ -221,7 +221,7 @@
           class="movement-item"
           @tap="goMovementDetail(m.id)"
         >
-          <image
+          <smart-image
             v-if="m.imageContent && m.imageContent.length > 0"
             lazy-load
             class="m-cover"
@@ -311,6 +311,7 @@
 import { ref, computed } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
+import SmartImage from "@/components/smart-image.vue";
 import EmptyState from "@/components/empty-state.vue";
 import MatchPopup from "@/components/match-popup.vue";
 import { useMatchStore } from "@/store/match";

@@ -40,7 +40,7 @@
           :key="c.id"
           class="comment-item"
         >
-          <image
+          <smart-image
             v-if="c.avatar"
             lazy-load
             class="avatar"
@@ -121,6 +121,7 @@
 import { ref, computed, watch } from "vue";
 import A11yDialog from "@/components/a11y-dialog.vue";
 import A11yButton from "@/components/a11y-button.vue";
+import SmartImage from "@/components/smart-image.vue";
 import { getVideoComments, publishVideoComment, likeVideoComment, dislikeVideoComment } from "@/api/video";
 import { formatCount } from "@/utils/format";
 import { info, success } from "@/utils/ux";
