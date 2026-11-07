@@ -587,6 +587,13 @@ async function loadMore() {
 const TAB_BAR_INDEX = 1;
 const BADGE_MAX_COUNT = 99;
 
+/**
+ * 人工客服 IM 账号（与后端 KefuService.KEFU_AGENT_ID 一致）。
+ * 客服是 IM 通道账号、非平台用户：不在 tb_user_info / 好友列表里，
+ * 会话列表拿不到联系人资料，必须单独兜底为「在线客服」而非裸露 uid。
+ */
+const KEFU_AGENT_ID = "kefu0001";
+
 interface ChatListItem extends Contact {
   lastMessage: string;
   unreadCount: number;
@@ -640,10 +647,13 @@ const contactMap = new Map<string, Contact>(
 // 3. 合并：以会话为主，资料补充；无资料时用会话 ID 兜底
 chatList.value = conversations.map((s) => {
 const contact = contactMap.get(s.conversationId);
+// 客服 IM 账号不是平台用户：永远不在 contactMap 里，必须单独兜底，
+// 否则会话列表/聊天标题会裸露 uid「kefu0001」
+const isKefu = s.conversationId === KEFU_AGENT_ID;
 return {
 userId: s.conversationId,
-nickname: contact?.nickname || s.conversationId,
-avatar: contact?.avatar || "",
+nickname: isKefu ? "在线客服" : (contact?.nickname || s.conversationId),
+avatar: isKefu ? "" : (contact?.avatar || ""),
 gender: contact?.gender || "",
 age: contact?.age || 0,
 city: contact?.city || "",
