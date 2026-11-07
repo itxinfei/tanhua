@@ -40,7 +40,6 @@ export const EXCLUDED_PREFIXES = [
   "pages/video/search-result",
   "pages/chat/chat",
   "pages/kefu/chat",
-  "pages/kefu/index",
 ];
 
 export interface TabDef {

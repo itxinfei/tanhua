@@ -36,6 +36,30 @@
       class="faq-scroll"
       scroll-y
     >
+      <!-- 入口操作区：原固定底栏改为页面内容，避免与全局 tabbar 堆叠 -->
+      <view class="entry-bar">
+        <a11y-button
+          class="entry-btn consult"
+          label="在线咨询"
+          @tap="goChat"
+        >
+          <text>
+            <uni-icons
+              type="headphones"
+              size="14"
+              color="#ffffff"
+            /> 在线咨询
+          </text>
+        </a11y-button>
+        <a11y-button
+          class="entry-btn"
+          label="意见反馈"
+          @tap="goFeedback"
+        >
+          <text>意见反馈</text>
+        </a11y-button>
+      </view>
+
       <!-- 加载失败：与「真的暂无 FAQ / 搜索无结果」严格区分，给明确原因 + 可重试入口。
            失败时 faqList 未被赋值（仍为空），分组列表自然不渲染，错误态优先于本地搜索结果 -->
       <empty-state
@@ -107,30 +131,6 @@
         <text>加载中…</text>
       </view>
     </scroll-view>
-
-    <!-- 底部入口：在线咨询 + 意见反馈 -->
-    <view class="bottom-bar safe-area-bottom">
-      <a11y-button
-        class="entry-btn consult"
-        label="在线咨询"
-        @tap="goChat"
-      >
-        <text>
-          <uni-icons
-            type="headphones"
-            size="14"
-            color="#ffffff"
-          /> 在线咨询
-        </text>
-      </a11y-button>
-      <a11y-button
-        class="entry-btn"
-        label="意见反馈"
-        @tap="goFeedback"
-      >
-        <text>意见反馈</text>
-      </a11y-button>
-    </view>
   </view>
 </template>
 
@@ -358,13 +358,11 @@ function goFeedback(): void {
   background: var(--color-primary);
 }
 
-.bottom-bar {
-  padding: 20rpx 24rpx;
-  background: var(--bg-card);
-  border-top: 1rpx solid var(--border-light);
-  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.03);
+/* 入口操作区：页面内容的一部分（非固定底栏），与全局 tabbar 不冲突 */
+.entry-bar {
   display: flex;
   gap: 20rpx;
+  padding: 16rpx 0 24rpx;
 
   .entry-btn {
     flex: 1;
