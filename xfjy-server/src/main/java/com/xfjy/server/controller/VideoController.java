@@ -2,6 +2,7 @@ package com.xfjy.server.controller;
 
 import org.apache.commons.lang3.StringUtils;
 import com.xfjy.server.service.ContentReviewService;
+import com.xfjy.server.exception.BusinessException;
 import com.xfjy.server.service.PushService;
 import com.xfjy.server.service.RiskControlService;
 import com.xfjy.server.service.VideoService;
@@ -192,12 +193,26 @@ public class VideoController {
         // 先原子占位「已赞」标记：并发双击时只有一个请求翻转成功，落库 likeCount 只 +1。
         // 旧实现「先 hasLikedVideo 再改计数」存在读-改-写竞态，两次请求都可能读到未赞。
         boolean firstLike = this.videoService.tryMarkVideoLiked(videoId);
-        ResponseEntity<Long> entity = this.movementsController.likeComment(videoId);
-        if(entity.getStatusCode().is2xxSuccessful()){
-            //视频评分事件：点赞（type=2，由视频服务内部发送消息）
-            this.videoService.recordVideoMsg(videoId, 2);
+        ResponseEntity<Long> entity;
+        try {
+            entity = this.movementsController.likeComment(videoId);
+        } catch (Exception e) {
+            // 下游写入异常（Mongo/Redis 抖动）不再裸抛 500：撤销占位并给出可读错误，用户可重试
+            LOGGER.error("视频点赞写入失败 videoId={}", videoId, e);
             if (firstLike) {
-                this.videoService.incVideoLikeCount(videoId, 1);
+                this.videoService.rollbackVideoLiked(videoId);
+            }
+            throw new BusinessException("点赞失败，请稍后重试");
+        }
+        if (entity.getStatusCode().is2xxSuccessful()) {
+            // 评分事件与计数属于旁路：失败不能把「已经点赞成功」的请求打成失败
+            try {
+                this.videoService.recordVideoMsg(videoId, 2);
+                if (firstLike) {
+                    this.videoService.incVideoLikeCount(videoId, 1);
+                }
+            } catch (Exception e) {
+                LOGGER.warn("视频点赞埋点/计数失败 videoId={}", videoId, e);
             }
         } else if (firstLike) {
             // 下游失败：撤销占位，允许用户下次重试仍能正常 +1
@@ -217,13 +232,26 @@ public class VideoController {
         // 原子释放「已赞」标记：只有真正由已赞翻转为未赞的那次请求才 -1，避免并发双击 -2。
         // 旧实现「先 hasLikedVideo 再减」同样有竞态。
         boolean firstUnlike = this.videoService.tryUnmarkVideoLiked(videoId);
-        ResponseEntity<Long> entity = this.movementsController.disLikeComment(videoId);
-
-        if(entity.getStatusCode().is2xxSuccessful()){
-            //视频评分事件：取消点赞（type=3，由视频服务内部发送消息）
-            this.videoService.recordVideoMsg(videoId, 3);
+        ResponseEntity<Long> entity;
+        try {
+            entity = this.movementsController.disLikeComment(videoId);
+        } catch (Exception e) {
+            LOGGER.error("视频取消点赞写入失败 videoId={}", videoId, e);
             if (firstUnlike) {
-                this.videoService.incVideoLikeCount(videoId, -1);
+                this.videoService.restoreVideoLiked(videoId);
+            }
+            throw new BusinessException("取消点赞失败，请稍后重试");
+        }
+
+        if (entity.getStatusCode().is2xxSuccessful()) {
+            // 评分事件与计数属于旁路：失败不能把「已经取消成功」的请求打成失败
+            try {
+                this.videoService.recordVideoMsg(videoId, 3);
+                if (firstUnlike) {
+                    this.videoService.incVideoLikeCount(videoId, -1);
+                }
+            } catch (Exception e) {
+                LOGGER.warn("视频取消点赞埋点/计数失败 videoId={}", videoId, e);
             }
         } else if (firstUnlike) {
             // 下游失败：恢复标记，避免「标记没了但赞还在」
