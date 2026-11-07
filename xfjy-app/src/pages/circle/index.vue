@@ -478,7 +478,7 @@ import type { Movement } from "@/api/circle";
 import { getContacts, getLikeMessages, getCommentMessages, getLoveMessages, getAnnouncementMessages, type Contact, type MessageLike, type MessageAnnouncement } from "@/api/chat";
 import { useChatStore, type NoticeType } from "@/store/chat";
 import { ensureSelfIM, getConversations, onSystemNoticeReceived } from "@/utils/wukongim";
-import { checkBenefit } from "@/api/mine";
+import { checkBenefit, getUserProfile, type UserProfile } from "@/api/mine";
 
 const circleStore = useCircleStore();
 const chatStore = useChatStore();
@@ -644,19 +644,37 @@ const contactsRes = await getContacts({ page: 1, pagesize: 50 });
 const contactMap = new Map<string, Contact>(
 (contactsRes.items || []).map((c) => [String(c.userId), c])
 );
-// 3. 合并：以会话为主，资料补充；无资料时用会话 ID 兜底。
-//    客服 IM 账号（kefu0001）有独立入口 pages/kefu/chat，不在会话列表重复出现，直接过滤。
-chatList.value = conversations
-.filter((s) => s.conversationId !== KEFU_AGENT_ID)
-.map((s) => {
+// 3. 客服 IM 账号（kefu0001）有独立入口 pages/kefu/chat，不在会话列表重复出现，先过滤。
+const visibleConversations = conversations.filter(
+  (s) => s.conversationId !== KEFU_AGENT_ID
+);
+// 4. 联系人表只收 IM 好友（互相喜欢后注册），非好友单聊对象不在其中；
+//    对缺失资料的会话按 userId 并发补查用户公开资料，避免昵称裸显 uid。
+const missingIds = visibleConversations
+  .map((s) => s.conversationId)
+  .filter((id) => id.length > 0 && !contactMap.has(id));
+const profileMap = new Map<string, UserProfile>();
+await Promise.all(
+  missingIds.map(async (id) => {
+    try {
+      const profile = await getUserProfile(id);
+      if (profile) profileMap.set(id, profile);
+    } catch {
+      // 单个资料查询失败不影响整表，该会话昵称走「用户+id」语义化兜底
+    }
+  })
+);
+// 5. 合并：联系人资料优先，其次用户公开资料，最后语义化兜底，不裸露 uid。
+chatList.value = visibleConversations.map((s) => {
 const contact = contactMap.get(s.conversationId);
+const profile = profileMap.get(s.conversationId);
 return {
 userId: s.conversationId,
-nickname: contact?.nickname || s.conversationId,
-avatar: contact?.avatar || "",
-gender: contact?.gender || "",
-age: contact?.age || 0,
-city: contact?.city || "",
+nickname: contact?.nickname || profile?.nickname || `用户${s.conversationId}`,
+avatar: contact?.avatar || profile?.avatar || "",
+gender: contact?.gender || profile?.gender || "",
+age: contact?.age || Number(profile?.age) || 0,
+city: contact?.city || profile?.city || "",
 online: false,
 lastMessage: s.lastMessage,
 unreadCount: s.unreadCount,

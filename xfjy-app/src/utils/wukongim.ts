@@ -582,12 +582,22 @@ export async function getConversations(): Promise<ChatSession[]> {
     return (items || [])
       .filter((c) => c.channel?.channelType === ChannelTypePerson)
       .map((c) => {
-        const last = c.lastMessage?.content;
-        const lastText =
-          last instanceof MessageText ? last.text || "" : "";
+        // 复用实时消息同一套归一化：把 {"type":1,"content":"..."} 还原为纯文本，
+        // 避免会话列表最后一条裸显原始 JSON；match/system 事件不进业务消息，给语义化兜底
+        let lastMessage = "";
+        if (c.lastMessage) {
+          const received = toReceivedMessage(c.lastMessage);
+          if (received) {
+            lastMessage = received.content;
+          } else if (extractMatchEvent(c.lastMessage)) {
+            lastMessage = "匹配成功";
+          } else if (extractSystemNotice(c.lastMessage)) {
+            lastMessage = "系统通知";
+          }
+        }
         return {
           conversationId: String(c.channel?.channelID || ""),
-          lastMessage: lastText,
+          lastMessage,
           lastTime: (c.timestamp || 0) * 1000,
           unreadCount: c.unread || 0,
         };
