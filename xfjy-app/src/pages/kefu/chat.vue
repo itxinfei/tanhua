@@ -526,8 +526,9 @@ onUnmounted(() => {
   &.mine { flex-direction: row-reverse; }
   /* 头像：76rpx 已 ≥44px 热区基线；外层 a11y-button 补足可点击语义与键盘可达 */
   .avatar-btn { flex-shrink: 0; display: flex; }
-  .avatar { width: 76rpx; height: 76rpx; border-radius: 16rpx; flex-shrink: 0; background: var(--border-light); }
-  .agent-avatar { width: 76rpx; height: 76rpx; border-radius: 16rpx; flex-shrink: 0; background: var(--bg-icon-soft); display: flex; align-items: center; justify-content: center; font-size: 40rpx; }
+  /* 圆形头像（探探式，两聊天页统一），含客服图标占位 */
+  .avatar { width: 76rpx; height: 76rpx; border-radius: 50%; flex-shrink: 0; background: var(--border-light); }
+  .agent-avatar { width: 76rpx; height: 76rpx; border-radius: 50%; flex-shrink: 0; background: var(--bg-icon-soft); display: flex; align-items: center; justify-content: center; font-size: 40rpx; }
   .bubble-wrap { display: flex; align-items: center; gap: 12rpx; max-width: 480rpx; min-width: 0;
     &.mine { flex-direction: row-reverse; }
   }
@@ -536,11 +537,13 @@ onUnmounted(() => {
   .status-failed { width: 88rpx; height: 88rpx; border-radius: 50%; background: var(--color-danger); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     text { font-size: 24rpx; color: var(--text-inverse); font-weight: bold; line-height: 1; }
   }
-  /* min-width:0 + 断行：长文本/连续英文/URL 收在气泡内，防止撑破 flex 容器致页面横向滚动；
-     去三角尾巴（与好友聊天页统一），四角 20rpx，收发靠头像与左右位置区分 */
-  .bubble { position: relative; min-width: 0; overflow-wrap: anywhere; padding: 20rpx 24rpx; border-radius: 20rpx; background: var(--bg-card); font-size: 28rpx; line-height: 1.5; color: var(--text-primary); box-shadow: var(--shadow-card);
-    /* color 用 --text-inverse：mine 为品牌渐变深底，需反白字保证对比 */
-    &.mine { background: var(--gradient-brand); color: var(--text-inverse); }
+  /* 探探式气泡（与好友聊天页统一）：无三角尾巴，靠不对称圆角做指向——
+     客服头像在左→左上角收小 8rpx；我的头像在右→右上角收小；其余三角 32rpx 大圆角。
+     min-width:0 + 断行：长文本/连续英文/URL 收在气泡内，防止撑破 flex 容器致页面横向滚动。
+     扁平无阴影，靠白/粉底与灰底的色差区分（对标探探） */
+  .bubble { position: relative; min-width: 0; overflow-wrap: anywhere; padding: 20rpx 24rpx; border-radius: 8rpx 32rpx 32rpx 32rpx; background: var(--bg-card); font-size: 28rpx; line-height: 1.5; color: var(--text-primary);
+    /* 我的消息：纯品牌粉实心（无渐变）+ 白字，右上角收小靠头像侧 */
+    &.mine { background: var(--color-primary); color: var(--text-inverse); border-radius: 32rpx 8rpx 32rpx 32rpx; }
   }
 }
 
