@@ -272,6 +272,7 @@
             :class="{ focus: isInputFocus }"
             placeholder="说点什么..."
             placeholder-class="ph"
+            maxlength="500"
             aria-label="聊天输入框"
             confirm-type="send"
             @confirm="sendText"
@@ -564,7 +565,7 @@ function showTimeDivider(index: number): boolean {
 }
 
 /**
- * 格式化聊天时间戳：今天显示 HH:mm，昨天显示"昨天 HH:mm"，更早显示 MM-DD HH:mm
+ * 格式化聊天时间戳：今天显示 HH:mm，昨天显示"昨天 HH:mm"，同年更早显示 MM-DD HH:mm，跨年显示 YYYY-MM-DD HH:mm（P2-5）
  * @param ts 毫秒时间戳
  */
 function formatChatTime(ts: number): string {
@@ -578,6 +579,9 @@ function formatChatTime(ts: number): string {
   if (date.toDateString() === yesterday.toDateString()) return `昨天 ${hh}:${mm}`;
   const MM = String(date.getMonth() + 1).padStart(2, "0");
   const DD = String(date.getDate()).padStart(2, "0");
+  if (date.getFullYear() !== now.getFullYear()) {
+    return `${date.getFullYear()}-${MM}-${DD} ${hh}:${mm}`;
+  }
   return `${MM}-${DD} ${hh}:${mm}`;
 }
 
@@ -670,7 +674,8 @@ async function deliverMessage(msg: Message): Promise<void> {
           msg.type === "voice" ? await uploadChatAudio(msg.content) : await uploadChatImage(msg.content);
         if (!url) {
           msg.status = "failed";
-          fail("上传失败，点击气泡重试");
+          // 不再重复 toast：request.ts upload 底层已提示上传失败（P2-11 双 toast 去重），
+          // 气泡红点 + a11y label「发送失败，重新发送」已提供重试入口
           return;
         }
         msg.content = url;
@@ -857,9 +862,13 @@ function toggleVoicePlay(msg: Message): void {
   });
 }
 
-/** 预览图片消息 */
+/** 预览图片消息：传当前会话全部图片，支持左右滑动多图浏览（P2-5） */
 function previewImg(url: string): void {
-  uni.previewImage({ urls: [url] });
+  const allImages = messageList.value
+    .filter((m) => m.type === "image" && m.content)
+    .map((m) => m.content);
+  const urls = allImages.length > 0 ? allImages : [url];
+  uni.previewImage({ urls, current: url });
 }
 
 /** 未完成功能占位提示 */

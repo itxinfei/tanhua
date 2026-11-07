@@ -154,6 +154,7 @@
         v-model="commentText"
         class="comment-input"
         placeholder="写评论..."
+        maxlength="500"
         aria-label="写评论"
         confirm-type="send"
         @confirm="sendComment"

@@ -143,6 +143,7 @@
           class="text-input"
           :class="{ focus: isInputFocus }"
           placeholder="请描述您的问题..."
+          maxlength="500"
           aria-label="客服聊天输入框"
           confirm-type="send"
           @confirm="sendText"
@@ -230,7 +231,7 @@ function showTimeDivider(msg: Message): boolean {
   return msg.timestamp - messageList.value[idx - 1].timestamp > TIME_GAP_MINUTES * 60 * 1000;
 }
 
-/** 格式化聊天时间：今天 HH:mm，昨天"昨天 HH:mm"，更早 MM-DD HH:mm */
+/** 格式化聊天时间：今天 HH:mm，昨天"昨天 HH:mm"，同年更早 MM-DD HH:mm，跨年 YYYY-MM-DD HH:mm（P2-5） */
 function formatChatTime(ts: number): string {
   const date = new Date(ts);
   const now = new Date();
@@ -242,6 +243,9 @@ function formatChatTime(ts: number): string {
   if (date.toDateString() === yesterday.toDateString()) return `昨天 ${hh}:${mm}`;
   const MM = String(date.getMonth() + 1).padStart(2, "0");
   const DD = String(date.getDate()).padStart(2, "0");
+  if (date.getFullYear() !== now.getFullYear()) {
+    return `${date.getFullYear()}-${MM}-${DD} ${hh}:${mm}`;
+  }
   return `${MM}-${DD} ${hh}:${mm}`;
 }
 

@@ -606,6 +606,8 @@ const CHANNELS = [
 const activeChannel = ref<ChannelKey>("recommend");
 
 const displayList = computed<Video[]>(() => channels[activeChannel.value].list.value);
+/** 「没有更多了」提示防重复：每频道只提示一次，切频道/重载重置（P2-4） */
+const noMoreNotified = ref(false);
 
 const commentVisible = ref(false);
 const activeCommentVideoId = ref("");
@@ -840,6 +842,15 @@ function onSwiperChange(e: any) {
   });
   if (index >= displayList.value.length - 2) {
     loadMoreVideos();
+    // P2-4：滑到底且无更多时提示一次，避免用户反复上滑以为卡了
+    if (
+      index === displayList.value.length - 1 &&
+      !channels[activeChannel.value].hasMore.value &&
+      !noMoreNotified.value
+    ) {
+      noMoreNotified.value = true;
+      info("没有更多了");
+    }
   }
 }
 
@@ -918,6 +929,7 @@ function onSearch(): void {
 async function onRefresh() {
   if (refreshing.value) return;
   refreshing.value = true;
+  noMoreNotified.value = false;
   const ch = activeChannel.value;
   const chState = channels[ch];
   const token = ++loadToken;
@@ -967,6 +979,7 @@ async function switchChannel(ch: ChannelKey) {
   swiperIndex.value = 0;
   isPlaying.value = true;
   progress.value = 0;
+  noMoreNotified.value = false;
   const chState = channels[ch];
   erroredVideoIds.value = new Set();
   // 切频道前先 hydration 该频道缓存，避免每次切回都重新黑屏 4~5s

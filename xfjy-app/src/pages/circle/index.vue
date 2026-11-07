@@ -207,6 +207,13 @@
         >
           加载中...
         </view>
+        <!-- P2-4：全部加载完给明确终点，避免用户反复上拉以为卡了 -->
+        <view
+          v-else-if="!hasMore && feedList.length > 0"
+          class="loading"
+        >
+          没有更多了
+        </view>
       </scroll-view>
       </error-boundary>
     </view>
@@ -461,6 +468,10 @@ const feedList = computed<Movement[]>(() =>
 );
 const loading = computed(() => circleStore.loading);
 const loadFailed = computed(() => circleStore.loadFailed);
+/** 当前 Tab 是否还有更多（P2-4：滑到底显示「没有更多了」） */
+const hasMore = computed(() =>
+  circleStore.activeTab === "friend" ? circleStore.friendHasMore : circleStore.recommendHasMore
+);
 const refreshing = ref(false);
 
 function switchTab(key: "friend" | "recommend") {

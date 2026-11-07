@@ -131,6 +131,20 @@ export function handleUnauthorized(): void {
 }
 
 /**
+ * 402 付费墙统一处理：提示 + 延迟跳 VIP 引导页。
+ * source 优先取响应体业务字段（后端可标注触发场景），兜底 "paywall"（P2-11 去硬编码）。
+ */
+function handlePaywall(res: { statusCode: number; data: any }): string {
+  const msg = res.data?.message || "升级 VIP 解锁更多权益";
+  const source = res.data?.source || res.data?.data?.source || "paywall";
+  info(msg, 2000);
+  setTimeout(() => {
+    uni.navigateTo({ url: `/pages/mine/vip?source=${source}` });
+  }, 1500);
+  return msg;
+}
+
+/**
  * 核心请求函数
  */
 function request<T = any>(options: RequestOptions): Promise<T> {
@@ -203,12 +217,7 @@ function request<T = any>(options: RequestOptions): Promise<T> {
 
         // 402 付费墙拦截（滑动次数耗尽等 → 跳 VIP 引导页）
         if (res.statusCode === 402) {
-          const msg = (res.data as any)?.message || "升级 VIP 解锁更多权益";
-          info(msg, 2000);
-          setTimeout(() => {
-            uni.navigateTo({ url: "/pages/mine/vip?source=swipe_out" });
-          }, 1500);
-          reject(new Error(msg));
+          reject(new Error(handlePaywall(res)));
           return;
         }
 
@@ -356,12 +365,7 @@ export function upload<T = any>(
         }
         // 402 付费墙拦截
         if (res.statusCode === 402) {
-          const msg = (res.data as any)?.message || "升级 VIP 解锁更多权益";
-          info(msg, 2000);
-          setTimeout(() => {
-            uni.navigateTo({ url: "/pages/mine/vip?source=swipe_out" });
-          }, 1500);
-          reject(new Error(msg));
+          reject(new Error(handlePaywall(res)));
           return;
         }
         // 429 风控限流

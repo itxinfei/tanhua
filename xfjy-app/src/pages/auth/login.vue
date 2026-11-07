@@ -336,10 +336,10 @@ const canLogin = computed(
     !logging.value
 );
 
-/** 验证码输满自动提交（探探式体验）：仅在手机号有效、协议已勾选时触发，不打扰用户 */
+/** 验证码输满自动提交（探探式体验）：仅在手机号有效、协议已勾选、非登录中时触发，不打扰用户 */
 const CODE_AUTO_SUBMIT_LENGTH = 6;
 watch(code, (val) => {
-  if (val.length >= CODE_AUTO_SUBMIT_LENGTH && phoneValid.value && agree.value) {
+  if (val.length >= CODE_AUTO_SUBMIT_LENGTH && phoneValid.value && agree.value && !logging.value) {
     handleLogin();
   }
 });

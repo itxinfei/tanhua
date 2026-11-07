@@ -151,6 +151,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import A11yButton from "@/components/a11y-button.vue";
+import { confirm } from "@/utils/ux";
 import { getHotSearchWords, type HotSearchWord } from "@/api/video-search";
 
 /** 与后端 VideoSearchService.KEYWORD_MAX 一致 */
@@ -243,8 +244,9 @@ function removeHistory(word: string): void {
   writeHistory(history.value.filter((item) => item !== word));
 }
 
-function clearHistory(): void {
-  writeHistory([]);
+async function clearHistory(): Promise<void> {
+  const ok = await confirm("确定清空全部搜索历史吗？");
+  if (ok) writeHistory([]);
 }
 </script>
 
