@@ -500,7 +500,9 @@ public class VideoService {
     /**
      * 查询「热点」流：按点赞数排序的热门视频（分页）
      *
-     * 实现：取最新 100 条视频，从 Redis 读取点赞数排序后截取当前页。
+     * 实现：取最新 100 条视频，按点赞数排序后截取当前页。
+     * 排序口径与 {@link #assembleVideoVoList} 保持一致：优先 Mongo 落库 likeCount，
+     * 历史数据缺失时才回退 Redis 赞数键（旧实现直接用 Redis 排序，与展示值不一致）。
      * 数据量增大后可改为 MongoDB 存 likeCount 字段 + 索引排序。
      */
     public PageResult queryHotVideoList(Integer page, Integer pageSize) {
@@ -522,8 +524,8 @@ public class VideoService {
         pageResult.setCounts(records.size());
         pageResult.setPages((records.size() + pageSize - 1) / pageSize);
 
-        // 一次 multiGet 批量读出各视频的点赞数（Redis key: QUANZI_COMMENT_LIKE_{videoId}），再内存排序，
-        // 避免比较器/循环内逐条 GET 产生 100 次串行网络往返
+        // 一次 multiGet 批量读出各视频的 Redis 点赞数（key: QUANZI_COMMENT_LIKE_{videoId}），
+        // 仅用于历史数据（likeCount 缺失）的回退；避免比较器/循环内逐条 GET 产生 100 次串行网络往返
         List<String> likeKeys = new ArrayList<>();
         for (Video record : records) {
             likeKeys.add("QUANZI_COMMENT_LIKE_" + record.getId().toHexString());
@@ -543,9 +545,11 @@ public class VideoService {
             }
             likeCountMap.put(likeKeys.get(i), count);
         }
+        // 排序：与 assembleVideoVoList 同口径，Mongo likeCount 优先，缺失时回退 Redis
+        final Map<String, Long> redisLikeFallback = likeCountMap;
         records.sort((a, b) -> Long.compare(
-                likeCountMap.getOrDefault("QUANZI_COMMENT_LIKE_" + b.getId().toHexString(), 0L),
-                likeCountMap.getOrDefault("QUANZI_COMMENT_LIKE_" + a.getId().toHexString(), 0L)));
+                resolveLikeCount(b, redisLikeFallback),
+                resolveLikeCount(a, redisLikeFallback)));
 
         // 按作者轮转打散：仍以热度为准，但同一作者的高赞视频不连续霸屏
         List<Video> ranked = interleaveByAuthor(records);
@@ -563,6 +567,18 @@ public class VideoService {
         pageResult.setItems(hotVoList);
 
         return pageResult;
+    }
+
+    /**
+     * 解析视频点赞数：优先 Mongo 落库 likeCount，缺失时回退 Redis 赞数键。
+     * 与 {@link #assembleVideoVoList} 的展示口径完全一致，供热点排序复用。
+     */
+    private long resolveLikeCount(Video record, Map<String, Long> redisLikeFallback) {
+        if (record.getLikeCount() != null) {
+            return record.getLikeCount();
+        }
+        Long fallback = redisLikeFallback.get("QUANZI_COMMENT_LIKE_" + record.getId().toHexString());
+        return fallback == null ? 0L : fallback;
     }
 
     /**
