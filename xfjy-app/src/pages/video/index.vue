@@ -572,26 +572,28 @@ const PAGE_SIZE = 30;
  */
 const MAX_LOADED_ITEMS = 120;
 
+/** 频道 key 联合类型：4 个频道（热点/关注/附近/推荐），用于类型约束 */
+type ChannelKey = "hot" | "follow" | "location" | "recommend";
+
 /** 4 个频道各自独立的列表与分页（「朋友」与「关注」同源重复，已从前后端移除） */
 const channels = {
-  recommend: { list: ref<Video[]>([]), page: ref(1), hasMore: ref(true) },
-  follow: { list: ref<Video[]>([]), page: ref(1), hasMore: ref(true) },
   hot: { list: ref<Video[]>([]), page: ref(1), hasMore: ref(true) },
+  follow: { list: ref<Video[]>([]), page: ref(1), hasMore: ref(true) },
   location: { list: ref<Video[]>([]), page: ref(1), hasMore: ref(true) },
+  recommend: { list: ref<Video[]>([]), page: ref(1), hasMore: ref(true) },
 } as const;
 
 /** 按频道 key 获取对应的 API 请求函数 */
 function getChannelApi(key: ChannelKey) {
   switch (key) {
-    case "recommend": return getVideoList;
-    case "follow": return getFollowVideoList;
     case "hot": return getHotVideoList;
+    case "follow": return getFollowVideoList;
     case "location": return getLocationVideoList;
+    case "recommend": return getVideoList;
   }
 }
 
 const swiperIndex = ref(0);
-type ChannelKey = "hot" | "follow" | "location" | "recommend";
 /**
  * 频道精简为 4 个（原 5 个中「朋友」与「关注」后端同源、内容完全重复，
  * 「定位」已补全为真实地理数据）。
