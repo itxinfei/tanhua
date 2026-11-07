@@ -134,12 +134,12 @@
                 :label="playingVoiceId === msg.id ? '暂停语音' : `播放语音，${msg.extra?.duration || 0} 秒`"
                 @tap="toggleVoicePlay(msg)"
               >
-                <text
+                <!-- Phosphor 单色图标替代 emoji 字形（§7.1：图标只用 i-ph-*），尺寸由 .voice-icon 的 font-size 经 1em 机制控制 -->
+                <view
                   class="voice-icon"
+                  :class="playingVoiceId === msg.id ? 'i-ph-pause-fill' : 'i-ph-play-fill'"
                   aria-hidden="true"
-                >
-                  {{ playingVoiceId === msg.id ? "❚❚" : "▶" }}
-                </text>
+                />
                 <view
                   class="voice-wave"
                   :class="{ playing: playingVoiceId === msg.id }"
@@ -243,9 +243,10 @@
           :label="isVoiceMode ? '切换到键盘输入' : '切换到语音输入'"
           @tap="toggleVoiceMode"
         >
-          <text aria-hidden="true">
-            {{ isVoiceMode ? "⌨" : "🎤" }}
-          </text>
+          <view
+            :class="isVoiceMode ? 'i-ph-keyboard-fill' : 'i-ph-microphone-fill'"
+            aria-hidden="true"
+          />
         </a11y-button>
         <!-- 语音模式：按住说话 -->
         <view
@@ -286,12 +287,11 @@
             label="表情面板"
             @tap="togglePanel('emoji')"
           >
-            <text
+            <view
+              class="i-ph-smiley"
               :class="{ 'icon-active': activePanel === 'emoji' }"
               aria-hidden="true"
-            >
-              😊
-            </text>
+            />
           </a11y-button>
         </template>
         <!-- 更多面板 -->
@@ -406,7 +406,7 @@ const EMOJI_LIST: string[] = [
 interface QuickAction { uniIcon: string; label: string; bg: string; handler: () => void; }
 const QUICK_ACTIONS: QuickAction[] = [
   { uniIcon: "image", label: "图片", bg: "var(--color-primary)", handler: chooseImage },
-  { uniIcon: "camera", label: "拍照", bg: "var(--info-blue)", handler: () => showTodoToast("拍照") },
+  { uniIcon: "camera", label: "拍照", bg: "var(--info-blue)", handler: chooseFromCamera },
   { uniIcon: "location", label: "位置", bg: "var(--success)", handler: chooseLocation },
   { uniIcon: "person", label: "名片", bg: "var(--color-primary-violet)", handler: chooseCardContact },
 ];
@@ -622,6 +622,27 @@ function chooseImage(): void {
       const msg = String(err?.errMsg || "");
       if (msg.includes("cancel")) return;
       info("需要相册权限才能发送图片");
+      const openSetting = (uni as any).openSetting;
+      if (typeof openSetting === "function") {
+        openSetting({});
+      }
+    },
+  });
+}
+
+/** 拍照并发送（sourceType 限定 camera，失败处理与选图一致，仅提示文案不同） */
+function chooseFromCamera(): void {
+  uni.chooseImage({
+    count: 1,
+    sourceType: ["camera"],
+    success: (res) => {
+      pushMessage("image", res.tempFilePaths[0]);
+      activePanel.value = "none";
+    },
+    fail: (err: any) => {
+      const msg = String(err?.errMsg || "");
+      if (msg.includes("cancel")) return;
+      info("需要相机权限才能拍照");
       const openSetting = (uni as any).openSetting;
       if (typeof openSetting === "function") {
         openSetting({});
@@ -869,11 +890,6 @@ function previewImg(url: string): void {
     .map((m) => m.content);
   const urls = allImages.length > 0 ? allImages : [url];
   uni.previewImage({ urls, current: url });
-}
-
-/** 未完成功能占位提示 */
-function showTodoToast(feature: string): void {
-  info(`${feature}功能开发中`);
 }
 
 /** 接收对方新消息回调（onUnmounted 注销） */
@@ -1139,15 +1155,16 @@ onUnmounted(() => {
 /* ===== 对方正在输入提示 ===== */
 .typing-indicator { display: flex; align-items: center; margin-bottom: 20rpx; animation: fadeIn 0.2s ease-out; }
 .load-more-history { text-align: center; padding: 16rpx 0; color: var(--text-hint); font-size: var(--fs-sm); }
-.typing-btn { display: flex; align-items: center; gap: 12rpx; min-height: 72rpx; padding: 8rpx 20rpx 8rpx 8rpx; background: var(--bg-card); border-radius: 40rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06); }
+.typing-btn { display: flex; align-items: center; gap: 12rpx; min-height: 72rpx; padding: 8rpx 20rpx 8rpx 8rpx; background: var(--bg-card); border-radius: 40rpx; box-shadow: var(--shadow-card); }
 .typing-avatar { width: 56rpx; height: 56rpx; border-radius: 50%; background: var(--border-light); flex-shrink: 0; }
 .typing-bubble { display: flex; align-items: center; padding: 0 8rpx; }
 .typing-dots { display: flex; align-items: center; gap: 6rpx; }
-.dot { width: 12rpx; height: 12rpx; border-radius: 50%; background: var(--text-hint); animation: typingBounce 1.2s ease-in-out infinite; }
+/* ease-out-quart 曲线：真实物体减速感，避免 bounce/elastic 的廉价回弹 */
+.dot { width: 12rpx; height: 12rpx; border-radius: 50%; background: var(--text-hint); animation: typingPulse 1.2s cubic-bezier(0.25, 1, 0.5, 1) infinite; }
 .dot:nth-child(2) { animation-delay: 0.15s; }
 .dot:nth-child(3) { animation-delay: 0.3s; }
 .typing-text { font-size: 24rpx; color: var(--text-hint); }
-@keyframes typingBounce {
+@keyframes typingPulse {
   0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
   30% { transform: translateY(-6rpx); opacity: 1; }
 }
@@ -1168,7 +1185,7 @@ onUnmounted(() => {
   }
   /* min-width:0 + 断行：长文本/连续英文/URL 才能收在气泡内，
      否则会撑破 flex 容器导致页面横向滚动 */
-  .bubble { position: relative; min-width: 0; overflow-wrap: anywhere; word-break: break-word; padding: 20rpx 24rpx; border-radius: 20rpx; background: var(--bg-card); font-size: 28rpx; line-height: 1.5; color: var(--text-primary); box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  .bubble { position: relative; min-width: 0; overflow-wrap: anywhere; padding: 20rpx 24rpx; border-radius: 20rpx; background: var(--bg-card); font-size: 28rpx; line-height: 1.5; color: var(--text-primary); box-shadow: var(--shadow-card);
     /* 气泡尾巴 */
     &::before { content: ""; position: absolute; top: 28rpx; width: 0; height: 0; border-top: 10rpx solid transparent; border-bottom: 10rpx solid transparent; }
     &:not(.mine) { border-top-left-radius: 6rpx;
@@ -1185,7 +1202,7 @@ onUnmounted(() => {
     .msg-voice { display: flex; align-items: center; gap: 12rpx; min-width: 180rpx;
       .voice-icon { font-size: 26rpx; }
       .voice-wave { display: flex; align-items: center; gap: 4rpx;
-        .wave-bar { width: 4rpx; height: 16rpx; border-radius: 2rpx; background: currentColor; opacity: 0.6; }
+        .wave-bar { width: 4rpx; height: 16rpx; border-radius: 2rpx; background: currentColor; opacity: 0.6; transform-origin: center; }
         &.playing .wave-bar { animation: wave 0.8s ease-in-out infinite; }
       }
       .voice-duration { font-size: 24rpx; opacity: 0.85; }
@@ -1209,9 +1226,11 @@ onUnmounted(() => {
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+/* 语音波形：原 height 动画每帧触发布局，改 scaleY 只走合成层；
+   16rpx 基准 ×0.75/1.5 等价原 12rpx↔24rpx，视觉不变 */
 @keyframes wave {
-  0%, 100% { height: 12rpx; }
-  50% { height: 24rpx; }
+  0%, 100% { transform: scaleY(0.75); }
+  50% { transform: scaleY(1.5); }
 }
 
 /* ===== 输入区 ===== */
@@ -1220,10 +1239,10 @@ onUnmounted(() => {
 .icon-btn { width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center; font-size: 40rpx; border-radius: 50%; flex-shrink: 0;
   .icon-active { filter: drop-shadow(0 0 6rpx rgba(var(--color-primary-rgb), 0.6)); }
 }
-.text-input { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; transition: all 0.2s;
+.text-input { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; transition: background 0.2s, box-shadow 0.2s;
   &.focus { background: var(--bg-card); box-shadow: 0 0 0 3rpx rgba(var(--color-primary-rgb), 0.35); }
 }
-.voice-btn { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; display: flex; align-items: center; justify-content: center; font-size: 28rpx; color: var(--text-secondary); transition: all 0.15s;
+.voice-btn { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; display: flex; align-items: center; justify-content: center; font-size: 28rpx; color: var(--text-secondary); transition: background 0.15s, transform 0.15s;
   &:active { background: var(--border); transform: scale(0.98); }
 }
 
@@ -1237,6 +1256,6 @@ onUnmounted(() => {
 
 .more-grid { display: flex; flex-wrap: wrap; padding: 36rpx 16rpx; }
 .more-item { width: 25%; display: flex; flex-direction: column; align-items: center; gap: 14rpx; }
-.more-icon { width: 104rpx; height: 104rpx; border-radius: 24rpx; display: flex; align-items: center; justify-content: center; font-size: 44rpx; box-shadow: 0 6rpx 16rpx rgba(0, 0, 0, 0.08); }
+.more-icon { width: 104rpx; height: 104rpx; border-radius: 24rpx; display: flex; align-items: center; justify-content: center; font-size: 44rpx; box-shadow: var(--shadow-float); }
 .more-label { font-size: 24rpx; color: var(--text-secondary); }
 </style>

@@ -1,33 +1,67 @@
 <template>
   <view class="profile-page">
-    <!-- 头像：整行作为可访问按钮 -->
-    <a11y-button
-      class="avatar-row anim-fade-down"
-      label="更换头像"
-      @tap="changeAvatar"
-    >
-      <text class="label">
-        头像
-      </text>
-      <view class="avatar-wrap">
-        <smart-image
-          lazy-load
-          class="avatar"
-          :src="form.avatar"
-          mode="aspectFill"
-          :aria-hidden="true"
-        />
-        <view class="avatar-mask">
-          <text>更换</text>
-        </view>
-      </view>
-      <text
-        class="arrow"
-        aria-hidden="true"
+    <!-- 头像：独立垂直居中块，脱离下方表单的左对齐体系 -->
+    <view class="avatar-block anim-fade-down">
+      <a11y-button
+        class="avatar-trigger"
+        label="更换头像"
+        :disabled="avatarUploading"
+        @tap="changeAvatar"
       >
-        ›
+        <view class="avatar-wrap">
+          <view
+            v-if="!form.avatar"
+            class="avatar avatar-placeholder"
+            aria-hidden="true"
+          >
+            <text
+              v-if="avatarInitial"
+              class="avatar-initial"
+            >
+              {{ avatarInitial }}
+            </text>
+            <uni-icons
+              v-else
+              type="person-filled"
+              size="36"
+              color="var(--text-hint)"
+            />
+          </view>
+          <smart-image
+            v-else
+            lazy-load
+            class="avatar"
+            :src="form.avatar"
+            fallback=""
+            mode="aspectFill"
+            :aria-hidden="true"
+          />
+          <view
+            v-if="avatarUploading"
+            class="avatar-loading"
+            aria-hidden="true"
+          >
+            <view class="avatar-spinner" />
+          </view>
+          <view
+            class="avatar-badge"
+            aria-hidden="true"
+          >
+            <uni-icons
+              type="camera-filled"
+              size="16"
+              color="var(--text-inverse)"
+            />
+          </view>
+        </view>
+      </a11y-button>
+      <text class="avatar-name">
+        {{ form.nickname || '未设置昵称' }}
       </text>
-    </a11y-button>
+      <text class="avatar-account">
+        ID: {{ userStore.userInfo?.id || '—' }}
+      </text>
+    </view>
 
     <!-- 照片墙 -->
     <view class="section anim-fade-up anim-delay-1">
@@ -79,7 +113,7 @@
       <a11y-button
         class="form-item"
         label="修改昵称"
-        @tap="editField('nickname', '昵称')"
+        @tap="editField('nickname')"
       >
         <text class="label">
           昵称
@@ -102,7 +136,7 @@
       <a11y-button
         class="form-item"
         label="修改个性签名"
-        @tap="editField('signature', '个性签名')"
+        @tap="editField('signature')"
       >
         <text class="label">
           签名
@@ -248,17 +282,62 @@
       @update:visible="pickerVisible = $event"
       @confirm="onPickerConfirm"
     />
+
+    <!-- 昵称/签名编辑弹窗：替代 uni.showModal 单行输入，支持多行 + 字数统计 -->
+    <a11y-dialog
+      :visible="editDialogVisible"
+      :title="editDialogTitle"
+      :mask-closable="true"
+      class="edit-dialog"
+      @close="editDialogVisible = false"
+    >
+      <view class="edit-panel">
+        <view class="sheet-grabber" aria-hidden="true" />
+        <view class="edit-field-head">
+          <text class="edit-field-title">
+            {{ editDialogTitle }}
+          </text>
+          <text class="edit-field-count">
+            {{ editDraft.length }} / {{ editMaxLength }}
+          </text>
+        </view>
+        <textarea
+          v-model="editDraft"
+          class="edit-textarea"
+          :placeholder="editPlaceholder"
+          :maxlength="editMaxLength"
+          aria-label="编辑内容"
+        />
+        <view class="edit-actions">
+          <a11y-button
+            variant="text"
+            label="取消编辑"
+            @tap="editDialogVisible = false"
+          >
+            <text>取消</text>
+          </a11y-button>
+          <a11y-button
+            variant="primary"
+            label="保存"
+            @tap="confirmEdit"
+          >
+            <text>保存</text>
+          </a11y-button>
+        </view>
+      </view>
+    </a11y-dialog>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import { useUserStore } from "@/store/user";
 import A11yRadioGroup from "@/components/a11y-radio-group.vue";
 import A11yButton from "@/components/a11y-button.vue";
 import SmartImage from "@/components/smart-image.vue";
 import A11yPicker from "@/components/a11y-picker.vue";
+import A11yDialog from "@/components/a11y-dialog.vue";
 import { getUserProfile, updateUserProfile, uploadImage } from "@/api/mine";
 import { success, fail, info, loading, hideLoading, confirm } from "@/utils/ux";
 import { resolveAvatar } from "@/utils/avatar";
@@ -351,6 +430,15 @@ const form = ref({
   photoAlbum: [] as string[],
 });
 
+/** 头像首次上传中：行内 spinner + 阻断重复选择 */
+const avatarUploading = ref(false);
+
+/** 空态首字母：无昵称时返回空串，模板回退到中性人像图标 */
+const avatarInitial = computed(() => {
+  const nickname = String(form.value.nickname || "").trim();
+  return nickname ? Array.from(nickname)[0].toUpperCase() : "";
+});
+
 // ===== 底部选择器状态 =====
 const pickerVisible = ref(false);
 const pickerField = ref<PickerField>("city");
@@ -430,29 +518,50 @@ function handleChooseImageFail(err: any): void {
   }
 }
 
-/** 更换头像：选图后上传 MinIO，成功写入 MinIO URL（随保存提交后端） */
+/** 头像上限 2MB（与需求一致；超大图先拦截，避免无效上传） */
+const AVATAR_MAX_SIZE = 2 * 1024 * 1024;
+const AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const AVATAR_EXTS = ["jpg", "jpeg", "png", "webp"];
+
+/** 选图后校验：返回错误文案，通过返回 null（部分平台无 type 时按扩展名兜底） */
+function validateAvatarFile(file: { size?: number; type?: string }, path: string): string | null {
+  if (Number(file.size || 0) > AVATAR_MAX_SIZE) return "图片不能超过 2MB";
+  const type = String(file.type || "").toLowerCase();
+  const ext = path.split(".").pop()?.toLowerCase() || "";
+  const typeOk = type ? AVATAR_TYPES.includes(type) : AVATAR_EXTS.includes(ext);
+  return typeOk ? null : "仅支持 JPG/PNG/WebP 图片";
+}
+
+/** 更换头像：选图 → 校验 → 上传 MinIO → 保存成功后写入 form */
 function changeAvatar(): void {
+  if (avatarUploading.value) return;
   uni.chooseImage({
     count: 1,
     sizeType: ["compressed"],
     success: async (res) => {
       const tempPath = res.tempFilePaths[0];
       if (!tempPath) return; // 用户取消
-      loading("上传中...");
+      const file = (res.tempFiles?.[0] || {}) as { size?: number; type?: string };
+      const invalid = validateAvatarFile(file, tempPath);
+      if (invalid) {
+        fail(invalid);
+        return;
+      }
+      avatarUploading.value = true;
       try {
         const result = await uploadImage(tempPath);
-        hideLoading();
         if (result.status === "done" && result.name) {
           // 交由 saveField 在保存成功后写入 form：失败时头像保持旧图，
           // 避免「界面显示新头像但后端仍是旧图」的不一致
           const ok = await saveField("avatar", result.name);
           if (ok) success("头像已更新");
         } else {
-          fail("上传失败，请重试");
+          fail("上传失败，请检查网络后重试");
         }
-      } catch (e) {
-        hideLoading();
-        fail("上传失败，请重试");
+      } catch {
+        fail("网络异常，头像未更新，请重试");
+      } finally {
+        avatarUploading.value = false;
       }
     },
     fail: handleChooseImageFail,
@@ -541,31 +650,52 @@ function normalizeAlbum(raw: unknown): string[] {
 
 /** 弹窗编辑文本字段（仅昵称/签名保留） */
 const FIELD_MAX_LENGTH: Record<string, number> = { nickname: 20, signature: 50 };
+/** 字段显示名（用于弹窗标题/占位） */
+const FIELD_LABEL: Record<string, string> = { nickname: "昵称", signature: "个性签名" };
 
-function editField(field: string, label: string): void {
-  uni.showModal({
-    title: `修改${label}`,
-    editable: true,
-    placeholderText: `请输入${label}（最多 ${FIELD_MAX_LENGTH[field]} 字）`,
-    content: (form.value as any)[field] || "",
-    success: async (res) => {
-      if (!res.confirm) return;
-      const text = (res.content || "").trim();
-      // 昵称/签名不允许置空：静默 return 会让用户以为「点了没反应」，
-      // 必须给出明确提示（BUG-04 收口）
-      if (!text) {
-        fail(`${label}不能为空`);
-        return;
-      }
-      const max = FIELD_MAX_LENGTH[field];
-      if (text.length > max) {
-        fail(`${label}最多 ${max} 个字符`);
-        return;
-      }
-      (form.value as any)[field] = text;
-      await saveField(field, text);
-    },
-  });
+// ===== 编辑弹窗状态 =====
+const editDialogVisible = ref(false);
+const editFieldKey = ref<string>("");
+const editDraft = ref("");
+const editSaving = ref(false);
+
+const editDialogTitle = computed(() => FIELD_LABEL[editFieldKey.value] || "编辑");
+const editMaxLength = computed(() => FIELD_MAX_LENGTH[editFieldKey.value] || 50);
+const editPlaceholder = computed(() => `请输入${editDialogTitle.value}`);
+
+/** 打开编辑弹窗（替代 uni.showModal 单行输入） */
+function editField(field: string): void {
+  editFieldKey.value = field;
+  editDraft.value = String((form.value as any)[field] || "");
+  editDialogVisible.value = true;
+}
+
+/** 保存编辑内容：先校验，再提交后端，成功才写本地表单 */
+async function confirmEdit(): Promise<void> {
+  if (editSaving.value) return;
+  const field = editFieldKey.value;
+  const text = editDraft.value.trim();
+  // 昵称/签名不允许置空：静默 return 会让用户以为「点了没反应」，
+  // 必须给出明确提示（BUG-04 收口）
+  if (!text) {
+    fail(`${editDialogTitle.value}不能为空`);
+    return;
+  }
+  const max = editMaxLength.value;
+  if (text.length > max) {
+    fail(`${editDialogTitle.value}最多 ${max} 个字符`);
+    return;
+  }
+  editSaving.value = true;
+  try {
+    const ok = await saveField(field, text);
+    if (ok) {
+      editDialogVisible.value = false;
+      success("已保存");
+    }
+  } finally {
+    editSaving.value = false;
+  }
 }
 
 onShow(async () => {
@@ -598,20 +728,24 @@ onShow(async () => {
 <style lang="scss" scoped>
 .profile-page { min-height: calc(100vh - var(--tab-bar-height, 0px)); background: var(--bg-sub); padding-bottom: calc(var(--tab-bar-height, 50px) + 60rpx); }
 
-/* ===== 头像行 ===== */
-.avatar-row { display: flex; align-items: center; padding: 32rpx; background: var(--bg-card);
-  .label { flex: 1; font-size: 28rpx; color: var(--text-primary); font-weight: 500; }
-  .avatar-wrap { position: relative; width: 120rpx; height: 120rpx;
-    .avatar { width: 100%; height: 100%; border-radius: 50%; border: 4rpx solid var(--bg-icon-soft); }
-    .avatar-mask { position: absolute; bottom: 0; left: 0; right: 0; height: 40rpx; background: rgba(0, 0, 0, 0.45); border-radius: 0 0 60rpx 60rpx; display: flex; align-items: center; justify-content: center;
-      text { font-size: 20rpx; color: var(--text-inverse); }
-    }
+/* ===== 头像块：独立垂直居中，与下方左对齐表单解耦 ===== */
+.avatar-block { display: flex; flex-direction: column; align-items: center; padding: var(--space-xl) var(--space-lg); background: var(--bg-card);
+  .avatar-name { margin-top: var(--space-md); font-size: var(--fs-lg); font-weight: 600; color: var(--text-primary); }
+  .avatar-account { margin-top: var(--space-xs); font-size: var(--fs-sm); color: var(--text-hint); }
+  .avatar-wrap { position: relative; width: 176rpx; height: 176rpx;
+    .avatar { width: 100%; height: 100%; border-radius: var(--radius-pill); }
+    .avatar-placeholder { display: flex; align-items: center; justify-content: center; background: var(--bg-icon-soft); }
+    .avatar-initial { font-size: 56rpx; font-weight: 600; color: var(--text-secondary); }
+    .avatar-loading { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.35); border-radius: var(--radius-pill); }
+    .avatar-spinner { width: 40rpx; height: 40rpx; border: 4rpx solid rgba(255, 255, 255, 0.35); border-top-color: var(--text-inverse); border-radius: var(--radius-pill); animation: avatar-spin 0.8s linear infinite; }
+    .avatar-badge { position: absolute; right: 4rpx; bottom: 4rpx; width: 44rpx; height: 44rpx; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.55); border-radius: var(--radius-pill); }
   }
-  .arrow { font-size: 36rpx; color: var(--text-hint); margin-left: 16rpx; }
 }
 
+@keyframes avatar-spin { to { transform: rotate(360deg); } }
+
 /* ===== 分组 ===== */
-.section { background: var(--bg-card); margin-top: 16rpx; padding: 8rpx 32rpx;
+.section { background: var(--bg-card); margin-top: var(--space-sm); padding: 8rpx 32rpx;
   .section-title { font-size: 26rpx; color: var(--text-hint); display: block; margin: 20rpx 0; }
 }
 
@@ -652,6 +786,72 @@ onShow(async () => {
     &.male.active { background: linear-gradient(135deg, var(--info-blue), var(--info-blue-soft)); border-color: var(--info-blue); box-shadow: 0 4rpx 14rpx rgba(74, 144, 217, 0.3); color: var(--text-inverse); }
     &.female.active { background: var(--gradient-brand); border-color: var(--color-primary); box-shadow: 0 4rpx 14rpx rgba(var(--color-primary-rgb), 0.3); color: var(--text-inverse); }
   }
+}
+
+/* ===== 昵称/签名编辑弹窗 ===== */
+.edit-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.edit-panel {
+  width: 100%;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: 16rpx 32rpx calc(32rpx + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+}
+
+/* 顶部抓手（纯装饰） */
+.sheet-grabber {
+  width: 64rpx;
+  height: 8rpx;
+  border-radius: var(--radius-pill);
+  background: var(--border-light);
+  margin: 0 auto 24rpx;
+}
+
+.edit-field-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.edit-field-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.edit-field-count {
+  font-size: 24rpx;
+  color: var(--text-hint);
+  font-variant-numeric: tabular-nums;
+}
+
+.edit-textarea {
+  width: 100%;
+  height: 200rpx;
+  box-sizing: border-box;
+  padding: 20rpx 24rpx;
+  background: var(--bg-sub);
+  border: 2rpx solid var(--border-light);
+  border-radius: var(--radius-md);
+  font-size: 28rpx;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 24rpx;
+  justify-content: flex-end;
 }
 
 </style>
