@@ -589,8 +589,8 @@ const BADGE_MAX_COUNT = 99;
 
 /**
  * 人工客服 IM 账号（与后端 KefuService.KEFU_AGENT_ID 一致）。
- * 客服是 IM 通道账号、非平台用户：不在 tb_user_info / 好友列表里，
- * 会话列表拿不到联系人资料，必须单独兜底为「在线客服」而非裸露 uid。
+ * 客服是 IM 通道账号、非平台用户：不在 tb_user_info / 好友列表里。
+ * 客服有独立入口 pages/kefu/chat，会话列表需过滤掉该账号，避免重复出现。
  */
 const KEFU_AGENT_ID = "kefu0001";
 
@@ -644,16 +644,16 @@ const contactsRes = await getContacts({ page: 1, pagesize: 50 });
 const contactMap = new Map<string, Contact>(
 (contactsRes.items || []).map((c) => [String(c.userId), c])
 );
-// 3. 合并：以会话为主，资料补充；无资料时用会话 ID 兜底
-chatList.value = conversations.map((s) => {
+// 3. 合并：以会话为主，资料补充；无资料时用会话 ID 兜底。
+//    客服 IM 账号（kefu0001）有独立入口 pages/kefu/chat，不在会话列表重复出现，直接过滤。
+chatList.value = conversations
+.filter((s) => s.conversationId !== KEFU_AGENT_ID)
+.map((s) => {
 const contact = contactMap.get(s.conversationId);
-// 客服 IM 账号不是平台用户：永远不在 contactMap 里，必须单独兜底，
-// 否则会话列表/聊天标题会裸露 uid「kefu0001」
-const isKefu = s.conversationId === KEFU_AGENT_ID;
 return {
 userId: s.conversationId,
-nickname: isKefu ? "在线客服" : (contact?.nickname || s.conversationId),
-avatar: isKefu ? "" : (contact?.avatar || ""),
+nickname: contact?.nickname || s.conversationId,
+avatar: contact?.avatar || "",
 gender: contact?.gender || "",
 age: contact?.age || 0,
 city: contact?.city || "",
