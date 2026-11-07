@@ -193,7 +193,7 @@ import {
   FRIEND_TYPE,
   type FriendUser,
 } from "@/api/mine";
-import { info, success, confirm } from "@/utils/ux";
+import { info, success, fail, confirm } from "@/utils/ux";
 import { resolveAvatar } from "@/utils/avatar";
 import { safeGoBack } from "@/utils/nav";
 import { useUserStore } from "@/store/user";
@@ -389,6 +389,9 @@ async function loadMore(): Promise<void> {
     userList.value.push(...(result.items || []));
     currentPage.value = nextPage;
     hasMore.value = (result.items?.length || 0) >= DEFAULT_PAGE_SIZE;
+  } catch {
+    // 翻页失败保留 hasMore=true，用户可再次上拉重试；给明确反馈避免静默
+    fail("加载失败，请上拉重试");
   } finally {
     if (seq === loadSeq) loading.value = false;
   }

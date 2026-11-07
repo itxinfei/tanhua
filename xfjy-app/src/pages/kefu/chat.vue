@@ -97,6 +97,23 @@
         </view>
       </template>
 
+      <!-- IM 登录失败：消息无法收发，必须显式提示而非静默降级 -->
+      <empty-state
+        v-if="imLoginFailed"
+        role="alert"
+        icon="info"
+        title="客服连接失败"
+        desc="消息服务暂时不可用，请检查网络后重试"
+      >
+        <a11y-button
+          class="history-retry"
+          label="重新连接客服"
+          @tap="retryIMLogin"
+        >
+          重新连接
+        </a11y-button>
+      </empty-state>
+
       <!-- 历史拉取失败：与「真的没有历史消息」的欢迎语/快捷问题空态区分；重试只重拉历史，不重跑 IM 登录。
            消息列表非空（如失败后仍发出消息）即按门控自然隐藏，无需额外清理逻辑 -->
       <empty-state
@@ -214,6 +231,8 @@ const sendingMsgs = new Set<string>();
 
 /** 是否有消息在途（仅用于发送按钮禁用态，不阻断消息投递） */
 const sending = computed(() => sendingMsgs.size > 0);
+/** IM 登录失败：消息无法收发，需提示用户而非静默降级 */
+const imLoginFailed = ref(false);
 const isInputFocus = ref(false);
 const scrollToId = ref("");
 const messageList = ref<Message[]>([]);
@@ -368,17 +387,16 @@ async function retryLoadHistory(): Promise<void> {
   }
 }
 
-onLoad(async () => {
-  myAvatar.value = resolveAvatar(userStore.userInfo?.avatar);
-
-  // 查询 VIP 状态（exclusive_service 专属客服标识，失败静默不阻断）
-  try {
-    const vip = await getVipStatus();
-    isVip.value = (vip?.level ?? 0) > 0;
-  } catch {
-    // VIP 状态查询失败不阻断客服会话
+/**
+ * IM 登录 + 消息监听 + 历史拉取（可重试）。
+ * 抽为独立函数供 onLoad 首次调用与 retryIMLogin 重试复用。
+ */
+async function reconnectIM(): Promise<void> {
+  // 重试前先注销旧监听，避免重复注册导致消息被处理两次
+  if (unregisterMessage) {
+    unregisterMessage();
+    unregisterMessage = null;
   }
-
   try {
     // 1. 获取客服 IM 账号
     const agent = await getAgentApi();
@@ -418,9 +436,31 @@ onLoad(async () => {
       fail("历史消息加载失败，请稍后重试");
     }
   } catch {
-    // IM（WuKongIM）登录失败静默降级
+    // IM（WuKongIM）登录失败：不再静默，置错误态让模板显示重试入口
+    imLoginFailed.value = true;
+    fail("客服连接失败，请重试");
   }
+}
+
+onLoad(async () => {
+  myAvatar.value = resolveAvatar(userStore.userInfo?.avatar);
+
+  // 查询 VIP 状态（exclusive_service 专属客服标识，失败静默不阻断）
+  try {
+    const vip = await getVipStatus();
+    isVip.value = (vip?.level ?? 0) > 0;
+  } catch {
+    // VIP 状态查询失败不阻断客服会话
+  }
+
+  await reconnectIM();
 });
+
+/** 重试 IM 登录：复用 reconnectIM 重跑登录+监听+历史拉取 */
+function retryIMLogin(): void {
+  imLoginFailed.value = false;
+  void reconnectIM();
+}
 
 /** 点击我的头像：打开自己的资料页 */
 function openMyProfile(): void {
