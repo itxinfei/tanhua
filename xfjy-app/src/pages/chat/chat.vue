@@ -7,7 +7,7 @@
       scroll-y
       class="msg-list"
       :scroll-into-view="scrollToId"
-      :scroll-with-animation="true"
+      :scroll-with-animation="false"
       @scrolltoupper="loadMoreHistory"
     >
       <!-- 续拉更旧历史指示（M-K4） -->
@@ -107,7 +107,7 @@
               </text>
             </a11y-button>
             <view
-              class="bubble pop-in"
+              class="bubble"
               :class="{ mine: msg.isMine }"
             >
               <text v-if="msg.type === 'text'">
@@ -418,6 +418,11 @@ import {
   type ReceivedMessage,
 } from "@/utils/wukongim";
 import { info, fail } from "@/utils/ux";
+import {
+  resolveAddressName,
+  resolveCurrentLocation,
+  locationDisplayName,
+} from "@/utils/location";
 import { warn } from "@/utils/logger";
 import { resolveAvatar, DEFAULT_AVATAR } from "@/utils/avatar";
 
@@ -824,23 +829,21 @@ function onVoiceCancel(): void {
   recorderManager?.stop();
 }
 
-/** 选位置并发送（uni.chooseLocation；平台不支持时给出提示） */
-function chooseLocation(): void {
+/** 发送当前位置：设备定位优先，取不到走 IP 兜底，地址名由服务端解析（Key 后台可维护） */
+async function chooseLocation(): Promise<void> {
   activePanel.value = "none";
-  uni.chooseLocation({
-    success: (res) => {
-      pushMessage("location", res.name || res.address || "位置", {
-        latitude: res.latitude,
-        longitude: res.longitude,
-      });
-    },
-    fail: (err) => {
-      const msg = (err as { errMsg?: string }).errMsg || "";
-      // 用户主动取消不算失败，其余（如未配置地图 key）明确提示
-      if (!msg.includes("cancel")) {
-        info("当前平台暂不支持选点");
-      }
-    },
+  const loc = await resolveCurrentLocation();
+  if (!loc) {
+    // 明确区分「环境不支持」与「网络异常」：非 HTTPS 的 H5 拿不到定位权限
+    info("当前环境无法获取位置：H5 需 HTTPS 访问并允许定位授权");
+    return;
+  }
+  const addr = await resolveAddressName(loc.latitude, loc.longitude);
+  const fallback = loc.source === "ip" ? "当前位置（城市级）" : "当前位置";
+  const name = locationDisplayName(addr, fallback);
+  pushMessage("location", name, {
+    latitude: loc.latitude,
+    longitude: loc.longitude,
   });
 }
 
@@ -1189,7 +1192,7 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 /* fixed 撑满整个视口，彻底脱离 uni-page-wrapper/body 的高度限制；
    否则 uni-page-body 在 H5 中高度由内容撑开（约半屏），输入框会被推到屏幕中间甚至视口外。
-   z-index 低于 tabbar(998) 避免遮挡全局底栏；padding-top 预留状态栏。 */
+   z-index 低于 tabbar(998) 避免遮挡全局底栏。 */
 .chat-room {
   position: fixed;
   top: 0;
@@ -1240,10 +1243,17 @@ onUnmounted(() => {
 
 /* 头像：76rpx 已 ≥44px 热区基线；外层 a11y-button 补足可点击语义与键盘可达 */
 .msg-item { display: flex; align-items: flex-start; margin-bottom: 28rpx; gap: 16rpx;
-&.mine { flex-direction: row-reverse; }
+/* DOM 顺序 [对方头像, bubble-wrap, 我的头像]，普通 row：
+   对方 → 头像在左、bubble 在右，整组靠左（默认 flex-start）；
+   我的 → bubble 在左、头像在右，整组靠右（flex-end）。
+   禁止加 row-reverse：DOM 顺序已含位置语义，反转后头像与 bubble 左右互换。 */
+&.mine { justify-content: flex-end; }
 .avatar-btn { flex-shrink: 0; display: flex; }
-.avatar { width: 76rpx; height: 76rpx; border-radius: 16rpx; background: var(--border-light); }
+/* 圆形头像（探探式，两聊天页统一）；typing-avatar/card-avatar 本就 50% */
+.avatar { width: 76rpx; height: 76rpx; border-radius: 50%; background: var(--border-light); }
   .bubble-wrap { display: flex; align-items: center; gap: 12rpx; max-width: 480rpx; min-width: 0;
+    /* 我的消息：status 图标（转圈/失败）应在 bubble 与头像之间，
+       DOM [status, bubble] + row-reverse → [bubble, status]，status 靠右（近头像） */
     &.mine { flex-direction: row-reverse; }
   }
   .status-loading { width: 28rpx; height: 28rpx; border: 3rpx solid var(--border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
@@ -1251,11 +1261,13 @@ onUnmounted(() => {
   .status-failed { width: 88rpx; height: 88rpx; border-radius: 50%; background: var(--color-danger); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     .failed-icon { font-size: 22rpx; color: var(--text-inverse); font-weight: bold; line-height: 1; }
   }
-  /* 去三角尾巴（与客服聊天页统一），四角 20rpx，收发靠头像与左右位置区分；
-     min-width:0 + 断行：长文本/连续英文/URL 收在气泡内，否则会撑破 flex 容器导致页面横向滚动 */
-  .bubble { position: relative; min-width: 0; overflow-wrap: anywhere; padding: 20rpx 24rpx; border-radius: 20rpx; background: var(--bg-card); font-size: 28rpx; line-height: 1.5; color: var(--text-primary); box-shadow: var(--shadow-card);
-    /* color 用 --text-inverse：mine 为品牌渐变深底，需反白字保证对比 */
-    &.mine { background: var(--gradient-brand); color: var(--text-inverse); }
+  /* 探探式气泡（与客服聊天页统一）：无三角尾巴，靠不对称圆角做指向——
+     对方头像在左→左上角收小 8rpx；我的头像在右→右上角收小；其余三角 32rpx 大圆角。
+     min-width:0 + 断行：长文本/连续英文/URL 收在气泡内，否则会撑破 flex 容器导致页面横向滚动。
+     扁平无阴影，靠白/粉底与灰底的色差区分（对标探探） */
+  .bubble { position: relative; min-width: 0; overflow-wrap: anywhere; padding: 20rpx 24rpx; border-radius: 8rpx 32rpx 32rpx 32rpx; background: var(--bg-card); font-size: 28rpx; line-height: 1.5; color: var(--text-primary);
+    /* 我的消息：纯品牌粉实心（无渐变）+ 白字，右上角收小靠头像侧 */
+    &.mine { background: var(--color-primary); color: var(--text-inverse); border-radius: 32rpx 8rpx 32rpx 32rpx; }
     .msg-image { max-width: 360rpx; border-radius: 12rpx; display: block; }
 
     /* 语音气泡 */
