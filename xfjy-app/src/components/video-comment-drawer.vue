@@ -249,7 +249,8 @@ async function send() {
   .avatar-ph { display: flex; align-items: center; justify-content: center; font-size: var(--fs-xl); color: var(--text-inverse); background: var(--color-primary); }
   .comment-body { flex: 1; margin-left: 20rpx; display: flex; flex-direction: column;
     .nickname { font-size: var(--fs-base); color: var(--text-hint-strong); }
-    .content { font-size: var(--fs-base); color: var(--text-primary); margin: var(--space-xs) 0; word-break: break-all; }
+    /* break-all 会任意断行（URL/英文单词被拆散），统一 overflow-wrap（与聊天气泡/动态正文同范式） */
+    .content { font-size: var(--fs-base); color: var(--text-primary); margin: var(--space-xs) 0; overflow-wrap: anywhere; }
     .date { font-size: var(--fs-xs); color: var(--text-hint); }
   }
   .like-box { display: flex; flex-direction: column; align-items: center; padding: var(--space-xs) 0 0 16rpx;

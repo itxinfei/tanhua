@@ -32,7 +32,7 @@
             fill="var(--color-primary)"
           /></svg>
         </view>
-        <image
+        <smart-image
           lazy-load
           class="match-avatar"
           src="/static/logo/logo-icon-transparent.png"
