@@ -618,6 +618,7 @@ async function handlePublish(): Promise<void> {
     if (!published) {
       submitting.value = false;
       uploadProgress.value = 0;
+      uploadHandle = null;
     }
   }
 }

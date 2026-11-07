@@ -277,16 +277,21 @@ const userStore = useUserStore();
 /**
  * 登录过期回跳目标：由 request.handleUnauthorized / auth-guard 拦截时编码传入，
  * 登录成功后优先回跳原页面，避免 token 过期打断深层页/支付流程后上下文全丢（S7）。
+ *
+ * 安全：必须为站内绝对路径（以 / 开头），拒绝外部 URL 防止开放重定向钓鱼攻击。
  */
 let redirectTarget = "";
 
 onLoad((options) => {
   const raw = options?.redirect || "";
+  let decoded = "";
   try {
-    redirectTarget = raw ? decodeURIComponent(raw) : "";
+    decoded = raw ? decodeURIComponent(raw) : "";
   } catch {
-    redirectTarget = raw;
+    decoded = raw;
   }
+  // 开放重定向防护：仅接受站内绝对路径（/pages/...），拒绝 https://evil.com 等外部地址
+  redirectTarget = decoded.startsWith("/") ? decoded : "";
 });
 
 /** 状态栏高度（px）：custom 导航页需动态避让刘海/挖孔，兜底 44（iOS 刘海屏典型值） */
