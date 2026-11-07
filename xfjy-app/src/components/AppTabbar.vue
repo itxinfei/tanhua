@@ -12,7 +12,12 @@
            uni-h5 Vue 3.5 的 updateSlots 只处理子组件 slot，普通 DOM 变化走 patchElement
            不触发 updateSlots，从而规避「Cannot assign to read only property '_'」。
            a11y-button 只作为点击热区（空 slot），保证 88rpx 热区与无障碍语义。
-           布局：匹配 | 圈子 | [+] | 视频 | 我的 -->
+           布局：匹配 | 圈子 | [+] | 视频 | 我的
+
+           选中态 icon：uni-h5 的 <image> 用 background-image 渲染，直接改 img.src 无效
+           （querySelector('img') 找不到元素，历史 bug：选中态 icon 一直不变）。
+           改为每个 tab 同时渲染未选中/选中两张图，由父级 --active class 控制显隐，
+           不依赖 DOM 结构、切换无延迟。 -->
       <view class="app-tabbar__item">
         <a11y-button
           class="app-tabbar__hit"
@@ -24,6 +29,12 @@
         <image
           class="app-tabbar__icon"
           :src="TABS[0].icon"
+          mode="aspectFit"
+          aria-hidden="true"
+        />
+        <image
+          class="app-tabbar__icon-active"
+          :src="TABS[0].iconActive"
           mode="aspectFit"
           aria-hidden="true"
         />
@@ -42,6 +53,12 @@
         <image
           class="app-tabbar__icon"
           :src="TABS[1].icon"
+          mode="aspectFit"
+          aria-hidden="true"
+        />
+        <image
+          class="app-tabbar__icon-active"
+          :src="TABS[1].iconActive"
           mode="aspectFit"
           aria-hidden="true"
         />
@@ -86,6 +103,12 @@
           mode="aspectFit"
           aria-hidden="true"
         />
+        <image
+          class="app-tabbar__icon-active"
+          :src="TABS[2].iconActive"
+          mode="aspectFit"
+          aria-hidden="true"
+        />
         <text class="app-tabbar__label">
           {{ TABS[2].text }}
         </text>
@@ -101,6 +124,12 @@
         <image
           class="app-tabbar__icon"
           :src="TABS[3].icon"
+          mode="aspectFit"
+          aria-hidden="true"
+        />
+        <image
+          class="app-tabbar__icon-active"
+          :src="TABS[3].iconActive"
           mode="aspectFit"
           aria-hidden="true"
         />
@@ -172,18 +201,15 @@ function applyActiveClass(i: number): void {
     const isActive = isPublish ? i === -1 : tabIdx === i;
     const hit = item.querySelector<HTMLElement>(".app-tabbar__hit");
     const label = item.querySelector<HTMLElement>(".app-tabbar__label");
-    const icon = item.querySelector<HTMLElement>(".app-tabbar__icon");
     hit?.setAttribute("aria-checked", isActive ? "true" : "false");
     label?.classList.toggle("app-tabbar__label--active", isActive);
     // 发布键使用独立的 --active class（app-tabbar__mid-label--active），需同步切换
     if (idx === 2) {
       label?.classList.toggle("app-tabbar__mid-label--active", isActive);
     }
-    if (icon && tabIdx >= 0 && TABS[tabIdx]) {
-      const target = isActive ? TABS[tabIdx].iconActive : TABS[tabIdx].icon;
-      const img = icon.querySelector<HTMLImageElement>("img");
-      if (img) img.src = target;
-    }
+    // 选中态 icon：uni-h5 的 <image> 用 background-image 渲染，改 img.src 无效。
+    // 改为切换 item 的 --active class，由 CSS 控制两张图的显隐（见 style）。
+    item.classList.toggle("app-tabbar__item--active", isActive);
   });
 }
 
@@ -276,6 +302,23 @@ function goPublish(): void {
     width: 28px;
     height: 28px;
     pointer-events: none;
+  }
+
+  /* 选中态 icon：默认隐藏，仅 --active 时显示（与未选中态同尺寸同位） */
+  &__icon-active {
+    width: 28px;
+    height: 28px;
+    pointer-events: none;
+    display: none;
+  }
+
+  &__item--active {
+    .app-tabbar__icon {
+      display: none;
+    }
+    .app-tabbar__icon-active {
+      display: block;
+    }
   }
 
   &__label {
