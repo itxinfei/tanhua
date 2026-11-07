@@ -13,6 +13,38 @@ const REQUEST_TIMEOUT_MS = 15000;
 /** 文件上传超时（毫秒）：大文件/弱网需要更长窗口 */
 const UPLOAD_TIMEOUT_MS = 60000;
 
+/** 日志脱敏字段名（小写包含匹配）：手机号/验证码/口令/token/证件号等不进明文 console */
+const SENSITIVE_KEY_PARTS = [
+  "phone",
+  "mobile",
+  "tel",
+  "code",
+  "password",
+  "pwd",
+  "token",
+  "idcard",
+  "idno",
+  "secret",
+  "credential",
+];
+const MASKED_LOG_VALUE = "***";
+
+/** 递归脱敏请求日志数据：仅用于日志输出，不改变实际发送的请求体 */
+function maskSensitive(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(maskSensitive);
+  if (value && typeof value === "object") {
+    const source = value as Record<string, unknown>;
+    const result: Record<string, unknown> = {};
+    for (const [key, v] of Object.entries(source)) {
+      const lowerKey = key.toLowerCase();
+      const isSensitive = SENSITIVE_KEY_PARTS.some((part) => lowerKey.includes(part));
+      result[key] = isSensitive ? MASKED_LOG_VALUE : maskSensitive(v);
+    }
+    return result;
+  }
+  return value;
+}
+
 // 后端服务地址：优先读环境变量 VITE_API_BASE_URL（见 .env.development / .env.production）。
 // 未配置时按构建模式回退：
 //   - H5 生产：同源相对路径 /api，由 nginx 反代到网关 8090（见 deploy/docker/nginx.conf）
@@ -117,7 +149,7 @@ export function handleUnauthorized(): void {
   redirectingToLogin = true;
   import("@/store/user")
     .then((m) => {
-      m.useUserStore().token = "";
+      m.useUserStore().resetAuthState();
     })
     .catch(() => {})
     .finally(() => {
@@ -176,7 +208,7 @@ function request<T = any>(options: RequestOptions): Promise<T> {
   }
 
   const startAt = Date.now();
-  log(`${method} ${url}`, data || "");
+  log(`${method} ${url}`, maskSensitive(data ?? ""));
 
   return new Promise<T>((resolve, reject) => {
     uni.request({

@@ -55,6 +55,16 @@ export const useUserStore = defineStore("user", () => {
   }
 
   /**
+   * 仅重置内存登录态（token + userInfo），不操作 storage、不导航。
+   * 供请求层 401 拦截使用：拦截器已自行 removeToken 并按 redirect 回跳 reLaunch，
+   * 这里只同步 store，避免跨层直接写 state，也避免 userInfo 残留旧账号信息。
+   */
+  function resetAuthState(): void {
+    token.value = "";
+    userInfo.value = null;
+  }
+
+  /**
    * 全量登出（退出登录/注销账号统一入口）：
    * 清空各业务 store + 断开 WuKongIM 连接 + 清 token 并回登录页。
    * 缺一步都会造成换账号后残留旧账号的会话/数据
@@ -126,6 +136,7 @@ export const useUserStore = defineStore("user", () => {
     sendCode,
     doLogin,
     logout,
+    resetAuthState,
     signOutAll,
     updateUserInfo,
     fetchUserInfo,
