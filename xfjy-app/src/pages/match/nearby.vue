@@ -157,6 +157,7 @@ import UserListItem from "@/components/user-list-item.vue";
 import { getNearby, type NearUser } from "@/api/match";
 import { success, info } from "@/utils/ux";
 import { resolveAvatar } from "@/utils/avatar";
+import { debounce } from "@/utils/timer";
 import { useMatchStore } from "@/store/match";
 import MatchPopup from "@/components/match-popup.vue";
 
@@ -253,8 +254,6 @@ async function onLoadMore(): Promise<void> {
   if (loadingMore.value || !hasMore.value) return;
   loadingMore.value = true;
   try {
-    // 模拟异步延迟，让加载态可见
-    await new Promise((resolve) => setTimeout(resolve, 300));
     const allItems = allItemsCache.value;
     const nextPage = page.value + 1;
     const start = (nextPage - 1) * pageSize;
@@ -268,8 +267,15 @@ async function onLoadMore(): Promise<void> {
   }
 }
 
-/** 筛选条件变化时重新加载 */
-watch([distance, gender], () => loadNearby(true));
+/**
+ * 筛选条件变化时重新加载（防抖 300ms）
+ *
+ * 距离/性别由分类条分段控件切换，连续点击会同步触发多次 watch。
+ * 防抖后仅最后一次生效，避免连续发请求（且 loadSeq 会丢弃过期响应，
+ * 多余请求虽不写入列表，仍浪费一次往返）。
+ */
+const reloadWithDebounce = debounce(() => loadNearby(true), 300);
+watch([distance, gender], reloadWithDebounce);
 
 /** 请求定位权限 */
 function requestLocation(): void {
