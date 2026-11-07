@@ -459,8 +459,8 @@ onMounted(() => {
 
 <style scoped>
 .form-tip {
-  margin-left: 8px;
+  margin-left: var(--xfjy-space-2);
   color: var(--xfjy-text-secondary);
-  font-size: 12px;
+  font-size: var(--xfjy-font-size-xs);
 }
 </style>

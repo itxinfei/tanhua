@@ -2,7 +2,7 @@
   <div class="page-container">
     <PageHeader title="用户列表" :subtitle="`共 ${total} 条记录`">
       <template #actions>
-        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" :icon="Download" @click="handleExport">导出</el-button>
+        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="primary" :icon="Download" @click="handleExport">导出</el-button>
       </template>
     </PageHeader>
 
@@ -39,9 +39,9 @@
     <TableCard>
       <template #batch v-if="selectedRows.length > 0">
         <span class="batch-count">已选 {{ selectedRows.length }} 项</span>
-        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="danger" size="small" @click="handleBatchFreeze">批量封禁</el-button>
-        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" size="small" @click="handleBatchUnfreeze">批量解封</el-button>
-        <el-button size="small" @click="selectedRows = []">取消选择</el-button>
+        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="danger" @click="handleBatchFreeze">批量封禁</el-button>
+        <el-button v-perm="['SUPER_ADMIN','ADMIN']" @click="handleBatchUnfreeze">批量解封</el-button>
+        <el-button @click="selectedRows = []">取消选择</el-button>
       </template>
       <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="50" align="center" :selectable="() => true" />
@@ -77,10 +77,10 @@
         <el-table-column v-if="!isMobile" prop="lastActiveAt" label="最后活跃" width="170" />
         <el-table-column label="操作" width="220" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="goDetail(row.id)">详情</el-button>
-            <el-button v-if="row.status === 'NORMAL'" v-perm="['SUPER_ADMIN','ADMIN']" link type="danger" size="small" @click="handleFreeze(row)">封禁</el-button>
-            <el-button v-else v-perm="['SUPER_ADMIN','ADMIN']" link type="success" size="small" @click="handleUnfreeze(row)">解封</el-button>
-            <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="warning" size="small" @click="handleResetPwd(row)">重置密码</el-button>
+            <el-button link type="primary" @click="goDetail(row.id)">详情</el-button>
+            <el-button v-if="row.status === 'NORMAL'" v-perm="['SUPER_ADMIN','ADMIN']" link type="danger" @click="handleFreeze(row)">封禁</el-button>
+            <el-button v-else v-perm="['SUPER_ADMIN','ADMIN']" link type="success" @click="handleUnfreeze(row)">解封</el-button>
+            <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="warning" @click="handleResetPwd(row)">重置密码</el-button>
           </template>
         </el-table-column>
         <template #empty>
@@ -371,7 +371,7 @@ onMounted(() => {
 
 <style scoped>
 .batch-count {
-  font-size: 13px;
+  font-size: var(--xfjy-font-size-sm);
   color: var(--xfjy-text-regular);
   margin-right: auto;
 }

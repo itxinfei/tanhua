@@ -327,7 +327,7 @@ onMounted(() => {
 
 <style scoped>
 .batch-count {
-  font-size: 13px;
+  font-size: var(--xfjy-font-size-sm);
   color: var(--xfjy-text-regular);
   margin-right: auto;
 }
@@ -335,22 +335,22 @@ onMounted(() => {
 .user-cell {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--xfjy-space-2);
 }
 
 .user-name {
-  font-size: 13px;
+  font-size: var(--xfjy-font-size-sm);
   color: var(--xfjy-text-primary);
   line-height: 1.4;
 }
 
 .user-id {
-  font-size: 12px;
+  font-size: var(--xfjy-font-size-xs);
   color: var(--xfjy-text-secondary);
 }
 
 .text-content {
-  font-size: 13px;
+  font-size: var(--xfjy-font-size-sm);
   color: var(--xfjy-text-regular);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -361,7 +361,7 @@ onMounted(() => {
 .media-list {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--xfjy-space-1);
 }
 
 .media-thumb {
@@ -372,17 +372,17 @@ onMounted(() => {
 }
 
 .media-more {
-  font-size: 12px;
+  font-size: var(--xfjy-font-size-xs);
   color: var(--xfjy-text-secondary);
 }
 
 .no-media {
-  font-size: 12px;
+  font-size: var(--xfjy-font-size-xs);
   color: var(--xfjy-text-disabled);
 }
 
 .stat-text {
-  font-size: 12px;
+  font-size: var(--xfjy-font-size-xs);
   color: var(--xfjy-text-regular);
   /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 同列多个内联统计项之间的分隔 6px，见 AGENTS.md §11 存量豁免 */
   margin-right: 6px;
@@ -392,8 +392,8 @@ onMounted(() => {
 .detail-author {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: var(--xfjy-space-3);
+  margin-bottom: var(--xfjy-space-4);
 }
 
 .detail-author-name {
@@ -403,24 +403,24 @@ onMounted(() => {
 }
 
 .detail-author-id {
-  font-size: 12px;
+  font-size: var(--xfjy-font-size-xs);
   color: var(--xfjy-text-secondary);
   margin-top: 2px;
 }
 
 .detail-text {
-  font-size: 14px;
+  font-size: var(--xfjy-font-size-base);
   color: var(--xfjy-text-primary);
   line-height: 1.7;
-  margin-bottom: 16px;
+  margin-bottom: var(--xfjy-space-4);
   white-space: pre-wrap;
 }
 
 .detail-medias {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: var(--xfjy-space-2);
+  margin-bottom: var(--xfjy-space-4);
 }
 
 .detail-media-item {
@@ -431,7 +431,7 @@ onMounted(() => {
 }
 
 .detail-desc {
-  margin-top: 4px;
+  margin-top: var(--xfjy-space-1);
 }
 
 /* 举报跳转定位行高亮：!important 覆盖 EP el-table 行 hover 背景优先级 */

@@ -30,10 +30,19 @@
 import Sidebar from './components/Sidebar.vue'
 import Header from './components/Header.vue'
 import { useRoute } from 'vue-router'
+import { watch } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { useResponsive } from '@/composables/useResponsive'
 
 const appStore = useAppStore()
 const route = useRoute()
+const { isMobile } = useResponsive()
+
+// 移动端（<768px）自动折叠侧边栏，避免侧栏挤占内容区产生横向滚动；
+// 桌面端不强制展开，尊重用户手动折叠偏好
+watch(isMobile, (val) => {
+  if (val) appStore.sidebarCollapsed = true
+}, { immediate: true })
 </script>
 
 <style scoped>

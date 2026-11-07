@@ -30,7 +30,6 @@ const emit = defineEmits<{
   border: 1px solid var(--xfjy-border);
   border-radius: var(--xfjy-radius-lg);
   padding: var(--xfjy-space-3) var(--xfjy-space-4);
-  margin-bottom: var(--xfjy-space-3);
   box-shadow: var(--xfjy-shadow-card);
 }
 

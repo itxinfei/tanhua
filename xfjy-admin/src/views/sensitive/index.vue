@@ -48,20 +48,20 @@
         placeholder="输入待检测文本进行敏感词命中测试"
         style="flex: 1"
       />
-      <el-button type="primary" :icon="Promotion" @click="handleTest" style="margin-left: 12px">测试</el-button>
+      <el-button type="primary" :icon="Promotion" @click="handleTest" style="margin-left: var(--xfjy-space-3)">测试</el-button>
     </div>
     <div v-if="testResult" class="test-result">
       <el-alert :type="testResult.hitWords.length > 0 ? 'warning' : 'success'" :closable="false">
         <template #title>
           <div v-if="testResult.hitWords.length > 0">
             <div>命中 {{ testResult.hitWords.length }} 个敏感词，最高级别：{{ levelLabel(testResult.maxLevel) }}</div>
-            <div style="margin-top: 4px">
+            <div style="margin-top: var(--xfjy-space-1)">
               <el-tag v-for="word in testResult.hitWords" :key="word" size="small" class="hit-word">{{ word }}</el-tag>
             </div>
           </div>
           <div v-else>未命中敏感词</div>
         </template>
-        <div v-if="testResult.filteredText !== testText" style="margin-top: 8px; color: var(--xfjy-text-secondary)">
+        <div v-if="testResult.filteredText !== testText" style="margin-top: var(--xfjy-space-2); color: var(--xfjy-text-secondary)">
           过滤后文本：{{ testResult.filteredText || '(空)' }}
         </div>
       </el-alert>

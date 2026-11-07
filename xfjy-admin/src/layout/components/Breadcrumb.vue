@@ -42,6 +42,6 @@ const breadcrumbs = computed<Crumb[]>(() => {
 
 <style scoped>
 .el-breadcrumb {
-  font-size: 14px;
+  font-size: var(--xfjy-font-size-base);
 }
 </style>

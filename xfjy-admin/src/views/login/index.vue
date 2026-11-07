@@ -2,44 +2,12 @@
   <div class="login-container">
     <!-- 左侧品牌展示区 -->
     <div class="brand-panel">
-      <!-- 动态极光光斑 -->
-      <div class="brand-aurora aurora-1"></div>
-      <div class="brand-aurora aurora-2"></div>
-      <div class="brand-aurora aurora-3"></div>
-
-      <!-- 漂浮爱心粒子 -->
-      <span
-        v-for="h in hearts"
-        :key="h.id"
-        class="float-heart"
-        :style="h.style"
-        >&#10084;</span
-      >
-
       <div class="brand-content">
         <div class="brand-logo-wrap">
           <img class="brand-logo" src="/logo/logo-icon-transparent.png" alt="心飞交友" />
         </div>
         <h1 class="brand-title">心飞交友</h1>
         <p class="brand-slogan">让每一次相遇都心动的社交平台</p>
-
-        <div class="brand-stats">
-          <div class="stat-item">
-            <div class="stat-num">128<small>万</small></div>
-            <div class="stat-label">注册用户</div>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="stat-item">
-            <div class="stat-num">23<small>万</small></div>
-            <div class="stat-label">日均活跃</div>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="stat-item">
-            <div class="stat-num">9.6<small>万</small></div>
-            <div class="stat-label">今日匹配</div>
-          </div>
-        </div>
-        <p class="stats-note">※ 示意数据</p>
 
         <ul class="feature-list">
           <li v-for="f in features" :key="f.title">
@@ -149,18 +117,6 @@ const features = [
   { icon: 'Lock', title: '权限与安全管控', desc: '角色隔离、操作日志全程可溯' },
 ]
 
-// 漂浮爱心粒子（随机位置/大小/时长，营造浪漫氛围）
-const hearts = Array.from({ length: 26 }).map((_, i) => ({
-  id: i,
-  style: {
-    left: (Math.random() * 96 + 2).toFixed(1) + '%',
-    top: (Math.random() * 94 + 3).toFixed(1) + '%',
-    fontSize: (Math.random() * 18 + 16).toFixed(1) + 'px',
-    animationDelay: '-' + (Math.random() * 12).toFixed(1) + 's',
-    animationDuration: (Math.random() * 6 + 9).toFixed(1) + 's',
-  },
-}))
-
 async function handleLogin() {
   if (!loginFormRef.value) return
   await loginFormRef.value.validate(async (valid) => {
@@ -209,6 +165,17 @@ async function handleLogin() {
 
 /* ==================== 左侧品牌区 ==================== */
 .brand-panel {
+  /* 品牌区半透明叠加层：深色渐变背景上的白色卡片/图标/文字，仅此组件使用 */
+  /* stylelint-disable function-disallowed-list */
+  --brand-overlay-strong: rgba(255, 255, 255, 0.18);
+  --brand-overlay: rgba(255, 255, 255, 0.3);
+  --brand-overlay-soft: rgba(255, 255, 255, 0.08);
+  --brand-overlay-faint: rgba(255, 255, 255, 0.12);
+  --brand-overlay-hover: rgba(255, 255, 255, 0.16);
+  --brand-overlay-icon: rgba(255, 255, 255, 0.2);
+  --brand-overlay-text: rgba(255, 255, 255, 0.5);
+  --brand-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  /* stylelint-enable function-disallowed-list */
   flex: 1.5;
   position: relative;
   display: flex;
@@ -225,55 +192,7 @@ async function handleLogin() {
   isolation: isolate;
 }
 
-/* 动态极光光斑 */
-.brand-aurora {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.5;
-  z-index: 0;
-  animation: drift 16s ease-in-out infinite;
-  will-change: transform;
-}
-.aurora-1 {
-  width: 480px;
-  height: 480px;
-  top: -160px;
-  left: -120px;
-  background: radial-gradient(circle, var(--xfjy-primary), transparent 70%);
-}
-.aurora-2 {
-  width: 420px;
-  height: 420px;
-  bottom: -180px;
-  right: -100px;
-  background: radial-gradient(circle, var(--xfjy-primary-deep), transparent 70%);
-  animation-delay: -5s;
-}
-.aurora-3 {
-  width: 320px;
-  height: 320px;
-  top: 38%;
-  left: 52%;
-  background: radial-gradient(circle, var(--xfjy-primary-soft), transparent 70%);
-  opacity: 0.4;
-  animation-delay: -9s;
-}
-
-/* 漂浮爱心粒子 */
-.float-heart {
-  position: absolute;
-  color: var(--xfjy-text-inverse);
-  z-index: 1;
-  opacity: 0.7;
-  pointer-events: none;
-  animation-name: floatHeart;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-  will-change: transform, opacity;
-}
-
-/* 内容直接落在渐变背景上（取消玻璃卡片） */
+/* 内容直接落在渐变背景上 */
 .brand-content {
   position: relative;
   z-index: 2;
@@ -281,17 +200,6 @@ async function handleLogin() {
   max-width: 460px;
   margin: 0 auto;
   color: var(--xfjy-text-inverse);
-}
-
-/* 内容区柔光遮罩：压暗四周、提亮中央，保证文字在爱心背景上的可读性 */
-.brand-content::before {
-  content: '';
-  position: absolute;
-  inset: -48px -36px;
-  z-index: -1;
-  border-radius: var(--xfjy-radius-3xl);
-  background: var(--xfjy-login-veil);
-  filter: blur(18px);
 }
 
 .brand-logo-wrap {
@@ -302,10 +210,9 @@ async function handleLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--xfjy-glass-bg-strong);
-  border: 1px solid var(--xfjy-glass-border);
-  box-shadow: var(--xfjy-glass-shadow);
-  backdrop-filter: blur(10px);
+  background: var(--brand-overlay-strong);
+  border: 1px solid var(--brand-overlay);
+  box-shadow: var(--brand-shadow);
 }
 
 .brand-logo {
@@ -320,11 +227,7 @@ async function handleLogin() {
   font-size: 40px;
   font-weight: 800;
   letter-spacing: 4px;
-  background: linear-gradient(90deg, var(--xfjy-text-inverse), var(--xfjy-primary-tint));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  text-shadow: var(--xfjy-glass-text-shadow);
+  color: var(--xfjy-text-inverse);
 }
 
 .brand-slogan {
@@ -335,59 +238,13 @@ async function handleLogin() {
   letter-spacing: 1px;
 }
 
-/* 数据指标条 */
-.brand-stats {
-  margin: 32px auto 0;
-  display: flex;
-  width: fit-content;
-  align-items: center;
-  padding: var(--xfjy-space-3) var(--xfjy-space-2);
-  border-radius: var(--xfjy-radius-2xl);
-  background: var(--xfjy-glass-bg);
-  border: 1px solid var(--xfjy-glass-border-soft);
-  backdrop-filter: blur(10px);
-  box-shadow: var(--xfjy-glass-shadow-soft);
-}
-.stat-item {
-  padding: 0 20px;
-  text-align: center;
-}
-.stat-num {
-  font-size: 25px;
-  font-weight: 700;
-  line-height: 1.1;
-}
-.stat-num small {
-  font-size: 13px;
-  font-weight: 500;
-  margin-left: 2px;
-  opacity: 0.85;
-}
-.stat-label {
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--xfjy-glass-text);
-}
-.stat-divider {
-  width: 1px;
-  height: 34px;
-  background: var(--xfjy-glass-divider);
-}
-.stats-note {
-  margin-top: var(--xfjy-space-1);
-  text-align: center;
-  font-size: var(--xfjy-font-size-xs);
-  color: var(--xfjy-glass-text-faint);
-  opacity: 0.7;
-}
-
-/* 特性列表（玻璃卡片） */
+/* 特性列表（半透明卡片） */
 .feature-list {
   list-style: none;
-  margin-top: 32px;
+  margin-top: var(--xfjy-space-8);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--xfjy-space-3);
 }
 .feature-list li {
   display: flex;
@@ -395,22 +252,19 @@ async function handleLogin() {
   gap: var(--xfjy-space-3);
   padding: var(--xfjy-space-3) var(--xfjy-space-4);
   border-radius: var(--xfjy-radius-xl);
-  background: var(--xfjy-glass-bg-soft);
-  border: 1px solid var(--xfjy-glass-border-faint);
-  backdrop-filter: blur(8px);
-  transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+  background: var(--brand-overlay-soft);
+  border: 1px solid var(--brand-overlay-faint);
+  transition: background 0.25s ease, border-color 0.25s ease;
 }
 .feature-list li:hover {
-  transform: translateX(6px);
-  background: var(--xfjy-glass-bg-hover);
-  border-color: var(--xfjy-glass-border);
+  background: var(--brand-overlay-hover);
+  border-color: var(--brand-overlay);
 }
 .feature-icon {
   width: 42px;
   height: 42px;
   border-radius: var(--xfjy-radius-lg);
-  background: var(--xfjy-glass-icon-grad);
-  backdrop-filter: blur(4px);
+  background: var(--brand-overlay-icon);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -422,29 +276,18 @@ async function handleLogin() {
 }
 .feature-desc {
   margin-top: 2px;
-  font-size: 13px;
+  font-size: var(--xfjy-font-size-sm);
   opacity: 0.75;
 }
 .brand-footer {
   position: absolute;
-  bottom: 24px;
+  bottom: var(--xfjy-space-6);
   left: 0;
   right: 0;
   text-align: center;
-  font-size: 12px;
-  color: var(--xfjy-glass-text-faint);
+  font-size: var(--xfjy-font-size-xs);
+  color: var(--brand-overlay-text);
   z-index: 2;
-}
-
-@keyframes drift {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(30px, -24px) scale(1.08); }
-}
-@keyframes floatHeart {
-  0% { transform: translateY(0) scale(1); opacity: 0; }
-  12% { opacity: 0.85; }
-  88% { opacity: 0.85; }
-  100% { transform: translateY(-130px) scale(1.1); opacity: 0; }
 }
 
 /* ==================== 右侧表单区 ==================== */
@@ -459,7 +302,7 @@ async function handleLogin() {
 
 .login-card {
   width: 360px;
-  padding: 20px;
+  padding: var(--xfjy-space-5);
 }
 
 .login-header {
@@ -475,21 +318,21 @@ async function handleLogin() {
 .login-header p {
   /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 贴合标题基线的副文案间距 6px，见 AGENTS.md §11 存量豁免 */
   margin-top: 6px;
-  font-size: 14px;
+  font-size: var(--xfjy-font-size-base);
   color: var(--xfjy-text-secondary);
 }
 
 .login-btn {
   width: 100%;
   height: 44px;
-  font-size: 16px;
+  font-size: var(--xfjy-font-size-md);
   letter-spacing: 4px;
 }
 
 .login-footer {
   text-align: center;
   margin-top: 28px;
-  font-size: 12px;
+  font-size: var(--xfjy-font-size-xs);
   color: var(--xfjy-text-disabled);
 }
 

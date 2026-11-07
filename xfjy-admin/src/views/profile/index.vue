@@ -51,7 +51,7 @@
           </el-form>
         </div>
 
-        <div class="profile-card" style="margin-top: 16px">
+        <div class="profile-card" style="margin-top: var(--xfjy-space-4)">
           <div class="card-title">安全设置</div>
           <div class="security-item">
             <div>
@@ -212,15 +212,15 @@ async function submitPassword() {
 .profile-card {
   background: var(--xfjy-text-inverse);
   border-radius: var(--xfjy-radius-md);
-  padding: 24px;
+  padding: var(--xfjy-space-6);
 }
 
 .avatar-area {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 8px 0;
+  gap: var(--xfjy-space-3);
+  padding: var(--xfjy-space-2) 0;
 }
 
 .nickname {
@@ -233,8 +233,8 @@ async function submitPassword() {
   font-size: 15px;
   font-weight: 600;
   color: var(--xfjy-text-primary);
-  margin-bottom: 20px;
-  padding-bottom: 12px;
+  margin-bottom: var(--xfjy-space-5);
+  padding-bottom: var(--xfjy-space-3);
   border-bottom: 1px solid var(--xfjy-border-light);
 }
 
@@ -242,18 +242,18 @@ async function submitPassword() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 0;
+  padding: var(--xfjy-space-4) 0;
 }
 
 .security-label {
-  font-size: 14px;
+  font-size: var(--xfjy-font-size-base);
   color: var(--xfjy-text-primary);
   font-weight: 500;
 }
 
 .security-desc {
-  font-size: 12px;
+  font-size: var(--xfjy-font-size-xs);
   color: var(--xfjy-text-secondary);
-  margin-top: 4px;
+  margin-top: var(--xfjy-space-1);
 }
 </style>

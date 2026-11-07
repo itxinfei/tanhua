@@ -28,7 +28,7 @@ function categoryXAxis(dates: string[]) {
     data: dates,
     axisLine: { lineStyle: { color: BRAND.chartGrid } },
     axisTick: { show: false },
-    axisLabel: { fontSize: 12, color: BRAND.chartInk3, hideOverlap: true },
+    axisLabel: { fontSize: 11, color: BRAND.chartInk3, hideOverlap: true },
   }
 }
 
@@ -36,11 +36,11 @@ function valueYAxis(name?: string) {
   return {
     type: 'value' as const,
     name,
-    nameTextStyle: { color: BRAND.chartInk3, fontSize: 11, padding: [0, 0, 0, -20] },
+    nameTextStyle: { color: BRAND.chartInk3, fontSize: 10, padding: [0, 0, 0, -20] },
     axisLine: { show: false },
     axisTick: { show: false },
     splitLine: { lineStyle: { color: BRAND.chartGrid } },
-    axisLabel: { fontSize: 12, color: BRAND.chartInk3 },
+    axisLabel: { fontSize: 11, color: BRAND.chartInk3 },
   }
 }
 
@@ -59,7 +59,7 @@ export function areaLineOption(dates: string[], series: LineSeries[]): Option {
       axisPointer: { type: 'line', lineStyle: { color: BRAND.chartInk3, type: 'dashed' } },
     },
     legend: series.length > 1 ? legendBottom(series.map((s) => s.name)) : undefined,
-    grid: { left: 8, right: 16, top: series.length > 1 ? 40 : 16, bottom: 8, containLabel: true },
+    grid: { left: 8, right: 16, top: series.length > 1 ? 32 : 12, bottom: series.length > 1 ? 28 : 8, containLabel: true },
     xAxis: categoryXAxis(dates),
     yAxis: valueYAxis(),
     series: series.map((s) => ({
@@ -107,13 +107,13 @@ export function revenueTrendOption(dates: string[], orders: number[], amountsYua
       },
     },
     legend: legendBottom(['支付订单', '收入(元)']),
-    grid: { left: 8, right: 8, top: 40, bottom: 8, containLabel: true },
+    grid: { left: 8, right: 8, top: 32, bottom: 28, containLabel: true },
     xAxis: {
       type: 'category',
       data: dates,
       axisLine: { lineStyle: { color: BRAND.chartGrid } },
       axisTick: { show: false },
-      axisLabel: { fontSize: 12, color: BRAND.chartInk3, hideOverlap: true },
+      axisLabel: { fontSize: 11, color: BRAND.chartInk3, hideOverlap: true },
     },
     yAxis: [
       {
@@ -121,7 +121,7 @@ export function revenueTrendOption(dates: string[], orders: number[], amountsYua
         axisLine: { show: false },
         axisTick: { show: false },
         splitLine: { lineStyle: { color: BRAND.chartGrid } },
-        axisLabel: { fontSize: 12, color: BRAND.chartInk3 },
+        axisLabel: { fontSize: 11, color: BRAND.chartInk3 },
       },
       {
         type: 'value',
@@ -129,7 +129,7 @@ export function revenueTrendOption(dates: string[], orders: number[], amountsYua
         axisTick: { show: false },
         splitLine: { show: false },
         axisLabel: {
-          fontSize: 12,
+          fontSize: 11,
           color: BRAND.chartInk3,
           formatter: (v: number) => `¥${formatYuan(v)}`,
         },
@@ -171,9 +171,10 @@ export function donutOption(data: DonutItem[], centerTitle?: string, centerValue
       orient: 'horizontal',
       bottom: 0,
       icon: 'circle',
-      itemWidth: 8,
-      itemHeight: 8,
-      textStyle: { fontSize: 12, color: BRAND.chartInk2 },
+      itemWidth: 6,
+      itemHeight: 6,
+      itemGap: 8,
+      textStyle: { fontSize: 11, color: BRAND.chartInk2 },
     },
     title:
       centerValue !== undefined
@@ -183,7 +184,7 @@ export function donutOption(data: DonutItem[], centerTitle?: string, centerValue
             left: 'center',
             top: '34%',
             textStyle: { fontSize: 22, fontWeight: 600, color: BRAND.chartInk },
-            subtextStyle: { fontSize: 12, color: BRAND.chartInk3 },
+            subtextStyle: { fontSize: 11, color: BRAND.chartInk3 },
           }
         : undefined,
     series: [
@@ -228,7 +229,7 @@ export function horizontalBarOption(
       axisLine: { show: false },
       axisTick: { show: false },
       splitLine: { lineStyle: { color: BRAND.chartGrid } },
-      axisLabel: { fontSize: 12, color: BRAND.chartInk3 },
+      axisLabel: { fontSize: 11, color: BRAND.chartInk3 },
     },
     yAxis: {
       type: 'category',
@@ -236,7 +237,7 @@ export function horizontalBarOption(
       data: categories,
       axisLine: { show: false },
       axisTick: { show: false },
-      axisLabel: { fontSize: 12, color: BRAND.chartInk2 },
+      axisLabel: { fontSize: 11, color: BRAND.chartInk2 },
     },
     series: [
       {
@@ -247,7 +248,7 @@ export function horizontalBarOption(
         label: {
           show: true,
           position: 'right',
-          fontSize: 12,
+          fontSize: 11,
           color: BRAND.chartInk2,
           formatter: (p) => Number(p.value as number).toLocaleString('zh-CN'),
         },
@@ -267,13 +268,13 @@ export function stackedBarOption(dates: string[], series: StackSeries[]): Option
   return {
     tooltip: { ...tooltipBase(), trigger: 'axis', axisPointer: { type: 'shadow' } },
     legend: legendBottom(series.map((s) => s.name)),
-    grid: { left: 8, right: 16, top: 40, bottom: 8, containLabel: true },
+    grid: { left: 8, right: 16, top: 28, bottom: 28, containLabel: true },
     xAxis: {
       type: 'category',
       data: dates,
       axisLine: { lineStyle: { color: BRAND.chartGrid } },
       axisTick: { show: false },
-      axisLabel: { fontSize: 12, color: BRAND.chartInk3, hideOverlap: true },
+      axisLabel: { fontSize: 11, color: BRAND.chartInk3, hideOverlap: true },
     },
     yAxis: valueYAxis(),
     series: series.map((s) => ({
@@ -301,13 +302,13 @@ export function moderationTrendOption(
   return {
     tooltip: { ...tooltipBase(), trigger: 'axis', axisPointer: { type: 'shadow' } },
     legend: legendBottom([createdName, ...handled.map((s) => s.name)]),
-    grid: { left: 8, right: 16, top: 40, bottom: 8, containLabel: true },
+    grid: { left: 8, right: 16, top: 28, bottom: 28, containLabel: true },
     xAxis: {
       type: 'category',
       data: dates,
       axisLine: { lineStyle: { color: BRAND.chartGrid } },
       axisTick: { show: false },
-      axisLabel: { fontSize: 12, color: BRAND.chartInk3, hideOverlap: true },
+      axisLabel: { fontSize: 11, color: BRAND.chartInk3, hideOverlap: true },
     },
     yAxis: valueYAxis(),
     series: [
@@ -367,9 +368,10 @@ function legendBottom(names: string[]) {
     data: names,
     bottom: 0,
     icon: 'circle',
-    itemWidth: 8,
-    itemHeight: 8,
-    textStyle: { fontSize: 12, color: BRAND.chartInk2 },
+    itemWidth: 6,
+    itemHeight: 6,
+    itemGap: 8,
+    textStyle: { fontSize: 11, color: BRAND.chartInk2 },
   }
 }
 

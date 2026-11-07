@@ -490,21 +490,21 @@ onMounted(() => {
   align-items: center;
   gap: var(--xfjy-space-2);
   margin-bottom: var(--xfjy-space-2);
-  padding: 8px 12px;
+  padding: var(--xfjy-space-2) var(--xfjy-space-3);
   background: var(--xfjy-primary-50);
   border: 1px solid var(--xfjy-primary-100);
   border-radius: var(--xfjy-radius-md);
 }
 
 .batch-count {
-  font-size: 13px;
+  font-size: var(--xfjy-font-size-sm);
   color: var(--xfjy-warning);
   margin-right: auto;
 }
 
 /* 详情抽屉 */
 .detail-body {
-  padding: 0 4px;
+  padding: 0 var(--xfjy-space-1);
 }
 
 .detail-section {
@@ -512,11 +512,11 @@ onMounted(() => {
 }
 
 .detail-section-title {
-  font-size: 14px;
+  font-size: var(--xfjy-font-size-base);
   font-weight: 600;
   color: var(--xfjy-text-primary);
   margin-bottom: var(--xfjy-space-2);
-  padding-left: 8px;
+  padding-left: var(--xfjy-space-2);
   border-left: 3px solid var(--xfjy-primary);
   line-height: 1.2;
 }
@@ -524,7 +524,7 @@ onMounted(() => {
 .reporter-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--xfjy-space-3);
 }
 
 .reporter-meta {
@@ -534,22 +534,22 @@ onMounted(() => {
 }
 
 .reporter-name {
-  font-size: 14px;
+  font-size: var(--xfjy-font-size-base);
   font-weight: 500;
   color: var(--xfjy-text-primary);
 }
 
 .reporter-id {
-  font-size: 12px;
+  font-size: var(--xfjy-font-size-xs);
   color: var(--xfjy-text-secondary);
 }
 
 .jump-btn {
-  margin-top: 8px;
+  margin-top: var(--xfjy-space-2);
 }
 
 .detail-field {
-  font-size: 13px;
+  font-size: var(--xfjy-font-size-sm);
   line-height: 1.8;
   color: var(--xfjy-text-regular);
   word-break: break-all;
@@ -560,13 +560,13 @@ onMounted(() => {
 }
 
 .handle-result-text {
-  margin-left: 8px;
+  margin-left: var(--xfjy-space-2);
 }
 
 /* 证据图片：横向滚动缩略图 */
 .evidence-scroll {
   display: flex;
-  gap: 8px;
+  gap: var(--xfjy-space-2);
   overflow-x: auto;
   /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 横向滚动条预留 6px 间隙，见 AGENTS.md §11 存量豁免 */
   padding-bottom: 6px;

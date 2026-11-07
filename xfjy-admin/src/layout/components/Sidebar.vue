@@ -158,10 +158,11 @@ const activeMenu = computed(() => {
   color: var(--xfjy-text-primary) !important;
 }
 
-/* 顶级菜单项激活 - 玫红左边框 + 淡玫红底 */
+/* 顶级菜单项激活 - 玫红左边框 + 淡玫红底 + 字重强调 */
 :deep(.el-menu-item.is-active) {
   background-color: var(--xfjy-sidebar-active-bg) !important;
   color: var(--xfjy-sidebar-active-text) !important;
+  font-weight: 500 !important;
   position: relative;
 }
 :deep(.el-menu-item.is-active)::before {
@@ -195,6 +196,7 @@ const activeMenu = computed(() => {
 :deep(.el-sub-menu .el-menu-item.is-active) {
   background-color: var(--xfjy-sidebar-active-bg) !important;
   color: var(--xfjy-sidebar-active-text) !important;
+  font-weight: 500 !important;
 }
 
 /* 折叠 popup 弹层 */
@@ -210,6 +212,7 @@ const activeMenu = computed(() => {
 :deep(.el-menu--popup .el-menu-item.is-active) {
   background-color: var(--xfjy-sidebar-active-bg) !important;
   color: var(--xfjy-sidebar-active-text) !important;
+  font-weight: 500 !important;
 }
 
 /* 折叠态下 sub-menu 标题居中 */

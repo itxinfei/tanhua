@@ -21,7 +21,7 @@
       <el-tooltip content="刷新" placement="bottom">
         <el-icon class="header-icon" :size="18" @click="refreshPage"><Refresh /></el-icon>
       </el-tooltip>
-      <el-tooltip content="全屏" placement="bottom">
+      <el-tooltip content="全屏" placement="bottom" class="fullscreen-tip">
         <el-icon class="header-icon" :size="18" @click="toggleFullscreen"><FullScreen /></el-icon>
       </el-tooltip>
 
@@ -273,5 +273,18 @@ async function handleCommand(command: string) {
 .todo-badge {
   display: flex;
   align-items: center;
+}
+
+/* 移动端收缩：隐藏用户名文字与全屏按钮，缩小右侧间距，避免 Header 溢出产生横向滚动 */
+@media (max-width: 767px) {
+  .header-right {
+    gap: var(--xfjy-space-2);
+  }
+  .username {
+    display: none;
+  }
+  .fullscreen-tip {
+    display: none;
+  }
 }
 </style>

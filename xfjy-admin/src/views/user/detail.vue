@@ -57,13 +57,27 @@
                   <el-upload
                     :show-file-list="false"
                     :http-request="uploadAvatar"
+                    :before-upload="beforeAvatarUpload"
+                    :disabled="avatarUploading"
                     accept="image/*"
                   >
-                    <el-avatar :size="64" :src="profileForm.avatar" class="avatar-edit">
-                      <el-icon :size="28"><UserFilled /></el-icon>
-                    </el-avatar>
+                    <div class="avatar-edit-wrap">
+                      <el-avatar
+                        :size="64"
+                        :src="profileForm.avatar"
+                        class="avatar-edit"
+                        role="button"
+                        tabindex="0"
+                        aria-label="更换头像"
+                      >
+                        <el-icon :size="28"><UserFilled /></el-icon>
+                      </el-avatar>
+                      <div v-if="avatarUploading" class="avatar-uploading">
+                        <el-icon class="is-loading" :size="20"><Loading /></el-icon>
+                      </div>
+                    </div>
                   </el-upload>
-                  <el-button v-if="profileForm.avatar" link type="danger" @click="clearAvatar">清除头像</el-button>
+                  <el-button v-if="profileForm.avatar" @click="clearAvatar">清除头像</el-button>
                 </div>
               </el-form-item>
 
@@ -206,7 +220,7 @@
               </el-table-column>
               <el-table-column label="操作" width="92" align="center" fixed="right">
                 <template #default="{ row }">
-                  <el-button link type="primary" size="small" @click="viewRelationUser(row.userId)">查看详情</el-button>
+                  <el-button link type="primary" @click="viewRelationUser(row.userId)">查看详情</el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -235,15 +249,6 @@
                 </div>
               </el-col>
             </el-row>
-            <el-alert
-              v-if="statsLoadingNote"
-              type="info"
-              :closable="false"
-              show-icon
-              title="提示"
-              description="动态数、粉丝数、关注数、匹配数暂未接入 MongoDB 计数，当前显示 0。被举报数来自 MySQL 举报表。"
-              style="margin-top: 16px"
-            />
           </div>
         </el-tab-pane>
 
@@ -451,7 +456,7 @@
                 <el-space wrap>
                   <el-button v-if="detail.status === 'NORMAL'" type="danger" @click="handleFreeze">封禁账号</el-button>
                   <el-button v-else type="success" @click="handleUnfreeze">解封账号</el-button>
-                  <el-button type="warning" @click="handleResetPwd">重置密码</el-button>
+                  <el-button @click="handleResetPwd">重置密码</el-button>
                 </el-space>
               </div>
             </el-card>
@@ -465,7 +470,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch, nextTick, h } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { UserFilled, Close, Plus } from '@element-plus/icons-vue'
+import { UserFilled, Close, Plus, Loading } from '@element-plus/icons-vue'
 import { useResponsive } from '@/composables/useResponsive'
 import {
   getUserDetailApi,
@@ -524,10 +529,6 @@ const stats = computed(() => [
   { label: '被举报数', value: detail.value?.reportCount ?? 0 },
   { label: 'VIP等级', value: detail.value?.vipLevel ?? 0 },
 ])
-
-const statsLoadingNote = computed(() =>
-  detail.value && (detail.value.postCount === 0 || detail.value.followerCount === 0)
-)
 
 async function loadDetail() {
   if (!props.userId) return
@@ -761,6 +762,7 @@ const profileForm = reactive<ProfileFormState>({
 })
 const profilePhotos = ref<string[]>([])
 const profileSaving = ref(false)
+const avatarUploading = ref(false)
 const profileLogs = ref<ProfileLogItem[]>([])
 const profileLogsLoading = ref(false)
 const profileLogTotal = ref(0)
@@ -787,14 +789,32 @@ function resetProfileForm() {
   fillProfileForm()
 }
 
-/** el-upload 自定义头像上传（走后台 /admin/upload/image） */
+/** el-upload 自定义头像上传（走后台 /admin/upload/image）；上限 2MB，格式与大小进入上传前拦截 */
+const AVATAR_MAX_SIZE = 2 * 1024 * 1024
+
+function beforeAvatarUpload(file: File): boolean {
+  if (!file.type.startsWith('image/')) {
+    ElMessage.error('仅支持图片格式')
+    return false
+  }
+  if (file.size > AVATAR_MAX_SIZE) {
+    ElMessage.error('图片不能超过 2MB')
+    return false
+  }
+  return true
+}
+
 async function uploadAvatar(options: { file: File }) {
+  if (avatarUploading.value) return
+  avatarUploading.value = true
   try {
     const res = await uploadImageApi(options.file)
     profileForm.avatar = res.name
     ElMessage.success('头像已上传，点击底部保存后生效')
   } catch {
-    // request 层已统一提示
+    ElMessage.error('头像上传失败，请检查网络后重试')
+  } finally {
+    avatarUploading.value = false
   }
 }
 
@@ -1045,7 +1065,7 @@ watch(activeTab, async (tab) => {
 /* 基本信息 */
 .user-profile {
   display: flex;
-  gap: 20px;
+  gap: var(--xfjy-space-5);
 }
 
 .profile-name {
@@ -1053,38 +1073,38 @@ watch(activeTab, async (tab) => {
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: var(--xfjy-space-2);
+  margin-bottom: var(--xfjy-space-2);
 }
 
 .profile-meta {
   display: flex;
-  gap: 24px;
+  gap: var(--xfjy-space-6);
   color: var(--xfjy-text-regular);
-  font-size: 13px;
-  margin-bottom: 4px;
+  font-size: var(--xfjy-font-size-sm);
+  margin-bottom: var(--xfjy-space-1);
 }
 
 .profile-signature {
   color: var(--xfjy-text-secondary);
-  font-size: 13px;
-  margin-top: 8px;
+  font-size: var(--xfjy-font-size-sm);
+  margin-top: var(--xfjy-space-2);
 }
 
 .freeze-reason {
   color: var(--xfjy-danger);
-  font-size: 13px;
-  margin-top: 4px;
+  font-size: var(--xfjy-font-size-sm);
+  margin-top: var(--xfjy-space-1);
 }
 
 /* 数据统计 */
 .stat-row {
-  margin-bottom: 8px;
+  margin-bottom: var(--xfjy-space-2);
 }
 
 .stat-box {
   text-align: center;
-  padding: 16px;
+  padding: var(--xfjy-space-4);
   background: var(--xfjy-bg-hover);
   border-radius: var(--xfjy-radius-md);
 }
@@ -1096,16 +1116,16 @@ watch(activeTab, async (tab) => {
 }
 
 .stat-text {
-  font-size: 12px;
+  font-size: var(--xfjy-font-size-xs);
   color: var(--xfjy-text-secondary);
-  margin-top: 4px;
+  margin-top: var(--xfjy-space-1);
 }
 
 /* 照片墙 */
 .photo-wall {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--xfjy-space-1);
 }
 
 /* 标签 */
@@ -1139,7 +1159,7 @@ watch(activeTab, async (tab) => {
 
 .session-header {
   padding: var(--xfjy-space-2) var(--xfjy-space-3);
-  font-size: 13px;
+  font-size: var(--xfjy-font-size-sm);
   font-weight: 600;
   border-bottom: 1px solid var(--xfjy-border);
   color: var(--xfjy-text-primary);
@@ -1152,7 +1172,7 @@ watch(activeTab, async (tab) => {
 
 .session-item {
   display: flex;
-  gap: 8px;
+  gap: var(--xfjy-space-2);
   align-items: flex-start;
   padding: var(--xfjy-space-2) var(--xfjy-space-3);
   cursor: pointer;
@@ -1187,12 +1207,12 @@ watch(activeTab, async (tab) => {
 .session-contact {
   display: flex;
   align-items: baseline;
-  gap: 4px;
-  margin-bottom: 4px;
+  gap: var(--xfjy-space-1);
+  margin-bottom: var(--xfjy-space-1);
 }
 
 .session-name {
-  font-size: 13px;
+  font-size: var(--xfjy-font-size-sm);
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1207,7 +1227,7 @@ watch(activeTab, async (tab) => {
 }
 
 .session-msg {
-  font-size: 12px;
+  font-size: var(--xfjy-font-size-xs);
   color: var(--xfjy-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1221,10 +1241,10 @@ watch(activeTab, async (tab) => {
 }
 
 .loading-tip {
-  padding: 16px;
+  padding: var(--xfjy-space-4);
   text-align: center;
   color: var(--xfjy-text-secondary);
-  font-size: 13px;
+  font-size: var(--xfjy-font-size-sm);
 }
 
 .chat-message-panel {
@@ -1235,7 +1255,7 @@ watch(activeTab, async (tab) => {
 
 .message-header {
   padding: var(--xfjy-space-2) var(--xfjy-space-3);
-  font-size: 13px;
+  font-size: var(--xfjy-font-size-sm);
   font-weight: 600;
   border-bottom: 1px solid var(--xfjy-border);
   color: var(--xfjy-text-primary);
@@ -1244,11 +1264,11 @@ watch(activeTab, async (tab) => {
 .message-list {
   flex: 1;
   overflow-y: auto;
-  padding: 12px;
+  padding: var(--xfjy-space-3);
 }
 
 .message-item {
-  margin-bottom: 12px;
+  margin-bottom: var(--xfjy-space-3);
   display: flex;
   flex-direction: column;
 }
@@ -1260,14 +1280,14 @@ watch(activeTab, async (tab) => {
 .message-time {
   font-size: 11px;
   color: var(--xfjy-text-disabled);
-  margin-bottom: 4px;
+  margin-bottom: var(--xfjy-space-1);
 }
 
 .bubble {
   max-width: 60%;
-  padding: 8px 12px;
+  padding: var(--xfjy-space-2) var(--xfjy-space-3);
   border-radius: var(--xfjy-radius-md);
-  font-size: 13px;
+  font-size: var(--xfjy-font-size-sm);
   line-height: 1.5;
   word-break: break-all;
   background: var(--xfjy-bg-hover);
@@ -1291,7 +1311,7 @@ watch(activeTab, async (tab) => {
 
 /* 发送的图片和视频 */
 .content-sub-tabs {
-  margin-top: 8px;
+  margin-top: var(--xfjy-space-2);
 }
 
 /* 被举报记录 */
@@ -1303,7 +1323,7 @@ watch(activeTab, async (tab) => {
 }
 
 .pagination-wrapper {
-  margin-top: 12px;
+  margin-top: var(--xfjy-space-3);
   display: flex;
   justify-content: flex-end;
 }
@@ -1313,13 +1333,13 @@ watch(activeTab, async (tab) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--xfjy-space-4);
 }
 
 .action-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--xfjy-space-3);
 }
 
 .action-name {
@@ -1328,7 +1348,7 @@ watch(activeTab, async (tab) => {
 }
 
 .action-status {
-  margin-top: 4px;
+  margin-top: var(--xfjy-space-1);
 }
 
 .text-muted {
@@ -1343,18 +1363,45 @@ watch(activeTab, async (tab) => {
 .avatar-edit-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--xfjy-space-3);
+}
+
+.avatar-edit-wrap {
+  position: relative;
+  display: inline-flex;
+  border-radius: 50%;
+  cursor: pointer;
 }
 
 .avatar-edit {
   cursor: pointer;
   border: 1px solid var(--xfjy-border);
+  transition: border-color 0.2s;
+}
+
+.avatar-edit-wrap:hover .avatar-edit,
+.avatar-edit-wrap:focus-within .avatar-edit {
+  border-color: var(--xfjy-primary);
+}
+
+.avatar-uploading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--xfjy-bg-card);
+  opacity: 0.85;
 }
 
 .photo-editor {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--xfjy-space-2);
 }
 
 .photo-edit-item {
@@ -1402,14 +1449,14 @@ watch(activeTab, async (tab) => {
 }
 
 .photo-tip {
-  margin-top: 4px;
-  font-size: 12px;
+  margin-top: var(--xfjy-space-1);
+  font-size: var(--xfjy-font-size-xs);
   color: var(--xfjy-text-secondary);
 }
 
 .profile-log-title {
-  margin: 24px 0 12px;
-  font-size: 14px;
+  margin: var(--xfjy-space-6) 0 var(--xfjy-space-3);
+  font-size: var(--xfjy-font-size-base);
   font-weight: 600;
   color: var(--xfjy-text-primary);
 }

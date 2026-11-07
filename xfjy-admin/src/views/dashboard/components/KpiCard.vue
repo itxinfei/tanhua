@@ -1,35 +1,68 @@
 <template>
-  <div class="kpi-card">
+  <div
+    class="kpi-card"
+    :class="{ 'kpi-card--link': to }"
+    :role="to ? 'link' : undefined"
+    :tabindex="to ? 0 : undefined"
+    @click="handleClick"
+    @keydown.enter="handleClick"
+  >
     <div class="kpi-card__top">
-      <span class="kpi-card__icon" :style="{ color: iconColor, background: iconBg }">
-        <el-icon :size="17"><component :is="icon" /></el-icon>
+      <span
+        class="kpi-card__icon"
+        :style="{ color: iconColor, background: iconBg }"
+      >
+        <el-icon :size="15"><component :is="icon" /></el-icon>
       </span>
       <span class="kpi-card__label">{{ label }}</span>
     </div>
-    <div class="kpi-card__value">{{ formattedValue }}</div>
+    <div class="kpi-card__value">
+      {{ formattedValue }}
+    </div>
     <div class="kpi-card__foot">
+      <div class="kpi-card__foot-main">
+        <span
+          v-if="delta !== null && delta !== undefined"
+          class="kpi-card__chip"
+          :class="delta > 0 ? 'kpi-card__chip--up' : delta < 0 ? 'kpi-card__chip--down' : 'kpi-card__chip--flat'"
+        >
+          <el-icon
+            :size="11"
+            class="kpi-card__chip-icon"
+          >
+            <CaretTop v-if="delta > 0" />
+            <CaretBottom v-else-if="delta < 0" />
+            <Minus v-else />
+          </el-icon>
+          {{ formatDelta(delta) }}
+        </span>
+        <span
+          v-if="hasDelta"
+          class="kpi-card__hint"
+        >较昨日</span>
+        <span
+          v-else-if="hint"
+          class="kpi-card__hint"
+        >{{ hint }}</span>
+      </div>
       <span
-        v-if="delta !== null && delta !== undefined"
-        class="kpi-card__chip"
-        :class="delta > 0 ? 'kpi-card__chip--up' : delta < 0 ? 'kpi-card__chip--down' : 'kpi-card__chip--flat'"
+        v-if="to"
+        class="kpi-card__more"
       >
-        <el-icon :size="11" class="kpi-card__chip-icon">
-          <CaretTop v-if="delta > 0" />
-          <CaretBottom v-else-if="delta < 0" />
-          <Minus v-else />
-        </el-icon>
-        {{ formatDelta(delta) }}
+        详情
+        <el-icon :size="11"><ArrowRight /></el-icon>
       </span>
-      <span v-if="hasDelta" class="kpi-card__hint">较昨日</span>
-      <span v-else-if="hint" class="kpi-card__hint">{{ hint }}</span>
     </div>
     <div class="kpi-card__spark">
       <BaseChart
         v-if="hasSpark"
         :option="sparkOption"
-        height="36px"
+        height="24px"
       />
-      <div v-else-if="pulse" class="kpi-card__live">
+      <div
+        v-else-if="pulse"
+        class="kpi-card__live"
+      >
         <span class="kpi-card__live-dot"><span class="kpi-card__live-wave" /></span>
         <span>实时心跳统计</span>
       </div>
@@ -39,7 +72,8 @@
 
 <script setup lang="ts">
 import { computed, type Component } from 'vue'
-import { CaretTop, CaretBottom, Minus } from '@element-plus/icons-vue'
+import { CaretTop, CaretBottom, Minus, ArrowRight } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
 import { BaseChart } from '@/components'
 import { sparklineOption } from '../chartOptions'
 import { useCountUp } from '../composables/useCountUp'
@@ -60,7 +94,15 @@ const props = defineProps<{
   sparkColor?: string
   /** 实时模式：spark 区显示呼吸点而非趋势线 */
   pulse?: boolean
+  /** 点击跳转路由地址；不传则为纯展示卡 */
+  to?: string
 }>()
+
+const router = useRouter()
+
+function handleClick() {
+  if (props.to) router.push(props.to)
+}
 
 const animated = useCountUp(computed(() => props.value))
 
@@ -94,11 +136,25 @@ const sparkOption = computed(() =>
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: var(--xfjy-space-4);
+  padding: var(--xfjy-space-2);
   background: var(--xfjy-bg-card);
   border: 1px solid var(--xfjy-border);
   border-radius: var(--xfjy-radius-lg);
   box-shadow: var(--xfjy-shadow-card);
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+/* 可点击指标卡：hover 上浮 + 品牌色描边（AntD Pro 指标卡交互规范） */
+.kpi-card--link {
+  cursor: pointer;
+}
+
+.kpi-card--link:hover,
+.kpi-card--link:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--xfjy-primary);
+  box-shadow: var(--xfjy-shadow-hover);
+  outline: none;
 }
 
 .kpi-card__top {
@@ -113,8 +169,8 @@ const sparkOption = computed(() =>
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   border-radius: var(--xfjy-radius-md);
 }
 
@@ -127,20 +183,44 @@ const sparkOption = computed(() =>
 }
 
 .kpi-card__value {
-  margin-top: var(--xfjy-space-2);
-  font-size: var(--xfjy-font-size-2xl);
+  margin-top: var(--xfjy-space-1);
+  font-size: var(--xfjy-font-size-xl);
   font-weight: 600;
   line-height: 1.15;
-  letter-spacing: -0.5px; /* 大数字字距光学收紧，不归栅格（AGENTS.md §11 存量豁免） */
+  letter-spacing: -0.3px; /* 大数字字距光学收紧，不归栅格（AGENTS.md §11 存量豁免） */
   color: var(--xfjy-text-primary);
   font-variant-numeric: tabular-nums;
 }
 
 .kpi-card__foot {
   margin-top: var(--xfjy-space-1);
-  min-height: 20px;
+  min-height: 18px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: var(--xfjy-space-2);
+}
+
+.kpi-card__foot-main {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.kpi-card__more {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  font-size: var(--xfjy-font-size-xs);
+  color: var(--xfjy-primary);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.kpi-card--link:hover .kpi-card__more,
+.kpi-card--link:focus-visible .kpi-card__more {
+  opacity: 1;
 }
 
 .kpi-card__chip {
@@ -180,15 +260,15 @@ const sparkOption = computed(() =>
 }
 
 .kpi-card__spark {
-  margin-top: var(--xfjy-space-2);
-  min-height: 36px;
+  margin-top: var(--xfjy-space-1);
+  min-height: 24px;
 }
 
 .kpi-card__live {
   display: flex;
   align-items: center;
   gap: var(--xfjy-space-2);
-  height: 36px;
+  height: 24px;
   font-size: var(--xfjy-font-size-xs);
   color: var(--xfjy-text-secondary);
 }

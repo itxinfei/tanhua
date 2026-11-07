@@ -354,7 +354,7 @@ onUnmounted(() => {
 }
 .session-list { flex: 1; overflow-y: auto; }
 .session-item {
-  padding: 12px 16px;
+  padding: var(--xfjy-space-3) var(--xfjy-space-4);
   cursor: pointer;
   border-bottom: 1px solid var(--xfjy-border-light);
   &:hover { background: var(--xfjy-bg-hover); }
@@ -364,27 +364,27 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 4px;
-  .user-wrap { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  margin-bottom: var(--xfjy-space-1);
+  .user-wrap { display: flex; align-items: center; gap: var(--xfjy-space-2); min-width: 0; }
   .user-avatar {
     width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; object-fit: cover;
     &.placeholder {
-      background: var(--xfjy-primary); color: var(--xfjy-text-inverse); font-size: 13px;
+      background: var(--xfjy-primary); color: var(--xfjy-text-inverse); font-size: var(--xfjy-font-size-sm);
       display: flex; align-items: center; justify-content: center;
     }
   }
   .user-id {
-    font-size: 14px; font-weight: 500; color: var(--xfjy-text-primary);
+    font-size: var(--xfjy-font-size-base); font-weight: 500; color: var(--xfjy-text-primary);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .last-time { font-size: 12px; color: var(--xfjy-text-disabled); flex-shrink: 0; }
+  .last-time { font-size: var(--xfjy-font-size-xs); color: var(--xfjy-text-disabled); flex-shrink: 0; }
 }
 .session-bottom {
   display: flex;
   justify-content: space-between;
   align-items: center;
   .last-msg {
-    font-size: 13px; color: var(--xfjy-text-secondary);
+    font-size: var(--xfjy-font-size-sm); color: var(--xfjy-text-secondary);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     max-width: 180px;
   }
@@ -396,14 +396,14 @@ onUnmounted(() => {
   }
 }
 .empty-tip {
-  padding: 40px 0; text-align: center; color: var(--xfjy-text-disabled); font-size: 13px;
+  padding: 40px 0; text-align: center; color: var(--xfjy-text-disabled); font-size: var(--xfjy-font-size-sm);
 }
 
 /* 右侧聊天窗 */
 .chat-panel { flex: 1; display: flex; flex-direction: column; }
 .chat-empty {
   flex: 1; display: flex; align-items: center; justify-content: center;
-  color: var(--xfjy-text-disabled); font-size: 14px;
+  color: var(--xfjy-text-disabled); font-size: var(--xfjy-font-size-base);
 }
 .chat-header {
   padding: var(--xfjy-space-4) var(--xfjy-space-5);
@@ -411,8 +411,8 @@ onUnmounted(() => {
   border-bottom: 1px solid var(--xfjy-border-light);
 }
 .msg-list {
-  flex: 1; overflow-y: auto; padding: 16px 20px;
-  display: flex; flex-direction: column; gap: 12px;
+  flex: 1; overflow-y: auto; padding: var(--xfjy-space-4) var(--xfjy-space-5);
+  display: flex; flex-direction: column; gap: var(--xfjy-space-3);
 }
 .msg-item {
   display: flex;
@@ -422,7 +422,7 @@ onUnmounted(() => {
     /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 聊天气泡内距，气泡高度按内容自然撑开，见 AGENTS.md §11 存量豁免 */
     padding: 10px 14px;
     border-radius: var(--xfjy-radius-lg);
-    font-size: 14px;
+    font-size: var(--xfjy-font-size-base);
     line-height: 1.5;
     background: var(--xfjy-bg-hover);
     color: var(--xfjy-text-primary);
@@ -452,18 +452,18 @@ onUnmounted(() => {
 }
 
 .input-bar {
-  padding: 12px 20px;
+  padding: var(--xfjy-space-3) var(--xfjy-space-5);
   border-top: 1px solid var(--xfjy-border-light);
   display: flex;
-  gap: 12px;
+  gap: var(--xfjy-space-3);
   .el-input { flex: 1; }
 }
 
 /* 移动端 tab 切换栏 */
 .mobile-tabs {
   display: none;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: var(--xfjy-space-2);
+  padding: var(--xfjy-space-2) var(--xfjy-space-3);
   border-bottom: 1px solid var(--xfjy-border-light);
   background: var(--xfjy-bg-card);
 }

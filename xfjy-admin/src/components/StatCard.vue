@@ -11,7 +11,8 @@
       </div>
     </div>
     <span v-if="change != null" class="stat-card__change" :class="change >= 0 ? 'up' : 'down'">
-      {{ change >= 0 ? '▲' : '▼' }} {{ Math.abs(change) }}%
+      <el-icon :size="12"><component :is="change >= 0 ? 'ArrowUp' : 'ArrowDown'" /></el-icon>
+      {{ Math.abs(change) }}%
     </span>
   </div>
 </template>
@@ -101,6 +102,9 @@ const formattedValue = computed(() => {
   position: absolute;
   right: var(--xfjy-space-3);
   bottom: var(--xfjy-space-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
   font-size: var(--xfjy-font-size-xs);
   /* 1px 为图标光学贴边修正，不归 8px 栅格（AGENTS.md §11 存量豁免） */
   padding: 1px var(--xfjy-space-2);

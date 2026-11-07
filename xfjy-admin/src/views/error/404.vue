@@ -1,10 +1,5 @@
 <template>
   <div class="not-found">
-    <!-- 背景星星 -->
-    <div class="stars">
-      <span v-for="n in 20" :key="n" class="star" :style="starStyle(n)"></span>
-    </div>
-
     <div class="nf-content">
       <!-- SVG 插画：迷失的星球 -->
       <div class="nf-illustration">
@@ -30,9 +25,9 @@
             <text x="56" y="66" font-size="14" font-weight="bold" style="fill: var(--xfjy-primary-deep)">?</text>
           </g>
           <!-- 漂浮的小圆点 -->
-          <circle class="dot dot-1" cx="48" cy="140" r="5" fill="#f5576c" />
-          <circle class="dot dot-2" cx="278" cy="140" r="4" fill="#43e97b" />
-          <circle class="dot dot-3" cx="290" cy="100" r="3" fill="#fa709a" />
+          <circle class="dot dot-1" cx="48" cy="140" r="5" style="fill: var(--xfjy-chart-6)" />
+          <circle class="dot dot-2" cx="278" cy="140" r="4" style="fill: var(--xfjy-chart-3)" />
+          <circle class="dot dot-3" cx="290" cy="100" r="3" style="fill: var(--xfjy-chart-1)" />
           <defs>
             <linearGradient id="planetGrad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" style="stop-color: var(--xfjy-primary-deep)" />
@@ -75,22 +70,6 @@ function goBack() {
     router.push('/dashboard')
   }
 }
-
-// 生成随机分布的星星样式
-function starStyle(n: number) {
-  const seed = n * 137.5
-  const left = (seed * 7.3) % 100
-  const top = (seed * 3.7) % 100
-  const size = 2 + ((seed * 1.3) % 3)
-  const delay = ((seed * 0.7) % 3).toFixed(1)
-  return {
-    left: left + '%',
-    top: top + '%',
-    width: size + 'px',
-    height: size + 'px',
-    animationDelay: `-${delay}s`,
-  }
-}
 </script>
 
 <style scoped>
@@ -99,31 +78,9 @@ function starStyle(n: number) {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* stylelint-disable-next-line color-no-hex -- 404 插画渐层配色，随插画整体重做，见 AGENTS.md §11 存量豁免 */
-  background: linear-gradient(160deg, #f5f7ff 0%, #f0f2f5 60%, var(--xfjy-primary-50) 100%);
+  background: linear-gradient(160deg, var(--xfjy-bg-page) 0%, var(--xfjy-primary-50) 100%);
   position: relative;
   overflow: hidden;
-}
-
-/* 背景星星 */
-.stars {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.star {
-  position: absolute;
-  border-radius: 50%;
-  /* stylelint-disable-next-line color-no-hex -- 404 插画配色，见 AGENTS.md §11 存量豁免 */
-  background: #c5cae9;
-  opacity: 0.5;
-  animation: twinkle 3s ease-in-out infinite;
-}
-
-@keyframes twinkle {
-  0%, 100% { opacity: 0.15; transform: scale(0.8); }
-  50% { opacity: 0.6; transform: scale(1.2); }
 }
 
 /* 内容区 */
@@ -133,73 +90,36 @@ function starStyle(n: number) {
   text-align: center;
 }
 
-.nf-illustration {
-  animation: floatY 4s ease-in-out infinite;
-}
-
-.planet-main {
-  animation: rotateSlow 12s linear infinite;
-  transform-origin: 160px 100px;
-}
-
-.satellite {
-  animation: floatY 3s ease-in-out infinite reverse;
-}
-
-.float-search {
-  animation: floatY 5s ease-in-out infinite;
-  animation-delay: -1s;
-}
-
-.dot-1 { animation: floatY 3.5s ease-in-out infinite; animation-delay: -0.5s; }
-.dot-2 { animation: floatY 4.5s ease-in-out infinite; animation-delay: -1.5s; }
-.dot-3 { animation: floatY 3s ease-in-out infinite; animation-delay: -2s; }
-
-@keyframes floatY {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-12px); }
-}
-
-@keyframes rotateSlow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
 .nf-code {
-  margin-top: 8px;
+  margin-top: var(--xfjy-space-2);
   font-size: 96px;
   font-weight: 800;
   line-height: 1;
-  background: linear-gradient(135deg, var(--xfjy-primary-deep), var(--xfjy-primary));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--xfjy-primary);
   letter-spacing: 4px;
 }
 
 .nf-title {
-  margin-top: 12px;
+  margin-top: var(--xfjy-space-3);
   font-size: 22px;
   font-weight: 600;
-  /* stylelint-disable-next-line color-no-hex -- 404 插画配色，见 AGENTS.md §11 存量豁免 */
-  color: #303133;
+  color: var(--xfjy-text-primary);
 }
 
 .nf-desc {
-  margin-top: 8px;
-  font-size: 14px;
-  /* stylelint-disable-next-line color-no-hex -- 404 插画配色，见 AGENTS.md §11 存量豁免 */
-  color: #909399;
+  margin-top: var(--xfjy-space-2);
+  font-size: var(--xfjy-font-size-base);
+  color: var(--xfjy-text-secondary);
 }
 
 .nf-actions {
-  margin-top: 32px;
+  margin-top: var(--xfjy-space-8);
   display: flex;
   justify-content: center;
-  gap: 12px;
+  gap: var(--xfjy-space-3);
 }
 
 .mr-1 {
-  margin-right: 4px;
+  margin-right: var(--xfjy-space-1);
 }
 </style>

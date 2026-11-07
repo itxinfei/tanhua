@@ -112,6 +112,10 @@
   --xfjy-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.06);
   --xfjy-shadow-dropdown: 0 6px 20px rgba(0, 0, 0, 0.08);
 
+  /* ===== 滚动条 ===== */
+  --xfjy-scrollbar-thumb: #c0c4cc;
+  --xfjy-scrollbar-thumb-hover: #909399;
+
   /* ===== 圆角 Token ===== */
   --xfjy-radius-sm: 4px;
   --xfjy-radius-md: 8px;
@@ -176,12 +180,25 @@ a {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c0c4cc;
+  background: var(--xfjy-scrollbar-thumb);
   border-radius: var(--xfjy-radius-sm);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #909399;
+  background: var(--xfjy-scrollbar-thumb-hover);
+}
+
+/* ==================== 浏览器表面：文本选中 + 输入光标 ==================== */
+/* 选中态：品牌浅底 + 主文字色，保证可读性 */
+::selection {
+  background-color: var(--xfjy-primary-100);
+  color: var(--xfjy-text-primary);
+}
+
+/* 输入光标跟随品牌色 */
+input,
+textarea {
+  caret-color: var(--xfjy-primary);
 }
 
 /* ==================== 通用工具类 ==================== */
@@ -209,12 +226,14 @@ a {
 
 /* ==================== 页面容器 ==================== */
 .page-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--xfjy-space-4);
   padding: var(--xfjy-space-6);
 }
 
 /* 搜索栏（向后兼容，新页面用 SearchBar 组件） */
 .search-bar {
-  margin-bottom: var(--xfjy-space-3);
   padding: var(--xfjy-space-3) var(--xfjy-space-4);
   background: var(--xfjy-bg-card);
   border: 1px solid var(--xfjy-border);
@@ -236,6 +255,11 @@ a {
   display: flex;
   justify-content: flex-end;
   margin-top: var(--xfjy-space-3);
+}
+
+/* 空状态隐藏分页：total=0 时分页无操作意义，:has() 检测表格空态自动隐藏 footer */
+.table-card:has(.el-empty) .table-card__footer {
+  display: none;
 }
 
 /* 统计卡片（向后兼容） */
@@ -289,6 +313,45 @@ a {
   transition: background-color 0.2s ease;
 }
 
+/* 输入框 focus：EP 默认仅 1px 内描边偏弱，叠加柔和外光圈提升可发现性 */
+.el-input__wrapper.is-focus,
+.el-textarea__inner:focus {
+  box-shadow: 0 0 0 1px var(--xfjy-primary) inset, 0 0 0 3px rgba(254, 60, 114, 0.12) !important;
+}
+
+/* 弹窗标题：EP 默认 400 偏弱，提至 600 建立弹窗层级感 */
+.el-dialog__title {
+  font-weight: 600;
+}
+
+/* 抽屉标题：与 dialog 对齐 600；header 补底边框做视觉分隔（EP drawer 默认无分割线） */
+.el-drawer__title {
+  font-weight: 600;
+}
+.el-drawer__header {
+  padding-bottom: var(--xfjy-space-3);
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--xfjy-border-light);
+}
+
+/* 确认框标题：EP 默认 400，与 dialog/drawer 对齐 600 */
+.el-message-box__title {
+  font-weight: 600;
+}
+
+/* loading 遮罩 spinner：EP 默认灰色，改品牌色增强品牌感（svg stroke=currentColor） */
+.el-loading-spinner {
+  color: var(--xfjy-primary);
+}
+
+/* 下拉弹层：EP 默认无阴影，浮层与背景无分离，补 dropdown 级阴影 + 细边框 */
+.el-select-dropdown,
+.el-dropdown-menu,
+.el-picker__popper {
+  box-shadow: var(--xfjy-shadow-dropdown) !important;
+  border: 1px solid var(--xfjy-border-light);
+}
+
 /* 按钮按下反馈：轻微缩放，增强点击感 */
 .el-button:active {
   transform: scale(0.98);
@@ -322,30 +385,9 @@ a {
   --xfjy-table-cell-padding-x: 12px;
 }
 
-/* ==================== 玻璃拟态 token（登录页品牌区 / StatCard 图标高光） ==================== */
+/* ==================== 图标高光 token（StatCard 图标内发光） ==================== */
 :root {
-  /* 玻璃背景（白色半透明，配合 backdrop-filter 使用） */
-  --xfjy-glass-bg: rgba(255, 255, 255, 0.1);
-  --xfjy-glass-bg-strong: rgba(255, 255, 255, 0.18);
-  --xfjy-glass-bg-soft: rgba(255, 255, 255, 0.08);
-  --xfjy-glass-bg-hover: rgba(255, 255, 255, 0.16);
-  /* 玻璃边框 */
-  --xfjy-glass-border: rgba(255, 255, 255, 0.3);
-  --xfjy-glass-border-soft: rgba(255, 255, 255, 0.16);
-  --xfjy-glass-border-faint: rgba(255, 255, 255, 0.12);
-  /* 玻璃上的文字 / 分隔线 */
-  --xfjy-glass-text: rgba(255, 255, 255, 0.72);
-  --xfjy-glass-text-faint: rgba(255, 255, 255, 0.5);
-  --xfjy-glass-divider: rgba(255, 255, 255, 0.2);
-  /* 玻璃阴影 */
-  --xfjy-glass-shadow: 0 14px 40px rgba(0, 0, 0, 0.25), 0 0 0 8px rgba(255, 255, 255, 0.06);
-  --xfjy-glass-shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.15);
-  --xfjy-glass-text-shadow: 0 2px 14px rgba(0, 0, 0, 0.18);
-  /* 玻璃渐变 */
-  --xfjy-glass-icon-grad: linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.12));
   --xfjy-glass-highlight: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.28), transparent 65%);
-  /* 登录页柔光遮罩 */
-  --xfjy-login-veil: radial-gradient(ellipse at center, rgba(70, 8, 84, 0.42), transparent 72%);
 }
 
 /* 移动端隐藏工具类（≤767px 隐藏，用于次要表格列） */
@@ -356,6 +398,12 @@ a {
 /* 信息密度 - 全局表格紧凑化（深度优化） */
 .el-table {
   --el-table-row-hover-bg-color: var(--xfjy-primary-50);
+  --el-table-row-alternate-bg-color: var(--xfjy-bg-hover);
+}
+/* 表头：浅灰底 + 加重底线，与内容行建立视觉层级（表头不再与数据行同白底） */
+.el-table .el-table__header-wrapper th.el-table__cell {
+  background-color: var(--xfjy-bg-header);
+  border-bottom: 1px solid var(--xfjy-border);
 }
 .el-table .el-table__cell {
   padding: var(--xfjy-space-1) var(--xfjy-table-cell-padding-x);
@@ -522,4 +570,22 @@ a {
 .el-message {
   /* 顶部提示条按小元素处理 */
   border-radius: var(--xfjy-radius-sm);
+}
+
+/* ==================== 无障碍：reduced-motion 降级 + 键盘焦点环 ==================== */
+/* 用户开启"减少动态效果"系统偏好时，关闭所有动画/过渡（login 粒子、404 星球、dashboard 脉冲等） */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 键盘焦点环：仅 :focus-visible（鼠标点击不显示），玫红 2px 外描边 */
+:focus-visible {
+  outline: 2px solid var(--xfjy-primary);
+  outline-offset: 2px;
 }

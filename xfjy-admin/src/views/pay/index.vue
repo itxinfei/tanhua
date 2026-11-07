@@ -3,15 +3,15 @@
     <PageHeader title="订单管理" :subtitle="`共 ${total} 条记录`" />
 
     <!-- 汇总卡片 -->
-    <el-row :gutter="16" style="margin-bottom: 16px">
+    <el-row :gutter="16">
       <el-col :xs="12" :sm="6">
         <StatCard label="总订单数" :value="summary.total" icon="Document" icon-bg="linear-gradient(135deg, var(--xfjy-primary-deep), var(--xfjy-primary))" />
       </el-col>
       <el-col :xs="12" :sm="6">
-        <StatCard label="已支付" :value="summary.paidCount" icon="CircleCheck" icon-bg="linear-gradient(135deg, #00b894, #00d6b8)" />
+        <StatCard label="已支付" :value="summary.paidCount" icon="CircleCheck" icon-bg="linear-gradient(135deg, var(--xfjy-chart-3), var(--xfjy-chart-8))" />
       </el-col>
       <el-col :xs="12" :sm="6">
-        <StatCard label="待支付" :value="summary.pendingCount" icon="Clock" icon-bg="linear-gradient(135deg, #f59e0b, #fbbf24)" />
+        <StatCard label="待支付" :value="summary.pendingCount" icon="Clock" icon-bg="linear-gradient(135deg, var(--xfjy-chart-4), var(--xfjy-warning))" />
       </el-col>
       <el-col :xs="12" :sm="6">
         <StatCard label="总收入" :value="summary.totalAmount" suffix="分" icon="Wallet" icon-bg="linear-gradient(135deg, var(--xfjy-primary), var(--xfjy-primary-soft))" />
@@ -291,11 +291,11 @@ onMounted(() => {
 .order-no-cell {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--xfjy-space-1);
 }
 
 .order-no-text {
   font-family: 'Courier New', monospace;
-  font-size: 13px;
+  font-size: var(--xfjy-font-size-sm);
 }
 </style>

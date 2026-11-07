@@ -2,7 +2,7 @@
   <div class="page-container">
     <PageHeader title="公告管理" :subtitle="`共 ${total} 条记录`">
       <template #actions>
-        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" :icon="Plus" @click="handleAdd">新增公告</el-button>
+        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="primary" :icon="Plus" @click="handleAdd">新增公告</el-button>
       </template>
     </PageHeader>
 
@@ -49,12 +49,12 @@
         </el-table-column>
         <el-table-column label="操作" width="280" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="handlePreview(row)">预览</el-button>
-            <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
-            <el-button v-if="row.status === 'DRAFT'" v-perm="['SUPER_ADMIN','ADMIN']" link type="success" size="small" @click="handlePublish(row)">发布</el-button>
-            <el-button v-if="row.status === 'OFFLINE'" v-perm="['SUPER_ADMIN','ADMIN']" link type="success" size="small" @click="handlePublish(row)">重新发布</el-button>
-            <el-button v-if="row.status === 'PUBLISHED'" v-perm="['SUPER_ADMIN','ADMIN']" link type="warning" size="small" @click="handleOffline(row)">下线</el-button>
-            <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+            <el-button link type="primary" @click="handlePreview(row)">预览</el-button>
+            <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="primary" @click="handleEdit(row)">编辑</el-button>
+            <el-button v-if="row.status === 'DRAFT'" v-perm="['SUPER_ADMIN','ADMIN']" link type="success" @click="handlePublish(row)">发布</el-button>
+            <el-button v-if="row.status === 'OFFLINE'" v-perm="['SUPER_ADMIN','ADMIN']" link type="success" @click="handlePublish(row)">重新发布</el-button>
+            <el-button v-if="row.status === 'PUBLISHED'" v-perm="['SUPER_ADMIN','ADMIN']" link type="warning" @click="handleOffline(row)">下线</el-button>
+            <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
         <template #empty>
@@ -327,22 +327,18 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.preview-content {
-  padding: 0 8px;
-}
-
 .preview-title {
-  font-size: 20px;
+  font-size: var(--xfjy-font-size-lg);
   font-weight: 600;
-  margin: 0 0 12px;
+  margin: 0 0 var(--xfjy-space-3);
   color: var(--xfjy-text-primary);
 }
 
 .preview-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  gap: var(--xfjy-space-2);
+  font-size: var(--xfjy-font-size-sm);
   color: var(--xfjy-text-secondary);
 }
 
@@ -355,7 +351,7 @@ onMounted(() => {
 }
 
 .preview-body {
-  font-size: 14px;
+  font-size: var(--xfjy-font-size-base);
   line-height: 1.8;
   color: var(--xfjy-text-primary);
   white-space: pre-wrap;

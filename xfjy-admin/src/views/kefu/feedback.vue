@@ -90,7 +90,7 @@
         maxlength="500"
         show-word-limit
         placeholder="请输入回复内容，用户可在App「我的反馈」中查看"
-        style="margin-top: 16px"
+        style="margin-top: var(--xfjy-space-4)"
       />
       <template #footer>
         <el-button @click="replyVisible = false">取消</el-button>
@@ -213,6 +213,6 @@ onMounted(() => {
 
 <style scoped>
 .reply-context {
-  margin-bottom: 4px;
+  margin-bottom: var(--xfjy-space-1);
 }
 </style>
