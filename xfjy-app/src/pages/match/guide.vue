@@ -86,6 +86,7 @@
       <picker
         mode="date"
         :value="form.birthday"
+        aria-label="选择生日"
         @change="onBirthdayChange"
       >
         <view class="picker-value">
@@ -121,6 +122,7 @@
       </text>
       <picker
         :range="EDUCATION_OPTIONS"
+        aria-label="选择学历"
         @change="onEducationChange"
       >
         <view class="picker-value">
