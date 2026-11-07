@@ -112,6 +112,37 @@
           @click.stop
         />
       </a11y-button>
+      <!-- 协议/隐私政策二次查看入口（PIPL 第 17 条、工信部 164 号文：不得仅登录前展示一次） -->
+      <a11y-button
+        class="item"
+        label="查看用户协议"
+        @tap="goAgreement('user')"
+      >
+        <text class="label">
+          用户协议
+        </text>
+        <text
+          class="arrow"
+          aria-hidden="true"
+        >
+          ›
+        </text>
+      </a11y-button>
+      <a11y-button
+        class="item"
+        label="查看隐私政策"
+        @tap="goAgreement('privacy')"
+      >
+        <text class="label">
+          隐私政策
+        </text>
+        <text
+          class="arrow"
+          aria-hidden="true"
+        >
+          ›
+        </text>
+      </a11y-button>
     </view>
 
     <!-- 通用 -->
@@ -279,6 +310,10 @@ onUnload(clearNotificationDebounce);
 function goPhone() { uni.navigateTo({ url: "/pages/mine/change-phone" }); }
 function goVerify() { uni.navigateTo({ url: "/pages/mine/verify" }); }
 function goBlacklist() { uni.navigateTo({ url: "/pages/mine/blacklist" }); }
+/** 协议/隐私政策全文页：type=user 用户协议、type=privacy 隐私政策（与 login 跳转同参） */
+function goAgreement(type: "user" | "privacy"): void {
+  uni.navigateTo({ url: `/pages/mine/agreement?type=${type}` });
+}
 
 /** 加载当前手机号（脱敏显示，换绑返回后 onShow 刷新） */
 async function loadPhone() {

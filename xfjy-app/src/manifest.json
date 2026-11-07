@@ -27,6 +27,17 @@
                 "networkSecurityConfig" : {
                     "cleartextTraffic" : true
                 },
+                /*
+                  运行时危险权限与代码能力一一对应（工信部 164 号文自证，禁止声明与业务无关的权限）：
+                  - 定位 FINE/COARSE：uni.getLocation / uni.chooseLocation，用于附近的人、发动态定位、聊天发位置
+                    （match/nearby、match/index、circle/publish、video/index、chat/chat）
+                  - 录音 RECORD_AUDIO：uni.getRecorderManager，聊天语音消息与语音评论（chat/chat、utils/recorder）
+                  - 相册 READ_MEDIA_IMAGES / READ_MEDIA_VIDEO（Android 13+）、READ_EXTERNAL_STORAGE（Android 12 及以下）：
+                    uni.chooseImage / uni.chooseVideo 选图选视频（chat、circle/publish、match/guide、mine/profile）
+                  说明：本应用无保存到相册能力，不申请写存储权限；CAMERA 已在上声明。
+                  chooseLocation 地图选点另需在 HBuilderX modules 配置地图模块与 SDK key（待产品提供，见需求文档 §11.7）。
+                  以下权限字符串为 Android 标准权限名，云打包后需真机验证运行时授权弹窗。
+                */
                 "permissions": [
                     "<uses-permission android:name=\"android.permission.CHANGE_NETWORK_STATE\"/>",
                     "<uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\"/>",
@@ -34,6 +45,12 @@
                     "<uses-permission android:name=\"android.permission.CAMERA\"/>",
                     "<uses-permission android:name=\"android.permission.CHANGE_WIFI_STATE\"/>",
                     "<uses-permission android:name=\"android.permission.WAKE_LOCK\"/>",
+                    "<uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\"/>",
+                    "<uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\"/>",
+                    "<uses-permission android:name=\"android.permission.RECORD_AUDIO\"/>",
+                    "<uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\"/>",
+                    "<uses-permission android:name=\"android.permission.READ_MEDIA_IMAGES\"/>",
+                    "<uses-permission android:name=\"android.permission.READ_MEDIA_VIDEO\"/>",
                     "<uses-feature android:name=\"android.hardware.camera\"/>",
                     "<uses-feature android:name=\"android.hardware.camera.autofocus\"/>"
                 ]
