@@ -66,6 +66,7 @@
 
 <script setup lang="ts">
 import { ref, onUnmounted } from "vue";
+import { onUnload, onHide } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
 
 /** 表单字段的唯一 id：用于 aria-labelledby 建立 input 与可见标签的程序化关联（WCAG 1.3.1 / 3.3.2） */
@@ -124,6 +125,24 @@ onUnmounted(() => {
   if (codeSanitizeTimer) clearTimeout(codeSanitizeTimer);
 });
 
+/** 延迟导航定时器：离页（卸载/压栈隐藏）即清理，防止换绑成功后用户手动返回仍被自动回退劫持 */
+let navTimer: ReturnType<typeof setTimeout> | null = null;
+function scheduleNav(delay: number, nav: () => void): void {
+  if (navTimer) clearTimeout(navTimer);
+  navTimer = setTimeout(() => {
+    navTimer = null;
+    nav();
+  }, delay);
+}
+function clearPendingNav(): void {
+  if (navTimer) {
+    clearTimeout(navTimer);
+    navTimer = null;
+  }
+}
+onUnload(clearPendingNav);
+onHide(clearPendingNav);
+
 /** 发送验证码到新手机号（60s 倒计时防重复） */
 async function sendCode() {
   if (countdown.value > 0) return;
@@ -161,7 +180,7 @@ async function submit() {
   try {
     await changePhone(phone.value, code.value);
     success('换绑成功');
-    setTimeout(() => safeGoBack("/pages/mine/index"), 800);
+    scheduleNav(800, () => safeGoBack("/pages/mine/index"));
   } catch {
     // 403/409 由 request 层统一 toast
   } finally {

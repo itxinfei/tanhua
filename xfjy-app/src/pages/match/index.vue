@@ -280,7 +280,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import EmptyState from "@/components/empty-state.vue";
 import NetworkStatusBar from "@/components/network-status-bar.vue";
 import Skeleton from "@/components/skeleton.vue";
-import { onShow, onShareAppMessage } from "@dcloudio/uni-app";
+import { onShow, onShareAppMessage, onUnload, onHide } from "@dcloudio/uni-app";
 import { useMatchStore } from "@/store/match";
 import { useSystemStore } from "@/store/system";
 import { getCards, type TodayBest } from "@/api/match";
@@ -801,7 +801,7 @@ async function handleSuperLike(): Promise<void> {
     const benefit = await checkBenefit("super_like");
     if (!benefit.hasBenefit) {
       info("超级喜欢需开通VIP");
-      setTimeout(() => uni.navigateTo({ url: "/pages/mine/vip" }), 600);
+      scheduleNav(600, () => uni.navigateTo({ url: "/pages/mine/vip" }));
       return;
     }
     if (benefit.remainingToday === 0) {
@@ -911,6 +911,24 @@ onUnmounted(() => {
     dragRafId = 0;
   }
 });
+
+/** 延迟导航定时器：离页（卸载/压栈隐藏）即清理，防止权益不足提示后用户手动返回仍被强跳 VIP 页 */
+let navTimer: ReturnType<typeof setTimeout> | null = null;
+function scheduleNav(delay: number, nav: () => void): void {
+  if (navTimer) clearTimeout(navTimer);
+  navTimer = setTimeout(() => {
+    navTimer = null;
+    nav();
+  }, delay);
+}
+function clearPendingNav(): void {
+  if (navTimer) {
+    clearTimeout(navTimer);
+    navTimer = null;
+  }
+}
+onUnload(clearPendingNav);
+onHide(clearPendingNav);
 
 onShow(() => {
   // 卡片全滑完（或本就为空）时补拉：原先只在 cardList.length===0 才加载，

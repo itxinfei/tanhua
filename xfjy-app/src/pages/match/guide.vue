@@ -154,6 +154,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { onUnload, onHide } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
 import SmartImage from "@/components/smart-image.vue";
 import A11yRadioGroup from "@/components/a11y-radio-group.vue";
@@ -239,6 +240,24 @@ function onEducationChange(e: any): void {
   form.value.education = EDUCATION_OPTIONS[e.detail.value];
 }
 
+/** 延迟导航定时器：离页（卸载/压栈隐藏）即清理，防止保存成功后用户手动返回仍被自动 switchTab 劫持 */
+let navTimer: ReturnType<typeof setTimeout> | null = null;
+function scheduleNav(delay: number, nav: () => void): void {
+  if (navTimer) clearTimeout(navTimer);
+  navTimer = setTimeout(() => {
+    navTimer = null;
+    nav();
+  }, delay);
+}
+function clearPendingNav(): void {
+  if (navTimer) {
+    clearTimeout(navTimer);
+    navTimer = null;
+  }
+}
+onUnload(clearPendingNav);
+onHide(clearPendingNav);
+
 /** 提交资料 */
 async function handleSubmit(): Promise<void> {
   if (!form.value.nickname) {
@@ -261,9 +280,9 @@ async function handleSubmit(): Promise<void> {
       education: form.value.education || undefined,
     });
     success("保存成功");
-    setTimeout(() => {
+    scheduleNav(1000, () => {
       uni.switchTab({ url: "/pages/match/index" });
-    }, 1000);
+    });
   } catch {
     // 错误提示由 request 封装统一处理
   } finally {
