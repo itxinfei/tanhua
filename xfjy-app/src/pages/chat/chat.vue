@@ -1198,7 +1198,9 @@ onUnmounted(() => {
   top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
+  /* 底部让出全局 tabbar：H5 由 global-tabbar 写入其实测高度，输入栏落在底栏上方；
+     小程序端无此变量，0px 兜底，chat-room 仍满屏（二级页原生无 tabBar，行为同现状） */
+  bottom: var(--tab-bar-height, 0px);
   z-index: 997;
   display: flex;
   flex-direction: column;
