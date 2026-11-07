@@ -136,6 +136,28 @@
             </text>
           </a11y-button>
         </view>
+        <!-- 评论首屏失败：显式错误态 + 重试，与「暂无评论」真空态区分 -->
+        <empty-state
+          v-if="commentLoadFailed && comments.length === 0"
+          role="alert"
+          icon="info"
+          title="评论加载失败"
+          desc="服务可能开小差了，检查网络后重试"
+        >
+          <a11y-button
+            class="detail-retry"
+            label="重新加载评论"
+            @tap="loadComments"
+          >
+            重新加载
+          </a11y-button>
+        </empty-state>
+        <view
+          v-else-if="comments.length === 0"
+          class="comment-empty"
+        >
+          暂无评论，快来抢沙发
+        </view>
         <a11y-button
           v-if="commentHasMore"
           class="load-more"
@@ -194,6 +216,8 @@ const sending = ref(false);
 const commentPage = ref(1);
 const commentHasMore = ref(false);
 const commentLoading = ref(false);
+/** 评论首屏加载失败：与「暂无评论」真空态区分，显式错误态 + 重试（request 层仍兜底 toast） */
+const commentLoadFailed = ref(false);
 
 function previewImg(index: number | string) {
   const i = Number(index);
@@ -223,8 +247,10 @@ async function loadComments() {
     comments.value = res.items || [];
     commentPage.value = 1;
     commentHasMore.value = (res.pages || 1) > 1;
+    commentLoadFailed.value = false;
   } catch {
-    // request 层统一 toast
+    // 首屏评论失败：置错误态由模板显示重试入口，避免评论区只剩「评论 (0)」空白（request 层仍兜底 toast）
+    commentLoadFailed.value = true;
   }
 }
 
@@ -363,6 +389,7 @@ onLoad((options: any) => {
   }
   /* 热区：88rpx 基线；原 view 直接 @tap 无键盘/读屏入口 */
   .load-more { text-align: center; padding: 24rpx; min-height: 88rpx; box-sizing: border-box; color: var(--color-primary); font-size: 26rpx; }
+  .comment-empty { text-align: center; color: var(--text-hint); font-size: var(--fs-base); padding: 48rpx 0; }
 }
   /* background 走 --bg-card：写死 rgba(255,255,255,.92) 在暗色模式下会变成刺眼白条 */
   .comment-bar { position: fixed; left: 0; right: 0; bottom: var(--tab-bar-height, 0px); display: flex; align-items: center; gap: 16rpx; padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom, 0px)); background: var(--bg-card); backdrop-filter: blur(20px); box-shadow: 0 -8rpx 32rpx rgba(0, 0, 0, 0.08);

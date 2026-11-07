@@ -29,6 +29,22 @@
         >
           加载中…
         </view>
+        <!-- 首屏加载失败：与「暂无评论」真空态区分，提供重试，禁止把故障伪装成空列表 -->
+        <empty-state
+          v-else-if="loadFailed && list.length === 0"
+          role="alert"
+          icon="info"
+          title="评论加载失败"
+          desc="服务可能开小差了，检查网络后重试"
+        >
+          <a11y-button
+            class="retry-btn"
+            label="重新加载评论"
+            @tap="reload"
+          >
+            重新加载
+          </a11y-button>
+        </empty-state>
         <view
           v-else-if="list.length === 0"
           class="empty"
@@ -121,6 +137,7 @@
 import { ref, computed, watch } from "vue";
 import A11yDialog from "@/components/a11y-dialog.vue";
 import A11yButton from "@/components/a11y-button.vue";
+import EmptyState from "@/components/empty-state.vue";
 import SmartImage from "@/components/smart-image.vue";
 import { getVideoComments, publishVideoComment, likeVideoComment, dislikeVideoComment } from "@/api/video";
 import { formatCount } from "@/utils/format";
@@ -141,6 +158,8 @@ const page = ref(1);
 const pages = ref(1);
 const total = ref(0);
 const loading = ref(false);
+/** 首屏评论加载失败：与「真的没有评论」空态区分，显式错误态 + 重试，避免故障伪装成空列表 */
+const loadFailed = ref(false);
 const text = ref("");
 
 const hasMore = computed(() => page.value < pages.value);
@@ -157,6 +176,7 @@ async function reload() {
   loadToken++;
   page.value = 1;
   list.value = [];
+  loadFailed.value = false;
   await load(true);
 }
 
@@ -171,8 +191,17 @@ async function load(force = false) {
     list.value = targetPage === 1 ? (res.items || []) : list.value.concat(res.items || []);
     pages.value = res.pages || 1;
     total.value = res.counts || 0;
+    loadFailed.value = false;
   } catch {
-    if (token === loadToken && targetPage > 1) page.value = targetPage - 1;
+    // 作废请求（被后续 reload 取代）不改任何界面状态
+    if (token !== loadToken) return;
+    if (targetPage > 1) {
+      // 翻页失败：回退页码并保留已加载列表，scrolltolower 可再次触发
+      page.value = targetPage - 1;
+    } else {
+      // 首屏失败：显式错误态，禁止伪装成「暂无评论」假空态
+      loadFailed.value = true;
+    }
   } finally {
     if (token === loadToken) loading.value = false;
   }
@@ -244,6 +273,9 @@ async function send() {
 }
 .comment-list { flex: 1; padding: 0 var(--space-lg); }
 .empty { text-align: center; color: var(--text-hint); font-size: var(--fs-base); padding: 80rpx 0; }
+.retry-btn { margin-top: 32rpx; padding: 16rpx 56rpx; border-radius: var(--radius-pill);
+  font-size: 28rpx; font-weight: 600; color: var(--text-inverse); background: var(--color-primary);
+}
 .comment-item { display: flex; padding: var(--space-md) 0; border-bottom: 1rpx solid var(--border-faint);
   .avatar { width: 72rpx; height: 72rpx; border-radius: 50%; flex-shrink: 0; background: var(--bg-icon-soft); }
   .avatar-ph { display: flex; align-items: center; justify-content: center; font-size: var(--fs-xl); color: var(--text-inverse); background: var(--color-primary); }
