@@ -477,7 +477,7 @@ import { useCircleStore, CIRCLE_NEED_REFRESH_KEY } from "@/store/circle";
 import type { Movement } from "@/api/circle";
 import { getContacts, getLikeMessages, getCommentMessages, getLoveMessages, getAnnouncementMessages, type Contact, type MessageLike, type MessageAnnouncement } from "@/api/chat";
 import { useChatStore, type NoticeType } from "@/store/chat";
-import { ensureSelfIM, getConversations } from "@/utils/wukongim";
+import { ensureSelfIM, getConversations, onSystemNoticeReceived } from "@/utils/wukongim";
 import { checkBenefit } from "@/api/mine";
 
 const circleStore = useCircleStore();
@@ -886,6 +886,13 @@ function chatItemLabel(contact: ChatListItem): string {
   if (contact.online) parts.push("在线");
   return parts.join("，");
 }
+
+/** IM 系统通知（点赞/评论旁路提醒）：实时 toast + 刷新通知角标。
+ *  tabBar 页面存活期间持续监听，无需注销；toast 在任意分区均提示。 */
+onSystemNoticeReceived((notice) => {
+  uni.showToast({ title: notice.content, icon: "none" });
+  chatStore.loadNoticeCounts();
+});
 
 /* ---------------- 生命周期 ---------------- */
 onShow(() => {

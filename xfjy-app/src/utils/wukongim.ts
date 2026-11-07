@@ -53,6 +53,15 @@ export interface MatchEvent {
   avatar: string;
 }
 
+/** 系统通知（后端 PushService 经 IM 旁路透传，覆盖 H5 及在线端的点赞/评论提醒） */
+export interface SystemNotice {
+  /** 通知类别：like | comment */
+  category: "like" | "comment";
+  title: string;
+  content: string;
+  time?: number;
+}
+
 /** 服务端下发的 IM 接入凭证（GET /messages/im/credential） */
 export interface ImCredential {
   /** 业务用户ID（即 IM uid） */
@@ -82,9 +91,11 @@ export async function getImCredential(): Promise<ImCredential | null> {
 
 type MessageHandler = (msg: ReceivedMessage) => void;
 type MatchHandler = (event: MatchEvent) => void;
+type SystemHandler = (notice: SystemNotice) => void;
 
 const messageHandlers: MessageHandler[] = [];
 const matchHandlers: MatchHandler[] = [];
+const systemHandlers: SystemHandler[] = [];
 
 /** 登录状态 */
 let isLoggedIn = false;
@@ -295,6 +306,7 @@ const NUMERIC_TYPE_MAP: Record<number, string> = {
   4: "location",
   5: "card",
   6: "match",
+  7: "system",
 };
 
 /** 从原始消息解析匹配事件（JSON 文本 {"type":"match"|"type":6,...}），非匹配消息返回 null */
@@ -311,6 +323,31 @@ function extractMatchEvent(message: Message): MatchEvent | null {
             from: String(parsed.userId ?? message.fromUID ?? ""),
             nickname: String(parsed.nickname ?? ""),
             avatar: String(parsed.avatar ?? ""),
+          };
+        }
+      }
+    } catch {
+      // 普通文本消息，非 JSON
+    }
+  }
+  return null;
+}
+
+/** 从原始消息解析系统通知（JSON 文本 {"type":"system"|"type":7,...}），非系统通知返回 null */
+function extractSystemNotice(message: Message): SystemNotice | null {
+  const payload = message.content;
+  if (payload instanceof MessageText) {
+    try {
+      const parsed = JSON.parse(payload.text || "");
+      if (parsed && typeof parsed === "object") {
+        const rawType: unknown = parsed.type;
+        const type = typeof rawType === "number" ? NUMERIC_TYPE_MAP[rawType] ?? "" : String(rawType ?? "");
+        if (type === "system") {
+          return {
+            category: String(parsed.category ?? "") as SystemNotice["category"],
+            title: String(parsed.title ?? ""),
+            content: String(parsed.content ?? ""),
+            time: (message.timestamp || 0) * 1000,
           };
         }
       }
@@ -342,6 +379,8 @@ function toReceivedMessage(message: Message): ReceivedMessage | null {
       switch (type) {
         case "match":
           return null; // 匹配事件单独分发
+        case "system":
+          return null; // 系统通知单独分发
         case "image":
           if (parsed.url) {
             return { from, content: String(parsed.url), type: "image", time };
@@ -401,6 +440,11 @@ function toReceivedMessage(message: Message): ReceivedMessage | null {
 /** 全局消息监听：分发给业务回调（先注册，connect 后由 SDK 触发） */
 function registerMessageListener(): void {
   WKSDK.shared().chatManager.addMessageListener((message) => {
+    const systemNotice = extractSystemNotice(message);
+    if (systemNotice) {
+      systemHandlers.forEach((h) => h(systemNotice));
+      return;
+    }
     const matchEvent = extractMatchEvent(message);
     if (matchEvent) {
       matchHandlers.forEach((h) => h(matchEvent));
@@ -568,6 +612,15 @@ export function onMessageReceived(handler: MessageHandler): () => void {
   return () => {
     const i = messageHandlers.indexOf(handler);
     if (i >= 0) messageHandlers.splice(i, 1);
+  };
+}
+
+/** 注册系统通知回调（点赞/评论 IM 旁路提醒），返回取消注册函数 */
+export function onSystemNoticeReceived(handler: SystemHandler): () => void {
+  systemHandlers.push(handler);
+  return () => {
+    const i = systemHandlers.indexOf(handler);
+    if (i >= 0) systemHandlers.splice(i, 1);
   };
 }
 

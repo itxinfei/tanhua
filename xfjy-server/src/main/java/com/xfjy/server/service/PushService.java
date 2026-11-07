@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xfjy.server.mapper.UserDeviceMapper;
 import com.xfjy.server.pojo.Settings;
 import com.xfjy.server.pojo.UserDevice;
+import com.xfjy.service.api.WuKongImApi;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -16,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -38,6 +40,9 @@ public class PushService {
 
     private static final String JPUSH_PUSH_URL = "https://api.jpush.cn/v3/push";
 
+    /** JSON 序列化（IM 系统通知消息体构造） */
+    private static final JsonMapper MAPPER = JsonMapper.builder().build();
+
     @Value("${xfjy.jpush.app-key:}")
     private String appKey;
 
@@ -55,6 +60,10 @@ public class PushService {
 
     @Autowired
     private RestTemplate restTemplate;
+
+    /** WuKongIM 旁路通知（覆盖 H5 及在线端，补极光推送盲区） */
+    @Autowired
+    private WuKongImApi wuKongImApi;
 
     /**
      * 匹配成功推送（通知对方用户）
@@ -117,7 +126,10 @@ public class PushService {
                 return;
             }
 
-            // 2. 查询目标用户绑定的设备
+            // 2. IM 旁路通知：覆盖 H5 及在线端（极光仅覆盖 App 离线推送，H5 无极光设备）
+            this.pushImNotification(targetUserId, "like", "收到点赞", "有人赞了你的内容，快去看看吧！");
+
+            // 3. 查询目标用户绑定的设备
             List<UserDevice> devices = this.listDevicesByUserId(targetUserId);
             if (CollectionUtils.isEmpty(devices)) {
                 LOGGER.debug("推送跳过：用户{}未绑定设备", targetUserId);
@@ -162,7 +174,11 @@ public class PushService {
                 return;
             }
 
-            // 2. 查询目标用户绑定的设备
+            // 2. IM 旁路通知：覆盖 H5 及在线端（极光仅覆盖 App 离线推送，H5 无极光设备）
+            String brief = StringUtils.length(content) > 20 ? content.substring(0, 20) + "..." : content;
+            this.pushImNotification(targetUserId, "comment", "收到评论", "收到新评论：" + brief);
+
+            // 3. 查询目标用户绑定的设备
             List<UserDevice> devices = this.listDevicesByUserId(targetUserId);
             if (CollectionUtils.isEmpty(devices)) {
                 LOGGER.debug("推送跳过：用户{}未绑定设备", targetUserId);
@@ -170,7 +186,6 @@ public class PushService {
             }
 
             String title = "收到评论";
-            String brief = StringUtils.length(content) > 20 ? content.substring(0, 20) + "..." : content;
             String alert = "收到新评论：" + brief;
             List<String> registrationIds = devices.stream()
                     .map(UserDevice::getRegistrationId)
@@ -215,6 +230,37 @@ public class PushService {
             LOGGER.info("公告广播完成：title={}", title);
         } catch (Exception e) {
             LOGGER.warn("公告广播失败：title={}", title, e);
+        }
+    }
+
+    /**
+     * IM 旁路通知（WuKongIM 透传，补极光推送盲区）
+     *
+     * <p>极光推送依赖 App 集成 SDK，仅覆盖移动端；H5 端无法接收极光推送，
+     * 在线用户也感知不到实时通知。本方法经 WuKongIM sendMessage 透传系统通知，
+     * 覆盖所有在线端（含 H5）。透传语义（no_persist + sync_once）：
+     * 不持久化、不污染聊天历史、离线不补推——与极光离线推送互补不重复。</p>
+     *
+     * <p>消息体契约：{"type":"system","category":"like|comment","title":...,"content":...}，
+     * 前端 wukongim.ts extractSystemNotice 解析后 toast 提示并刷新通知角标。</p>
+     *
+     * @param targetUserId 目标用户ID
+     * @param category     通知类别（like / comment）
+     * @param title        通知标题
+     * @param content      通知内容
+     */
+    private void pushImNotification(Long targetUserId, String category, String title, String content) {
+        try {
+            Map<String, Object> msg = new HashMap<>();
+            msg.put("type", "system");
+            msg.put("category", category);
+            msg.put("title", title);
+            msg.put("content", content);
+            this.wuKongImApi.sendMessage(targetUserId.toString(), MAPPER.writeValueAsString(msg));
+            LOGGER.info("IM系统通知已发送：userId={}, category={}", targetUserId, category);
+        } catch (Exception e) {
+            // 旁路逻辑，失败仅日志不阻断主链路
+            LOGGER.warn("IM系统通知发送失败：userId={}, category={}", targetUserId, category, e);
         }
     }
 
