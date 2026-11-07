@@ -1,6 +1,9 @@
 <template>
   <!-- 错误边界：捕获子组件渲染异常，防止白屏 -->
-  <slot v-if="!hasError" />
+  <!-- MP 端不支持 <slot v-if>，须用 <template> 包裹（H5 两种写法均可） -->
+  <template v-if="!hasError">
+    <slot />
+  </template>
   <view
     v-else
     class="error-boundary"

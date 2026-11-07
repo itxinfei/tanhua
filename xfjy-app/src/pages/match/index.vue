@@ -48,6 +48,8 @@
 
     <!-- 卡片区域 -->
     <view class="card-area">
+      <!-- S6：错误边界捕获卡片渲染异常，@retry 走 handleReload 重置重拉 -->
+      <error-boundary @retry="handleReload">
       <!-- 骨架卡片：门控基于实际可见窗口而非 cardList.length——
            历史卡滑完后数组不清空，reload/补拉期间 visibleCards 为空，仍需骨架兜底防闪空白 -->
       <skeleton
@@ -189,6 +191,7 @@
           不喜欢
         </view>
       </view>
+      </error-boundary>
     </view>
 
     <!-- 底部操作栏（探探式五键：回看 / 不喜欢 / 超级喜欢 / 心动 / 曝光提升） -->
@@ -283,6 +286,7 @@ import { useUserStore } from "@/store/user";
 import MatchPopup from "@/components/match-popup.vue";
 import A11yButton from "@/components/a11y-button.vue";
 import SmartImage from "@/components/smart-image.vue";
+import ErrorBoundary from "@/components/error-boundary.vue";
 import A11yPicker from "@/components/a11y-picker.vue";
 import { info, fail } from "@/utils/ux";
 
