@@ -291,6 +291,7 @@ import SmartImage from "@/components/smart-image.vue";
 import EmptyState from "@/components/empty-state.vue";
 import { formatCount } from "@/utils/format";
 import { safeGoBack } from "@/utils/nav";
+import { fail, info } from "@/utils/ux";
 import {
   getHotSearchWords,
   searchVideos,
@@ -379,7 +380,7 @@ async function load(targetPage: number, append: boolean): Promise<void> {
   } catch (e) {
     if (append || list.value.length > 0) {
       // 加载更多失败：保留已有内容，只提示
-      uni.showToast({ title: "加载失败，请稍后重试", icon: "none" });
+      fail("加载失败，请稍后重试");
     } else {
       errorText.value = "网络或服务暂时不可用，请稍后重试";
     }
@@ -395,7 +396,7 @@ function retry(): void {
 function submitSearch(): void {
   const word = (inputKeyword.value || "").trim().replace(/\s+/g, " ");
   if (!word) {
-    uni.showToast({ title: "请输入搜索内容", icon: "none" });
+    info("请输入搜索内容");
     return;
   }
   if (word === keyword.value) {

@@ -102,6 +102,7 @@ import A11yButton from "@/components/a11y-button.vue";
 import SmartImage from "@/components/smart-image.vue";
 import { searchMovementsByTag } from "@/api/circle";
 import type { Movement } from "@/api/circle";
+import { fail } from "@/utils/ux";
 
 const tag = ref("");
 const list = ref<Movement[]>([]);
@@ -124,7 +125,12 @@ async function load(reset = false): Promise<void> {
     if (!reset) page.value = current + 1;
   } catch {
     // 首屏失败标记：页面据此显示错误态+重试，而非误报「暂无相关动态」
-    if (reset) loadFailed.value = true;
+    if (reset) {
+      loadFailed.value = true;
+    } else {
+      // 翻页失败保留 hasMore=true，用户可再次点击重试；给明确反馈避免静默
+      fail("加载失败，请重试");
+    }
     // request 层统一 toast
   } finally {
     loading.value = false;
