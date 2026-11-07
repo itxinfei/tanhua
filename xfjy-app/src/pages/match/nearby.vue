@@ -360,7 +360,7 @@ onPullDownRefresh(async () => {
 .filter-bar { display: flex; align-items: center; gap: 12rpx; padding: 20rpx 24rpx; background: var(--bg-card); position: sticky; top: 0; z-index: 10; box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
   /* 不写 min-height：a11y-button default 变体已内置 88rpx 保底（组件规则特异性更高，实际胜出），
      原 64rpx 是误导性违规字面量，删除后胶囊高度按 88rpx 达标 */
-  .filter-item { display: flex; align-items: center; justify-content: center; padding: 0 26rpx; border-radius: 32rpx; font-size: 24rpx; line-height: 1; color: var(--text-hint-strong); background: var(--bg-sub); transition: all 0.2s;
+  .filter-item { display: flex; align-items: center; justify-content: center; padding: 0 26rpx; border-radius: 32rpx; font-size: 24rpx; line-height: 1; color: var(--text-hint-strong); background: var(--bg-sub); transition: background 0.2s, color 0.2s, box-shadow 0.2s;
     &.active { background: var(--gradient-brand); color: var(--text-inverse); box-shadow: var(--shadow-primary); }
     &.gender.active { background: var(--gradient-brand); }
   }
@@ -384,7 +384,7 @@ onPullDownRefresh(async () => {
 
 /* 喜欢按钮 */
 /* 宽高均 88rpx 正圆：组件 min-height 保底只顶高度，原 80×80 被撑成 80 宽 × 88 高椭圆，双维对齐后恢复正圆 */
-.like-btn { width: 88rpx; height: 88rpx; border-radius: 50%; background: var(--gradient-brand); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; box-shadow: var(--shadow-primary);
+.like-btn { width: 88rpx; height: 88rpx; border-radius: 50%; background: var(--gradient-brand); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: transform 0.2s; box-shadow: var(--shadow-primary);
   &:active { transform: scale(0.9); }
   .like-btn__ico { width: 40rpx; height: 40rpx; color: var(--text-inverse); }
 }

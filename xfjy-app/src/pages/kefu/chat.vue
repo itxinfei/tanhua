@@ -506,7 +506,7 @@ onUnmounted(() => {
 }
 
 .input-bar { display: flex; align-items: center; gap: 16rpx; padding: 14rpx 16rpx; }
-.text-input { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; transition: all 0.2s;
+.text-input { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; transition: background 0.2s, box-shadow 0.2s;
   &.focus { background: var(--bg-card); box-shadow: 0 0 0 3rpx rgba(var(--color-primary-rgb), 0.35); }
 }
 /* 发送按钮：primary variant 提供底色/热区/按压反馈，此处只处理禁用态 */

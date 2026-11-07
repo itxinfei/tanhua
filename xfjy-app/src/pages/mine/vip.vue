@@ -550,7 +550,7 @@ onLoad(() => {
 
 .plans :deep(.plan-card) {
   /* min-width:0：长套餐名/标签才能约束在卡内，不撑宽卡片挤掉间距与留白 */
-  flex: 1 1 0; min-width: 0; background: rgba(255, 255, 255, 0.06); border-radius: 24rpx; padding: 36rpx 12rpx 24rpx; text-align: center; position: relative; border: 2rpx solid rgba(255, 255, 255, 0.08); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex: 1 1 0; min-width: 0; background: rgba(255, 255, 255, 0.06); border-radius: 24rpx; padding: 36rpx 12rpx 24rpx; text-align: center; position: relative; border: 2rpx solid rgba(255, 255, 255, 0.08); transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   &.active { border-color: var(--gold); background: linear-gradient(180deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05)); box-shadow: 0 0 32rpx rgba(255, 215, 0, 0.2), inset 0 1rpx 0 rgba(255, 255, 255, 0.1); transform: translateY(-8rpx); }
 }
 .plan-card {

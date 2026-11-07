@@ -376,7 +376,7 @@ function handleSkip(): void {
     font-size: 30rpx;
     color: var(--text-secondary);
     border: 2rpx solid transparent;
-    transition: all 0.2s;
+    transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
 
     &.active {
       background: var(--gradient-brand);
