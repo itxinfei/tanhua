@@ -311,8 +311,19 @@
             />
           </a11y-button>
         </template>
-        <!-- 更多面板 -->
+        <!-- 文字模式有输入内容时加号让位为「发送」（微信式交互，布局不跳动）；
+             语音模式或空内容保持更多面板入口 -->
         <a11y-button
+          v-if="!isVoiceMode && inputText.trim()"
+          class="send-btn"
+          variant="primary"
+          label="发送消息"
+          @tap="sendText"
+        >
+          <text>发送</text>
+        </a11y-button>
+        <a11y-button
+          v-else
           class="icon-btn"
           role="tab"
           :checked="activePanel === 'more'"
@@ -1296,6 +1307,8 @@ onUnmounted(() => {
 .icon-btn { width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center; font-size: 40rpx; border-radius: 50%; flex-shrink: 0;
   .icon-active { filter: drop-shadow(0 0 6rpx rgba(var(--color-primary-rgb), 0.6)); }
 }
+/* 发送按钮：与 icon-btn 同位切换，gap 已提供间距，仅防 flex 压缩 */
+.send-btn { flex-shrink: 0; }
 .text-input { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; transition: background 0.2s, box-shadow 0.2s;
   &.focus { background: var(--bg-card); box-shadow: 0 0 0 3rpx rgba(var(--color-primary-rgb), 0.35); }
 }
