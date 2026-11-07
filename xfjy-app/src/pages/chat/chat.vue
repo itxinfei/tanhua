@@ -955,13 +955,14 @@ async function loadHistory(): Promise<void> {
     timestamp: msg.time,
     status: "read" as MsgStatus,
   }));
-  // 合并缓冲：按时间排序并以 timestamp 去重（历史可能已含在途消息）
+  // 合并缓冲：按时间排序并以 id 去重（历史可能已含在途消息）
   const buffered = pendingMessages.map(toReceivedItem);
   const merged = [...historyItems, ...buffered].sort((a, b) => a.timestamp - b.timestamp);
-  const seen = new Set<number>();
+  // 用 id 去重而非 timestamp：同一毫秒可有多条消息，timestamp 去重会误丢
+  const seen = new Set<string>();
   messageList.value = merged.filter((item) => {
-    if (seen.has(item.timestamp)) return false;
-    seen.add(item.timestamp);
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
     return true;
   });
   // 合并完成后清空缓冲并切到实时通道：后续到达消息直接追加，重试也不会重复合并
@@ -1009,9 +1010,9 @@ async function loadMoreHistory(): Promise<void> {
       timestamp: msg.time,
       status: "read" as MsgStatus,
     }));
-    // 时间戳去重：续拉可能与已加载消息重叠（与 loadHistory 一致）
-    const existingTimestamps = new Set(messageList.value.map((m) => m.timestamp));
-    const deduped = olderItems.filter((m) => !existingTimestamps.has(m.timestamp));
+    // id 去重：续拉可能与已加载消息重叠（与 loadHistory 一致）
+    const existingIds = new Set(messageList.value.map((m) => m.id));
+    const deduped = olderItems.filter((m) => !existingIds.has(m.id));
     if (deduped.length === 0) {
       noMoreHistory.value = true;
       return;
