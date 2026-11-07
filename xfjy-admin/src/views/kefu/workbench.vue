@@ -250,7 +250,7 @@ async function send(): Promise<void> {
       ElMessage.error('发送失败，请稍后重试')
     }
   } catch {
-    ElMessage.error('发送失败，请检查网络')
+    // 拦截器已统一提示
   } finally {
     sending.value = false
   }

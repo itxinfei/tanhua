@@ -18,7 +18,14 @@
       </el-col>
     </el-row>
 
-    <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
+    <SearchBar
+      :model="query"
+      :filter-meta="{
+        status: { label: '状态', options: { PENDING: '待支付', PAID: '已支付', EXPIRED: '已过期', CANCELLED: '已取消' } },
+      }"
+      @search="handleSearch"
+      @reset="handleReset"
+    >
       <el-form-item label="订单号">
         <el-input v-model="query.orderNo" placeholder="订单号" clearable style="width: 200px" @keyup.enter="handleSearch" />
       </el-form-item>
@@ -173,8 +180,8 @@ async function loadData() {
     const res = await getPayOrderPageApi(params)
     tableData.value = res.list
     total.value = res.total
-  } catch (err) {
-    ElMessage.error('数据加载失败，请检查后端服务')
+  } catch {
+    // 拦截器已统一提示
   } finally {
     loading.value = false
   }

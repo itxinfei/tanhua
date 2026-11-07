@@ -1,6 +1,14 @@
 <template>
   <div class="page-container review-workbench">
-    <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
+    <SearchBar
+      :model="query"
+      :filter-meta="{
+        type: { label: '类型', options: { POST: '动态', PHOTO: '图片', VIDEO: '视频' } },
+        status: { label: '状态', options: { PENDING: '待审核', APPROVED: '已通过', REJECTED: '已驳回' } },
+      }"
+      @search="handleSearch"
+      @reset="handleReset"
+    >
       <el-form-item label="类型">
         <el-select v-model="query.type" placeholder="全部" clearable style="width: 120px">
           <el-option label="动态" value="POST" />

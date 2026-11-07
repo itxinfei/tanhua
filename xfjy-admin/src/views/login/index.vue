@@ -146,9 +146,8 @@ async function handleLogin() {
         )
         ElMessage.success('登录成功（开发模式）')
         router.push('/dashboard')
-      } else if (isNetworkError) {
-        ElMessage.error('网络异常，无法连接后端服务，请稍后重试')
       }
+      // 网络异常已由 request 拦截器统一提示，此处无需重复
     } finally {
       loading.value = false
     }
@@ -165,15 +164,15 @@ async function handleLogin() {
 
 /* ==================== 左侧品牌区 ==================== */
 .brand-panel {
-  /* 品牌区半透明叠加层：深色渐变背景上的白色卡片/图标/文字，仅此组件使用 */
+  /* 品牌区叠加层：深色渐变背景上，卡片用深色玻璃底保证内文 4.5:1+，边框/图标用白色保持可见 */
   /* stylelint-disable function-disallowed-list */
   --brand-overlay-strong: rgba(255, 255, 255, 0.18);
   --brand-overlay: rgba(255, 255, 255, 0.3);
-  --brand-overlay-soft: rgba(255, 255, 255, 0.08);
-  --brand-overlay-faint: rgba(255, 255, 255, 0.12);
-  --brand-overlay-hover: rgba(255, 255, 255, 0.16);
+  /* feature 卡底：深色玻璃（白字 5.4:1+ AA；原 0.08 白底仅 2.1:1） */
+  --brand-overlay-soft: rgba(0, 0, 0, 0.4);
+  --brand-overlay-faint: rgba(255, 255, 255, 0.2);
+  --brand-overlay-hover: rgba(0, 0, 0, 0.5);
   --brand-overlay-icon: rgba(255, 255, 255, 0.2);
-  --brand-overlay-text: rgba(255, 255, 255, 0.5);
   --brand-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   /* stylelint-enable function-disallowed-list */
   flex: 1.5;
@@ -234,8 +233,10 @@ async function handleLogin() {
   margin-top: var(--xfjy-space-2);
   text-align: center;
   font-size: 15px;
-  opacity: 0.9;
+  opacity: 1;
   letter-spacing: 1px;
+  /* 渐变浅区辅助，保证 15px 白字全区域可读 */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 /* 特性列表（半透明卡片） */
@@ -277,7 +278,8 @@ async function handleLogin() {
 .feature-desc {
   margin-top: 2px;
   font-size: var(--xfjy-font-size-sm);
-  opacity: 0.75;
+  /* 深色玻璃卡上 0.92 白 ≈ 4.6:1 AA 达标（原 0.75 仅 2.1:1） */
+  opacity: 0.92;
 }
 .brand-footer {
   position: absolute;
@@ -286,8 +288,11 @@ async function handleLogin() {
   right: 0;
   text-align: center;
   font-size: var(--xfjy-font-size-xs);
-  color: var(--brand-overlay-text);
+  color: var(--xfjy-text-inverse);
   z-index: 2;
+  /* 深色底条：12px 小字在渐变最浅区也达 4.8:1 AA（原 0.5 白直落背景仅 1.6:1） */
+  background: rgba(0, 0, 0, 0.35);
+  padding: var(--xfjy-space-2) var(--xfjy-space-3);
 }
 
 /* ==================== 右侧表单区 ==================== */
@@ -327,6 +332,13 @@ async function handleLogin() {
   height: 44px;
   font-size: var(--xfjy-font-size-md);
   letter-spacing: 4px;
+  /* 品牌主色 #fe3c72 白字仅 3.4:1，按钮降一档到 dark-2 系达 5.1:1 AA */
+  --el-button-bg-color: var(--el-color-primary-dark-2);
+  --el-button-border-color: var(--el-color-primary-dark-2);
+  --el-button-hover-bg-color: #a8284d;
+  --el-button-hover-border-color: #a8284d;
+  --el-button-active-bg-color: #8f2241;
+  --el-button-active-border-color: #8f2241;
 }
 
 .login-footer {

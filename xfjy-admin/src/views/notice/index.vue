@@ -6,7 +6,15 @@
       </template>
     </PageHeader>
 
-    <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
+    <SearchBar
+      :model="query"
+      :filter-meta="{
+        type: { label: '类型', options: { SYSTEM: '系统公告', ACTIVITY: '活动公告', UPDATE: '更新公告' } },
+        status: { label: '状态', options: { DRAFT: '草稿', PUBLISHED: '已发布', OFFLINE: '已下线' } },
+      }"
+      @search="handleSearch"
+      @reset="handleReset"
+    >
       <el-form-item label="标题">
         <el-input v-model="query.title" placeholder="公告标题" clearable style="width: 180px" @keyup.enter="handleSearch" />
       </el-form-item>
@@ -166,8 +174,8 @@ async function loadData() {
     const res = await getNoticePageApi(query)
     tableData.value = res.list
     total.value = res.total
-  } catch (err) {
-    ElMessage.error('数据加载失败，请检查后端服务')
+  } catch {
+    // 拦截器已统一提示
     // 开发环境可用 mock 数据兜底，生产环境保留上次数据
     if (import.meta.env.DEV) {
       const mock = getMockNotices(query.page, query.pageSize)

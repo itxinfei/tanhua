@@ -156,10 +156,9 @@ function applyConfigToForm(list: SysConfigItem[]): void {
 async function loadData() {
   loading.value = true
   try {
+    // 内层 .catch 兜底返回空数组，错误已由拦截器统一提示
     configList.value = await getSysConfigListApi().catch(() => [] as SysConfigItem[])
     applyConfigToForm(configList.value)
-  } catch {
-    ElMessage.error('配置加载失败，请检查后端服务')
   } finally {
     loading.value = false
   }
@@ -181,7 +180,7 @@ async function handleSave() {
     ElMessage.success('配置已保存，约 30 秒内全节点生效')
     await loadData()
   } catch {
-    ElMessage.error('保存失败，请检查后端服务')
+    // 拦截器已统一提示
   } finally {
     saving.value = false
   }

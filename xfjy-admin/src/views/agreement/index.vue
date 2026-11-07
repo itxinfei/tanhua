@@ -6,7 +6,15 @@
       </template>
     </PageHeader>
 
-    <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
+    <SearchBar
+      :model="query"
+      :filter-meta="{
+        type: { label: '类型', options: { USER: '用户协议', PRIVACY: '隐私政策' } },
+        status: { label: '状态', options: { DRAFT: '草稿', PUBLISHED: '已发布', OFFLINE: '已下线' } },
+      }"
+      @search="handleSearch"
+      @reset="handleReset"
+    >
       <el-form-item label="标题">
         <el-input v-model="query.title" placeholder="协议标题" clearable style="width: 180px" @keyup.enter="handleSearch" />
       </el-form-item>
@@ -147,8 +155,8 @@ async function loadData() {
     const res = await getAgreementPageApi(query)
     tableData.value = res.list
     total.value = res.total
-  } catch (err) {
-    ElMessage.error('数据加载失败，请检查后端服务')
+  } catch {
+    // 拦截器已统一提示
     if (import.meta.env.DEV) {
       const mock = getMockAgreements(query.page, query.pageSize)
       tableData.value = mock.list

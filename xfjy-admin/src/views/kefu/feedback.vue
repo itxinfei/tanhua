@@ -2,7 +2,14 @@
   <div class="page-container">
     <PageHeader title="客服反馈" :subtitle="`共 ${total} 条记录`" />
 
-    <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
+    <SearchBar
+      :model="query"
+      :filter-meta="{
+        status: { label: '状态', options: { 0: '待处理', 1: '已回复', 2: '已关闭' } },
+      }"
+      @search="handleSearch"
+      @reset="handleReset"
+    >
       <el-form-item label="状态">
         <el-select v-model="query.status" placeholder="全部" clearable style="width: 130px">
           <el-option label="待处理" :value="0" />
@@ -128,8 +135,8 @@ async function loadData() {
     const res = await getFeedbackPageApi(query)
     tableData.value = res.list
     total.value = res.total
-  } catch (err) {
-    ElMessage.error('数据加载失败，请检查后端服务')
+  } catch {
+    // 拦截器已统一提示
   } finally {
     loading.value = false
   }

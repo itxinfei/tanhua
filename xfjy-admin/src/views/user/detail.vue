@@ -812,7 +812,7 @@ async function uploadAvatar(options: { file: File }) {
     profileForm.avatar = res.name
     ElMessage.success('头像已上传，点击底部保存后生效')
   } catch {
-    ElMessage.error('头像上传失败，请检查网络后重试')
+    // 拦截器已统一提示
   } finally {
     avatarUploading.value = false
   }

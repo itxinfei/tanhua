@@ -6,7 +6,15 @@
       </template>
     </PageHeader>
 
-    <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
+    <SearchBar
+      :model="query"
+      :filter-meta="{
+        category: { label: '分类' },
+        status: { label: '状态', options: { 1: '启用', 0: '停用' } },
+      }"
+      @search="handleSearch"
+      @reset="handleReset"
+    >
       <el-form-item label="分类">
         <el-select v-model="query.category" placeholder="全部分类" clearable style="width: 140px">
           <el-option v-for="cat in categories" :key="cat" :label="cat" :value="cat" />
@@ -133,8 +141,8 @@ async function loadData() {
     const res = await getFaqPageApi(query)
     tableData.value = res.list
     total.value = res.total
-  } catch (err) {
-    ElMessage.error('数据加载失败，请检查后端服务')
+  } catch {
+    // 拦截器已统一提示
   } finally {
     loading.value = false
   }

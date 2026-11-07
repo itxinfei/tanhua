@@ -5,7 +5,14 @@
     <el-tabs v-model="activeTab">
       <!-- 套餐管理 -->
       <el-tab-pane label="VIP 套餐" name="package">
-        <SearchBar :model="pkgQuery" @search="loadPackages" @reset="resetPkgQuery">
+        <SearchBar
+          :model="pkgQuery"
+          :filter-meta="{
+            status: { label: '状态', options: { 1: '上架', 0: '下架' } },
+          }"
+          @search="loadPackages"
+          @reset="resetPkgQuery"
+        >
           <el-form-item label="名称">
             <el-input v-model="pkgQuery.name" placeholder="套餐名称" clearable style="width: 160px" @keyup.enter="loadPackages" />
           </el-form-item>
@@ -67,7 +74,14 @@
 
       <!-- 权益管理 -->
       <el-tab-pane label="增值权益" name="benefit">
-        <SearchBar :model="benefitQuery" @search="loadBenefits" @reset="resetBenefitQuery">
+        <SearchBar
+          :model="benefitQuery"
+          :filter-meta="{
+            status: { label: '状态', options: { 1: '启用', 0: '停用' } },
+          }"
+          @search="loadBenefits"
+          @reset="resetBenefitQuery"
+        >
           <el-form-item label="名称">
             <el-input v-model="benefitQuery.name" placeholder="权益名称" clearable style="width: 160px" @keyup.enter="loadBenefits" />
           </el-form-item>
@@ -246,8 +260,8 @@ async function loadPackages() {
     const res = await getVipPackagePageApi(pkgQuery)
     pkgData.value = res.list
     pkgTotal.value = res.total
-  } catch (err) {
-    ElMessage.error('数据加载失败，请检查后端服务')
+  } catch {
+    // 拦截器已统一提示
   } finally {
     pkgLoading.value = false
   }

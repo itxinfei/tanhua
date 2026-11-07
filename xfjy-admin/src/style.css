@@ -506,7 +506,7 @@ textarea {
   --el-text-color-primary: var(--xfjy-text-primary);
   --el-text-color-regular: var(--xfjy-text-regular);
   --el-text-color-secondary: var(--xfjy-text-secondary);
-  --el-text-color-placeholder: var(--xfjy-text-disabled);
+  --el-text-color-placeholder: var(--xfjy-text-secondary);
   --el-text-color-disabled: var(--xfjy-text-disabled);
 
   /* 边框 / 分割线 */

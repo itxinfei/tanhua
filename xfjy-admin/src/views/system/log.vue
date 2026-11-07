@@ -170,8 +170,8 @@ async function loadData() {
     const res = await getLogPageApi(params)
     tableData.value = res.list || []
     total.value = res.total || 0
-  } catch (err) {
-    ElMessage.error('数据加载失败，请检查后端服务')
+  } catch {
+    // 拦截器已统一提示
   } finally {
     loading.value = false
   }

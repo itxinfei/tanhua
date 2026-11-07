@@ -2,7 +2,15 @@
   <div class="page-container">
     <PageHeader title="举报处理" :subtitle="`共 ${total} 条记录`" />
 
-    <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
+    <SearchBar
+      :model="query"
+      :filter-meta="{
+        status: { label: '状态', options: { PENDING: '待处理', PROCESSING: '处理中', RESOLVED: '已处理', DISMISSED: '已驳回' } },
+        targetType: { label: '对象类型', options: { USER: '用户', POST: '动态', COMMENT: '评论', MESSAGE: '私信' } },
+      }"
+      @search="handleSearch"
+      @reset="handleReset"
+    >
       <el-form-item label="状态">
         <el-select v-model="query.status" placeholder="全部" clearable style="width: 130px">
           <el-option label="待处理" value="PENDING" />
@@ -96,8 +104,8 @@
       </template>
     </TableCard>
 
-    <!-- 详情抽屉：右侧滑出，展示举报人/被举报对象/证据图片 -->
-    <el-drawer v-model="detailVisible" title="举报详情" direction="rtl" size="480px">
+    <!-- 详情弹窗：展示举报人/被举报对象/证据图片（与 content/pay/log 详情弹窗统一） -->
+    <el-dialog v-model="detailVisible" title="举报详情" width="560px" destroy-on-close>
       <div v-loading="detailLoading" class="detail-body">
         <template v-if="currentReport">
           <!-- 举报人信息 -->
@@ -185,7 +193,7 @@
           </div>
         </template>
       </div>
-    </el-drawer>
+    </el-dialog>
 
     <!-- 处理弹窗：备注必填，RESOLVED 提示封禁目标用户 -->
     <el-dialog v-model="handleDialogVisible" :title="handleDialogTitle" width="480px">
@@ -275,8 +283,8 @@ async function loadData() {
     const res = await getReportPageApi(query)
     tableData.value = res.list
     total.value = res.total
-  } catch (err) {
-    ElMessage.error('数据加载失败，请检查后端服务')
+  } catch {
+    // 拦截器已统一提示
   } finally {
     loading.value = false
   }
@@ -502,7 +510,7 @@ onMounted(() => {
   margin-right: auto;
 }
 
-/* 详情抽屉 */
+/* 详情弹窗 */
 .detail-body {
   padding: 0 var(--xfjy-space-1);
 }

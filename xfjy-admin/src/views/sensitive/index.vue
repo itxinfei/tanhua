@@ -7,7 +7,16 @@
       </template>
     </PageHeader>
 
-    <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
+    <SearchBar
+      :model="query"
+      :filter-meta="{
+        category: { label: '类别', options: { POLITICS: '政治', PORN: '色情', VIOLENCE: '暴力', AD: '广告', OTHER: '其他' } },
+        level: { label: '等级', options: { 1: '高危', 2: '中危', 3: '低危' } },
+        status: { label: '状态', options: { 1: '启用', 0: '停用' } },
+      }"
+      @search="handleSearch"
+      @reset="handleReset"
+    >
       <el-form-item label="敏感词">
         <el-input v-model="query.word" placeholder="关键词" clearable style="width: 160px" @keyup.enter="handleSearch" />
       </el-form-item>
@@ -220,8 +229,8 @@ async function loadData() {
     const res = await getSensitiveWordPageApi(query)
     tableData.value = res.list
     total.value = res.total
-  } catch (err) {
-    ElMessage.error('数据加载失败，请检查后端服务')
+  } catch {
+    // 拦截器已统一提示
   } finally {
     loading.value = false
   }

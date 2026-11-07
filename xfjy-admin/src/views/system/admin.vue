@@ -67,7 +67,7 @@
           :total="total"
           :page-sizes="[10, 20, 50]"
           layout="total, sizes, prev, pager, next, jumper"
-          @size-change="loadData"
+          @size-change="handleSizeChange"
           @current-change="loadData"
         />
       </template>
@@ -178,8 +178,8 @@ async function loadData() {
     const res = await getAdminPageApi(params)
     tableData.value = res.list || []
     total.value = res.total || 0
-  } catch (err) {
-    ElMessage.error('数据加载失败，请检查后端服务')
+  } catch {
+    // 拦截器已统一提示
   } finally {
     loading.value = false
   }
@@ -192,6 +192,12 @@ function handleSearch() {
 
 function handleReset() {
   query.keyword = ''
+  query.page = 1
+  loadData()
+}
+
+/** 切换每页条数时回到第 1 页（避免第 5 页切 50 条/页后请求空页） */
+function handleSizeChange() {
   query.page = 1
   loadData()
 }

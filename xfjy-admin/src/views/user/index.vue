@@ -6,7 +6,15 @@
       </template>
     </PageHeader>
 
-    <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
+    <SearchBar
+      :model="query"
+      :filter-meta="{
+        gender: { label: '性别' },
+        status: { label: '状态', options: { NORMAL: '正常', FROZEN: '已封禁' } },
+      }"
+      @search="handleSearch"
+      @reset="handleReset"
+    >
       <el-form-item label="关键词">
         <el-input v-model="query.keyword" placeholder="手机号/昵称" clearable style="width: 180px" @keyup.enter="handleSearch" />
       </el-form-item>
@@ -204,8 +212,8 @@ async function loadData() {
     const res = await getUserPageApi(query)
     tableData.value = res.list
     total.value = res.total
-  } catch (err) {
-    ElMessage.error('数据加载失败，请检查后端服务')
+  } catch {
+    // 拦截器已统一提示
   } finally {
     loading.value = false
   }
