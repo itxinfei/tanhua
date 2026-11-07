@@ -73,10 +73,9 @@ services:
     pull_policy: never
     image: xfjy/xfjy-gateway:${IMAGE_TAG:-latest}
     container_name: xfjy-gateway
-    ports:
-      - "8090:8090"
-    networks:
-      - xfjy-app-net
+    # host 网络模式：让网关直接拿到真实客户端 IP（否则 Docker 网桥地址 192.168.20.133
+    # 会被当作客户端 IP，导致限流按服务器地址计数，所有用户共享 5 次/60s 额度）
+    network_mode: host
     restart: unless-stopped
     mem_limit: 384m
     environment:
