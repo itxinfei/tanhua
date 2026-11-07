@@ -459,8 +459,15 @@ export async function loginIM(
  * @returns IM 是否就绪
  */
 export async function ensureSelfIM(): Promise<boolean> {
-  if (isLoggedIn) {
+  // 已登录且底层连接存活：直接就绪
+  if (isLoggedIn && isIMConnected()) {
     return true;
+  }
+  // isLoggedIn 仍为 true 但 WS 已断（弱网/被踢后自动重连失败）：必须重置后重走登录流程。
+  // 否则 loginIM 的 isLoggedIn 短路会返回「就绪」假结果，消息在 sendMessagePayload 的
+  // connected 判活处被永久拦下（SDK 断连期入队消息静默 shift 丢弃且不补发）。
+  if (isLoggedIn) {
+    isLoggedIn = false;
   }
   const { useUserStore } = await import("@/store/user");
   const uid = String(useUserStore().userInfo?.id || "");

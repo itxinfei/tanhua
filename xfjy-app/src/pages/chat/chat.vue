@@ -231,6 +231,23 @@
           重新加载
         </a11y-button>
       </empty-state>
+
+      <!-- IM 连接失败：消息无法收发，显式提示 + 重连入口（对齐客服页，禁止静默降级） -->
+      <empty-state
+        v-if="imLoginFailed"
+        role="alert"
+        icon="info"
+        title="消息服务连接失败"
+        desc="暂时无法收发消息，请检查网络后重试"
+      >
+        <a11y-button
+          class="history-retry"
+          label="重新连接消息服务"
+          @tap="retryIMLogin"
+        >
+          重新连接
+        </a11y-button>
+      </empty-state>
     </scroll-view>
     </error-boundary>
 
@@ -381,6 +398,7 @@ import { uploadChatImage, uploadChatAudio, getContacts } from "@/api/chat";
 import { getUserProfile } from "@/api/mine";
 import {
   ensureSelfIM,
+  isIMConnected,
   onMessageReceived,
   sendTextMessage,
   sendStructuredMessage,
@@ -727,10 +745,20 @@ async function deliverMessage(msg: Message): Promise<void> {
   }
 }
 
-/** 点击失败气泡：重发 */
-function resendMessage(msg: Message): void {
+/** 点击失败气泡：重发（底层连接已断时先重连，避免红点永久卡死） */
+async function resendMessage(msg: Message): Promise<void> {
   if (msg.status !== "failed") return;
-  deliverMessage(msg);
+  // 连接不在时先确保 IM 就绪：ensureSelfIM 会重建断连；仍失败则引导用页面顶部「重新连接」，
+  // 不进 SDK 队列（断连期入队消息会被静默丢弃且不补发）
+  if (!isIMConnected()) {
+    const ok = await ensureSelfIM();
+    if (!ok) {
+      imLoginFailed.value = true;
+      fail("消息服务未连接，请点击上方「重新连接」");
+      return;
+    }
+  }
+  await deliverMessage(msg);
 }
 
 /** 插入表情到输入框 */
@@ -898,6 +926,8 @@ let unregisterMessage: (() => void) | null = null;
 const historyLoaded = ref(false);
 /** 历史拉取失败标记：与「真的没有历史消息」的空白态区分，驱动错误空态 + 重试（S3） */
 const historyLoadFailed = ref(false);
+/** IM 连接失败标记：消息无法收发，显式错误态 + 重连入口（对齐客服页，禁止静默降级） */
+const imLoginFailed = ref(false);
 /** 已加载最旧消息的 seq（scrolltoupper 续拉起点，M-K4） */
 const oldestSeq = ref(0);
 /** 续拉加载中（防重复触发） */
@@ -1060,37 +1090,63 @@ onLoad(async (options: any) => {
       .catch(() => {});
   }
 
-  // WuKongIM 直连登录 → 注册消息接收 → 拉历史
+  // IM 连接 → 注册消息接收 → 拉历史（失败有错误态 + 重连入口，见 reconnectIM）
+  await reconnectIM();
+});
+
+/**
+ * IM 登录 + 消息监听 + 历史拉取（可重试），对齐客服页 kefu/chat.vue 范式。
+ * 抽为独立函数供 onLoad 首次调用与 retryIMLogin 重试复用：
+ * 登录失败显式错误态，不再静默降级导致整页消息永久发不出。
+ */
+async function reconnectIM(): Promise<void> {
+  // 重试前先注销旧监听，避免重复注册导致消息被处理两次
+  if (unregisterMessage) {
+    unregisterMessage();
+    unregisterMessage = null;
+  }
+  imLoginFailed.value = false;
   try {
     // 以「当前登录用户本人」身份连接（历史问题：曾以对方身份登录导致顶号、自发自收）
     const ok = await ensureSelfIM();
-    if (ok) {
-      // 先注册消息到达回调再拉历史：历史是最后一次性赋值的，
-      // 在途实时消息先进 pending 缓冲，避免注册晚于拉取导致消息丢失。
-      // 监听全程只注册这一次，重试历史拉取不会重复注册。
-      unregisterMessage = onMessageReceived((msg) => {
-        if (msg.from !== userId.value) return;
-        if (historyLoaded.value) {
-          appendReceivedWithTyping(msg);
-        } else {
-          pendingMessages.push(msg);
-        }
-      });
-
-      // 历史拉取单独内层 try/catch：失败只置错误空态，
-      // 不影响此前已完成的 IM 登录与消息监听；外层 catch 仍兜 IM 登录失败
-      try {
-        await loadHistory();
-      } catch (err) {
-        historyLoadFailed.value = true;
-        warn(`[chat] 历史消息拉取失败，userId=${userId.value}, err=${String(err)}`);
-        fail("历史消息加载失败，请稍后重试");
-      }
+    if (!ok) {
+      imLoginFailed.value = true;
+      warn(`[chat] IM 连接失败，userId=${userId.value}`);
+      fail("消息服务连接失败，请重试");
+      return;
     }
-  } catch {
-    // IM（WuKongIM）登录失败静默降级（可发但不达，列表为空）
+    // 先注册消息到达回调再拉历史：历史是最后一次性赋值的，
+    // 在途实时消息先进 pending 缓冲，避免注册晚于拉取导致消息丢失。
+    // 监听全程只注册这一次，重试历史拉取不会重复注册。
+    unregisterMessage = onMessageReceived((msg) => {
+      if (msg.from !== userId.value) return;
+      if (historyLoaded.value) {
+        appendReceivedWithTyping(msg);
+      } else {
+        pendingMessages.push(msg);
+      }
+    });
+
+    // 历史拉取单独内层 try/catch：失败只置错误空态，不影响已完成的 IM 登录与消息监听
+    try {
+      await loadHistory();
+    } catch (err) {
+      historyLoadFailed.value = true;
+      warn(`[chat] 历史消息拉取失败，userId=${userId.value}, err=${String(err)}`);
+      fail("历史消息加载失败，请稍后重试");
+    }
+  } catch (err) {
+    // ensureSelfIM 理论上不抛（内部全 catch），外层 catch 作防御性兜底
+    imLoginFailed.value = true;
+    warn(`[chat] IM 连接异常，userId=${userId.value}, err=${String(err)}`);
+    fail("消息服务连接失败，请重试");
   }
-});
+}
+
+/** 点击错误态「重新连接」：复用 reconnectIM 重跑登录+监听+历史拉取 */
+function retryIMLogin(): void {
+  void reconnectIM();
+}
 
 onHide(() => {
   // 离页（navigateTo 等）停止语音播放：不应在后台继续出声（M-K6）
