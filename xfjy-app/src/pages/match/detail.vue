@@ -722,7 +722,7 @@ onLoad(async (options: any) => {
   .action-label { font-size: 17rpx; font-weight: 600; line-height: 1.1; }
 
   &.dislike { background: var(--bg-card); color: var(--color-danger); border-color: var(--color-danger); box-shadow: 0 6rpx 20rpx rgba(var(--color-danger-rgb), 0.25); }
-  &.chat { background: var(--bg-card); color: var(--info-blue-soft); border-color: var(--info-blue-soft); box-shadow: 0 6rpx 20rpx rgba(var(--info-blue-soft-rgb), 0.25); }
+  &.chat { background: var(--bg-card); color: var(--color-primary); border-color: var(--color-primary); box-shadow: 0 6rpx 20rpx rgba(var(--color-primary-rgb), 0.25); }
   &.super-like { background: var(--bg-card); color: var(--info-blue-soft); border-color: var(--info-blue-soft); box-shadow: 0 6rpx 20rpx rgba(var(--info-blue-soft-rgb), 0.25); }
   &.like { background: var(--bg-card); color: var(--success); border-color: var(--success); box-shadow: 0 6rpx 20rpx rgba(var(--success-rgb), 0.3); }
 }
