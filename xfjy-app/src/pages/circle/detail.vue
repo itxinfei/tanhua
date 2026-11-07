@@ -84,10 +84,10 @@
             <smart-image
               lazy-load
               class="grid-img-inner"
-              :src="img"
-              :fallback="''"
-              mode="aspectFill"
-              aria-hidden="true"
+            :src="img"
+            :fallback="''"
+            mode="aspectFill"
+            :aria-hidden="true"
             />
           </a11y-button>
         </view>

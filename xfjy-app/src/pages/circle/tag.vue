@@ -78,7 +78,7 @@
             :src="img"
             :fallback="''"
             mode="aspectFill"
-            aria-hidden="true"
+            :aria-hidden="true"
           />
         </a11y-button>
       </view>

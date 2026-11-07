@@ -91,7 +91,7 @@
               :src="video.cover"
               :fallback="''"
               mode="aspectFill"
-              aria-hidden="true"
+              :aria-hidden="true"
             />
           </template>
           <smart-image
@@ -163,7 +163,7 @@
                   :src="video.avatar"
                   mode="aspectFill"
                   lazy-load
-                  aria-hidden="true"
+                  :aria-hidden="true"
                 />
                 <view
                   v-if="!video.hasFocus"
