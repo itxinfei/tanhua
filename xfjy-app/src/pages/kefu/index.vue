@@ -209,7 +209,9 @@ function goFeedback(): void {
 
 <style lang="scss" scoped>
 .kefu-page {
-  height: calc(100vh - var(--tab-bar-height, 0px));
+  /* 高度必须同时减去导航栏（--window-top）与全局 tabbar（--tab-bar-height）：
+     二级页 uni-page-body 从导航栏下方开始，若只减 tabbar 会导致底部被遮挡 44px */
+  height: calc(100vh - var(--window-top, 0px) - var(--tab-bar-height, 0px));
   background: var(--bg-sub);
   display: flex;
   flex-direction: column;
@@ -253,16 +255,15 @@ function goFeedback(): void {
   }
 }
 
+/* scroll-view 自带滚动：不再叠加 overflow，避免覆盖 uni-app 运行时设置的
+   overflow-y:auto（参考 chat/chat.vue 的 .msg-list） */
 .faq-scroll {
-  flex: 1;
+  flex: 1 1 auto;
   /* min-height:0 必须：纵向 flex 子项默认 min-height:auto，内容超高会撑破容器，
      导致 scroll-view 不滚动（页面整体被撑高、底部入口被推出视口） */
   min-height: 0;
   /* min-width:0 防止 flex 子项被内部宽条目撑破，保证右侧 24rpx 留白不溢出视口 */
   min-width: 0;
-  width: 100%;
-  box-sizing: border-box;
-  overflow-x: hidden;
   padding: 8rpx 24rpx 24rpx;
 }
 
