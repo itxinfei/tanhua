@@ -255,6 +255,9 @@ function goFeedback(): void {
 
 .faq-scroll {
   flex: 1;
+  /* min-height:0 必须：纵向 flex 子项默认 min-height:auto，内容超高会撑破容器，
+     导致 scroll-view 不滚动（页面整体被撑高、底部入口被推出视口） */
+  min-height: 0;
   /* min-width:0 防止 flex 子项被内部宽条目撑破，保证右侧 24rpx 留白不溢出视口 */
   min-width: 0;
   width: 100%;
