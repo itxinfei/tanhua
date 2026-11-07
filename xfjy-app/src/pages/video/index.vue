@@ -551,6 +551,7 @@ import {
 import A11yDialog from "@/components/a11y-dialog.vue";
 import { formatCount } from "@/utils/format";
 import { info } from "@/utils/ux";
+import { resolveIpLocation } from "@/utils/location";
 import { warn } from "@/utils/logger";
 import { useSystemStore } from "@/store/system";
 import type { VideoSearchItem } from "@/api/video-search";
@@ -685,7 +686,16 @@ function locateOnce(): Promise<{ lat: number; lng: number } | null> {
         }
         resolve(null);
       },
-      fail: () => {
+      fail: async () => {
+        // 设备定位不可用（H5 非 HTTPS / 用户拒绝授权）：按 IP 兜底到城市中心点，
+        // 让「附近」频道至少能出本城内容，而不是直接判定授权失败、落回全站热门
+        const ip = await resolveIpLocation();
+        if (ip && ip.longitude !== undefined && ip.latitude !== undefined) {
+          locationDenied.value = false;
+          userLocation.value = { lat: ip.latitude, lng: ip.longitude };
+          resolve(userLocation.value);
+          return;
+        }
         // 未开权限/系统拒绝：标记后由页面给出可点击的授权引导
         locationDenied.value = true;
         resolve(null);

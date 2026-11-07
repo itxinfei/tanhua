@@ -34,4 +34,40 @@ WHERE NOT EXISTS (
   SELECT 1 FROM `tb_sys_config` WHERE `config_key` = 'im.provider'
 );
 
+-- ----------------------------
+-- 种子数据：地图服务配置
+-- 维护入口：后台「系统配置 → 地图服务」，改完 30 秒内全节点生效
+-- 三类 Key 的分工（不可混用，高德按 Key 类型校验平台与接口）：
+--   map.amap.js-key           前端 JSAPI Key（H5/小程序地图组件、地图选点），会下发到前端
+--   map.amap.security-js-code JSAPI 2.0 安全密钥，与 js-key 配套，会下发到前端
+--   map.amap.web-key          Web 服务 Key（逆地理编码/IP 定位），只在服务端使用，绝不下发
+-- ----------------------------
+INSERT INTO `tb_sys_config` (`config_key`, `config_value`, `description`)
+SELECT 'map.enabled', '1', '地图能力总开关：1=启用，0=关闭（关闭后前端隐藏地图选点入口）'
+FROM DUAL
+WHERE NOT EXISTS (
+  SELECT 1 FROM `tb_sys_config` WHERE `config_key` = 'map.enabled'
+);
+
+INSERT INTO `tb_sys_config` (`config_key`, `config_value`, `description`)
+SELECT 'map.amap.js-key', '', '高德前端 JS API Key（Web端(JS API)类型），用于地图展示与选点，会下发前端'
+FROM DUAL
+WHERE NOT EXISTS (
+  SELECT 1 FROM `tb_sys_config` WHERE `config_key` = 'map.amap.js-key'
+);
+
+INSERT INTO `tb_sys_config` (`config_key`, `config_value`, `description`)
+SELECT 'map.amap.security-js-code', '', '高德 JS API 2.0 安全密钥，与 JS Key 配套，会下发前端'
+FROM DUAL
+WHERE NOT EXISTS (
+  SELECT 1 FROM `tb_sys_config` WHERE `config_key` = 'map.amap.security-js-code'
+);
+
+INSERT INTO `tb_sys_config` (`config_key`, `config_value`, `description`)
+SELECT 'map.amap.web-key', '', '高德 Web 服务 Key（Web服务类型），用于逆地理编码与IP定位，仅服务端使用'
+FROM DUAL
+WHERE NOT EXISTS (
+  SELECT 1 FROM `tb_sys_config` WHERE `config_key` = 'map.amap.web-key'
+);
+
 SET FOREIGN_KEY_CHECKS=1;

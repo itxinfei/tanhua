@@ -3,6 +3,7 @@ package com.xfjy.server.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xfjy.server.mapper.SysConfigMapper;
 import com.xfjy.server.pojo.SysConfig;
+import com.xfjy.server.vo.MapConfigVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -103,5 +104,20 @@ public class SysConfigService {
      */
     public List<SysConfig> listAll() {
         return sysConfigMapper.selectList(null);
+    }
+
+    /**
+     * 读取 C 端可见的地图配置。
+     *
+     * <p>只下发前端 JSAPI 需要的字段；{@code map.amap.web-key}（Web 服务 Key）仅服务端使用，
+     * 绝不进入该 VO，避免随响应体泄露。</p>
+     */
+    public MapConfigVo getMapConfig() {
+        MapConfigVo vo = new MapConfigVo();
+        vo.setEnabled(getConfig("map.enabled", "1"));
+        vo.setProvider("amap");
+        vo.setJsKey(getConfig("map.amap.js-key", ""));
+        vo.setSecurityJsCode(getConfig("map.amap.security-js-code", ""));
+        return vo;
     }
 }

@@ -88,6 +88,36 @@
       </el-form>
     </TableCard>
 
+    <!-- 地图服务：Key 由后台维护，改完 30 秒内生效，无需重新打包前端 -->
+    <TableCard title="地图服务">
+      <el-form :model="mapForm" label-width="160px" class="config-form">
+        <el-form-item label="地图功能开关">
+          <el-switch v-model="mapForm.enabled" active-value="1" inactive-value="0" />
+          <span class="field-hint">关闭后前端隐藏地图选点入口，定位降级为手动选城市</span>
+        </el-form-item>
+        <el-form-item label="前端 JS API Key">
+          <el-input v-model="mapForm.jsKey" placeholder="高德「Web端(JS API)」类型 Key" clearable />
+          <span class="field-hint">用于地图展示与选点，会下发到前端（本身即公开信息）</span>
+        </el-form-item>
+        <el-form-item label="JS API 安全密钥">
+          <el-input
+            v-model="mapForm.securityJsCode"
+            placeholder="JS API 2.0 安全密钥，与 JS Key 配套"
+            clearable
+          />
+          <span class="field-hint">高德 2021-12 后新建的 JS Key 必须配套安全密钥，否则鉴权失败</span>
+        </el-form-item>
+        <el-form-item label="Web 服务 Key">
+          <el-input v-model="mapForm.webKey" placeholder="高德「Web服务」类型 Key" clearable />
+          <span class="field-hint">用于服务端逆地理编码与 IP 定位，<strong>不会下发前端</strong></span>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" :loading="mapSaving" @click="handleSaveMap">保存地图配置</el-button>
+          <el-button @click="loadData">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </TableCard>
+
     <!-- 全部配置列表 -->
     <TableCard title="全部系统配置">
       <el-table :data="configList" border stripe>
@@ -119,7 +149,24 @@ const { isMobile } = useResponsive()
 
 const loading = ref(false)
 const saving = ref(false)
+const mapSaving = ref(false)
 const configList = ref<SysConfigItem[]>([])
+
+/** 地图服务配置：Key 由后台维护，服务端 30 秒内生效 */
+const mapForm = reactive({
+  enabled: '1',
+  jsKey: '',
+  securityJsCode: '',
+  webKey: '',
+})
+
+/** 地图配置键 → 表单字段 */
+const MAP_KEY_TO_FIELD: Record<string, keyof typeof mapForm> = {
+  'map.enabled': 'enabled',
+  'map.amap.js-key': 'jsKey',
+  'map.amap.security-js-code': 'securityJsCode',
+  'map.amap.web-key': 'webKey',
+}
 
 /** 视频运营参数表单：值从配置列表读取，未配置时用后端默认值 */
 const videoForm = reactive({
@@ -150,6 +197,35 @@ function applyConfigToForm(list: SysConfigItem[]): void {
         videoForm[field] = parsed
       }
     }
+    const mapField = MAP_KEY_TO_FIELD[item.configKey]
+    if (mapField) {
+      mapForm[mapField] = item.configValue ?? ''
+    }
+  }
+  // 旧库可能缺 map.enabled 行，缺省视为启用
+  if (!mapForm.enabled) {
+    mapForm.enabled = '1'
+  }
+}
+
+/** 保存地图配置：四项一起写，避免只改一半导致 Key 与开关状态错位 */
+async function handleSaveMap(): Promise<void> {
+  mapSaving.value = true
+  try {
+    for (const [key, field] of Object.entries(MAP_KEY_TO_FIELD)) {
+      const existing = configList.value.find((item) => item.configKey === key)
+      await updateSysConfigApi({
+        configKey: key,
+        configValue: String(mapForm[field] ?? ''),
+        description: existing?.description,
+      })
+    }
+    ElMessage.success('地图配置已保存，约 30 秒内生效')
+    await loadData()
+  } catch {
+    // 拦截器已统一提示
+  } finally {
+    mapSaving.value = false
   }
 }
 

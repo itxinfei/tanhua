@@ -302,6 +302,7 @@ import SmartImage from "@/components/smart-image.vue";
 import ErrorBoundary from "@/components/error-boundary.vue";
 import A11yPicker from "@/components/a11y-picker.vue";
 import { info, fail } from "@/utils/ux";
+import { resolveIpLocation } from "@/utils/location";
 
 const matchStore = useMatchStore();
 const userStore = useUserStore();
@@ -499,11 +500,21 @@ function syncLocation(): void {
         })
         .catch(() => {});
     },
-    fail: (err: any) => {
+    fail: async (err: any) => {
       // 定位授权拒绝（M-M3）：静默降级为默认城市，MP 端引导打开设置重新授权
       const msg = String(err?.errMsg || "");
       if (msg.includes("cancel")) return;
-      info("需要定位权限才能匹配附近的人");
+      // 设备定位不可用（H5 非 HTTPS / 用户拒绝）：先按 IP 兜底到城市级
+      const ip = await resolveIpLocation();
+      const ipCity = (ip?.city || ip?.province || "").replace(/市$/, "");
+      const isManual = uni.getStorageSync(CITY_MANUAL_KEY);
+      const knownCity = CITY_OPTIONS.some((option) => option.value === ipCity);
+      if (!isManual && knownCity && ipCity && ipCity !== systemStore.currentCity) {
+        systemStore.setCity(ipCity);
+        info(`定位不可用，已按网络位置切换到 ${ipCity}`);
+        return;
+      }
+      info("无法获取定位：H5 需 HTTPS 访问并允许定位授权，可手动选择城市");
       const openSetting = (uni as any).openSetting;
       if (typeof openSetting === "function") {
         openSetting({});

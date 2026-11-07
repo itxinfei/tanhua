@@ -298,11 +298,10 @@ function requestLocation(): void {
         // 授权拒绝（M-M3）：MP 端引导跳系统设置重新授权；H5 由浏览器层面处理
         const msg = String(err?.errMsg || "");
         if (msg.includes("cancel")) return;
-        info("需要定位权限才能查看附近的人");
-        const openSetting = (uni as any).openSetting;
-        if (typeof openSetting === "function") {
-          openSetting({});
-        }
+        // 设备定位不可用（H5 非 HTTPS 或用户拒绝授权）：按城市展示，不再误导为网络问题
+        info("无法获取定位：H5 需 HTTPS 访问并允许定位授权，已按城市展示");
+        hasLocationAuth.value = true;
+        loadNearby(true);
       },
     });
   } catch {

@@ -332,6 +332,11 @@ import { publishVideo } from "@/api/video";
 import { CIRCLE_NEED_REFRESH_KEY } from "@/store/circle";
 import { safeGoBack } from "@/utils/nav";
 import { success, info, fail } from "@/utils/ux";
+import {
+  resolveAddressName,
+  resolveCurrentLocation,
+  locationDisplayName,
+} from "@/utils/location";
 import type { UploadPromise } from "@/utils/request";
 
 /** 内容最大字数 */
@@ -518,18 +523,18 @@ function removeVideo(): void {
   videoCover.value = "";
 }
 
-/** 选择位置 */
-function chooseLocation(): void {
-  uni.chooseLocation({
-    success: (res) => {
-      location.value = res.name;
-      longitude.value = String(res.longitude);
-      latitude.value = String(res.latitude);
-    },
-    fail: () => {
-      info("请授权位置权限");
-    },
-  });
+/** 选择位置：自动取当前定位（设备优先、IP 兜底），地址名服务端解析 */
+async function chooseLocation(): Promise<void> {
+  const loc = await resolveCurrentLocation();
+  if (!loc) {
+    info("当前环境无法获取位置：H5 需 HTTPS 访问并允许定位授权");
+    return;
+  }
+  const addr = await resolveAddressName(loc.latitude, loc.longitude);
+  const fallback = loc.source === "ip" ? "当前位置（城市级）" : "当前位置";
+  location.value = locationDisplayName(addr, fallback);
+  longitude.value = String(loc.longitude);
+  latitude.value = String(loc.latitude);
 }
 
 /** 清除位置 */
@@ -539,26 +544,25 @@ function clearLocation(): void {
   latitude.value = "";
 }
 
-/** 发布视频时尽力取定位：失败/无城市名都不阻塞发布（H5 不支持 geocode，locationName 可为空） */
-function resolveVideoLocation(): Promise<{ longitude?: number; latitude?: number; locationName?: string }> {
-  return new Promise((resolve) => {
-    uni.getLocation({
-      type: "gcj02",
-      geocode: true,
-      success: (res: any) => {
-        const lat = Number(res.latitude);
-        const lng = Number(res.longitude);
-        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-          resolve({});
-          return;
-        }
-        const addr = res.address || {};
-        const name = addr.city || addr.district || "";
-        resolve({ longitude: lng, latitude: lat, locationName: name || undefined });
-      },
-      fail: () => resolve({}),
-    } as any);
-  });
+/**
+ * 发布视频时尽力取定位：设备定位优先、IP 兜底；地址名走服务端逆地理。
+ * 失败/无城市名都不阻塞发布（locationName 可为空）。
+ */
+async function resolveVideoLocation(): Promise<{
+  longitude?: number;
+  latitude?: number;
+  locationName?: string;
+}> {
+  const loc = await resolveCurrentLocation();
+  if (!loc) {
+    return {};
+  }
+  const addr = await resolveAddressName(loc.latitude, loc.longitude);
+  return {
+    longitude: loc.longitude,
+    latitude: loc.latitude,
+    locationName: addr?.city || addr?.district || addr?.name || undefined,
+  };
 }
 
 /** 发布动态（图片由 publishMovement 内部 upload 直传后端；小视频走 publishVideo 直传封面+视频文件） */
