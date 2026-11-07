@@ -71,7 +71,7 @@
       @scrolltolower="loadMore"
     >
       <empty-state
-        v-if="userList.length === 0 && !loading"
+        v-if="userList.length === 0 && !loading && !loadError"
         :icon="emptyIcon"
         :title="emptyTitle"
         :desc="emptyDesc"
@@ -84,6 +84,24 @@
           @tap="goMatch"
         >
           去认识更多人
+        </a11y-button>
+      </empty-state>
+
+      <!-- 首屏加载失败：与「真的没有好友」严格区分，给明确原因 + 可重试入口 -->
+      <empty-state
+        v-if="userList.length === 0 && !loading && loadError"
+        role="alert"
+        icon="info"
+        title="暂时没能获取好友列表"
+        desc="服务可能开小差了，检查网络后重试"
+      >
+        <a11y-button
+          class="empty-cta"
+          variant="primary"
+          label="重新加载好友列表"
+          @tap="loadList"
+        >
+          重新加载
         </a11y-button>
       </empty-state>
 
@@ -212,6 +230,8 @@ const userList = ref<FriendUser[]>([]);
 const currentPage = ref(1);
 const hasMore = ref(true);
 const loading = ref(false);
+/** 首屏加载失败标记（展示错误态，避免误显示空态） */
+const loadError = ref(false);
 /** 下拉刷新中状态（驱动 scroll-view refresher） */
 const refreshing = ref(false);
 /** 正在「喜欢」中的用户 id（防重复点击，驱动按钮 loading 态） */
@@ -322,6 +342,7 @@ let loadSeq = 0;
 async function loadList(): Promise<void> {
   const seq = ++loadSeq;
   loading.value = true;
+  loadError.value = false;
   try {
     const result = await getFriendList(
       activeType.value,
@@ -333,6 +354,9 @@ async function loadList(): Promise<void> {
     userList.value = result.items || [];
     currentPage.value = 1;
     hasMore.value = (result.items?.length || 0) >= DEFAULT_PAGE_SIZE;
+  } catch {
+    // 首屏失败标记：页面据此显示错误态+重试，而非误报「暂无数据」
+    if (seq === loadSeq) loadError.value = true;
   } finally {
     if (seq === loadSeq) loading.value = false;
   }

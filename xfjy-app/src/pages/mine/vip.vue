@@ -185,7 +185,10 @@
       <!-- 未选套餐（如套餐接口失败）时禁用，避免点击「¥0」静默无动作 -->
       <a11y-button
         class="pay-btn"
+        variant="primary"
+        block
         :label="selectedId ? '立即开通会员' : '请先选择套餐'"
+        :loading="paying"
         :disabled="paying || !selectedId"
         @tap="handlePay"
       >
@@ -573,28 +576,21 @@ onLoad(() => {
   z-index: 100;
 }
 
-/* ===== 支付按钮 ===== */
+/* ===== 支付按钮 =====
+ * variant="primary" 已承载：88rpx 热区、禁用态（opacity .4）、loading spinner、
+ * 按压反馈（--press-scale）、focus-visible、品牌渐变底。
+ * 这里只覆写 VIP 专属金色渐变（产品语义色，非品牌粉），并保留微光扫过动画。
+ */
 .pay-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 104rpx;
+  /* 覆写品牌粉渐变为 VIP 金色渐变（保留原视觉语义） */
   background: linear-gradient(135deg, var(--gold) 0%, var(--gold-soft) 50%, #ff9a3c 100%);
   color: var(--bg-deep);
   font-size: 36rpx;
   font-weight: 900;
   letter-spacing: 2rpx;
-  border-radius: 52rpx;
-  border: none;
   box-shadow: 0 12rpx 36rpx rgba(255, 179, 71, 0.45), inset 0 2rpx 0 rgba(255, 255, 255, 0.3);
   position: relative;
   overflow: hidden;
-  transition: transform 0.2s ease;
-
-  &:active {
-    transform: scale(0.97);
-  }
 
   /* 微光扫过动画 */
   &::after {
@@ -608,10 +604,9 @@ onLoad(() => {
     animation: shimmer 3s infinite;
   }
 
-  &.a11y-btn--disabled {
-    opacity: 0.5;
-    box-shadow: none;
-    &::after { animation: none; }
+  /* 禁用态：仅停微光动画，透明度/阴影由 variant 系统统一处理 */
+  &.a11y-btn--disabled::after {
+    animation: none;
   }
 }
 

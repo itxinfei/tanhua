@@ -2,6 +2,7 @@
 import { watch } from "vue";
 import { onLaunch, onShow } from "@dcloudio/uni-app";
 import { installAuthGuard } from "@/utils/auth-guard";
+import { isDevExemptionEnabled } from "@/config/env";
 // #ifdef H5
 import { installGlobalTabbar } from "@/utils/global-tabbar";
 // #endif
@@ -37,10 +38,8 @@ onLaunch(() => {
   // 开发环境 mock：跳过 token 检查，便于本地调试
   const pages = getCurrentPages();
   const current = pages.length ? pages[pages.length - 1].route : "";
-  // 开发环境判断：localhost / 127.0.0.1 视为开发环境，跳过登录重定向
-  const isDev =
-    typeof location !== "undefined" &&
-    (location.hostname === "localhost" || location.hostname === "127.0.0.1");
+  // 开发环境判断：统一走 config/env.ts，支持 VITE_DISABLE_DEV_EXEMPTION=true 生产关闭
+  const isDev = isDevExemptionEnabled();
   if (
     !getToken() &&
     current &&

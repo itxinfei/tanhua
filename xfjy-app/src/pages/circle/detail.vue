@@ -156,6 +156,7 @@
       >
       <a11y-button
         class="send-btn"
+        variant="primary"
         label="发送评论"
         @tap="sendComment"
       >
@@ -361,9 +362,8 @@ onLoad((options: any) => {
   .comment-input { flex: 1; height: 76rpx; background: var(--bg-sub); border-radius: 38rpx; padding: 0 28rpx; font-size: 28rpx; border: 2rpx solid transparent; transition: border-color 0.2s ease;
     &:focus { border-color: var(--color-primary); background: var(--bg-card); }
   }
-  .send-btn { flex-shrink: 0; height: 76rpx; padding: 0 40rpx; display: flex; align-items: center; justify-content: center; border-radius: 38rpx; background: var(--gradient-brand); box-shadow: var(--shadow-primary); transition: transform 0.2s ease;
-    &:active { transform: scale(0.95); }
-    text { font-size: 28rpx; color: var(--text-inverse); font-weight: 600; }
+  .send-btn { flex-shrink: 0; height: 76rpx; padding: 0 40rpx; border-radius: 38rpx;
+    text { font-size: 28rpx; font-weight: 600; }
   }
 }
 </style>
