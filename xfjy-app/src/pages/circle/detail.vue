@@ -69,12 +69,13 @@
             <text># {{ tag }}</text>
           </a11y-button>
         </view>
+        <!-- filter(Boolean)：后端可能返回含空字符串的 imageContent，空串点击预览会报错 -->
         <view
-          v-if="post.imageContent?.length"
+          v-if="post.imageContent?.filter(Boolean).length"
           class="image-grid"
         >
           <a11y-button
-            v-for="(img, i) in post.imageContent"
+            v-for="(img, i) in post.imageContent.filter(Boolean)"
             :key="i"
             class="grid-img"
             :label="`查看第 ${i + 1} 张配图`"
@@ -221,7 +222,7 @@ const commentLoadFailed = ref(false);
 
 function previewImg(index: number | string) {
   const i = Number(index);
-  const images = post.value?.imageContent || [];
+  const images = post.value?.imageContent?.filter(Boolean) || [];
   uni.previewImage({ urls: images, current: images[i] });
 }
 

@@ -609,6 +609,10 @@ async function handlePublish(): Promise<void> {
       longitude.value = "";
       latitude.value = "";
       selectedTopics.value = [];
+      // 先复位 submitting：否则 safeGoBack→navigateBack 会触发 onBackPress，
+      // 此时 submitting=true 会误走「取消上传」分支并再次 navigateBack，形成循环报
+      // navigateBack:fail onBackPress（H5 端 onBackPress 拦截即视为导航失败）
+      submitting.value = false;
       safeGoBack("/pages/circle/index");
     }, 800);
   } catch {

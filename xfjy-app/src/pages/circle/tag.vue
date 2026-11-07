@@ -59,17 +59,18 @@
       <view class="post-content">
         {{ item.textContent }}
       </view>
+      <!-- filter(Boolean)：后端可能返回含空字符串的 imageContent，空串点击预览会报错 -->
       <view
-        v-if="item.imageContent && item.imageContent.length"
+        v-if="item.imageContent?.filter(Boolean).length"
         class="image-grid"
       >
         <a11y-button
-          v-for="(img, i) in item.imageContent.slice(0, 9)"
+          v-for="(img, i) in item.imageContent.filter(Boolean).slice(0, 9)"
           :key="i"
           class="grid-img"
           :label="`查看第 ${i + 1} 张配图`"
           stop
-          @tap="preview(item.imageContent, i)"
+          @tap="preview(item.imageContent.filter(Boolean), i)"
         >
           <smart-image
             lazy-load

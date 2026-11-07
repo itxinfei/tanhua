@@ -143,13 +143,15 @@
               <text># {{ tag }}</text>
             </a11y-button>
           </view>
+          <!-- filter(Boolean)：后端可能返回含空字符串的 imageContent（如 [""]），
+               空串渲染为占位块但点击预览会因 uni.previewImage 收到空 URL 报错 -->
           <view
-            v-if="item.imageContent && item.imageContent.length"
+            v-if="item.imageContent?.filter(Boolean).length"
             class="image-grid"
-            :class="'grid-' + Math.min(item.imageContent.length, GRID_COLUMN_COUNT)"
+            :class="'grid-' + Math.min(item.imageContent.filter(Boolean).length, GRID_COLUMN_COUNT)"
           >
             <smart-image
-              v-for="(img, i) in item.imageContent.slice(0, MAX_GRID_IMAGE_COUNT)"
+              v-for="(img, i) in item.imageContent.filter(Boolean).slice(0, MAX_GRID_IMAGE_COUNT)"
               :key="i"
               class="grid-image"
               :src="img"
@@ -158,7 +160,7 @@
               lazy-load
               :aria-label="'动态图片 ' + (i + 1) + '，点击查看大图'"
               clickable
-              @click="previewImage(item.imageContent, i)"
+              @click="previewImage(item.imageContent.filter(Boolean), i)"
             />
           </view>
           <view class="action-row">
