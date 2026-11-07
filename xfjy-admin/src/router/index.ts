@@ -169,7 +169,7 @@ export const routes: RouteRecordRaw[] = [
         path: 'im-config',
         name: 'SystemImConfig',
         component: () => import('@/views/system/im-config.vue'),
-        meta: { title: 'IM通道配置', icon: 'ChatDotSquare', roles: ['SUPER_ADMIN'] },
+        meta: { title: '系统配置', icon: 'ChatDotSquare', roles: ['SUPER_ADMIN'] },
       },
     ],
   },

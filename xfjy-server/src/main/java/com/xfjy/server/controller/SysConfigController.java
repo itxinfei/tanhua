@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -53,5 +55,28 @@ public class SysConfigController {
         Map<String, String> result = new HashMap<>();
         result.put("provider", "wukongim");
         return ResponseEntity.ok(result);
+    }
+
+    /**
+     * 更新系统配置（存在则更新，不存在则插入）。
+     * 写入后约 30 秒内全节点生效（Redis 缓存 TTL），无需重启服务。
+     *
+     * @param body { configKey, configValue, description? }
+     */
+    @PostMapping("update")
+    public ResponseEntity<Void> updateConfig(@RequestBody Map<String, String> body) {
+        String key = body.get("configKey");
+        String value = body.get("configValue");
+        String description = body.get("description");
+        if (key == null || key.trim().isEmpty() || value == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+        try {
+            this.sysConfigService.setConfig(key.trim(), value.trim(), description);
+            return ResponseEntity.ok(null);
+        } catch (Exception e) {
+            LOGGER.error("更新系统配置异常: key={}", key, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }

@@ -41,32 +41,109 @@ public class VideoService {
     private static final Logger LOGGER = LoggerFactory.getLogger(VideoService.class);
 
     /**
-     * 推荐流打散候选池上限：一次取出足够多的视频做"按作者轮转打散"后再分页，
-     * 避免最新视频恰好集中在单一作者时，首屏连续多条显示同一昵称
-     * （用户会误以为"所有视频都是自己发的"）。数据量增大后可改为按页拉取。
+     * 推荐流打散候选池上限默认值。
+     * 运行时由后台「系统配置」覆盖（key: video.recommend.pool-limit），改配置约 30 秒内全节点生效。
      */
-    private static final int CANDIDATE_LIMIT = 200;
+    private static final int DEFAULT_RECOMMEND_POOL_LIMIT = 300;
 
     /**
-     * 推荐候选池上限：由视频服务聚合排出「热度分降序 + (_id 降序)」的有序 vid 列表，
-     * 服务端缓存该列表后按页切分，保证同一缓存窗口内翻页不重复、不跳项。
+     * 推荐有序 vid 列表缓存 TTL 默认值（秒）。
+     * 运行时由后台「系统配置」覆盖（key: video.recommend.cache-seconds）。
      */
-    private static final int RECOMMEND_POOL_LIMIT = 300;
+    private static final long DEFAULT_RECOMMEND_CACHE_SECONDS = 600L;
 
-    /** 推荐有序 vid 列表缓存 TTL（秒）：只缓存排序结果，不缓存视频内容 */
-    private static final long RECOMMEND_CACHE_SECONDS = 600L;
+    /**
+     * 推荐列表重建锁 TTL 默认值（秒）：锁只防并发回源，持有者异常退出后自动释放。
+     * 运行时由后台「系统配置」覆盖（key: video.recommend.lock-seconds）。
+     */
+    private static final long DEFAULT_RECOMMEND_LOCK_SECONDS = 5L;
+
+    /** 热点候选池上限默认值（取最新 N 条再排序） */
+    private static final int DEFAULT_HOT_CANDIDATE_LIMIT = 100;
 
     private static final String RECOMMEND_KEY_PREFIX = "QUANZI_VIDEO_RECOMMEND_";
 
-    /** 推荐列表重建锁 TTL（秒）：锁只防并发回源，持有者异常退出后自动释放 */
-    private static final long RECOMMEND_LOCK_SECONDS = 5L;
-
-    /** 「附近」半径（公里）与最多返回条数，均可通过配置/环境变量覆盖 */
+    /** 「附近」半径（公里）与最多返回条数的默认值；运行时由后台「系统配置」覆盖 */
     @Value("${xfjy.video.nearby.radius-km:5}")
-    private double nearbyRadiusKm;
+    private double defaultNearbyRadiusKm;
 
     @Value("${xfjy.video.nearby.max-results:50}")
-    private int nearbyMaxResults;
+    private int defaultNearbyMaxResults;
+
+    @Autowired
+    private SysConfigService sysConfigService;
+
+    /** 推荐候选池上限（后台可调，默认 300） */
+    private int recommendPoolLimit() {
+        return parseIntConfig("video.recommend.pool-limit", DEFAULT_RECOMMEND_POOL_LIMIT);
+    }
+
+    /** 推荐 vid 列表缓存 TTL（秒，后台可调，默认 600） */
+    private long recommendCacheSeconds() {
+        return parseLongConfig("video.recommend.cache-seconds", DEFAULT_RECOMMEND_CACHE_SECONDS);
+    }
+
+    /** 推荐重建锁 TTL（秒，后台可调，默认 5） */
+    private long recommendLockSeconds() {
+        return parseLongConfig("video.recommend.lock-seconds", DEFAULT_RECOMMEND_LOCK_SECONDS);
+    }
+
+    /** 热点候选池上限（后台可调，默认 100） */
+    private int hotCandidateLimit() {
+        return parseIntConfig("video.hot.candidate-limit", DEFAULT_HOT_CANDIDATE_LIMIT);
+    }
+
+    /** 附近半径（公里，后台可调；默认取环境变量 xfjy.video.nearby.radius-km 的值） */
+    private double nearbyRadiusKm() {
+        return parseDoubleConfig("video.nearby.radius-km", defaultNearbyRadiusKm);
+    }
+
+    /** 附近最多返回条数（后台可调；默认取环境变量 xfjy.video.nearby.max-results 的值） */
+    private int nearbyMaxResults() {
+        return parseIntConfig("video.nearby.max-results", defaultNearbyMaxResults);
+    }
+
+    private int parseIntConfig(String key, int defaultValue) {
+        String value = sysConfigService.getConfig(key, null);
+        if (value == null || value.trim().isEmpty()) {
+            return defaultValue;
+        }
+        try {
+            int parsed = Integer.parseInt(value.trim());
+            return parsed > 0 ? parsed : defaultValue;
+        } catch (NumberFormatException e) {
+            LOGGER.warn("系统配置值非法，使用默认值: key={}, value={}, default={}", key, value, defaultValue);
+            return defaultValue;
+        }
+    }
+
+    private long parseLongConfig(String key, long defaultValue) {
+        String value = sysConfigService.getConfig(key, null);
+        if (value == null || value.trim().isEmpty()) {
+            return defaultValue;
+        }
+        try {
+            long parsed = Long.parseLong(value.trim());
+            return parsed > 0 ? parsed : defaultValue;
+        } catch (NumberFormatException e) {
+            LOGGER.warn("系统配置值非法，使用默认值: key={}, value={}, default={}", key, value, defaultValue);
+            return defaultValue;
+        }
+    }
+
+    private double parseDoubleConfig(String key, double defaultValue) {
+        String value = sysConfigService.getConfig(key, null);
+        if (value == null || value.trim().isEmpty()) {
+            return defaultValue;
+        }
+        try {
+            double parsed = Double.parseDouble(value.trim());
+            return parsed > 0 ? parsed : defaultValue;
+        } catch (NumberFormatException e) {
+            LOGGER.warn("系统配置值非法，使用默认值: key={}, value={}, default={}", key, value, defaultValue);
+            return defaultValue;
+        }
+    }
 
     /**
      * 按作者轮转打散：保持每个作者内部原有相对顺序（时间序/推荐序/热度序），
@@ -188,7 +265,7 @@ public class VideoService {
         pageResult.setPagesize(pageSize);
 
         // 「推荐」= 热度分排序（不是时间流）：点赞×3 + 评论×5 + 播放×1，再乘时间衰减 1/(1+天数)
-        // 排序与分页稳定性：视频服务一次排出最多 RECOMMEND_POOL_LIMIT 条有序 vid，
+        // 排序与分页稳定性：视频服务一次排出最多 recommendPoolLimit() 条有序 vid，
         // 这里把「已排好序的 vid 列表」缓存进 Redis，后续翻页只做切片，
         // 因而同一缓存窗口内热度实时变化不会造成重复/漏项；缓存丢失时自愈重建。
         List<Long> rankedVids = loadRankedVidList();
@@ -246,7 +323,7 @@ public class VideoService {
         // 并发请求会把它放大成 N 次）；其余请求短暂等待写回，等不到再各自回源，保证不失败。
         String lockKey = RECOMMEND_KEY_PREFIX + "LOCK";
         boolean locked = Boolean.TRUE.equals(this.redisTemplate.opsForValue()
-                .setIfAbsent(lockKey, "1", RECOMMEND_LOCK_SECONDS, TimeUnit.SECONDS));
+                .setIfAbsent(lockKey, "1", recommendLockSeconds(), TimeUnit.SECONDS));
         if (!locked) {
             for (int i = 0; i < 3; i++) {
                 cached = parseVidList(this.redisTemplate.opsForValue().get(RECOMMEND_KEY_PREFIX));
@@ -262,7 +339,7 @@ public class VideoService {
             }
         }
         try {
-            List<Video> pool = this.videoApi.queryRecommendVideoList(RECOMMEND_POOL_LIMIT);
+            List<Video> pool = this.videoApi.queryRecommendVideoList(recommendPoolLimit());
             List<Long> vids = new ArrayList<>();
             if (pool != null) {
                 for (Video video : pool) {
@@ -273,7 +350,7 @@ public class VideoService {
             }
             if (!vids.isEmpty()) {
                 this.redisTemplate.opsForValue().set(RECOMMEND_KEY_PREFIX,
-                        StringUtils.join(vids, ','), RECOMMEND_CACHE_SECONDS, TimeUnit.SECONDS);
+                        StringUtils.join(vids, ','), recommendCacheSeconds(), TimeUnit.SECONDS);
             }
             return vids;
         } finally {
@@ -512,8 +589,8 @@ public class VideoService {
         pageResult.setPage(page);
         pageResult.setPagesize(pageSize);
 
-        // 取最新 100 条视频作为候选池
-        PageInfo<Video> allPage = this.videoApi.queryVideoList(1, 100);
+        // 取最新 hotCandidateLimit() 条视频作为候选池
+        PageInfo<Video> allPage = this.videoApi.queryVideoList(1, hotCandidateLimit());
         List<Video> records = allPage.getRecords();
         if (records == null || records.isEmpty()) {
             pageResult.setCounts(0);
@@ -600,10 +677,10 @@ public class VideoService {
             return nearbyFallback(pageResult, user.getId(), page, pageSize);
         }
 
-        int cappedSize = Math.min(pageSize, Math.max(1, nearbyMaxResults));
+        int cappedSize = Math.min(pageSize, Math.max(1, nearbyMaxResults()));
         int cappedPage = page;
-        // 总条数上限：附近最多返回 nearbyMaxResults 条，超出即视为没有更多
-        if ((cappedPage - 1) * cappedSize >= nearbyMaxResults) {
+        // 总条数上限：附近最多返回 nearbyMaxResults() 条，超出即视为没有更多
+        if ((cappedPage - 1) * cappedSize >= nearbyMaxResults()) {
             pageResult.setCounts(0);
             pageResult.setPages(0);
             pageResult.setItems(new ArrayList<>());
@@ -611,14 +688,14 @@ public class VideoService {
         }
 
         PageInfo<Video> geoPage = this.videoApi.queryLocationVideoList(
-                cappedPage, cappedSize, lat, lng, nearbyRadiusKm);
+                cappedPage, cappedSize, lat, lng, nearbyRadiusKm());
         List<Video> records = geoPage == null ? null : geoPage.getRecords();
         if (records == null || (records.isEmpty() && cappedPage == 1)) {
             // 半径内没有带坐标的视频（旧数据必然如此）：回退全站热门，不返回空列表
             return nearbyFallback(pageResult, user.getId(), page, pageSize);
         }
 
-        int total = geoPage.getTotal() != null ? Math.min(geoPage.getTotal(), nearbyMaxResults) : records.size();
+        int total = geoPage.getTotal() != null ? Math.min(geoPage.getTotal(), nearbyMaxResults()) : records.size();
         pageResult.setCounts(total);
         pageResult.setPages((total + cappedSize - 1) / cappedSize);
         pageResult.setItems(assembleVideoVoList(records, user.getId()));
@@ -635,7 +712,7 @@ public class VideoService {
             pageResult.setFallback(true);
             return pageResult;
         }
-        int total = Math.min(rankedVids.size(), nearbyMaxResults);
+        int total = Math.min(rankedVids.size(), nearbyMaxResults());
         int startIndex = (page - 1) * pageSize;
         pageResult.setFallback(true);
         if (pageSize <= 0 || startIndex >= total) {
