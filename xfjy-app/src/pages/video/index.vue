@@ -24,18 +24,6 @@
       </view>
       <a11y-button
         class="side-btn"
-        label="刷新视频列表"
-        :disabled="refreshing"
-        @tap="onRefresh"
-      >
-        <view
-          class="side-ico i-ph-arrows-clockwise-bold"
-          :class="{ 'is-spinning': refreshing }"
-          aria-hidden="true"
-        />
-      </a11y-button>
-      <a11y-button
-        class="side-btn"
         label="搜索视频、用户"
         @tap="onSearch"
       >
@@ -45,6 +33,22 @@
         />
       </a11y-button>
     </view>
+
+    <!-- 刷新按钮：仅在需要刷新时出现（列表加载失败/为空），位于频道条下方居中。
+         用户正常刷视频时隐藏，不常驻占视觉。手动刷新另一入口为「再次点击当前频道 tab」 -->
+    <a11y-button
+      v-if="showRefreshEntry"
+      class="refresh-fab"
+      label="刷新视频列表"
+      :disabled="refreshing"
+      @tap="onRefresh"
+    >
+      <view
+        class="i-ph-arrows-clockwise-bold"
+        :class="{ 'is-spinning': refreshing }"
+        aria-hidden="true"
+      />
+    </a11y-button>
 
     <!-- S6：错误边界捕获视频流渲染异常，@retry 重新拉取视频列表 -->
     <error-boundary @retry="loadVideos">
@@ -627,6 +631,12 @@ let loadToken = 0;
  */
 const refreshing = ref(false);
 
+/** 刷新入口显隐：仅列表加载失败或为空（确实需要刷新）时显示，
+ *  正常刷视频时隐藏（用户裁决：按钮不常驻，置于频道条下方居中） */
+const showRefreshEntry = computed(
+  () => loadFailed.value || (displayList.value.length === 0 && !loading.value)
+);
+
 const currentVideo = computed<Video | undefined>(() => displayList.value[swiperIndex.value]);
 const currentId = computed(() => currentVideo.value?.id ?? "");
 
@@ -948,9 +958,9 @@ async function onRefresh() {
   const ch = activeChannel.value;
   const chState = channels[ch];
   const token = ++loadToken;
-  try {
-    // 迁移期双传：新契约读 pageSize，存量网关只认 pagesize；后端 xfjy-server 上线后删除 pagesize
-    const query: Record<string, any> = { page: 1, pageSize: PAGE_SIZE, pagesize: PAGE_SIZE };
+try {
+  // 新契约：仅传 pageSize（后端 xfjy-server 已上线）
+  const query: Record<string, any> = { page: 1, pageSize: PAGE_SIZE };
     if (ch === "location") {
       nearbyFallback.value = false;
       const loc = await locateOnce();
@@ -1291,11 +1301,11 @@ async function loadVideos() {
   }
   erroredVideoIds.value = new Set();
 
-  try {
+try {
     chState.page.value = 1;
     chState.hasMore.value = true;
-    // 迁移期双传：新契约读 pageSize，存量网关只认 pagesize；后端 xfjy-server 上线后删除 pagesize
-    const query: Record<string, any> = { page: 1, pageSize: PAGE_SIZE, pagesize: PAGE_SIZE };
+    // 新契约：仅传 pageSize（后端 xfjy-server 已上线）
+    const query: Record<string, any> = { page: 1, pageSize: PAGE_SIZE };
     if (ch === "location") {
       // 附近：先取坐标再请求；未授权时也继续请求，由后端回退全站热门（绝不静默空列表）
       nearbyFallback.value = false;
@@ -1372,10 +1382,10 @@ async function loadMoreVideos() {
   const apiFn = getChannelApi(channel);
 
   loadingMore.value = true;
-  try {
+try {
     const nextPage = chState.page.value + 1;
-    // 迁移期双传：新契约读 pageSize，存量网关只认 pagesize；后端上线后删除 pagesize
-    const query: Record<string, any> = { page: nextPage, pageSize: PAGE_SIZE, pagesize: PAGE_SIZE };
+    // 新契约：仅传 pageSize（后端 xfjy-server 已上线）
+    const query: Record<string, any> = { page: nextPage, pageSize: PAGE_SIZE };
     if (channel === "location" && userLocation.value) {
       query.lat = userLocation.value.lat;
       query.lng = userLocation.value.lng;
@@ -1819,7 +1829,33 @@ onShareAppMessage(() => ({
   }
 }
 
-/* 顶部右侧图标按钮（刷新）：88rpx 热区满足 §7.1 独立功能按钮要求。
+/* 刷新按钮（仅在列表失败/空态时出现）：频道条正下方居中浮动。
+   用户裁决：不常驻顶栏，正常刷视频时隐藏。
+   热区 88rpx（§7.1 独立功能按钮），半透明深底圆片叠在视频画面上保证可读。 */
+.refresh-fab {
+  position: absolute;
+  /* top-tabs 高 = safe-area + 16rpx 顶距 + --category-bar-h，再下移 16rpx 间距 */
+  top: calc(env(safe-area-inset-top, 0px) + 16rpx + var(--category-bar-h) + 16rpx);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 88rpx;
+  min-height: 88rpx;
+  padding: 20rpx;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+
+  .i-ph-arrows-clockwise-bold {
+    font-size: 44rpx;
+    color: var(--text-inverse);
+  }
+}
+
+/* 顶部右侧图标按钮（搜索）：88rpx 热区满足 §7.1 独立功能按钮要求。
    用 padding 撑热区而非写死 width/height——写死尺寸会把热区限死在图标大小，
    而 a11y-button 的 default 变体是零样式壳，不自带 min-height。
    视觉上仍是 48rpx 图标，热区由 padding 外扩到 88rpx。 */
