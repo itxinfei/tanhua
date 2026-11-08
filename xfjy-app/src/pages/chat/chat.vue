@@ -10,6 +10,13 @@
       :scroll-with-animation="false"
       @scrolltoupper="loadMoreHistory"
     >
+      <!-- 首屏加载：list 骨架屏替代空白，提前感知消息结构 -->
+      <skeleton
+        v-if="historyLoading && messageList.length === 0"
+        class="msg-skeleton"
+        variant="list"
+        :count="6"
+      />
       <!-- 续拉更旧历史指示（M-K4） -->
       <view
         v-if="loadingMore || noMoreHistory"
@@ -116,7 +123,7 @@
               <a11y-button
                 v-else-if="msg.type === 'image'"
                 class="msg-image-wrap"
-                label="查看图片"
+                :label="msg.status === 'sending' ? '图片上传中' : '查看图片'"
                 @tap="previewImg(msg.content)"
               >
                 <smart-image
@@ -126,6 +133,14 @@
                   mode="widthFix"
                   :aria-hidden="true"
                 />
+                <!-- 上传中遮罩：图片本地预览期间显示半透明遮罩 + 提示，避免误以为已发送成功 -->
+                <view
+                  v-if="msg.status === 'sending'"
+                  class="image-uploading-mask"
+                  aria-hidden="true"
+                >
+                  <text class="image-uploading-text">上传中…</text>
+                </view>
               </a11y-button>
               <!-- 语音：点击播放，播放中显示波动态 -->
               <a11y-button
@@ -154,6 +169,17 @@
                 <text class="voice-duration">
                   {{ msg.extra?.duration || 0 }}秒
                 </text>
+                <!-- 播放进度条：仅播放中显示，宽度按进度百分比 -->
+                <view
+                  v-if="playingVoiceId === msg.id"
+                  class="voice-progress"
+                  aria-hidden="true"
+                >
+                  <view
+                    class="voice-progress-bar"
+                    :style="{ width: voicePlayDuration > 0 ? (voicePlayProgress / voicePlayDuration * 100) + '%' : '0%' }"
+                  />
+                </view>
               </a11y-button>
               <!-- 位置：点击打开地图查看 -->
               <a11y-button
@@ -270,11 +296,12 @@
           v-if="isVoiceMode"
           class="voice-btn"
           :class="{ recording: isVoicePressing }"
-          :label="isVoicePressing ? '停止录音' : '开始录音'"
-          @tap="onVoiceClick"
-        >
-          <text>{{ isVoicePressing ? "停止" : "按住说话" }}</text>
-        </a11y-button>
+        :label="isVoicePressing ? '停止录音' : '点击说话'"
+        @tap="onVoiceClick"
+      >
+        <text v-if="!isVoicePressing">点击说话</text>
+        <text v-else>{{ voiceSeconds }}s{{ voiceSeconds >= VOICE_WARN_SECONDS ? '（即将自动结束）' : '' }}</text>
+      </a11y-button>
         <!-- 文字模式：输入框 + 表情 -->
         <template v-else>
           <input
@@ -341,6 +368,26 @@
           scroll-y
           class="emoji-scroll"
         >
+          <!-- 最近使用表情：最多 8 个，点击直接插入 -->
+          <view
+            v-if="recentEmojis.length > 0"
+            class="emoji-recent-row"
+          >
+            <text class="emoji-recent-label">最近使用</text>
+            <view class="emoji-recent-list">
+              <a11y-button
+                v-for="emoji in recentEmojis"
+                :key="`recent-${emoji}`"
+                class="emoji-item emoji-recent-item"
+                :label="`插入最近表情 ${emoji}`"
+                @tap="insertEmoji(emoji)"
+              >
+                <text aria-hidden="true">
+                  {{ emoji }}
+                </text>
+              </a11y-button>
+            </view>
+          </view>
           <view class="emoji-grid">
             <a11y-button
               v-for="emoji in EMOJI_LIST"
@@ -387,6 +434,35 @@
         </view>
       </view>
     </view>
+
+    <!-- 名片选择弹窗：替代 uni.showActionSheet，支持完整好友列表 -->
+    <a11y-dialog
+      :visible="cardPickerVisible"
+      title="选择好友"
+      @close="cardPickerVisible = false"
+    >
+      <view class="card-picker">
+        <view
+          v-for="c in cardContacts"
+          :key="c.userId"
+          class="card-contact-item"
+          @tap="selectCardContact(c)"
+        >
+          <smart-image
+            class="card-contact-avatar"
+            :src="resolveAvatar(c.avatar)"
+            mode="aspectFill"
+          />
+          <text class="card-contact-name">{{ c.nickname || c.userId }}</text>
+        </view>
+        <view
+          v-if="cardContacts.length === 0"
+          class="card-picker-empty"
+        >
+          <text>暂无好友可分享</text>
+        </view>
+      </view>
+    </a11y-dialog>
   </view>
 </template>
 
@@ -394,9 +470,11 @@
 import { ref, nextTick, onUnmounted } from "vue";
 import { onLoad, onHide } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
+import A11yDialog from "@/components/a11y-dialog.vue";
 import SmartImage from "@/components/smart-image.vue";
 import ErrorBoundary from "@/components/error-boundary.vue";
 import EmptyState from "@/components/empty-state.vue";
+import Skeleton from "@/components/skeleton.vue";
 import { useUserStore } from "@/store/user";
 import { uploadChatImage, uploadChatAudio, getContacts } from "@/api/chat";
 import { getUserProfile } from "@/api/mine";
@@ -428,6 +506,8 @@ const EMOJI_LIST: string[] = [
   "🌹", "🎉", "🔥", "✨", "😭", "😅", "🤔", "😎",
   "🙌", "💪", "🙏", "🤝", "💋", "🎁", "☕", "🌙",
 ];
+/** 最近使用表情（最多 8 个，持久化到 storage） */
+const recentEmojis = ref<string[]>([]);
 
 /** 更多面板快捷操作配置（表驱动） */
 interface QuickAction { uniIcon: string; label: string; bg: string; handler: () => void; }
@@ -508,10 +588,20 @@ const recorderManager = createRecorderManager();
 const playingVoiceId = ref("");
 /** 音频播放上下文（同一时刻仅一个） */
 let audioContext: UniApp.InnerAudioContext | null = null;
+/** 语音播放进度（秒，用于显示进度条） */
+const voicePlayProgress = ref(0);
+/** 语音总时长（秒，用于计算进度百分比） */
+const voicePlayDuration = ref(0);
 /** 录音起始时间戳（计算有效时长用） */
 let voiceStartAt = 0;
 /** 本次录音是否取消发送：onStop 同步读取（M-K2） */
 let voiceCancelFlag = false;
+/** 录音计时器（每秒更新显示时长） */
+let voiceTimer: ReturnType<typeof setInterval> | null = null;
+/** 当前录音已录秒数（驱动按钮显示与上限提示） */
+const voiceSeconds = ref(0);
+/** 接近上限提示阈值（剩余 10s 时提示） */
+const VOICE_WARN_SECONDS = 50;
 
 // 录音完成：上传 → 以 JSON 管道发送（type:"voice", url, duration）
 function onRecorderStop(res: any): void {
@@ -564,11 +654,25 @@ function startVoiceRecording(): void {
   isVoicePressing.value = true;
   voiceCancelFlag = false;
   voiceStartAt = Date.now();
+  // 启动计时器：每秒更新已录时长，接近上限时变色提示
+  voiceSeconds.value = 0;
+  voiceTimer = setInterval(() => {
+    voiceSeconds.value = Math.floor((Date.now() - voiceStartAt) / 1000);
+  }, 1000);
   try {
     recorderManager.start({ format: "mp3", duration: MAX_VOICE_DURATION_MS });
   } catch {
     isVoicePressing.value = false;
+    clearVoiceTimer();
     info("当前设备不支持录音");
+  }
+}
+
+/** 清理录音计时器（停止/异常/离页统一调用） */
+function clearVoiceTimer(): void {
+  if (voiceTimer) {
+    clearInterval(voiceTimer);
+    voiceTimer = null;
   }
 }
 
@@ -576,6 +680,7 @@ function startVoiceRecording(): void {
 function stopVoiceRecording(): void {
   if (!isVoicePressing.value) return;
   isVoicePressing.value = false;
+  clearVoiceTimer();
   try {
     recorderManager?.stop();
   } catch {
@@ -601,13 +706,16 @@ function showTimeDivider(index: number): boolean {
  */
 function formatChatTime(ts: number): string {
   const date = new Date(ts);
+  // 缓存 now：避免每条消息渲染都新建 Date 实例（长列表性能优化）
   const now = new Date();
   const hh = String(date.getHours()).padStart(2, "0");
   const mm = String(date.getMinutes()).padStart(2, "0");
-  if (date.toDateString() === now.toDateString()) return `${hh}:${mm}`;
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
-  if (date.toDateString() === yesterday.toDateString()) return `昨天 ${hh}:${mm}`;
+  // 用日期戳比较替代 toDateString()：避免字符串解析开销
+  const dateDay = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  if (dateDay === nowDay) return `${hh}:${mm}`;
+  const yesterdayDay = nowDay - 24 * 60 * 60 * 1000;
+  if (dateDay === yesterdayDay) return `昨天 ${hh}:${mm}`;
   const MM = String(date.getMonth() + 1).padStart(2, "0");
   const DD = String(date.getDate()).padStart(2, "0");
   if (date.getFullYear() !== now.getFullYear()) {
@@ -624,8 +732,8 @@ function scrollToBottom(): void {
   });
 }
 
-/** 单条文本消息最大长度：超长会撑破气泡布局且可能触发后端限制（BUG-07 收口） */
-const MAX_MESSAGE_LENGTH = 2000;
+/** 单条文本消息最大长度：与输入框 maxlength 统一为 500，避免输入框截断但校验仍报 2000 的矛盾 */
+const MAX_MESSAGE_LENGTH = 500;
 
 /** 发送文字消息 */
 async function sendText(): Promise<void> {
@@ -774,9 +882,17 @@ async function resendMessage(msg: Message): Promise<void> {
   await deliverMessage(msg);
 }
 
-/** 插入表情到输入框 */
+/** 插入表情到输入框，并记录到最近使用 */
 function insertEmoji(emoji: string): void {
   inputText.value += emoji;
+  // 更新最近使用：去重后取前 8 个
+  recentEmojis.value = [emoji, ...recentEmojis.value.filter((e) => e !== emoji)].slice(0, 8);
+  // 持久化到 storage，下次进入恢复
+  try {
+    uni.setStorageSync("chat_recent_emojis", recentEmojis.value);
+  } catch {
+    // 存储失败不影响主流程
+  }
 }
 
 /** 切换语音/文字输入模式 */
@@ -839,7 +955,16 @@ function openLocation(msg: Message): void {
   const lat = msg.extra?.latitude;
   const lng = msg.extra?.longitude;
   if (lat === undefined || lng === undefined) return;
+  // #ifdef H5
+  // H5 端 uni.openLocation 不支持，降级为复制地址 + 提示用户自行打开地图
+  uni.setClipboardData({
+    data: `${msg.content}（${lat},${lng}）`,
+    success: () => info("地址已复制，可在地图应用中搜索"),
+  });
+  // #endif
+  // #ifndef H5
   uni.openLocation({ latitude: lat, longitude: lng, name: msg.content });
+  // #endif
 }
 
 /** 选联系人并发送名片（从好友列表选取） */
@@ -848,24 +973,25 @@ async function chooseCardContact(): Promise<void> {
   try {
     const result = await getContacts({ page: 1, pagesize: 50 });
     const contacts = result.items || [];
-    if (contacts.length === 0) {
-      info("暂无好友可分享");
-      return;
-    }
-    uni.showActionSheet({
-      itemList: contacts.map((c) => c.nickname || c.userId).slice(0, 6),
-      success: (res) => {
-        const picked = contacts[res.tapIndex];
-        if (!picked) return;
-        pushMessage("card", picked.nickname || picked.userId, {
-          userId: picked.userId,
-          avatar: picked.avatar,
-        });
-      },
-    });
+    cardContacts.value = contacts;
+    cardPickerVisible.value = true;
   } catch {
     // request 层统一 toast
   }
+}
+
+/** 名片选择弹窗可见性 */
+const cardPickerVisible = ref(false);
+/** 名片选择联系人列表 */
+const cardContacts = ref<Array<{ userId: string; nickname: string; avatar: string }>>([]);
+
+/** 选中联系人并发送名片 */
+function selectCardContact(c: { userId: string; nickname: string; avatar: string }): void {
+  cardPickerVisible.value = false;
+  pushMessage("card", c.nickname || c.userId, {
+    userId: c.userId,
+    avatar: c.avatar,
+  });
 }
 
 /** 点击名片气泡：跳转对方主页 */
@@ -895,6 +1021,7 @@ function toggleVoicePlay(msg: Message): void {
   if (playingVoiceId.value === msg.id) {
     audioContext?.stop();
     playingVoiceId.value = "";
+    voicePlayProgress.value = 0;
     return;
   }
   audioContext?.destroy();
@@ -902,12 +1029,21 @@ function toggleVoicePlay(msg: Message): void {
   audioContext = ctx;
   ctx.src = msg.content;
   playingVoiceId.value = msg.id;
+  voicePlayProgress.value = 0;
+  // 从 extra.duration 读取总时长（语音消息发送时已记录）
+  voicePlayDuration.value = msg.extra?.duration || 0;
   ctx.play();
+  // 播放进度更新：每 500ms 刷新一次进度条
+  ctx.onTimeUpdate(() => {
+    voicePlayProgress.value = ctx.currentTime || 0;
+  });
   ctx.onEnded(() => {
     playingVoiceId.value = "";
+    voicePlayProgress.value = 0;
   });
   ctx.onError(() => {
     playingVoiceId.value = "";
+    voicePlayProgress.value = 0;
     fail("语音播放失败");
   });
 }
@@ -927,6 +1063,8 @@ let unregisterMessage: (() => void) | null = null;
 const historyLoaded = ref(false);
 /** 历史拉取失败标记：与「真的没有历史消息」的空白态区分，驱动错误空态 + 重试（S3） */
 const historyLoadFailed = ref(false);
+/** 历史消息加载中（驱动首屏骨架屏，避免空白感知为卡顿） */
+const historyLoading = ref(true);
 /** IM 连接失败标记：消息无法收发，显式错误态 + 重连入口（对齐客服页，禁止静默降级） */
 const imLoginFailed = ref(false);
 /** 已加载最旧消息的 seq（scrolltoupper 续拉起点，M-K4） */
@@ -973,6 +1111,7 @@ function appendReceivedWithTyping(msg: ReceivedMessage): void {
  * 重试只重拉历史：不重跑 IM 登录、不重复注册 onMessageReceived（监听在 onLoad 只注册一次）。
  */
 async function loadHistory(): Promise<void> {
+  historyLoading.value = true;
   const history = await getChatHistory(userId.value);
   // WuKongIM 直连登录后无凭证对象，我的 uid 即当前登录用户 ID（消息归属判断用）
   const myId = String(userStore.userInfo?.id ?? "");
@@ -998,6 +1137,7 @@ async function loadHistory(): Promise<void> {
   });
   // 合并完成后清空缓冲并切到实时通道：后续到达消息直接追加，重试也不会重复合并
   pendingMessages = [];
+  historyLoading.value = false;
   historyLoadFailed.value = false;
   historyLoaded.value = true;
   // 记录最旧消息 seq 作为续拉起点（history 已按时间正序，第一条最旧；M-K4）
@@ -1012,6 +1152,7 @@ async function retryLoadHistory(): Promise<void> {
     await loadHistory();
   } catch (err) {
     // catch 不空吞：保留错误空态 + ux 反馈（IM SDK 直连不走 request 层，无统一 toast）
+    historyLoading.value = false;
     historyLoadFailed.value = true;
     warn(`[chat] 历史消息重试失败，userId=${userId.value}, err=${String(err)}`);
     fail("历史消息加载失败，请稍后重试");
@@ -1072,6 +1213,14 @@ onLoad(async (options: any) => {
   userId.value = options?.userId || "";
   nickname.value = options?.nickname || "聊天";
   uni.setNavigationBarTitle({ title: nickname.value });
+
+  // 恢复最近使用表情
+  try {
+    const saved = uni.getStorageSync("chat_recent_emojis");
+    if (Array.isArray(saved)) recentEmojis.value = saved.filter((e) => typeof e === "string");
+  } catch {
+    // 读取失败不影响主流程
+  }
 
   // 当前用户头像
   myAvatar.value = resolveAvatar(userStore.userInfo?.avatar);
@@ -1154,6 +1303,8 @@ onHide(() => {
   audioContext?.stop();
   // 离页中断在途录音，避免跑到自动时长发出非预期语音（M-K2）
   if (isVoicePressing.value) onVoiceCancel();
+  // 离页清理计时器，避免页面隐藏后 setInterval 仍在跑
+  clearVoiceTimer();
 });
 
 onUnmounted(() => {
@@ -1204,7 +1355,7 @@ onUnmounted(() => {
 /* 时间分隔线底色走 --bg-card：写死 rgba(0,0,0,.05) 在暗色模式下是深灰底+灰字，
    对比度不足（--text-hint 在暗色下为 #a6a6a6） */
 .time-divider { display: flex; justify-content: center; margin: 16rpx 0 24rpx;
-  .time-text { font-size: 22rpx; color: var(--text-hint); background: var(--bg-card); padding: 6rpx 24rpx; border-radius: 24rpx; }
+  .time-text { font-size: 22rpx; color: var(--text-hint); background: var(--bg-card); padding: 8rpx 28rpx; border-radius: var(--radius-pill); box-shadow: 0 1rpx 4rpx rgba(0, 0, 0, 0.04); }
 }
 
 /* 历史加载失败重试按钮：default 变体零样式，这里补品牌色，颜色全走 CSS 变量适配暗色 */
@@ -1215,7 +1366,7 @@ onUnmounted(() => {
 /* ===== 对方正在输入提示 ===== */
 .typing-indicator { display: flex; align-items: center; margin-bottom: 20rpx; animation: fadeIn 0.2s ease-out; }
 .load-more-history { text-align: center; padding: 16rpx 0; color: var(--text-hint); font-size: var(--fs-sm); }
-.typing-btn { display: flex; align-items: center; gap: 12rpx; min-height: 72rpx; padding: 8rpx 20rpx 8rpx 8rpx; background: var(--bg-card); border-radius: 40rpx; box-shadow: var(--shadow-card); }
+.typing-btn { display: flex; align-items: center; gap: 12rpx; min-height: 72rpx; padding: 8rpx 20rpx 8rpx 8rpx; background: var(--bg-card); border-radius: var(--radius-pill); box-shadow: var(--shadow-card); }
 .typing-avatar { width: 56rpx; height: 56rpx; border-radius: 50%; background: var(--border-light); flex-shrink: 0; }
 .typing-bubble { display: flex; align-items: center; padding: 0 8rpx; }
 .typing-dots { display: flex; align-items: center; gap: 6rpx; }
@@ -1253,10 +1404,15 @@ onUnmounted(() => {
      对方头像在左→左上角收小 8rpx；我的头像在右→右上角收小；其余三角 32rpx 大圆角。
      min-width:0 + 断行：长文本/连续英文/URL 收在气泡内，否则会撑破 flex 容器导致页面横向滚动。
      扁平无阴影，靠白/粉底与灰底的色差区分（对标探探） */
-  .bubble { position: relative; min-width: 0; overflow-wrap: anywhere; padding: 20rpx 24rpx; border-radius: 8rpx 32rpx 32rpx 32rpx; background: var(--bg-card); font-size: 28rpx; line-height: 1.5; color: var(--text-primary);
+  .bubble { position: relative; min-width: 0; overflow-wrap: anywhere; padding: 20rpx 24rpx; border-radius: var(--radius-sm) var(--radius-xl) var(--radius-xl) var(--radius-xl); background: var(--bg-card); font-size: 28rpx; line-height: 1.5; color: var(--text-primary);
+    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
     /* 我的消息：纯品牌粉实心（无渐变）+ 白字，右上角收小靠头像侧 */
-    &.mine { background: var(--color-primary); color: var(--text-inverse); border-radius: 32rpx 8rpx 32rpx 32rpx; }
-    .msg-image { max-width: 360rpx; border-radius: 12rpx; display: block; }
+    &.mine { background: var(--color-primary); color: var(--text-inverse); border-radius: var(--radius-xl) var(--radius-sm) var(--radius-xl) var(--radius-xl); box-shadow: 0 2rpx 12rpx rgba(var(--color-primary-rgb), 0.25); }
+    .msg-image { max-width: 360rpx; border-radius: var(--radius-sm); display: block; }
+    /* 上传中遮罩：半透明黑底 + 居中提示，避免用户误以为已发送 */
+    .image-uploading-mask { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center;
+      .image-uploading-text { font-size: 24rpx; color: var(--text-inverse); }
+    }
 
     /* 语音气泡 */
     .msg-voice { display: flex; align-items: center; gap: 12rpx; min-width: 180rpx;
@@ -1266,6 +1422,10 @@ onUnmounted(() => {
         &.playing .wave-bar { animation: wave 0.8s ease-in-out infinite; }
       }
       .voice-duration { font-size: 24rpx; opacity: 0.85; }
+      /* 播放进度条：底部细条，播放中显示 */
+      .voice-progress { position: absolute; bottom: 8rpx; left: 20rpx; right: 20rpx; height: 4rpx; background: rgba(128, 128, 128, 0.3); border-radius: 2rpx; overflow: hidden;
+        .voice-progress-bar { height: 100%; background: currentColor; border-radius: 2rpx; transition: width 0.3s linear; }
+      }
     }
 
     /* 位置气泡 */
@@ -1301,14 +1461,18 @@ onUnmounted(() => {
 }
 /* 发送按钮：与 icon-btn 同位切换，gap 已提供间距，仅防 flex 压缩 */
 .send-btn { flex-shrink: 0; }
-.text-input { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; transition: background 0.2s, box-shadow 0.2s;
-  &.focus { background: var(--bg-card); box-shadow: 0 0 0 3rpx rgba(var(--color-primary-rgb), 0.35); }
+.text-input { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: var(--radius-pill); padding: 0 28rpx; font-size: 28rpx; transition: background 0.2s, box-shadow 0.2s;
+  &.focus { background: var(--bg-card); box-shadow: 0 0 0 3rpx rgba(var(--color-primary-rgb), 0.2), 0 2rpx 8rpx rgba(var(--color-primary-rgb), 0.08); }
 }
 /* placeholder 颜色：与 change-phone/verify 等页面对齐，走 --text-hint */
 .ph { color: var(--text-hint); }
 /* 语音按钮：a11y-button default 变体（88rpx 热区），视觉由页面控制 */
-.voice-btn { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; display: flex; align-items: center; justify-content: center; font-size: 28rpx; color: var(--text-secondary);
+.voice-btn { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: var(--radius-pill); display: flex; align-items: center; justify-content: center; font-size: 28rpx; color: var(--text-secondary);
   &:active { background: var(--border); }
+  /* 录音中接近上限：文字变危险色提示用户主动停止 */
+  &.recording {
+    color: var(--color-danger);
+  }
 }
 
 /* ===== 底部面板 ===== */
@@ -1318,9 +1482,25 @@ onUnmounted(() => {
 .emoji-grid { display: flex; flex-wrap: wrap; padding: 16rpx 12rpx; }
 /* height 88rpx：满足 44px 最小可点击热区（原 80rpx≈40px 不达标），宽度 12.5% 一行 8 个不变 */
 .emoji-item { width: 12.5%; height: 88rpx; display: flex; align-items: center; justify-content: center; font-size: 44rpx; }
+/* 最近使用表情行 */
+.emoji-recent-row { padding: 16rpx 12rpx 0;
+  .emoji-recent-label { font-size: 22rpx; color: var(--text-hint); display: block; margin-bottom: 8rpx; padding-left: 4rpx; }
+  .emoji-recent-list { display: flex; flex-wrap: wrap; }
+  .emoji-recent-item { width: 12.5%; }
+}
 
 .more-grid { display: flex; flex-wrap: wrap; padding: 36rpx 16rpx; }
 .more-item { width: 25%; display: flex; flex-direction: column; align-items: center; gap: 14rpx; }
-.more-icon { width: 104rpx; height: 104rpx; border-radius: 24rpx; display: flex; align-items: center; justify-content: center; font-size: 44rpx; box-shadow: var(--shadow-float); }
+.more-icon { width: 104rpx; height: 104rpx; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; font-size: 44rpx; box-shadow: var(--shadow-float); }
 .more-label { font-size: 24rpx; color: var(--text-secondary); }
+
+/* 名片选择弹窗 */
+.card-picker { max-height: 60vh; overflow-y: auto; padding: 16rpx 0;
+  .card-contact-item { display: flex; align-items: center; padding: 20rpx 24rpx; min-height: 88rpx;
+    &:active { background: var(--bg-sub); }
+  }
+  .card-contact-avatar { width: 72rpx; height: 72rpx; border-radius: 50%; flex-shrink: 0; background: var(--bg-sub); }
+  .card-contact-name { margin-left: 20rpx; font-size: 28rpx; color: var(--text-primary); flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .card-picker-empty { text-align: center; padding: 48rpx 0; color: var(--text-hint); font-size: 26rpx; }
+}
 </style>
