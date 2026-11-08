@@ -10,7 +10,7 @@ export interface LoginResult {
 
 /**
  * 发送短信验证码
- * 对接后端: POST /auth/sms（xfjy-sso 服务）
+ * 对接后端: POST /user/sendCode（xfjy-sso 服务，网关 /user/** 路由）
  */
 export function sendSmsCode(phone: string): Promise<void> {
   return post<void>("/user/sendCode", { phone });
@@ -18,7 +18,7 @@ export function sendSmsCode(phone: string): Promise<void> {
 
 /**
  * 手机号 + 验证码登录/注册
- * 对接后端: POST /user/loginVerification（xfjy-sso 服务）
+ * 对接后端: POST /user/loginVerification（xfjy-sso 服务，网关 /user/** 路由）
  */
 export function login(phone: string, code: string): Promise<LoginResult> {
   return post<LoginResult>("/user/loginVerification", { phone, code });
@@ -26,7 +26,7 @@ export function login(phone: string, code: string): Promise<LoginResult> {
 
 /**
  * 换绑手机号（需验证新手机号的短信验证码）
- * 对接后端: PUT /user/phone（xfjy-sso 服务）
+ * 对接后端: PUT /user/phone（xfjy-sso 服务，网关 /user/** 路由）
  * 失败状态码：403 验证码错误 / 409 手机号已被占用
  */
 export function changePhone(phone: string, code: string): Promise<void> {
