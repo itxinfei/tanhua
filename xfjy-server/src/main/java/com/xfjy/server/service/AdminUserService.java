@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xfjy.service.api.QuanZiApi;
+import com.xfjy.service.api.PayApi;
 import com.xfjy.service.api.UserApi;
 import com.xfjy.service.api.UserInfoApi;
 import com.xfjy.service.api.UserLikeApi;
@@ -13,6 +14,7 @@ import com.xfjy.service.api.WuKongImApi;
 import com.xfjy.service.enums.SexEnum;
 import com.xfjy.service.pojo.UserInfo;
 import com.xfjy.service.pojo.UserLike;
+import com.xfjy.service.pojo.UserVip;
 import com.xfjy.service.vo.PageInfo;
 import com.xfjy.service.vo.UserInfoQueryParam;
 import com.xfjy.server.dto.AdminProfileUpdateDTO;
@@ -74,6 +76,9 @@ public class AdminUserService {
 
     @Autowired
     private UserLikeApi userLikeApi;
+
+    @Autowired
+    private PayApi payApi;
 
     /**
      * 关系链时间格式化：DateTimeFormatter 线程安全，统一 Asia/Shanghai（AGENTS §13.4 禁用 SimpleDateFormat）。
@@ -219,16 +224,29 @@ public class AdminUserService {
             item.put("gender", userInfo.getSex() != null ? userInfo.getSex().toString() : "未知");
             item.put("age", userInfo.getAge());
             item.put("city", userInfo.getCity());
-            item.put("vipLevel", 0); //VIP功能待实现
+            item.put("vipLevel", queryVipLevelSafe(user.getId()));
         } else {
             item.put("nickname", "用户" + user.getId());
             item.put("avatar", "");
             item.put("gender", "未知");
             item.put("age", 0);
             item.put("city", "");
-            item.put("vipLevel", 0);
+            item.put("vipLevel", queryVipLevelSafe(user.getId()));
         }
         return item;
+    }
+
+    /**
+     * 查询用户 VIP 等级（pay-service），接口不可用或非会员时降级为 0
+     */
+    private int queryVipLevelSafe(Long userId) {
+        try {
+            UserVip userVip = this.payApi.queryVipStatus(userId);
+            return userVip != null && userVip.getLevel() != null ? userVip.getLevel() : 0;
+        } catch (Exception e) {
+            log.warn("[AdminUser] pay-service VIP 等级查询失败, userId={}, 降级为0", userId, e);
+            return 0;
+        }
     }
 
     /**
@@ -306,7 +324,7 @@ public class AdminUserService {
             item.put("followingCount", 0L);
             item.put("matchCount", 0L);
         }
-        item.put("vipLevel", 0); // VIP功能待实现
+        item.put("vipLevel", queryVipLevelSafe(userId));
 
         return item;
     }
