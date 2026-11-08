@@ -115,8 +115,8 @@ export function prefetchRecommendVideos(): Promise<Video[]> {
   if (prefetchInFlight) return prefetchInFlight;
   if (!getToken()) return Promise.resolve([]);
 
-  // 迁移期双传（pageSize 为新契约、pagesize 兼容存量网关），xfjy-server 上线后删除 pagesize
-  prefetchInFlight = getVideoList({ page: 1, pageSize: VIDEO_FIRST_PAGE_SIZE, pagesize: VIDEO_FIRST_PAGE_SIZE })
+  // 新契约：仅传 pageSize（后端 xfjy-server 已上线）
+  prefetchInFlight = getVideoList({ page: 1, pageSize: VIDEO_FIRST_PAGE_SIZE })
     .then((res) => {
       const items = (res?.items || []) as Video[];
       if (items.length) writeVideoCache("recommend", items);
