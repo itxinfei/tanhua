@@ -88,7 +88,27 @@
           开通后立即生效
         </text>
       </view>
+      <!-- 空态：套餐列表为空时给出明确提示，而非静默空白 -->
+      <view
+        v-if="packages.length === 0 && !loadError"
+        class="plans-empty"
+      >
+        <text class="plans-empty-icon i-ph-package" />
+        <text class="plans-empty-text">
+          暂无可用套餐，请稍后再试
+        </text>
+        <a11y-button
+          class="plans-empty-btn"
+          label="刷新套餐列表"
+          variant="ghost"
+          size="sm"
+          @tap="loadVipData"
+        >
+          刷新
+        </a11y-button>
+      </view>
       <a11y-radio-group
+        v-else
         class="plans"
         label="会员套餐"
         :options="planOptions"
@@ -114,6 +134,12 @@
           </text>
           <text class="plan-unit">
             {{ option.unit }}
+          </text>
+          <text
+            v-if="option.saved > 0"
+            class="plan-saved"
+          >
+            已省¥{{ option.saved }}
           </text>
         </template>
       </a11y-radio-group>
@@ -147,7 +173,10 @@
               {{ b.description }}
             </text>
           </view>
-          <text class="vip">
+          <text
+            class="vip"
+            :class="{ 'vip--current': b.vipLevelRequired <= currentVipLevel }"
+          >
             VIP{{ b.vipLevelRequired }}+
           </text>
         </view>
@@ -192,6 +221,11 @@
         :disabled="paying || !selectedId"
         @tap="handlePay"
       >
+        <!-- 扫光层：真实子元素（不再依赖自定义组件宿主节点的 ::after，MP 端也可渲染） -->
+        <view
+          class="pay-shine"
+          aria-hidden="true"
+        />
         <text class="pay-btn-text">
           {{ paying ? "支付中…" : selectedId ? `立即开通 ¥${currentPlan?.priceYuan || 0}` : "请选择套餐" }}
         </text>
@@ -244,8 +278,11 @@ const loadError = ref(false);
 const plans = computed(() =>
   packages.value.map((p) => {
     const priceYuan = Number((p.price / 100).toFixed(2));
+    const originalPriceYuan = p.originalPrice ? Number((p.originalPrice / 100).toFixed(2)) : null;
     const months = Math.max(1, Math.round(p.durationDays / 30));
     const perMonth = String(parseFloat((priceYuan / months).toFixed(2)));
+    // 节省金额：原价 - 现价（仅年卡/季卡有原价）
+    const saved = originalPriceYuan ? originalPriceYuan - priceYuan : 0;
     let tag = "";
     if (p.durationDays >= 365) {
       tag = "最划算";
@@ -257,6 +294,8 @@ const plans = computed(() =>
       name: p.name,
       level: p.level,
       priceYuan,
+      originalPriceYuan,
+      saved,
       unit: `¥${perMonth}/月`,
       tag,
     };
@@ -295,6 +334,9 @@ const vipInfo = computed(() => {
   }
   return { isVip, levelName, expireText };
 });
+
+/** 当前用户 VIP 等级（0=未开通），用于权益矩阵高亮已解锁项 */
+const currentVipLevel = computed(() => vipStatus.value?.level ?? 0);
 
 /** 拉取套餐列表与会员状态：allSettled 各请求独立容错，单个接口失败不清空其它数据 */
 async function loadVipData(): Promise<void> {
@@ -423,9 +465,35 @@ onLoad(() => {
 }
 
 /* ===== 加载失败态 ===== */
-.load-error { margin: 24rpx 32rpx 0; padding: 40rpx; text-align: center; background: rgba(255, 255, 255, 0.06); border: 1rpx solid rgba(255, 215, 0, 0.3); border-radius: 24rpx;
-  .load-error-text { font-size: 26rpx; color: rgba(255, 215, 0, 0.8); display: block; }
-  .retry-btn { margin-top: 24rpx; display: inline-flex; align-items: center; justify-content: center; min-height: 88rpx; font-size: 26rpx; color: var(--bg-deep); background: linear-gradient(135deg, var(--gold), var(--gold-soft)); border-radius: 999rpx; padding: 0 56rpx; font-weight: bold; border: none; }
+.load-error {
+  margin: 24rpx 32rpx 0;
+  padding: 40rpx;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1rpx solid rgba(var(--gold-rgb), 0.3);
+  border-radius: var(--radius-lg);
+
+  .load-error-text {
+    font-size: 26rpx;
+    color: rgba(var(--gold-rgb), 0.8);
+    display: block;
+  }
+
+  /* 错误恢复按钮：ghost 变体（金色描边），与主支付按钮区分层级 */
+  .retry-btn {
+    margin-top: 24rpx;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 88rpx;
+    font-size: 26rpx;
+    color: var(--gold);
+    background: transparent;
+    border: 2rpx solid rgba(var(--gold-rgb), 0.5);
+    border-radius: var(--radius-pill);
+    padding: 0 56rpx;
+    font-weight: bold;
+  }
 }
 
 /* ===== 顶部权益区 ===== */
@@ -435,9 +503,9 @@ onLoad(() => {
       /* UnoCSS mask 图标：font-size 控制图标尺寸，color 控制填充色，mask 图标天然视觉居中 */
       .back-icon { font-size: 44rpx; color: rgba(255, 255, 255, 0.95); line-height: 1; }
     }
-  .crown { font-size: 48rpx; display: block; margin-bottom: 6rpx; filter: drop-shadow(0 6rpx 16rpx rgba(255, 215, 0, 0.6)); }
+  .crown { font-size: 48rpx; display: block; margin-bottom: 6rpx; filter: drop-shadow(0 6rpx 16rpx rgba(var(--gold-rgb), 0.6)); }
   .title { font-size: 40rpx; font-weight: 900; display: block; letter-spacing: 6rpx; }
-  .subtitle { font-size: 24rpx; color: rgba(255, 215, 0, 0.8); margin-top: 8rpx; display: block; letter-spacing: 2rpx; }
+  .subtitle { font-size: 24rpx; color: rgba(var(--gold-rgb), 0.8); margin-top: 8rpx; display: block; letter-spacing: 2rpx; }
 }
 
 /* 金色渐变文字 */
@@ -455,23 +523,23 @@ onLoad(() => {
 
 /* 装饰光斑 */
 .glow-circle { position: absolute; border-radius: 50%; filter: blur(80rpx); pointer-events: none;
-  &.c1 { width: 360rpx; height: 360rpx; background: rgba(255, 215, 0, 0.15); top: -80rpx; left: -100rpx; }
+  &.c1 { width: 360rpx; height: 360rpx; background: rgba(var(--gold-rgb), 0.15); top: -80rpx; left: -100rpx; }
   &.c2 { width: 280rpx; height: 280rpx; background: rgba(var(--color-primary-rgb), 0.1); bottom: -60rpx; right: -80rpx; }
 }
 
 /* ===== 会员状态卡 ===== */
-.vip-status-card { margin: 24rpx 32rpx 0; background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 179, 71, 0.12)); border: 1rpx solid rgba(255, 215, 0, 0.4); border-radius: 24rpx; padding: 28rpx 32rpx; display: flex; align-items: center; gap: 20rpx; box-shadow: 0 8rpx 32rpx rgba(255, 215, 0, 0.12);
+.vip-status-card { margin: 24rpx 32rpx 0; background: linear-gradient(135deg, rgba(var(--gold-rgb), 0.2), rgba(var(--gold-soft-rgb), 0.12)); border: 1rpx solid rgba(var(--gold-rgb), 0.4); border-radius: var(--radius-lg); padding: 28rpx 32rpx; display: flex; align-items: center; gap: 20rpx; box-shadow: 0 8rpx 32rpx rgba(var(--gold-rgb), 0.12);
   .status-icon { font-size: 44rpx; }
   .status-text { display: flex; flex-direction: column; gap: 6rpx; }
   .status-level { font-size: 30rpx; color: var(--gold); font-weight: bold; }
-  .status-expire { font-size: 22rpx; color: rgba(255, 215, 0, 0.8); }
+  .status-expire { font-size: 22rpx; color: rgba(var(--gold-rgb), 0.8); }
 }
 
 /* ===== 权益对比 ===== */
-.benefits-card { margin: 0 32rpx; background: rgba(255, 255, 255, 0.06); border-radius: 24rpx; padding: 8rpx 24rpx 24rpx; border: 1rpx solid rgba(255, 215, 0, 0.12); backdrop-filter: blur(12px); }
+.benefits-card { margin: 0 32rpx; background: rgba(255, 255, 255, 0.06); border-radius: var(--radius-lg); padding: 8rpx 24rpx 24rpx; border: 1rpx solid rgba(var(--gold-rgb), 0.12); backdrop-filter: blur(12px); }
 .shadow-gold { box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.2); }
 
-.benefit-head { display: flex; align-items: center; padding: 20rpx 0 12rpx; border-bottom: 1rpx solid rgba(255, 215, 0, 0.2);
+.benefit-head { display: flex; align-items: center; padding: 20rpx 0 12rpx; border-bottom: 1rpx solid rgba(var(--gold-rgb), 0.2);
   /* 深色底上原 0.4/0.5 透明度仅约 2–3:1，统一提亮至 ≥4.5:1 */
   .head-name { flex: 1; font-size: 22rpx; color: rgba(255, 255, 255, 0.78); }
   .head-vip { width: 160rpx; text-align: center; font-size: 22rpx; color: var(--gold); font-weight: bold; }
@@ -482,7 +550,10 @@ onLoad(() => {
   .benefit-info { flex: 1; display: flex; flex-direction: column; gap: 6rpx; }
   .benefit-name { font-size: 28rpx; color: var(--text-inverse); font-weight: 500; }
   .benefit-desc { font-size: 22rpx; color: rgba(255, 255, 255, 0.7); }
-  .vip { width: 160rpx; text-align: center; font-size: 24rpx; color: var(--gold); font-weight: bold; }
+  .vip { width: 160rpx; text-align: center; font-size: 24rpx; color: var(--gold); font-weight: bold;
+    /* 已解锁权益：更高对比度的金色 + 微光晕，让用户一眼看到"我已拥有" */
+    &--current { color: var(--gold-light); text-shadow: 0 0 8rpx rgba(var(--gold-rgb), 0.4); }
+  }
 }
 
 /* ===== 套餐选择 ===== */
@@ -491,6 +562,36 @@ onLoad(() => {
 .section-hint { font-size: 22rpx; color: rgba(255, 255, 255, 0.55); }
 
 .plans { display: flex; gap: 20rpx; margin: 20rpx 32rpx 24rpx; }
+
+/* 套餐空态：与错误态同风格，但用中性色（非警告红） */
+.plans-empty {
+  margin: 20rpx 32rpx 24rpx;
+  padding: 48rpx 32rpx;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1rpx solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-lg);
+
+  .plans-empty-icon {
+    display: block;
+    font-size: 64rpx;
+    color: rgba(255, 255, 255, 0.4);
+    margin-bottom: 16rpx;
+  }
+
+  .plans-empty-text {
+    display: block;
+    font-size: 26rpx;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 24rpx;
+  }
+
+  .plans-empty-btn {
+    /* ghost 变体：透明底 + 金色描边，与深色背景协调 */
+    color: var(--gold);
+    border-color: rgba(var(--gold-rgb), 0.5);
+  }
+}
 
 /* 选项节点由 a11y-radio-group 内部渲染，页面 scoped 样式必须 :deep 穿透，
    否则卡片外观/选中态全部丢失，plan-tag 也会因失去 relative 锚点飘到页顶 */
@@ -509,7 +610,7 @@ onLoad(() => {
 .service-note {
   margin: 32rpx 8rpx 8rpx;
   padding: 24rpx;
-  border-radius: 20rpx;
+  border-radius: var(--radius-lg);
   background: rgba(255, 255, 255, 0.05);
   border: 1rpx solid rgba(255, 255, 255, 0.08);
 
@@ -550,14 +651,16 @@ onLoad(() => {
 
 .plans :deep(.plan-card) {
   /* min-width:0：长套餐名/标签才能约束在卡内，不撑宽卡片挤掉间距与留白 */
-  flex: 1 1 0; min-width: 0; background: rgba(255, 255, 255, 0.06); border-radius: 24rpx; padding: 36rpx 12rpx 24rpx; text-align: center; position: relative; border: 2rpx solid rgba(255, 255, 255, 0.08); transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  &.active { border-color: var(--gold); background: linear-gradient(180deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05)); box-shadow: 0 0 32rpx rgba(255, 215, 0, 0.2), inset 0 1rpx 0 rgba(255, 255, 255, 0.1); transform: translateY(-8rpx); }
+  flex: 1 1 0; min-width: 0; background: rgba(255, 255, 255, 0.06); border-radius: var(--radius-lg); padding: 36rpx 12rpx 24rpx; text-align: center; position: relative; border: 2rpx solid rgba(255, 255, 255, 0.08); transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  &.active { border-color: var(--gold); background: linear-gradient(180deg, rgba(var(--gold-rgb), 0.15), rgba(var(--gold-rgb), 0.05)); box-shadow: 0 0 32rpx rgba(var(--gold-rgb), 0.2), inset 0 1rpx 0 rgba(255, 255, 255, 0.1); transform: translateY(-8rpx); }
 }
 .plan-card {
-  .plan-tag { position: absolute; top: -20rpx; left: 50%; transform: translateX(-50%); background: linear-gradient(90deg, var(--gold), var(--gold-soft)); color: var(--bg-deep); font-size: 20rpx; font-weight: bold; padding: 6rpx 20rpx; border-radius: 999rpx; white-space: nowrap; z-index: 1; box-shadow: 0 4rpx 12rpx rgba(255, 215, 0, 0.3); }
+  .plan-tag { position: absolute; top: -20rpx; left: 50%; transform: translateX(-50%); background: linear-gradient(90deg, var(--gold), var(--gold-soft)); color: var(--bg-deep); font-size: 20rpx; font-weight: bold; padding: 6rpx 20rpx; border-radius: var(--radius-pill); white-space: nowrap; z-index: 1; box-shadow: 0 4rpx 12rpx rgba(var(--gold-rgb), 0.3); }
   .plan-name { font-size: 28rpx; color: rgba(255, 255, 255, 0.9); display: block; font-weight: 500; }
-  .plan-price { font-size: 52rpx; font-weight: 900; color: var(--gold); display: block; margin: 16rpx 0 8rpx; text-shadow: 0 2rpx 8rpx rgba(255, 215, 0, 0.3); }
+  .plan-price { font-size: 52rpx; font-weight: 900; color: var(--gold); display: block; margin: 16rpx 0 8rpx; text-shadow: 0 2rpx 8rpx rgba(var(--gold-rgb), 0.3); }
   .plan-unit { font-size: 22rpx; color: rgba(255, 255, 255, 0.6); display: block; }
+  /* 节省金额：绿色标签，让用户感受到"赚到了" */
+  .plan-saved { display: inline-block; margin-top: 12rpx; padding: 4rpx 16rpx; background: var(--success); color: var(--text-inverse); font-size: 20rpx; font-weight: bold; border-radius: var(--radius-sm); }
 }
 
 /* ===== 底部固定支付栏 =====
@@ -570,7 +673,7 @@ onLoad(() => {
   right: 0;
   bottom: var(--tab-bar-height, 0px);
   padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom, 0px));
-  background: rgba(26, 26, 46, 0.92);
+  background: var(--bg-deep);
   backdrop-filter: blur(20px);
   box-shadow: 0 -8rpx 32rpx rgba(0, 0, 0, 0.3);
   z-index: 100;
@@ -588,21 +691,9 @@ onLoad(() => {
   font-size: 36rpx;
   font-weight: 900;
   letter-spacing: 2rpx;
-  box-shadow: 0 12rpx 36rpx rgba(255, 179, 71, 0.45), inset 0 2rpx 0 rgba(255, 255, 255, 0.3);
+  box-shadow: 0 12rpx 36rpx rgba(var(--gold-soft-rgb), 0.45), inset 0 2rpx 0 rgba(255, 255, 255, 0.3);
   position: relative;
   overflow: hidden;
-
-  /* 微光扫过动画 */
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    animation: shimmer 3s infinite;
-  }
 
   /* 禁用态：仅停微光动画，透明度/阴影由 variant 系统统一处理。
      但 global variant 的 opacity:0.4 在金色渐变上会让深色文字几乎不可见，
@@ -611,9 +702,23 @@ onLoad(() => {
     opacity: 0.6;
     filter: saturate(0.6);
   }
-  &.a11y-btn--disabled::after {
+  &.a11y-btn--disabled .pay-shine {
     animation: none;
   }
+}
+
+/* 微光扫过动画：独立子元素，只动 transform，避免逐帧触发布局 */
+.pay-shine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transform: translateX(-100%);
+  will-change: transform;
+  animation: shimmer 3s linear infinite;
+  pointer-events: none;
 }
 
 .pay-btn-text {
@@ -622,7 +727,14 @@ onLoad(() => {
 }
 
 @keyframes shimmer {
-  0% { left: -100%; }
-  50%, 100% { left: 100%; }
+  0% { transform: translateX(-100%); }
+  50%, 100% { transform: translateX(100%); }
+}
+
+/* 尊重系统「减弱动态效果」：停掉 CTA 扫光（小程序端 WXSS 忽略该媒体查询） */
+@media (prefers-reduced-motion: reduce) {
+  .pay-shine {
+    animation: none;
+  }
 }
 </style>

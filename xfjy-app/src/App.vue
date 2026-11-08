@@ -15,6 +15,7 @@ import {
 } from "@/utils/network-monitor";
 import { ensureSelfIM, isIMLoggedIn, onMatchReceived } from "@/utils/wukongim";
 import { initPush } from "@/utils/push";
+import { requestPermission } from "@/utils/notification";
 import { useMatchStore } from "@/store/match";
 import { resolveAvatar } from "@/utils/avatar";
 import { prefetchRecommendVideos } from "@/utils/video-cache";
@@ -75,6 +76,9 @@ onShow(() => {
   if (!getToken()) return;
   // 上报设备推送标识（APP-PLUS 端；未集成极光原生插件时静默跳过，幂等）
   initPush();
+  // 请求本地通知权限（H5 Web Notification / MP 订阅消息）
+  // 仅首次或权限未定时请求，已授权/已拒绝不再弹
+  requestPermission().catch(() => {});
   // WuKongIM 登录（幂等）：凭证优先由服务端签发（GET /messages/im/credential），
   // 不再在前端按 userId 派生可预测 token，避免顶号/冒充风险
   if (isIMLoggedIn()) return;
@@ -611,9 +615,10 @@ scroll-view {
   }
 }
 
-/* ===== 页面浮层/加载动画唯一真源（页面禁止自行复制 keyframes） =====
-   与 shimmer 同理：slideUp / spin / fadeIn 原为 a11y-picker、chat、kefu/chat、
-   video、vip 各自重复定义，现收口到全局。页面直接 animation: slideUp ... 即可。 */
+/* ===== 页面浮层/加载动画公共关键帧（新代码优先复用，勿再新增同义副本） =====
+   slideUp / spin / fadeIn / shimmer 收口在此，页面直接 animation: slideUp ... 即可。
+   scoped 样式会给本地同名 keyframes 加 hash（如 shimmer-784bec3b），故页面内
+   已有的同名定义不会互相覆盖，但不应再复制新的。 */
 @keyframes slideUp {
   from {
     transform: translateY(100%);

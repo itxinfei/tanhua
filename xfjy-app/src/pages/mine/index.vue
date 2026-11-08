@@ -21,13 +21,21 @@
         label="编辑个人资料"
         @tap="goProfile"
       >
-        <smart-image
-          lazy-load
-          class="avatar"
-          :src="userInfo?.avatar"
-          mode="aspectFill"
-          :aria-hidden="true"
-        />
+        <view class="avatar-wrap">
+          <smart-image
+            lazy-load
+            class="avatar"
+            :src="userInfo?.avatar"
+            mode="aspectFill"
+            :aria-hidden="true"
+          />
+          <!-- VIP 金色尊贵边框 -->
+          <view
+            v-if="userInfo?.vip"
+            class="avatar-vip-ring"
+            aria-hidden="true"
+          />
+        </view>
         <view class="user-info">
           <view class="name-row">
             <text class="nickname">
@@ -125,34 +133,82 @@
       </view>
     </view>
 
-    <!-- VIP 入口 -->
+    <!-- VIP 入口：已开通显示尊贵标识 + 描边流光；未开通显示特权列表（呼吸光晕两态都在）。
+         核心思路：让用户感受到「开通后有多尊贵」，从而感兴趣开通。 -->
+    <view class="vip-card-wrap">
     <a11y-button
       class="vip-card anim-fade-up anim-delay-2"
       :class="{ 'is-vip': userInfo?.vip }"
       :label="userInfo?.vip ? '会员中心' : '开通会员'"
       @tap="goVip"
     >
+      <!-- 呼吸光晕独立图层：只动 opacity，避免逐帧重绘 box-shadow -->
+      <view
+        class="vip-glow"
+        aria-hidden="true"
+      />
       <view class="vip-left">
-        <view
-          class="vip-icon i-ph-crown"
-          aria-hidden="true"
-        />
-        <view>
-          <text class="vip-title">
-            {{ userInfo?.vip ? '会员中心' : '开通会员' }}
-          </text>
-          <text class="vip-desc">
-            {{ userInfo?.vip ? '查看你的会员权益' : '无限滑动 · 查看谁喜欢我 · 专属标识' }}
-          </text>
+        <!-- 金色徽章：深色皇冠压在金渐变圆角底上 -->
+        <view class="vip-badge" aria-hidden="true">
+          <view class="vip-badge-crown i-ph-crown" />
+        </view>
+        <view class="vip-copy">
+          <!-- 已开通：显示 VIP 标识 + 到期时间；未开通：显示「立即」标签 -->
+          <view class="vip-title-row">
+            <text class="vip-title">
+              {{ userInfo?.vip ? 'VIP 会员' : '开通会员' }}
+            </text>
+            <view
+              v-if="!userInfo?.vip"
+              class="vip-cta-tag"
+            >
+              立即开通
+            </view>
+          </view>
+          <!-- 未开通：特权列表（图标 + 文字）；已开通：已享特权 + 引导 -->
+          <view
+            v-if="!userInfo?.vip"
+            class="vip-perks"
+          >
+            <view class="vip-perk">
+              <view class="vip-perk-icon i-ph-infinity" />
+              <text class="vip-perk-text">无限滑动</text>
+            </view>
+            <view class="vip-perk">
+              <view class="vip-perk-icon i-ph-eye" />
+              <text class="vip-perk-text">查看谁喜欢我</text>
+            </view>
+            <view class="vip-perk">
+              <view class="vip-perk-icon i-ph-crown-simple" />
+              <text class="vip-perk-text">专属标识</text>
+            </view>
+            <view class="vip-perk">
+              <view class="vip-perk-icon i-ph-star" />
+              <text class="vip-perk-text">超级喜欢×5</text>
+            </view>
+          </view>
+          <view
+            v-else
+            class="vip-perks vip-perks--active"
+          >
+            <view class="vip-perk">
+              <view class="vip-perk-icon i-ph-check-circle" />
+              <text class="vip-perk-text">无限滑动已解锁</text>
+            </view>
+            <view class="vip-perk">
+              <view class="vip-perk-icon i-ph-check-circle" />
+              <text class="vip-perk-text">查看谁喜欢我</text>
+            </view>
+          </view>
         </view>
       </view>
-      <text
-        class="vip-arrow"
+      <!-- 箭头用 Phosphor 图标 -->
+      <view
+        class="vip-chevron i-ph-caret-right"
         aria-hidden="true"
-      >
-        ›
-      </text>
+      />
     </a11y-button>
+    </view>
 
     <!-- 功能列表（表驱动渲染）：行高固定，不随组内项数与视口宽度变化 -->
     <view
@@ -197,7 +253,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import MatchPopup from "@/components/match-popup.vue";
 import SmartImage from "@/components/smart-image.vue";
@@ -350,6 +406,7 @@ onShow(() => {
   userStore.fetchUserInfo().catch(() => {});
   loadCounts();
 });
+
 </script>
 
 <style lang="scss" scoped>
@@ -402,11 +459,42 @@ onShow(() => {
     display: flex;
     align-items: center;
 
+    .avatar-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+
     .avatar {
       width: 128rpx;
       height: 128rpx;
       border-radius: 50%;
       border: 4rpx solid rgba(255, 255, 255, 0.6);
+    }
+
+    /* VIP 金色尊贵边框：旋转渐变光环 */
+    .avatar-vip-ring {
+      position: absolute;
+      top: -10rpx;
+      left: -10rpx;
+      right: -10rpx;
+      bottom: -10rpx;
+      border-radius: 50%;
+      background: conic-gradient(
+        from 0deg,
+        var(--gold),
+        var(--gold-light),
+        var(--gold-soft),
+        var(--gold),
+        var(--gold-light),
+        var(--gold)
+      );
+      z-index: 1;
+      animation: vip-ring-rotate 3s linear infinite;
+    }
+
+    @keyframes vip-ring-rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
 
     .user-info {
@@ -525,82 +613,210 @@ onShow(() => {
   }
 }
 
+/* VIP 卡片：已开通显示尊贵标识 + 流光边框；未开通显示特权列表 + 呼吸光晕。
+   核心思路：让用户感受到「开通后有多尊贵」，从而感兴趣开通。 */
+.vip-card-wrap {
+  position: relative;
+  padding: 16rpx 32rpx;
+}
+
 .vip-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: 16rpx 32rpx;
-  padding: 20rpx 32rpx;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 28rpx 32rpx;
   flex-shrink: 0;
-  background: linear-gradient(135deg, var(--bg-deep), var(--vip-card-grad-1), var(--vip-card-grad-2));
-  border-radius: 24rpx;
-  border: 2rpx solid rgba(var(--gold-rgb), 0.6);
-  box-shadow: 0 8rpx 32rpx rgba(var(--gold-rgb), 0.15);
+  /* 描边用 border-box 背景层实现，边框本身透明：
+     前两层是卡内金色渐变（clip: padding-box），盖住环带内部；
+     第 3 层是流光、第 4 层是描边底色，只露在 2rpx 环带上。
+     分工：.vip-glow 负责「面」的内发光，本组背景层只负责「边」，两者不重叠。 */
+  background-image:
+    radial-gradient(120% 150% at 0% 0%, rgba(var(--gold-rgb), 0.25) 0%, transparent 58%),
+    linear-gradient(135deg, var(--vip-card-grad-1) 0%, var(--vip-card-grad-2) 100%),
+    linear-gradient(90deg, transparent 0%, var(--vip-ring-shine) 50%, transparent 100%),
+    linear-gradient(var(--vip-ring-base), var(--vip-ring-base));
+  background-origin: padding-box, padding-box, border-box, border-box;
+  background-clip: padding-box, padding-box, border-box, border-box;
+  background-size: 100% 100%, 100% 100%, 34% 100%, 100% 100%;
+  background-position: 0 0, 0 0, -40% 0, 0 0;
+  background-repeat: no-repeat;
+  border-radius: var(--radius-lg);
+  border: 2rpx solid transparent;
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.15),
+    inset 0 0 0 1rpx rgba(var(--gold-rgb), 0.12);
   position: relative;
   z-index: 2;
+  --vip-glow-color: rgba(var(--gold-rgb), 0.16);
+  /* 未开通：描边为静态金色，流光层全透明（不出光） */
+  --vip-ring-base: rgba(var(--gold-rgb), 0.8);
+  --vip-ring-shine: transparent;
+}
 
-  /* VIP 流光：仅 is-vip 状态显示 */
-  &.is-vip::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    overflow: hidden;
-    background: linear-gradient(
-      120deg,
-      transparent 20%,
-      rgba(255, 215, 0, 0.15) 45%,
-      rgba(255, 179, 71, 0.25) 50%,
-      rgba(255, 215, 0, 0.15) 55%,
-      transparent 80%
-    );
-    background-size: 200% 200%;
-    animation: vipShimmer 3.5s ease-in-out infinite;
-    pointer-events: none;
-    z-index: -1;
+/* 内发光层：inset 阴影锁在卡内，不会被 header 的 overflow:hidden 裁出硬边 */
+.vip-glow {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 0;
+  border-radius: var(--radius-lg);
+  pointer-events: none;
+  box-shadow: inset 0 0 28rpx var(--vip-glow-color);
+  transition: box-shadow 0.3s ease;
+  animation: vipBreathe 3s ease-in-out infinite;
+}
+
+/* 已开通：描边更亮、流光启用、光晕更足（呼吸继续，不再完全静止） */
+.vip-card.is-vip {
+  --vip-ring-base: var(--gold-light);
+  --vip-ring-shine: rgba(255, 255, 255, 0.7);
+  --vip-glow-color: rgba(var(--gold-rgb), 0.3);
+  /* 5s 一圈、匀速线性，慢速流转不闪烁；只改 background-position */
+  animation: vipRingSweep 5s linear infinite;
+}
+
+/* 描边流光：光带沿 2rpx 环带从左向右匀速流过，5s 一轮。
+   只动 background-position（仅环形 2rpx 区域重绘），不碰 box-shadow /
+   border-color / text-shadow，也不进入 padding-box 内的卡片内容。 */
+@keyframes vipRingSweep {
+  from {
+    background-position: 0 0, 0 0, -40% 0, 0 0;
+  }
+  to {
+    background-position: 0 0, 0 0, 140% 0, 0 0;
+  }
+}
+
+/* 呼吸：只动 opacity，走合成器 */
+@keyframes vipBreathe {
+  0%, 100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* 减弱动效偏好：停掉呼吸与描边流光 */
+@media (prefers-reduced-motion: reduce) {
+  .vip-glow {
+    animation: none;
   }
 
-  .vip-left {
+  .vip-card.is-vip {
+    animation: none;
+  }
+}
+
+.vip-left {
     display: flex;
     align-items: center;
     gap: 20rpx;
     position: relative;
     z-index: 2;
+    /* flex 子项显式 min-width:0（AGENTS §7.1）：否则长文案会把徽章挤扁 */
+    min-width: 0;
+    flex: 1;
 
-    .vip-icon {
-      font-size: 40rpx;
-      line-height: 1;
-      /* 金色发光：Phosphor 图标用 color + text-shadow 模拟光晕 */
-      color: var(--gold-light);
-      text-shadow: 0 0 12rpx rgba(var(--gold-rgb), 0.55);
+    /* 金色徽章：金渐变圆角底 + 内侧顶部高光 + 暗投影，深色皇冠压在上面。
+       零 text-shadow、零光晕，靠底色与浮雕传达贵气，缩略后也不糊 */
+    .vip-badge {
+      width: 64rpx;
+      height: 64rpx;
+      border-radius: var(--radius-md);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(145deg, var(--gold-light) 0%, var(--gold) 45%, var(--gold-deep) 100%);
+      box-shadow:
+        0 4rpx 12rpx rgba(0, 0, 0, 0.35),
+        inset 0 1rpx 0 rgba(255, 255, 255, 0.55);
+
+      .vip-badge-crown {
+        font-size: var(--fs-xl);
+        line-height: 1;
+        /* 深棕压印色（复用卡片渐变收尾 token，避免新增硬编码 hex） */
+        color: var(--vip-card-grad-2);
+      }
     }
 
-    .vip-title {
-      font-size: 30rpx;
-      font-weight: bold;
-      color: var(--gold);
-      display: block;
-    }
+    .vip-copy {
+      min-width: 0;
+      flex: 1;
 
-    .vip-desc {
-      font-size: 22rpx;
-      color: rgba(var(--gold-rgb), 0.95);
-      margin-top: 4rpx;
-      display: block;
+      .vip-title-row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+
+        .vip-title {
+          font-size: var(--fs-lg);
+          font-weight: 700;
+          color: var(--gold-light);
+          display: block;
+          line-height: 1.25;
+        }
+
+        /* 「立即」标签：增强行动感 */
+        .vip-cta-tag {
+          font-size: var(--fs-xs);
+          font-weight: 600;
+          color: var(--vip-card-grad-2);
+          background: var(--gold-light);
+          padding: 0 var(--space-sm);
+          border-radius: var(--radius-sm);
+          flex-shrink: 0;
+          line-height: 1.4;
+        }
+      }
+
+      /* 特权列表：图标 + 文字，让用户一眼看到价值 */
+      .vip-perks {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-sm);
+        margin-top: var(--space-sm);
+
+        .vip-perk {
+          display: flex;
+          align-items: center;
+          gap: var(--space-xs);
+          background: rgba(var(--gold-rgb), 0.1);
+          padding: 4rpx 12rpx;
+          border-radius: var(--radius-sm);
+
+          .vip-perk-icon {
+            font-size: var(--fs-sm);
+            color: var(--gold-light);
+            line-height: 1;
+          }
+
+          .vip-perk-text {
+            font-size: var(--fs-sm);
+            color: var(--gold-light);
+            line-height: 1.3;
+            white-space: nowrap;
+          }
+        }
+
+      }
+
     }
   }
 
-  .vip-arrow {
-    font-size: 36rpx;
-    color: var(--gold);
-    position: relative;
-    z-index: 2;
-  }
-}
-
-@keyframes vipShimmer {
-  0% { background-position: 200% 200%; }
-  100% { background-position: -100% -100%; }
+.vip-chevron {
+  font-size: var(--fs-base);
+  color: rgba(var(--gold-rgb), 0.8);
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  margin-left: var(--space-xs);
 }
 
 /* 菜单组：卡片容器，纵向排布，高度由行数 × 行高决定。
