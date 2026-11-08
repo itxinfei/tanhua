@@ -79,614 +79,614 @@
     </div>
 
     <template v-else>
-    <!-- ============ 2. 核心指标 KPI（首屏黄金区，4 卡一行） ============ -->
-    <el-row
-      :gutter="16"
-      class="dash-row"
-    >
-      <el-col
-        v-for="kpi in kpiList"
-        :key="kpi.label"
-        :xs="24"
-        :sm="12"
-        :lg="6"
-        :xl="6"
+      <!-- ============ 2. 核心指标 KPI（首屏黄金区，4 卡一行） ============ -->
+      <el-row
+        :gutter="16"
+        class="dash-row"
       >
-        <KpiCard
-          :label="kpi.label"
-          :value="kpi.value"
-          :icon="kpi.icon"
-          :icon-color="kpi.iconColor"
-          :icon-bg="kpi.iconBg"
-          :delta="kpi.delta"
-          :hint="kpi.hint"
-          :formatter="kpi.formatter"
-          :spark="kpi.spark"
-          :spark-color="kpi.sparkColor"
-          :pulse="kpi.pulse"
-          :to="kpi.to"
-        />
-      </el-col>
-    </el-row>
+        <el-col
+          v-for="kpi in kpiList"
+          :key="kpi.label"
+          :xs="24"
+          :sm="12"
+          :lg="6"
+          :xl="6"
+        >
+          <KpiCard
+            :label="kpi.label"
+            :value="kpi.value"
+            :icon="kpi.icon"
+            :icon-color="kpi.iconColor"
+            :icon-bg="kpi.iconBg"
+            :delta="kpi.delta"
+            :hint="kpi.hint"
+            :formatter="kpi.formatter"
+            :spark="kpi.spark"
+            :spark-color="kpi.sparkColor"
+            :pulse="kpi.pulse"
+            :to="kpi.to"
+          />
+        </el-col>
+      </el-row>
 
-    <!-- ============ 3. 待办与异常（行动入口） ============ -->
-    <DashPanel
-      title="待办与异常"
-      sub="点击数字直达处理页面"
-      class="todo-panel"
-    >
-      <div
-        v-if="hasTodo"
-        class="todo-grid"
+      <!-- ============ 3. 待办与异常（行动入口） ============ -->
+      <DashPanel
+        title="待办与异常"
+        sub="点击数字直达处理页面"
+        class="todo-panel"
       >
         <div
-          v-for="action in todoActions"
-          v-show="action.count > 0"
-          :key="action.key"
-          class="todo-item"
-          :class="`todo-item--${action.level}`"
-          role="link"
-          tabindex="0"
-          @click="router.push(action.to)"
-          @keydown.enter="router.push(action.to)"
+          v-if="hasTodo"
+          class="todo-grid"
         >
-          <span class="todo-item__icon">
-            <el-icon :size="18"><Document v-if="action.key === 'review'" /><Warning v-else /></el-icon>
-          </span>
-          <div class="todo-item__body">
-            <span class="todo-item__count">{{ formatCount(action.count) }}</span>
-            <span class="todo-item__label">{{ action.label }}</span>
+          <div
+            v-for="action in todoActions"
+            v-show="action.count > 0"
+            :key="action.key"
+            class="todo-item"
+            :class="`todo-item--${action.level}`"
+            role="link"
+            tabindex="0"
+            @click="router.push(action.to)"
+            @keydown.enter="router.push(action.to)"
+          >
+            <span class="todo-item__icon">
+              <el-icon :size="18"><Document v-if="action.key === 'review'" /><Warning v-else /></el-icon>
+            </span>
+            <div class="todo-item__body">
+              <span class="todo-item__count">{{ formatCount(action.count) }}</span>
+              <span class="todo-item__label">{{ action.label }}</span>
+            </div>
+            <span class="todo-item__cta">
+              去处理
+              <el-icon :size="12"><ArrowRight /></el-icon>
+            </span>
           </div>
-          <span class="todo-item__cta">
-            去处理
-            <el-icon :size="12"><ArrowRight /></el-icon>
-          </span>
         </div>
-      </div>
-      <div
-        v-else
-        class="todo-all-clear"
-      >
-        <el-icon :size="16">
-          <CircleCheck />
-        </el-icon>
-        暂无积压，审核与举报均已处理完毕
-      </div>
-    </DashPanel>
-
-    <!-- ============ 4. 主趋势 + 今日匹配漏斗 ============ -->
-    <el-row
-      :gutter="16"
-      class="dash-row"
-    >
-      <el-col
-        :xs="24"
-        :md="16"
-      >
-        <DashPanel
-          :title="trendTabMeta.title"
-          :sub="trendSub"
+        <div
+          v-else
+          class="todo-all-clear"
         >
-          <template #extra>
-            <el-radio-group
-              v-model="trendTab"
-              size="small"
-              class="trend-tabs"
-            >
-              <el-radio-button value="register">
-                新增注册
-              </el-radio-button>
-              <el-radio-button value="dau">
-                日活 DAU
-              </el-radio-button>
-              <el-radio-button value="match">
-                匹配互动
-              </el-radio-button>
-              <el-radio-button value="content">
-                内容发布
-              </el-radio-button>
-              <el-radio-button value="revenue">
-                付费趋势
-              </el-radio-button>
-            </el-radio-group>
-          </template>
-          <BaseChart
-            v-if="mainTrendOption"
-            :option="mainTrendOption"
-            height="220px"
-          />
-          <div
-            v-else
-            class="chart-empty"
+          <el-icon :size="16">
+            <CircleCheck />
+          </el-icon>
+          暂无积压，审核与举报均已处理完毕
+        </div>
+      </DashPanel>
+
+      <!-- ============ 4. 主趋势 + 今日匹配漏斗 ============ -->
+      <el-row
+        :gutter="16"
+        class="dash-row"
+      >
+        <el-col
+          :xs="24"
+          :md="16"
+        >
+          <DashPanel
+            :title="trendTabMeta.title"
+            :sub="trendSub"
           >
-            <el-empty
-              description="数据积累中"
-              :image-size="72"
+            <template #extra>
+              <el-radio-group
+                v-model="trendTab"
+                size="small"
+                class="trend-tabs"
+              >
+                <el-radio-button value="register">
+                  新增注册
+                </el-radio-button>
+                <el-radio-button value="dau">
+                  日活 DAU
+                </el-radio-button>
+                <el-radio-button value="match">
+                  匹配互动
+                </el-radio-button>
+                <el-radio-button value="content">
+                  内容发布
+                </el-radio-button>
+                <el-radio-button value="revenue">
+                  付费趋势
+                </el-radio-button>
+              </el-radio-group>
+            </template>
+            <BaseChart
+              v-if="mainTrendOption"
+              :option="mainTrendOption"
+              height="220px"
             />
-          </div>
-        </DashPanel>
-      </el-col>
-
-      <el-col
-        :xs="24"
-        :md="8"
-      >
-        <DashPanel
-          title="今日匹配漏斗"
-          sub="滑动 → 右滑 → 互喜匹配"
-        >
-          <template #extra>
-            <span class="panel-side-meta">{{ formatCount(funnel?.levels[0].value) }} 次滑动</span>
-          </template>
-          <div
-            v-if="funnel"
-            class="funnel"
-          >
             <div
-              v-for="level in funnel.levels"
-              :key="level.name"
-              class="funnel-level"
+              v-else
+              class="chart-empty"
             >
-              <div class="funnel-level__track">
-                <div
-                  class="funnel-level__bar"
-                  :class="level.cls"
-                  :style="{ width: level.pct + '%' }"
-                />
-              </div>
-              <div class="funnel-level__meta">
-                <span class="funnel-level__name">{{ level.name }}</span>
-                <span class="funnel-level__count">{{ formatCount(level.value) }}</span>
-              </div>
+              <el-empty
+                description="数据积累中"
+                :image-size="72"
+              />
             </div>
-            <div class="rate-grid">
-              <div class="rate-item">
-                <span class="rate-item__label">喜欢率（右滑/滑动）</span>
-                <span class="rate-item__value">{{ ratePercent(funnel.likeRate) }}</span>
-              </div>
-              <div class="rate-item">
-                <span class="rate-item__label">匹配率（匹配/右滑）</span>
-                <span class="rate-item__value rate-item__value--rose">{{ ratePercent(funnel.matchRate) }}</span>
-              </div>
-            </div>
-          </div>
-          <div
-            v-else
-            class="chart-empty"
-          >
-            <el-empty
-              description="今日暂无滑动数据"
-              :image-size="72"
-            />
-          </div>
-        </DashPanel>
-      </el-col>
-    </el-row>
+          </DashPanel>
+        </el-col>
 
-
-    <!-- ============ 5. 留存 / 付费概览 ============ -->
-    <el-row
-      :gutter="16"
-      class="dash-row"
-    >
-      <!-- 留存 -->
-      <el-col
-        :xs="24"
-        :md="isOperator ? 24 : 12"
-      >
-        <DashPanel
-          title="用户留存"
-          sub="各注册批次今日仍活跃占比"
+        <el-col
+          :xs="24"
+          :md="8"
         >
-          <div class="retention-grid">
+          <DashPanel
+            title="今日匹配漏斗"
+            sub="滑动 → 右滑 → 互喜匹配"
+          >
+            <template #extra>
+              <span class="panel-side-meta">{{ formatCount(funnel?.levels[0].value) }} 次滑动</span>
+            </template>
             <div
-              v-for="item in activity?.retention ?? []"
-              :key="item.days"
-              class="retention-item"
+              v-if="funnel"
+              class="funnel"
             >
-              <span class="retention-item__label">{{ item.label }}</span>
-              <span class="retention-item__value">{{ ratePercent(item.rate) }}</span>
-              <span class="retention-item__sub">
-                <template v-if="item.cohortSize > 0">
-                  {{ item.retained ?? '—' }}/{{ item.cohortSize }} 人
-                </template>
-                <template v-else>无注册样本</template>
-              </span>
+              <div
+                v-for="level in funnel.levels"
+                :key="level.name"
+                class="funnel-level"
+              >
+                <div class="funnel-level__track">
+                  <div
+                    class="funnel-level__bar"
+                    :class="level.cls"
+                    :style="{ width: level.pct + '%' }"
+                  />
+                </div>
+                <div class="funnel-level__meta">
+                  <span class="funnel-level__name">{{ level.name }}</span>
+                  <span class="funnel-level__count">{{ formatCount(level.value) }}</span>
+                </div>
+              </div>
+              <div class="rate-grid">
+                <div class="rate-item">
+                  <span class="rate-item__label">喜欢率（右滑/滑动）</span>
+                  <span class="rate-item__value">{{ ratePercent(funnel.likeRate) }}</span>
+                </div>
+                <div class="rate-item">
+                  <span class="rate-item__label">匹配率（匹配/右滑）</span>
+                  <span class="rate-item__value rate-item__value--rose">{{ ratePercent(funnel.matchRate) }}</span>
+                </div>
+              </div>
             </div>
-          </div>
-          <p class="panel-note">
-            留存基于日活埋点计算，部署当日起开始积累。
-          </p>
-        </DashPanel>
-      </el-col>
+            <div
+              v-else
+              class="chart-empty"
+            >
+              <el-empty
+                description="今日暂无滑动数据"
+                :image-size="72"
+              />
+            </div>
+          </DashPanel>
+        </el-col>
+      </el-row>
 
-      <!-- 付费概览（OPERATOR 不可见） -->
-      <el-col
-        v-if="!isOperator"
-        :xs="24"
-        :md="12"
+
+      <!-- ============ 5. 留存 / 付费概览 ============ -->
+      <el-row
+        :gutter="16"
+        class="dash-row"
       >
-        <DashPanel
-          title="付费概览"
-          sub="累计支付订单结构"
+        <!-- 留存 -->
+        <el-col
+          :xs="24"
+          :md="isOperator ? 24 : 12"
         >
-          <BaseChart
-            v-if="payTypeOption"
-            :option="payTypeOption"
-            height="180px"
-          />
-          <div
-            v-else
-            class="chart-empty chart-empty--compact"
+          <DashPanel
+            title="用户留存"
+            sub="各注册批次今日仍活跃占比"
           >
-            <el-empty
-              description="暂无支付数据"
-              :image-size="60"
+            <div class="retention-grid">
+              <div
+                v-for="item in activity?.retention ?? []"
+                :key="item.days"
+                class="retention-item"
+              >
+                <span class="retention-item__label">{{ item.label }}</span>
+                <span class="retention-item__value">{{ ratePercent(item.rate) }}</span>
+                <span class="retention-item__sub">
+                  <template v-if="item.cohortSize > 0">
+                    {{ item.retained ?? '—' }}/{{ item.cohortSize }} 人
+                  </template>
+                  <template v-else>无注册样本</template>
+                </span>
+              </div>
+            </div>
+            <p class="panel-note">
+              留存基于日活埋点计算，部署当日起开始积累。
+            </p>
+          </DashPanel>
+        </el-col>
+
+        <!-- 付费概览（OPERATOR 不可见） -->
+        <el-col
+          v-if="!isOperator"
+          :xs="24"
+          :md="12"
+        >
+          <DashPanel
+            title="付费概览"
+            sub="累计支付订单结构"
+          >
+            <BaseChart
+              v-if="payTypeOption"
+              :option="payTypeOption"
+              height="180px"
             />
-          </div>
-          <div class="pay-stats">
-            <div class="mini-stat">
-              <span class="mini-stat__label">累计付费率</span>
-              <span class="mini-stat__value">{{ ratePercent(revenue?.payRate ?? null) }}</span>
+            <div
+              v-else
+              class="chart-empty chart-empty--compact"
+            >
+              <el-empty
+                description="暂无支付数据"
+                :image-size="60"
+              />
             </div>
-            <div class="mini-stat">
-              <span class="mini-stat__label">今日 ARPPU</span>
-              <span class="mini-stat__value">{{ arppuText }}</span>
+            <div class="pay-stats">
+              <div class="mini-stat">
+                <span class="mini-stat__label">累计付费率</span>
+                <span class="mini-stat__value">{{ ratePercent(revenue?.payRate ?? null) }}</span>
+              </div>
+              <div class="mini-stat">
+                <span class="mini-stat__label">今日 ARPPU</span>
+                <span class="mini-stat__value">{{ arppuText }}</span>
+              </div>
+              <div class="mini-stat">
+                <span class="mini-stat__label">今日订单</span>
+                <span class="mini-stat__value">{{ formatCount(revenue?.overview.todayOrders) }}</span>
+              </div>
             </div>
-            <div class="mini-stat">
-              <span class="mini-stat__label">今日订单</span>
-              <span class="mini-stat__value">{{ formatCount(revenue?.overview.todayOrders) }}</span>
-            </div>
-          </div>
-        </DashPanel>
-      </el-col>
-    </el-row>
+          </DashPanel>
+        </el-col>
+      </el-row>
 
-    <!-- ============ 6. 内容安全：审核 / 举报 ============ -->
-    <el-row
-      :gutter="16"
-      class="dash-row"
-    >
-      <el-col
-        v-if="!isOperator"
-        :xs="24"
-        :md="12"
+      <!-- ============ 6. 内容安全：审核 / 举报 ============ -->
+      <el-row
+        :gutter="16"
+        class="dash-row"
       >
-        <DashPanel
-          title="内容审核"
-          :sub="`近 ${days} 天送审与处理量`"
+        <el-col
+          v-if="!isOperator"
+          :xs="24"
+          :md="12"
         >
-          <div class="mod-stats">
-            <div class="mini-stat">
-              <span class="mini-stat__label">今日通过</span>
-              <span class="mini-stat__value mini-stat__value--green">
-                {{ formatCount(moderation?.review.todayApproved) }}
-              </span>
+          <DashPanel
+            title="内容审核"
+            :sub="`近 ${days} 天送审与处理量`"
+          >
+            <div class="mod-stats">
+              <div class="mini-stat">
+                <span class="mini-stat__label">今日通过</span>
+                <span class="mini-stat__value mini-stat__value--green">
+                  {{ formatCount(moderation?.review.todayApproved) }}
+                </span>
+              </div>
+              <div class="mini-stat">
+                <span class="mini-stat__label">今日拒绝</span>
+                <span class="mini-stat__value mini-stat__value--red">
+                  {{ formatCount(moderation?.review.todayRejected) }}
+                </span>
+              </div>
+              <div class="mini-stat">
+                <span class="mini-stat__label">今日通过率</span>
+                <span class="mini-stat__value">{{ ratePercent(reviewPassRate) }}</span>
+              </div>
             </div>
-            <div class="mini-stat">
-              <span class="mini-stat__label">今日拒绝</span>
-              <span class="mini-stat__value mini-stat__value--red">
-                {{ formatCount(moderation?.review.todayRejected) }}
-              </span>
-            </div>
-            <div class="mini-stat">
-              <span class="mini-stat__label">今日通过率</span>
-              <span class="mini-stat__value">{{ ratePercent(reviewPassRate) }}</span>
-            </div>
-          </div>
-          <div class="mod-body">
-            <div class="mod-body__chart">
-              <BaseChart
-                v-if="reviewOption"
-                :option="reviewOption"
-                height="220px"
-              />
-              <div
-                v-else
-                class="chart-empty chart-empty--compact"
-              >
-                <el-empty
-                  description="暂无审核数据"
-                  :image-size="60"
+            <div class="mod-body">
+              <div class="mod-body__chart">
+                <BaseChart
+                  v-if="reviewOption"
+                  :option="reviewOption"
+                  height="220px"
                 />
-              </div>
-            </div>
-            <div class="mod-body__types">
-              <div class="type-title">
-                待审核类型
-              </div>
-              <div
-                v-if="reviewTypeRows.length"
-                class="type-list"
-              >
                 <div
-                  v-for="row in reviewTypeRows"
-                  :key="row.name"
-                  class="type-row"
+                  v-else
+                  class="chart-empty chart-empty--compact"
                 >
-                  <div class="type-row__head">
-                    <span class="type-row__name">{{ typeLabel(row.name) }}</span>
-                    <span class="type-row__count">{{ row.count }}</span>
-                  </div>
-                  <div class="type-row__track">
-                    <div
-                      class="type-row__fill"
-                      :style="{ width: row.pct + '%' }"
-                    />
-                  </div>
+                  <el-empty
+                    description="暂无审核数据"
+                    :image-size="60"
+                  />
                 </div>
               </div>
-              <div
-                v-else
-                class="type-empty"
-              >
-                暂无积压
+              <div class="mod-body__types">
+                <div class="type-title">
+                  待审核类型
+                </div>
+                <div
+                  v-if="reviewTypeRows.length"
+                  class="type-list"
+                >
+                  <div
+                    v-for="row in reviewTypeRows"
+                    :key="row.name"
+                    class="type-row"
+                  >
+                    <div class="type-row__head">
+                      <span class="type-row__name">{{ typeLabel(row.name) }}</span>
+                      <span class="type-row__count">{{ row.count }}</span>
+                    </div>
+                    <div class="type-row__track">
+                      <div
+                        class="type-row__fill"
+                        :style="{ width: row.pct + '%' }"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div
+                  v-else
+                  class="type-empty"
+                >
+                  暂无积压
+                </div>
               </div>
             </div>
-          </div>
-        </DashPanel>
-      </el-col>
+          </DashPanel>
+        </el-col>
 
-      <el-col
-        :xs="24"
-        :md="isOperator ? 24 : 12"
+        <el-col
+          :xs="24"
+          :md="isOperator ? 24 : 12"
+        >
+          <DashPanel
+            title="用户举报"
+            :sub="`近 ${days} 天举报与处理量`"
+          >
+            <div class="mod-stats">
+              <div class="mini-stat">
+                <span class="mini-stat__label">待处理</span>
+                <span
+                  class="mini-stat__value"
+                  :class="{ 'mini-stat__value--red': (moderation?.report.pending ?? 0) > 0 }"
+                >{{ formatCount(moderation?.report.pending) }}</span>
+              </div>
+              <div class="mini-stat">
+                <span class="mini-stat__label">处理中</span>
+                <span
+                  class="mini-stat__value"
+                  :class="{ 'mini-stat__value--amber': (moderation?.report.processing ?? 0) > 0 }"
+                >{{ formatCount(moderation?.report.processing) }}</span>
+              </div>
+              <div class="mini-stat">
+                <span class="mini-stat__label">今日新增</span>
+                <span class="mini-stat__value">{{ formatCount(moderation?.report.todayNew) }}</span>
+              </div>
+              <div class="mini-stat">
+                <span class="mini-stat__label">今日已处理</span>
+                <span class="mini-stat__value mini-stat__value--green">{{ reportTodayDone }}</span>
+              </div>
+            </div>
+            <div class="mod-body">
+              <div class="mod-body__chart">
+                <BaseChart
+                  v-if="reportOption"
+                  :option="reportOption"
+                  height="220px"
+                />
+                <div
+                  v-else
+                  class="chart-empty chart-empty--compact"
+                >
+                  <el-empty
+                    description="暂无举报数据"
+                    :image-size="60"
+                  />
+                </div>
+              </div>
+              <div class="mod-body__types">
+                <div class="type-title">
+                  举报对象分布
+                </div>
+                <div
+                  v-if="reportTypeRows.length"
+                  class="type-list"
+                >
+                  <div
+                    v-for="row in reportTypeRows"
+                    :key="row.name"
+                    class="type-row"
+                  >
+                    <div class="type-row__head">
+                      <span class="type-row__name">{{ typeLabel(row.name) }}</span>
+                      <span class="type-row__count">{{ row.count }}</span>
+                    </div>
+                    <div class="type-row__track">
+                      <div
+                        class="type-row__fill"
+                        :style="{ width: row.pct + '%' }"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div
+                  v-else
+                  class="type-empty"
+                >
+                  暂无举报
+                </div>
+              </div>
+            </div>
+          </DashPanel>
+        </el-col>
+      </el-row>
+
+      <!-- ============ 7. 折叠分析区：用户画像 / 热门内容 ============ -->
+      <el-collapse
+        v-model="analysisExpanded"
+        class="analysis-collapse"
       >
-        <DashPanel
-          title="用户举报"
-          :sub="`近 ${days} 天举报与处理量`"
-        >
-          <div class="mod-stats">
-            <div class="mini-stat">
-              <span class="mini-stat__label">待处理</span>
-              <span
-                class="mini-stat__value"
-                :class="{ 'mini-stat__value--red': (moderation?.report.pending ?? 0) > 0 }"
-              >{{ formatCount(moderation?.report.pending) }}</span>
-            </div>
-            <div class="mini-stat">
-              <span class="mini-stat__label">处理中</span>
-              <span
-                class="mini-stat__value"
-                :class="{ 'mini-stat__value--amber': (moderation?.report.processing ?? 0) > 0 }"
-              >{{ formatCount(moderation?.report.processing) }}</span>
-            </div>
-            <div class="mini-stat">
-              <span class="mini-stat__label">今日新增</span>
-              <span class="mini-stat__value">{{ formatCount(moderation?.report.todayNew) }}</span>
-            </div>
-            <div class="mini-stat">
-              <span class="mini-stat__label">今日已处理</span>
-              <span class="mini-stat__value mini-stat__value--green">{{ reportTodayDone }}</span>
-            </div>
-          </div>
-          <div class="mod-body">
-            <div class="mod-body__chart">
-              <BaseChart
-                v-if="reportOption"
-                :option="reportOption"
-                height="220px"
-              />
-              <div
-                v-else
-                class="chart-empty chart-empty--compact"
+        <el-collapse-item name="demographics">
+          <template #title>
+            <span class="analysis-collapse__title">用户画像</span>
+            <span class="analysis-collapse__sub">性别 / 年龄 / 地区分布</span>
+          </template>
+          <el-row
+            :gutter="16"
+            class="dash-row"
+          >
+            <el-col
+              :xs="24"
+              :md="8"
+            >
+              <DashPanel
+                title="性别分布"
+                sub="全部注册用户"
               >
-                <el-empty
-                  description="暂无举报数据"
-                  :image-size="60"
+                <BaseChart
+                  v-if="genderOption"
+                  :option="genderOption"
+                  height="240px"
                 />
-              </div>
-            </div>
-            <div class="mod-body__types">
-              <div class="type-title">
-                举报对象分布
-              </div>
-              <div
-                v-if="reportTypeRows.length"
-                class="type-list"
+                <div
+                  v-else
+                  class="chart-empty"
+                >
+                  <el-empty
+                    description="暂无用户数据"
+                    :image-size="72"
+                  />
+                </div>
+              </DashPanel>
+            </el-col>
+            <el-col
+              :xs="24"
+              :md="8"
+            >
+              <DashPanel
+                title="年龄结构"
+                sub="按注册资料年龄分桶"
+              >
+                <BaseChart
+                  v-if="ageOption"
+                  :option="ageOption"
+                  height="240px"
+                />
+                <div
+                  v-else
+                  class="chart-empty"
+                >
+                  <el-empty
+                    description="暂无年龄数据"
+                    :image-size="72"
+                  />
+                </div>
+              </DashPanel>
+            </el-col>
+            <el-col
+              :xs="24"
+              :md="8"
+            >
+              <DashPanel
+                title="地区分布 TOP10"
+                sub="注册资料中的城市"
+              >
+                <BaseChart
+                  v-if="cityOption"
+                  :option="cityOption"
+                  height="240px"
+                />
+                <div
+                  v-else
+                  class="chart-empty"
+                >
+                  <el-empty
+                    description="暂无城市数据"
+                    :image-size="72"
+                  />
+                </div>
+              </DashPanel>
+            </el-col>
+          </el-row>
+        </el-collapse-item>
+        <el-collapse-item name="hot">
+          <template #title>
+            <span class="analysis-collapse__title">热门内容</span>
+            <span class="analysis-collapse__sub">动态 / 视频 TOP5</span>
+          </template>
+          <el-row
+            :gutter="16"
+            class="dash-row"
+          >
+            <el-col
+              :xs="24"
+              :md="12"
+            >
+              <DashPanel
+                title="热门动态 TOP5"
+                sub="按点赞数排序"
               >
                 <div
-                  v-for="row in reportTypeRows"
-                  :key="row.name"
-                  class="type-row"
+                  v-if="hotPosts.length"
+                  class="hot-list"
                 >
-                  <div class="type-row__head">
-                    <span class="type-row__name">{{ typeLabel(row.name) }}</span>
-                    <span class="type-row__count">{{ row.count }}</span>
+                  <div
+                    v-for="(post, idx) in hotPosts"
+                    :key="post.id"
+                    class="hot-item"
+                  >
+                    <span
+                      class="hot-item__rank"
+                      :class="{ 'hot-item__rank--top': idx < 3 }"
+                    >{{ idx + 1 }}</span>
+                    <span class="hot-item__text">{{ post.text || '（无文案）' }}</span>
+                    <span class="hot-item__stats">
+                      <span class="hot-item__stat">赞 {{ post.likeCount }}</span>
+                      <span class="hot-item__stat">评 {{ post.commentCount }}</span>
+                    </span>
                   </div>
-                  <div class="type-row__track">
-                    <div
-                      class="type-row__fill"
-                      :style="{ width: row.pct + '%' }"
-                    />
+                </div>
+                <div
+                  v-else
+                  class="chart-empty chart-empty--compact"
+                >
+                  <el-empty
+                    description="暂无热门动态"
+                    :image-size="60"
+                  />
+                </div>
+              </DashPanel>
+            </el-col>
+            <el-col
+              :xs="24"
+              :md="12"
+            >
+              <DashPanel
+                title="热门视频 TOP5"
+                sub="近期小视频"
+              >
+                <div
+                  v-if="hotVideos.length"
+                  class="hot-list"
+                >
+                  <div
+                    v-for="(video, idx) in hotVideos"
+                    :key="video.videoId"
+                    class="hot-item"
+                  >
+                    <span
+                      class="hot-item__rank"
+                      :class="{ 'hot-item__rank--top': idx < 3 }"
+                    >{{ idx + 1 }}</span>
+                    <span class="hot-item__text">{{ video.text || '（无文案）' }}</span>
                   </div>
                 </div>
-              </div>
-              <div
-                v-else
-                class="type-empty"
-              >
-                暂无举报
-              </div>
-            </div>
-          </div>
-        </DashPanel>
-      </el-col>
-    </el-row>
-
-    <!-- ============ 7. 折叠分析区：用户画像 / 热门内容 ============ -->
-    <el-collapse
-      v-model="analysisExpanded"
-      class="analysis-collapse"
-    >
-      <el-collapse-item name="demographics">
-        <template #title>
-          <span class="analysis-collapse__title">用户画像</span>
-          <span class="analysis-collapse__sub">性别 / 年龄 / 地区分布</span>
-        </template>
-        <el-row
-          :gutter="16"
-          class="dash-row"
-        >
-          <el-col
-            :xs="24"
-            :md="8"
-          >
-            <DashPanel
-              title="性别分布"
-              sub="全部注册用户"
-            >
-              <BaseChart
-                v-if="genderOption"
-                :option="genderOption"
-                height="240px"
-              />
-              <div
-                v-else
-                class="chart-empty"
-              >
-                <el-empty
-                  description="暂无用户数据"
-                  :image-size="72"
-                />
-              </div>
-            </DashPanel>
-          </el-col>
-          <el-col
-            :xs="24"
-            :md="8"
-          >
-            <DashPanel
-              title="年龄结构"
-              sub="按注册资料年龄分桶"
-            >
-              <BaseChart
-                v-if="ageOption"
-                :option="ageOption"
-                height="240px"
-              />
-              <div
-                v-else
-                class="chart-empty"
-              >
-                <el-empty
-                  description="暂无年龄数据"
-                  :image-size="72"
-                />
-              </div>
-            </DashPanel>
-          </el-col>
-          <el-col
-            :xs="24"
-            :md="8"
-          >
-            <DashPanel
-              title="地区分布 TOP10"
-              sub="注册资料中的城市"
-            >
-              <BaseChart
-                v-if="cityOption"
-                :option="cityOption"
-                height="240px"
-              />
-              <div
-                v-else
-                class="chart-empty"
-              >
-                <el-empty
-                  description="暂无城市数据"
-                  :image-size="72"
-                />
-              </div>
-            </DashPanel>
-          </el-col>
-        </el-row>
-      </el-collapse-item>
-      <el-collapse-item name="hot">
-        <template #title>
-          <span class="analysis-collapse__title">热门内容</span>
-          <span class="analysis-collapse__sub">动态 / 视频 TOP5</span>
-        </template>
-        <el-row
-          :gutter="16"
-          class="dash-row"
-        >
-          <el-col
-            :xs="24"
-            :md="12"
-          >
-            <DashPanel
-              title="热门动态 TOP5"
-              sub="按点赞数排序"
-            >
-              <div
-                v-if="hotPosts.length"
-                class="hot-list"
-              >
                 <div
-                  v-for="(post, idx) in hotPosts"
-                  :key="post.id"
-                  class="hot-item"
+                  v-else
+                  class="chart-empty chart-empty--compact"
                 >
-                  <span
-                    class="hot-item__rank"
-                    :class="{ 'hot-item__rank--top': idx < 3 }"
-                  >{{ idx + 1 }}</span>
-                  <span class="hot-item__text">{{ post.text || '（无文案）' }}</span>
-                  <span class="hot-item__stats">
-                    <span class="hot-item__stat">赞 {{ post.likeCount }}</span>
-                    <span class="hot-item__stat">评 {{ post.commentCount }}</span>
-                  </span>
+                  <el-empty
+                    description="暂无热门视频"
+                    :image-size="60"
+                  />
                 </div>
-              </div>
-              <div
-                v-else
-                class="chart-empty chart-empty--compact"
-              >
-                <el-empty
-                  description="暂无热门动态"
-                  :image-size="60"
-                />
-              </div>
-            </DashPanel>
-          </el-col>
-          <el-col
-            :xs="24"
-            :md="12"
-          >
-            <DashPanel
-              title="热门视频 TOP5"
-              sub="近期小视频"
-            >
-              <div
-                v-if="hotVideos.length"
-                class="hot-list"
-              >
-                <div
-                  v-for="(video, idx) in hotVideos"
-                  :key="video.videoId"
-                  class="hot-item"
-                >
-                  <span
-                    class="hot-item__rank"
-                    :class="{ 'hot-item__rank--top': idx < 3 }"
-                  >{{ idx + 1 }}</span>
-                  <span class="hot-item__text">{{ video.text || '（无文案）' }}</span>
-                </div>
-              </div>
-              <div
-                v-else
-                class="chart-empty chart-empty--compact"
-              >
-                <el-empty
-                  description="暂无热门视频"
-                  :image-size="60"
-                />
-              </div>
-            </DashPanel>
-          </el-col>
-        </el-row>
-      </el-collapse-item>
-    </el-collapse>
+              </DashPanel>
+            </el-col>
+          </el-row>
+        </el-collapse-item>
+      </el-collapse>
     </template>
   </div>
 </template>
@@ -1293,32 +1293,27 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
   gap: var(--xfjy-space-2);
   padding: var(--xfjy-space-2) var(--xfjy-space-3);
   background: var(--xfjy-bg-hover);
-  border: 1px solid var(--xfjy-border);
-  border-radius: var(--xfjy-radius-lg);
+  border-radius: var(--xfjy-radius-md);
   cursor: pointer;
-  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+  transition: filter 0.2s ease;
 }
 
 .todo-item:hover,
 .todo-item:focus-visible {
-  transform: translateY(-1px);
-  box-shadow: var(--xfjy-shadow-hover);
+  filter: brightness(0.96);
   outline: none;
 }
 
 .todo-item--warning {
   background: var(--xfjy-warning-50);
-  border-color: var(--xfjy-warning);
 }
 
 .todo-item--danger {
   background: var(--xfjy-danger-50);
-  border-color: var(--xfjy-danger);
 }
 
 .todo-item--ok {
   background: var(--xfjy-success-50);
-  border-color: var(--xfjy-success);
 }
 
 .todo-item__icon {

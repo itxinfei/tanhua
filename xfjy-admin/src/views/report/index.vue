@@ -1,6 +1,9 @@
 <template>
   <div class="page-container">
-    <PageHeader title="举报处理" :subtitle="`共 ${total} 条记录`" />
+    <PageHeader
+      title="举报处理"
+      :subtitle="`共 ${total} 条记录`"
+    />
 
     <SearchBar
       :model="query"
@@ -12,34 +15,83 @@
       @reset="handleReset"
     >
       <el-form-item label="状态">
-        <el-select v-model="query.status" placeholder="全部" clearable style="width: 130px">
-          <el-option label="待处理" value="PENDING" />
-          <el-option label="处理中" value="PROCESSING" />
-          <el-option label="已处理" value="RESOLVED" />
-          <el-option label="已驳回" value="DISMISSED" />
+        <el-select
+          v-model="query.status"
+          placeholder="全部"
+          clearable
+          style="width: 130px"
+        >
+          <el-option
+            label="待处理"
+            value="PENDING"
+          />
+          <el-option
+            label="处理中"
+            value="PROCESSING"
+          />
+          <el-option
+            label="已处理"
+            value="RESOLVED"
+          />
+          <el-option
+            label="已驳回"
+            value="DISMISSED"
+          />
         </el-select>
       </el-form-item>
       <el-form-item label="举报类型">
-        <el-select v-model="query.targetType" placeholder="全部" clearable style="width: 120px">
-          <el-option label="用户" value="USER" />
-          <el-option label="动态" value="POST" />
-          <el-option label="评论" value="COMMENT" />
-          <el-option label="私信" value="MESSAGE" />
+        <el-select
+          v-model="query.targetType"
+          placeholder="全部"
+          clearable
+          style="width: 120px"
+        >
+          <el-option
+            label="用户"
+            value="USER"
+          />
+          <el-option
+            label="动态"
+            value="POST"
+          />
+          <el-option
+            label="评论"
+            value="COMMENT"
+          />
+          <el-option
+            label="私信"
+            value="MESSAGE"
+          />
         </el-select>
       </el-form-item>
     </SearchBar>
 
     <TableCard :skeleton="loading && !tableData.length">
-      <template #batch v-if="selectedIds.length > 0">
+      <template
+        v-if="selectedIds.length > 0"
+        #batch
+      >
         <span class="batch-count">已选 {{ selectedIds.length }} 项</span>
-        <el-button type="danger" size="small" @click="openBatchHandle('RESOLVED')">批量处理</el-button>
-        <el-button size="small" @click="openBatchHandle('DISMISSED')">批量驳回</el-button>
-        <el-button link size="small" @click="clearSelection">清空选择</el-button>
+        <el-button
+          type="danger"
+          @click="openBatchHandle('RESOLVED')"
+        >
+          批量处理
+        </el-button>
+        <el-button @click="openBatchHandle('DISMISSED')">
+          批量驳回
+        </el-button>
+        <el-button
+          link
+          @click="clearSelection"
+        >
+          清空选择
+        </el-button>
       </template>
       <el-table
         ref="tableRef"
-        :data="tableData"
         v-loading="loading"
+        :data="tableData"
         stripe
         border
         style="width: 100%"
@@ -47,49 +99,131 @@
         @selection-change="handleSelectionChange"
         @row-click="onRowClick"
       >
-        <el-table-column type="selection" width="50" align="center" :selectable="isSelectable" reserve-selection />
-        <el-table-column v-if="!isMobile" prop="id" label="ID" width="70" align="center" />
-        <el-table-column label="举报人" width="120">
+        <el-table-column
+          type="selection"
+          width="50"
+          align="center"
+          :selectable="isSelectable"
+          reserve-selection
+        />
+        <el-table-column
+          v-if="!isMobile"
+          prop="id"
+          label="ID"
+          width="70"
+          align="center"
+        />
+        <el-table-column
+          label="举报人"
+          width="120"
+        >
           <template #default="{ row }">
             <div class="user-cell">
-              <el-avatar :size="24" :src="row.reporterAvatar">
+              <el-avatar
+                :size="24"
+                :src="row.reporterAvatar"
+              >
                 <el-icon><UserFilled /></el-icon>
               </el-avatar>
               <span>{{ row.reporterNickname }}</span>
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="被举报对象" width="160">
+        <el-table-column
+          label="被举报对象"
+          width="160"
+        >
           <template #default="{ row }">
-            <el-tag :type="targetTypeColor(row.targetType)" size="small">{{ targetTypeLabel(row.targetType) }}</el-tag>
+            <el-tag
+              :type="targetTypeColor(row.targetType)"
+              size="small"
+            >
+              {{ targetTypeLabel(row.targetType) }}
+            </el-tag>
             <span class="target-name">{{ row.targetUserNickname }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="reason" label="举报原因" width="120" show-overflow-tooltip />
-        <el-table-column prop="description" label="详细描述" min-width="200" show-overflow-tooltip />
-        <el-table-column label="状态" width="90" align="center">
+        <el-table-column
+          prop="reason"
+          label="举报原因"
+          width="120"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          prop="description"
+          label="详细描述"
+          min-width="200"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          label="状态"
+          width="90"
+          align="center"
+        >
           <template #default="{ row }">
-            <StatusTag :status="row.status" :mapping="reportStatusMapping" />
+            <StatusTag
+              :status="row.status"
+              :mapping="reportStatusMapping"
+            />
           </template>
         </el-table-column>
-        <el-table-column v-if="!isMobile" label="处理人" width="100" align="center">
+        <el-table-column
+          v-if="!isMobile"
+          label="处理人"
+          width="100"
+          align="center"
+        >
           <template #default="{ row }">
             <span v-if="row.handler">{{ row.handler }}</span>
-            <span v-else class="text-muted">—</span>
+            <span
+              v-else
+              class="text-muted"
+            >—</span>
           </template>
         </el-table-column>
-        <el-table-column v-if="!isMobile" prop="createdAt" label="举报时间" width="170" />
-        <el-table-column label="操作" width="170" fixed="right" align="center">
+        <el-table-column
+          v-if="!isMobile"
+          prop="createdAt"
+          label="举报时间"
+          width="170"
+        />
+        <el-table-column
+          label="操作"
+          width="170"
+          fixed="right"
+          align="center"
+        >
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="showDetail(row)">详情</el-button>
+            <el-button
+              link
+              type="primary"
+              @click="showDetail(row)"
+            >
+              详情
+            </el-button>
             <template v-if="row.status === 'PENDING' || row.status === 'PROCESSING'">
-              <el-button link type="danger" size="small" @click="openHandle(row, 'RESOLVED')">确认违规</el-button>
-              <el-button link type="warning" size="small" @click="openHandle(row, 'DISMISSED')">驳回</el-button>
+              <el-button
+                link
+                type="danger"
+                @click="openHandle(row, 'RESOLVED')"
+              >
+                确认违规
+              </el-button>
+              <el-button
+                link
+                type="warning"
+                @click="openHandle(row, 'DISMISSED')"
+              >
+                驳回
+              </el-button>
             </template>
           </template>
         </el-table-column>
         <template #empty>
-          <TableEmpty description="暂无举报数据" hint="举报由 App 端用户提交，暂无数据时无需操作" />
+          <TableEmpty
+            description="暂无举报数据"
+            hint="举报由 App 端用户提交，暂无数据时无需操作"
+          />
         </template>
       </el-table>
       <template #pagination>
@@ -106,36 +240,64 @@
     </TableCard>
 
     <!-- 详情弹窗：展示举报人/被举报对象/证据图片（与 content/pay/log 详情弹窗统一） -->
-    <el-dialog v-model="detailVisible" title="举报详情" width="560px" destroy-on-close>
-      <div v-loading="detailLoading" class="detail-body">
+    <el-dialog
+      v-model="detailVisible"
+      title="举报详情"
+      width="560px"
+      destroy-on-close
+    >
+      <div
+        v-loading="detailLoading"
+        class="detail-body"
+      >
         <template v-if="currentReport">
           <!-- 举报人信息 -->
           <div class="detail-section">
-            <div class="detail-section-title">举报人</div>
+            <div class="detail-section-title">
+              举报人
+            </div>
             <div class="reporter-row">
-              <el-avatar :size="40" :src="currentReport.reporterAvatar">
+              <el-avatar
+                :size="40"
+                :src="currentReport.reporterAvatar"
+              >
                 <el-icon><UserFilled /></el-icon>
               </el-avatar>
               <div class="reporter-meta">
-                <div class="reporter-name">{{ currentReport.reporterNickname }}</div>
-                <div class="reporter-id">ID: {{ currentReport.reporterId }}</div>
+                <div class="reporter-name">
+                  {{ currentReport.reporterNickname }}
+                </div>
+                <div class="reporter-id">
+                  ID: {{ currentReport.reporterId }}
+                </div>
               </div>
             </div>
           </div>
 
           <!-- 被举报对象：可点击跳转对应详情 -->
           <div class="detail-section">
-            <div class="detail-section-title">被举报对象</div>
-            <el-descriptions :column="1" border size="small">
+            <div class="detail-section-title">
+              被举报对象
+            </div>
+            <el-descriptions
+              :column="1"
+              border
+              size="small"
+            >
               <el-descriptions-item label="对象类型">
-                <el-tag :type="targetTypeColor(currentReport.targetType)" size="small">
+                <el-tag
+                  :type="targetTypeColor(currentReport.targetType)"
+                  size="small"
+                >
                   {{ targetTypeLabel(currentReport.targetType) }}
                 </el-tag>
               </el-descriptions-item>
               <el-descriptions-item label="目标用户">
                 {{ currentReport.targetUserNickname }}（ID: {{ currentReport.targetUserId }}）
               </el-descriptions-item>
-              <el-descriptions-item label="目标ID">{{ currentReport.targetId }}</el-descriptions-item>
+              <el-descriptions-item label="目标ID">
+                {{ currentReport.targetId }}
+              </el-descriptions-item>
             </el-descriptions>
             <el-button
               class="jump-btn"
@@ -150,20 +312,38 @@
 
           <!-- 举报原因/描述 -->
           <div class="detail-section">
-            <div class="detail-section-title">举报内容</div>
-            <div class="detail-field"><span class="field-label">原因：</span>{{ currentReport.reason }}</div>
-            <div class="detail-field"><span class="field-label">描述：</span>{{ currentReport.description || '无' }}</div>
+            <div class="detail-section-title">
+              举报内容
+            </div>
+            <div class="detail-field">
+              <span class="field-label">原因：</span>{{ currentReport.reason }}
+            </div>
+            <div class="detail-field">
+              <span class="field-label">描述：</span>{{ currentReport.description || '无' }}
+            </div>
             <div class="detail-field">
               <span class="field-label">状态：</span>
-              <el-tag :type="statusColor(currentReport.status)" size="small">{{ statusLabel(currentReport.status) }}</el-tag>
+              <el-tag
+                :type="statusColor(currentReport.status)"
+                size="small"
+              >
+                {{ statusLabel(currentReport.status) }}
+              </el-tag>
             </div>
-            <div class="detail-field"><span class="field-label">举报时间：</span>{{ currentReport.createdAt }}</div>
+            <div class="detail-field">
+              <span class="field-label">举报时间：</span>{{ currentReport.createdAt }}
+            </div>
           </div>
 
           <!-- 证据图片组：缩略图 + 点击大图预览，多图横向滚动 -->
           <div class="detail-section">
-            <div class="detail-section-title">证据图片</div>
-            <div v-if="currentReport.evidence && currentReport.evidence.length > 0" class="evidence-scroll">
+            <div class="detail-section-title">
+              证据图片
+            </div>
+            <div
+              v-if="currentReport.evidence && currentReport.evidence.length > 0"
+              class="evidence-scroll"
+            >
               <el-image
                 v-for="(url, idx) in currentReport.evidence"
                 :key="idx"
@@ -176,48 +356,105 @@
                 hide-on-click-modal
               />
             </div>
-            <el-empty v-else description="无证据图片" :image-size="60" />
+            <el-empty
+              v-else
+              description="无证据图片"
+              :image-size="60"
+            />
           </div>
 
           <!-- 处理回显：已处理时展示 handler/handledAt/handleResult -->
-          <div v-if="currentReport.status === 'RESOLVED' || currentReport.status === 'DISMISSED'" class="detail-section">
-            <div class="detail-section-title">处理信息</div>
-            <div class="detail-field"><span class="field-label">处理人：</span>{{ currentReport.handler || '—' }}</div>
-            <div class="detail-field"><span class="field-label">处理时间：</span>{{ currentReport.handledAt || '—' }}</div>
+          <div
+            v-if="currentReport.status === 'RESOLVED' || currentReport.status === 'DISMISSED'"
+            class="detail-section"
+          >
+            <div class="detail-section-title">
+              处理信息
+            </div>
+            <div class="detail-field">
+              <span class="field-label">处理人：</span>{{ currentReport.handler || '—' }}
+            </div>
+            <div class="detail-field">
+              <span class="field-label">处理时间：</span>{{ currentReport.handledAt || '—' }}
+            </div>
             <div class="detail-field">
               <span class="field-label">处理结果：</span>
-              <el-tag :type="currentReport.status === 'RESOLVED' ? 'success' : 'info'" size="small">
+              <el-tag
+                :type="currentReport.status === 'RESOLVED' ? 'success' : 'info'"
+                size="small"
+              >
                 {{ statusLabel(currentReport.status) }}
               </el-tag>
-              <span v-if="currentReport.handleResult" class="handle-result-text">{{ currentReport.handleResult }}</span>
+              <span
+                v-if="currentReport.handleResult"
+                class="handle-result-text"
+              >{{ currentReport.handleResult }}</span>
             </div>
           </div>
         </template>
       </div>
       <template #footer>
         <template v-if="currentReport && (currentReport.status === 'PENDING' || currentReport.status === 'PROCESSING')">
-          <el-button type="danger" @click="detailHandle('RESOLVED')">确认违规</el-button>
-          <el-button type="warning" @click="detailHandle('DISMISSED')">驳回举报</el-button>
+          <el-button
+            type="danger"
+            @click="detailHandle('RESOLVED')"
+          >
+            确认违规
+          </el-button>
+          <el-button
+            type="warning"
+            @click="detailHandle('DISMISSED')"
+          >
+            驳回举报
+          </el-button>
         </template>
-        <el-button @click="detailVisible = false">关闭</el-button>
+        <el-button @click="detailVisible = false">
+          关闭
+        </el-button>
       </template>
     </el-dialog>
 
     <!-- 处理弹窗：备注必填，RESOLVED 提示封禁目标用户 -->
-    <el-dialog v-model="handleDialogVisible" :title="handleDialogTitle" width="480px">
-      <el-form ref="handleFormRef" :model="handleForm" :rules="handleRules" label-width="80px">
-        <el-form-item label="处理方式" prop="result">
+    <el-dialog
+      v-model="handleDialogVisible"
+      :title="handleDialogTitle"
+      width="480px"
+    >
+      <el-form
+        ref="handleFormRef"
+        :model="handleForm"
+        :rules="handleRules"
+        label-width="80px"
+      >
+        <el-form-item
+          label="处理方式"
+          prop="result"
+        >
           <el-radio-group v-model="handleForm.result">
-            <el-radio value="RESOLVED">确认违规（封禁被举报人）</el-radio>
-            <el-radio value="DISMISSED">驳回举报（无违规）</el-radio>
+            <el-radio value="RESOLVED">
+              确认违规（封禁被举报人）
+            </el-radio>
+            <el-radio value="DISMISSED">
+              驳回举报（无违规）
+            </el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item v-if="handleForm.result === 'RESOLVED'" class="handle-tip">
-          <el-alert type="error" :closable="false" show-icon>
+        <el-form-item
+          v-if="handleForm.result === 'RESOLVED'"
+          class="handle-tip"
+        >
+          <el-alert
+            type="error"
+            :closable="false"
+            show-icon
+          >
             确认违规后，系统将立即封禁被举报用户，封禁原因记录为「举报违规：举报原因」，操作不可撤销。
           </el-alert>
         </el-form-item>
-        <el-form-item label="处理备注" prop="note">
+        <el-form-item
+          label="处理备注"
+          prop="note"
+        >
           <el-input
             v-model="handleForm.note"
             type="textarea"
@@ -229,8 +466,16 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="handleDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="handleSubmitting" @click="confirmHandle">确认处理</el-button>
+        <el-button @click="handleDialogVisible = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="handleSubmitting"
+          @click="confirmHandle"
+        >
+          确认处理
+        </el-button>
       </template>
     </el-dialog>
   </div>

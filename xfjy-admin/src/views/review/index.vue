@@ -10,24 +10,57 @@
       @reset="handleReset"
     >
       <el-form-item label="类型">
-        <el-select v-model="query.type" placeholder="全部" clearable style="width: 120px">
-          <el-option label="动态" value="POST" />
-          <el-option label="图片" value="PHOTO" />
-          <el-option label="视频" value="VIDEO" />
+        <el-select
+          v-model="query.type"
+          placeholder="全部"
+          clearable
+          style="width: 120px"
+        >
+          <el-option
+            label="动态"
+            value="POST"
+          />
+          <el-option
+            label="图片"
+            value="PHOTO"
+          />
+          <el-option
+            label="视频"
+            value="VIDEO"
+          />
         </el-select>
       </el-form-item>
       <el-form-item label="状态">
-        <el-select v-model="query.status" placeholder="全部" clearable style="width: 120px">
-          <el-option label="待审核" value="PENDING" />
-          <el-option label="已通过" value="APPROVED" />
-          <el-option label="已驳回" value="REJECTED" />
+        <el-select
+          v-model="query.status"
+          placeholder="全部"
+          clearable
+          style="width: 120px"
+        >
+          <el-option
+            label="待审核"
+            value="PENDING"
+          />
+          <el-option
+            label="已通过"
+            value="APPROVED"
+          />
+          <el-option
+            label="已驳回"
+            value="REJECTED"
+          />
         </el-select>
       </el-form-item>
     </SearchBar>
 
     <!-- 快捷键提示条（移动端隐藏） -->
-    <div v-if="!isMobile" class="shortcut-bar">
-      <el-icon class="shortcut-icon"><InfoFilled /></el-icon>
+    <div
+      v-if="!isMobile"
+      class="shortcut-bar"
+    >
+      <el-icon class="shortcut-icon">
+        <InfoFilled />
+      </el-icon>
       <span><kbd>A</kbd> 通过当前项</span>
       <span><kbd>R</kbd> 驳回（自定义原因）</span>
       <span><kbd>1</kbd>~<kbd>5</kbd> 快速驳回（预设原因）</span>
@@ -66,7 +99,10 @@
           </el-button>
         </div>
 
-        <div v-loading="loading && tableData.length > 0" class="queue-list">
+        <div
+          v-loading="loading && tableData.length > 0"
+          class="queue-list"
+        >
           <!-- 首屏骨架：首次加载（无数据）时用结构化骨架替代 spinner -->
           <template v-if="loading && tableData.length === 0">
             <div
@@ -98,26 +134,57 @@
             />
             <div class="queue-item-body">
               <div class="queue-item-top">
-                <StatusTag :status="row.type" :mapping="typeMapping" />
+                <StatusTag
+                  :status="row.type"
+                  :mapping="typeMapping"
+                />
                 <span class="queue-user">{{ row.userNickname }}</span>
                 <span class="queue-id">#{{ row.id }}</span>
                 <span class="queue-time">{{ formatShortTime(row.submittedAt) }}</span>
               </div>
-              <div class="queue-content">{{ row.content || mediaSummary(row) }}</div>
-              <div v-if="row.status !== 'PENDING'" class="queue-result">
-                <StatusTag :status="row.status" :mapping="statusMapping" />
-                <span v-if="row.reviewer" class="text-muted">审核人：{{ row.reviewer }}</span>
-                <span v-if="row.reviewedAt" class="text-muted">{{ row.reviewedAt }}</span>
+              <div class="queue-content">
+                {{ row.content || mediaSummary(row) }}
+              </div>
+              <div
+                v-if="row.status !== 'PENDING'"
+                class="queue-result"
+              >
+                <StatusTag
+                  :status="row.status"
+                  :mapping="statusMapping"
+                />
+                <span
+                  v-if="row.reviewer"
+                  class="text-muted"
+                >审核人：{{ row.reviewer }}</span>
+                <span
+                  v-if="row.reviewedAt"
+                  class="text-muted"
+                >{{ row.reviewedAt }}</span>
               </div>
             </div>
           </div>
 
           <!-- 空态：区分「队列已清空」「无筛选结果」「加载失败」 -->
-          <div v-if="!loading && tableData.length === 0" class="queue-empty">
-            <el-empty v-if="loadFailed" description="加载失败">
-              <el-button type="primary" size="small" @click="loadData">点击重试</el-button>
+          <div
+            v-if="!loading && tableData.length === 0"
+            class="queue-empty"
+          >
+            <el-empty
+              v-if="loadFailed"
+              description="加载失败"
+            >
+              <el-button
+                type="primary"
+                @click="loadData"
+              >
+                点击重试
+              </el-button>
             </el-empty>
-            <el-empty v-else :description="query.status === 'PENDING' ? '队列已清空，太棒了' : '暂无符合条件的内容'" />
+            <el-empty
+              v-else
+              :description="query.status === 'PENDING' ? '队列已清空，太棒了' : '暂无符合条件的内容'"
+            />
           </div>
         </div>
 
@@ -139,24 +206,39 @@
       <div class="detail-pane">
         <template v-if="currentItem">
           <div class="detail-header">
-            <el-avatar :size="44" :src="currentItem.userAvatar">
+            <el-avatar
+              :size="44"
+              :src="currentItem.userAvatar"
+            >
               <el-icon><UserFilled /></el-icon>
             </el-avatar>
             <div class="detail-user">
-              <div class="detail-name">{{ currentItem.userNickname }}</div>
-              <div class="text-muted">用户 ID：{{ currentItem.userId }} · 内容 #{{ currentItem.id }}</div>
+              <div class="detail-name">
+                {{ currentItem.userNickname }}
+              </div>
+              <div class="text-muted">
+                用户 ID：{{ currentItem.userId }} · 内容 #{{ currentItem.id }}
+              </div>
             </div>
-            <StatusTag :status="currentItem.type" :mapping="typeMapping" />
+            <StatusTag
+              :status="currentItem.type"
+              :mapping="typeMapping"
+            />
             <span class="detail-time">{{ currentItem.submittedAt }}</span>
           </div>
 
           <div class="detail-body">
             <section class="detail-section">
               <h4>内容</h4>
-              <p class="detail-content">{{ currentItem.content || '（无文字内容）' }}</p>
+              <p class="detail-content">
+                {{ currentItem.content || '（无文字内容）' }}
+              </p>
             </section>
 
-            <section v-if="currentItem.medias?.length" class="detail-section">
+            <section
+              v-if="currentItem.medias?.length"
+              class="detail-section"
+            >
               <h4>媒体（{{ currentItem.medias.length }}）</h4>
               <video
                 v-if="currentItem.type === 'VIDEO'"
@@ -165,7 +247,10 @@
                 style="max-width: 100%; max-height: 320px; border-radius: var(--xfjy-radius-md); background: var(--xfjy-media-bg)"
               />
               <!-- 非视频：横向滚动多图，每张图都带完整预览列表，点击可在大图查看器内左右切换 -->
-              <div v-else class="media-row">
+              <div
+                v-else
+                class="media-row"
+              >
                 <el-image
                   v-for="(url, index) in currentItem.medias"
                   :key="index"
@@ -180,12 +265,33 @@
             </section>
 
             <!-- 已处理：灰色只读区 -->
-            <section v-if="currentItem.status !== 'PENDING'" class="detail-section review-result">
+            <section
+              v-if="currentItem.status !== 'PENDING'"
+              class="detail-section review-result"
+            >
               <h4>审核结果</h4>
-              <StatusTag :status="currentItem.status" :mapping="statusMapping" />
-              <p v-if="currentItem.reviewer" class="text-muted">审核人：{{ currentItem.reviewer }}</p>
-              <p v-if="currentItem.reviewedAt" class="text-muted">审核时间：{{ currentItem.reviewedAt }}</p>
-              <p v-if="currentItem.rejectReason" class="text-muted">驳回原因：{{ currentItem.rejectReason }}</p>
+              <StatusTag
+                :status="currentItem.status"
+                :mapping="statusMapping"
+              />
+              <p
+                v-if="currentItem.reviewer"
+                class="text-muted"
+              >
+                审核人：{{ currentItem.reviewer }}
+              </p>
+              <p
+                v-if="currentItem.reviewedAt"
+                class="text-muted"
+              >
+                审核时间：{{ currentItem.reviewedAt }}
+              </p>
+              <p
+                v-if="currentItem.rejectReason"
+                class="text-muted"
+              >
+                驳回原因：{{ currentItem.rejectReason }}
+              </p>
             </section>
           </div>
 
@@ -199,22 +305,39 @@
                   class="reject-chip"
                   :class="{ 'is-disabled': submitting }"
                   @click="quickReject(reason)"
-                >{{ idx + 1 }} {{ reason }}</el-tag>
+                >
+                  {{ idx + 1 }} {{ reason }}
+                </el-tag>
               </div>
-              <el-button type="success" :loading="submitting" @click="handleApprove(currentItem)">
+              <el-button
+                type="success"
+                :loading="submitting"
+                @click="handleApprove(currentItem)"
+              >
                 通过（A）
               </el-button>
-              <el-button type="danger" :disabled="submitting" @click="handleReject(currentItem)">
+              <el-button
+                type="danger"
+                :disabled="submitting"
+                @click="handleReject(currentItem)"
+              >
                 驳回（R）
               </el-button>
             </template>
-            <el-tag v-else :type="statusColor(currentItem.status)" size="large">
+            <el-tag
+              v-else
+              :type="statusColor(currentItem.status)"
+              size="large"
+            >
               已处理 · {{ statusLabel(currentItem.status) }}
             </el-tag>
           </div>
         </template>
 
-        <div v-else-if="!loading" class="detail-empty">
+        <div
+          v-else-if="!loading"
+          class="detail-empty"
+        >
           <el-empty
             :description="loadFailed ? '加载失败，请在左侧重试' : query.status === 'PENDING' ? '队列已清空' : '请选择左侧内容查看详情'"
           />
@@ -223,21 +346,57 @@
     </div>
 
     <!-- 驳回弹窗（单条 / 批量复用） -->
-    <el-dialog v-model="rejectDialogVisible" :title="batchMode ? `批量驳回（${selectedIds.length} 项）` : '驳回内容'" width="440px">
-      <el-form label-width="80px" @submit.prevent>
+    <el-dialog
+      v-model="rejectDialogVisible"
+      :title="batchMode ? `批量驳回（${selectedIds.length} 项）` : '驳回内容'"
+      width="440px"
+    >
+      <el-form
+        label-width="80px"
+        @submit.prevent
+      >
         <el-form-item label="驳回原因">
-          <el-select v-model="rejectReason" placeholder="选择或输入驳回原因" filterable allow-create style="width: 100%">
-            <el-option label="含违规图片" value="含违规图片" />
-            <el-option label="含不当言论" value="含不当言论" />
-            <el-option label="涉嫌广告推广" value="涉嫌广告推广" />
-            <el-option label="内容低俗" value="内容低俗" />
-            <el-option label="其他" value="其他" />
+          <el-select
+            v-model="rejectReason"
+            placeholder="选择或输入驳回原因"
+            filterable
+            allow-create
+            style="width: 100%"
+          >
+            <el-option
+              label="含违规图片"
+              value="含违规图片"
+            />
+            <el-option
+              label="含不当言论"
+              value="含不当言论"
+            />
+            <el-option
+              label="涉嫌广告推广"
+              value="涉嫌广告推广"
+            />
+            <el-option
+              label="内容低俗"
+              value="内容低俗"
+            />
+            <el-option
+              label="其他"
+              value="其他"
+            />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="rejectDialogVisible = false">取消</el-button>
-        <el-button type="danger" :loading="submitting" @click="confirmReject">确认驳回</el-button>
+        <el-button @click="rejectDialogVisible = false">
+          取消
+        </el-button>
+        <el-button
+          type="danger"
+          :loading="submitting"
+          @click="confirmReject"
+        >
+          确认驳回
+        </el-button>
       </template>
     </el-dialog>
   </div>

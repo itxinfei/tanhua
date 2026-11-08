@@ -1,9 +1,26 @@
 <template>
   <div class="page-container">
-    <PageHeader title="敏感词库" :subtitle="`共 ${total} 条记录`">
+    <PageHeader
+      title="敏感词库"
+      :subtitle="`共 ${total} 条记录`"
+    >
       <template #actions>
-        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" :icon="Plus" @click="handleAdd">新增</el-button>
-        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="warning" :icon="Upload" @click="handleBatchImport">批量导入</el-button>
+        <el-button
+          v-perm="['SUPER_ADMIN','ADMIN']"
+          type="primary"
+          :icon="Plus"
+          @click="handleAdd"
+        >
+          新增
+        </el-button>
+        <el-button
+          v-perm="['SUPER_ADMIN','ADMIN']"
+          type="warning"
+          :icon="Upload"
+          @click="handleBatchImport"
+        >
+          批量导入
+        </el-button>
       </template>
     </PageHeader>
 
@@ -18,34 +35,90 @@
       @reset="handleReset"
     >
       <el-form-item label="敏感词">
-        <el-input v-model="query.word" placeholder="关键词" clearable style="width: 160px" @keyup.enter="handleSearch" />
+        <el-input
+          v-model="query.word"
+          placeholder="关键词"
+          clearable
+          style="width: 160px"
+          @keyup.enter="handleSearch"
+        />
       </el-form-item>
       <el-form-item label="分类">
-        <el-select v-model="query.category" placeholder="全部" clearable style="width: 120px">
-          <el-option label="政治" value="POLITICS" />
-          <el-option label="色情" value="PORN" />
-          <el-option label="暴力" value="VIOLENCE" />
-          <el-option label="广告" value="AD" />
-          <el-option label="其他" value="OTHER" />
+        <el-select
+          v-model="query.category"
+          placeholder="全部"
+          clearable
+          style="width: 120px"
+        >
+          <el-option
+            label="政治"
+            value="POLITICS"
+          />
+          <el-option
+            label="色情"
+            value="PORN"
+          />
+          <el-option
+            label="暴力"
+            value="VIOLENCE"
+          />
+          <el-option
+            label="广告"
+            value="AD"
+          />
+          <el-option
+            label="其他"
+            value="OTHER"
+          />
         </el-select>
       </el-form-item>
       <el-form-item label="级别">
-        <el-select v-model="query.level" placeholder="全部" clearable style="width: 110px">
-          <el-option label="高危" :value="1" />
-          <el-option label="中危" :value="2" />
-          <el-option label="低危" :value="3" />
+        <el-select
+          v-model="query.level"
+          placeholder="全部"
+          clearable
+          style="width: 110px"
+        >
+          <el-option
+            label="高危"
+            :value="1"
+          />
+          <el-option
+            label="中危"
+            :value="2"
+          />
+          <el-option
+            label="低危"
+            :value="3"
+          />
         </el-select>
       </el-form-item>
       <el-form-item label="状态">
-        <el-select v-model="query.status" placeholder="全部" clearable style="width: 110px">
-          <el-option label="启用" :value="1" />
-          <el-option label="停用" :value="0" />
+        <el-select
+          v-model="query.status"
+          placeholder="全部"
+          clearable
+          style="width: 110px"
+        >
+          <el-option
+            label="启用"
+            :value="1"
+          />
+          <el-option
+            label="停用"
+            :value="0"
+          />
         </el-select>
       </el-form-item>
       <template #extra-actions>
-        <el-popover width="360" trigger="click">
+        <el-popover
+          width="360"
+          trigger="click"
+        >
           <template #reference>
-            <el-button :icon="Promotion">命中测试</el-button>
+            <el-button :icon="Promotion">
+              命中测试
+            </el-button>
           </template>
           <div class="test-box">
             <el-input
@@ -54,60 +127,184 @@
               :rows="3"
               placeholder="输入待检测文本进行敏感词命中测试"
             />
-            <el-button type="primary" :icon="Promotion" style="margin-top: var(--xfjy-space-2); width: 100%" @click="handleTest">测试</el-button>
+            <el-button
+              type="primary"
+              :icon="Promotion"
+              style="margin-top: var(--xfjy-space-2); width: 100%"
+              @click="handleTest"
+            >
+              测试
+            </el-button>
           </div>
-          <div v-if="testResult" class="test-result">
-            <el-alert :type="testResult.hitWords.length > 0 ? 'warning' : 'success'" :closable="false">
+          <div
+            v-if="testResult"
+            class="test-result"
+          >
+            <el-alert
+              :type="testResult.hitWords.length > 0 ? 'warning' : 'success'"
+              :closable="false"
+            >
               <template #title>
                 <div v-if="testResult.hitWords.length > 0">
                   <div>命中 {{ testResult.hitWords.length }} 个敏感词，最高级别：{{ levelLabel(testResult.maxLevel) }}</div>
                   <div style="margin-top: var(--xfjy-space-1)">
-                    <el-tag v-for="word in testResult.hitWords" :key="word" size="small" class="hit-word">{{ word }}</el-tag>
+                    <el-tag
+                      v-for="word in testResult.hitWords"
+                      :key="word"
+                      size="small"
+                      class="hit-word"
+                    >
+                      {{ word }}
+                    </el-tag>
                   </div>
                 </div>
-                <div v-else>未命中敏感词</div>
+                <div v-else>
+                  未命中敏感词
+                </div>
               </template>
-              <div v-if="testResult.filteredText !== testText" style="margin-top: var(--xfjy-space-2); color: var(--xfjy-text-secondary)">
+              <div
+                v-if="testResult.filteredText !== testText"
+                style="margin-top: var(--xfjy-space-2); color: var(--xfjy-text-secondary)"
+              >
                 过滤后文本：{{ testResult.filteredText || '(空)' }}
               </div>
             </el-alert>
           </div>
         </el-popover>
-        <el-button v-perm="['SUPER_ADMIN','ADMIN']" :icon="Download" @click="handleExport">导出</el-button>
-        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="danger" :icon="RefreshRight" @click="handleRefresh">刷新词库</el-button>
+        <el-button
+          v-perm="['SUPER_ADMIN','ADMIN']"
+          :icon="Download"
+          @click="handleExport"
+        >
+          导出
+        </el-button>
+        <el-button
+          v-perm="['SUPER_ADMIN','ADMIN']"
+          type="danger"
+          :icon="RefreshRight"
+          @click="handleRefresh"
+        >
+          刷新词库
+        </el-button>
       </template>
     </SearchBar>
 
     <TableCard :skeleton="loading && !tableData.length">
-      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
-        <el-table-column v-if="!isMobile" prop="id" label="ID" width="70" align="center" />
-        <el-table-column prop="word" label="敏感词" min-width="160" show-overflow-tooltip />
-        <el-table-column label="分类" width="90" align="center">
+      <el-table
+        v-loading="loading"
+        :data="tableData"
+        stripe
+        border
+        style="width: 100%"
+      >
+        <el-table-column
+          v-if="!isMobile"
+          prop="id"
+          label="ID"
+          width="70"
+          align="center"
+        />
+        <el-table-column
+          prop="word"
+          label="敏感词"
+          min-width="160"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          label="分类"
+          width="90"
+          align="center"
+        >
           <template #default="{ row }">
-            <el-tag :type="categoryColor(row.category)" size="small">{{ categoryLabel(row.category) }}</el-tag>
+            <el-tag
+              :type="categoryColor(row.category)"
+              size="small"
+            >
+              {{ categoryLabel(row.category) }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="级别" width="80" align="center">
+        <el-table-column
+          label="级别"
+          width="80"
+          align="center"
+        >
           <template #default="{ row }">
-            <el-tag :type="levelColor(row.level)" size="small" effect="plain">{{ levelLabel(row.level) }}</el-tag>
+            <el-tag
+              :type="levelColor(row.level)"
+              size="small"
+              effect="plain"
+            >
+              {{ levelLabel(row.level) }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="80" align="center">
+        <el-table-column
+          label="状态"
+          width="80"
+          align="center"
+        >
           <template #default="{ row }">
-            <StatusTag :status="String(row.status)" :mapping="sensitiveStatusMapping" />
+            <StatusTag
+              :status="String(row.status)"
+              :mapping="sensitiveStatusMapping"
+            />
           </template>
         </el-table-column>
-        <el-table-column v-if="!isMobile" prop="updated" label="更新时间" width="170" />
-        <el-table-column label="操作" width="200" fixed="right" align="center">
+        <el-table-column
+          v-if="!isMobile"
+          prop="updated"
+          label="更新时间"
+          width="170"
+        />
+        <el-table-column
+          label="操作"
+          width="200"
+          fixed="right"
+          align="center"
+        >
           <template #default="{ row }">
-            <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
-            <el-button v-if="row.status === 1" v-perm="['SUPER_ADMIN','ADMIN']" link type="warning" size="small" @click="handleToggle(row, 0)">停用</el-button>
-            <el-button v-else v-perm="['SUPER_ADMIN','ADMIN']" link type="success" size="small" @click="handleToggle(row, 1)">启用</el-button>
-            <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+            <el-button
+              v-perm="['SUPER_ADMIN','ADMIN']"
+              link
+              type="primary"
+              @click="handleEdit(row)"
+            >
+              编辑
+            </el-button>
+            <el-button
+              v-if="row.status === 1"
+              v-perm="['SUPER_ADMIN','ADMIN']"
+              link
+              type="warning"
+              @click="handleToggle(row, 0)"
+            >
+              停用
+            </el-button>
+            <el-button
+              v-else
+              v-perm="['SUPER_ADMIN','ADMIN']"
+              link
+              type="success"
+              @click="handleToggle(row, 1)"
+            >
+              启用
+            </el-button>
+            <el-button
+              v-perm="['SUPER_ADMIN','ADMIN']"
+              link
+              type="danger"
+              @click="handleDelete(row)"
+            >
+              删除
+            </el-button>
           </template>
         </el-table-column>
         <template #empty>
-          <TableEmpty description="暂无敏感词数据" hint="点击右上角「新增敏感词」添加规则" />
+          <TableEmpty
+            description="暂无敏感词数据"
+            hint="点击右上角「新增敏感词」添加规则"
+          />
         </template>
       </el-table>
       <template #pagination>
@@ -124,36 +321,96 @@
     </TableCard>
 
     <!-- 新增/编辑弹窗 -->
-    <el-dialog v-model="formVisible" :title="editingId ? '编辑敏感词' : '新增敏感词'" width="480px">
-      <el-form ref="formRef" :model="form" :rules="formRules" label-width="80px">
-        <el-form-item label="敏感词" prop="word">
-          <el-input v-model="form.word" placeholder="请输入敏感词" maxlength="30" show-word-limit />
+    <el-dialog
+      v-model="formVisible"
+      :title="editingId ? '编辑敏感词' : '新增敏感词'"
+      width="480px"
+    >
+      <el-form
+        ref="formRef"
+        :model="form"
+        :rules="formRules"
+        label-width="80px"
+      >
+        <el-form-item
+          label="敏感词"
+          prop="word"
+        >
+          <el-input
+            v-model="form.word"
+            placeholder="请输入敏感词"
+            maxlength="30"
+            show-word-limit
+          />
         </el-form-item>
-        <el-form-item label="分类" prop="category">
-          <el-select v-model="form.category" placeholder="请选择分类" style="width: 100%">
-            <el-option label="政治" value="POLITICS" />
-            <el-option label="色情" value="PORN" />
-            <el-option label="暴力" value="VIOLENCE" />
-            <el-option label="广告" value="AD" />
-            <el-option label="其他" value="OTHER" />
+        <el-form-item
+          label="分类"
+          prop="category"
+        >
+          <el-select
+            v-model="form.category"
+            placeholder="请选择分类"
+            style="width: 100%"
+          >
+            <el-option
+              label="政治"
+              value="POLITICS"
+            />
+            <el-option
+              label="色情"
+              value="PORN"
+            />
+            <el-option
+              label="暴力"
+              value="VIOLENCE"
+            />
+            <el-option
+              label="广告"
+              value="AD"
+            />
+            <el-option
+              label="其他"
+              value="OTHER"
+            />
           </el-select>
         </el-form-item>
-        <el-form-item label="级别" prop="level">
+        <el-form-item
+          label="级别"
+          prop="level"
+        >
           <el-radio-group v-model="form.level">
-            <el-radio :value="1">高危（拦截）</el-radio>
-            <el-radio :value="2">中危（人工审核）</el-radio>
-            <el-radio :value="3">低危（过滤替换）</el-radio>
+            <el-radio :value="1">
+              高危（拦截）
+            </el-radio>
+            <el-radio :value="2">
+              中危（人工审核）
+            </el-radio>
+            <el-radio :value="3">
+              低危（过滤替换）
+            </el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="formVisible = false">取消</el-button>
-        <el-button type="primary" :loading="formSubmitting" @click="confirmSave">保存</el-button>
+        <el-button @click="formVisible = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="formSubmitting"
+          @click="confirmSave"
+        >
+          保存
+        </el-button>
       </template>
     </el-dialog>
 
     <!-- 批量导入弹窗 -->
-    <el-dialog v-model="batchImportVisible" title="批量导入敏感词" width="560px">
+    <el-dialog
+      v-model="batchImportVisible"
+      title="批量导入敏感词"
+      width="560px"
+    >
       <el-form label-width="80px">
         <el-form-item label="词条列表">
           <el-input
@@ -162,28 +419,63 @@
             :rows="8"
             placeholder="每行一个敏感词，或用逗号/空格分隔"
           />
-          <div class="batch-import-tip">支持换行、逗号、空格分隔，自动去重</div>
+          <div class="batch-import-tip">
+            支持换行、逗号、空格分隔，自动去重
+          </div>
         </el-form-item>
         <el-form-item label="分类">
-          <el-select v-model="batchImportCategory" placeholder="请选择分类" style="width: 100%">
-            <el-option label="政治" value="POLITICS" />
-            <el-option label="色情" value="PORN" />
-            <el-option label="暴力" value="VIOLENCE" />
-            <el-option label="广告" value="AD" />
-            <el-option label="其他" value="OTHER" />
+          <el-select
+            v-model="batchImportCategory"
+            placeholder="请选择分类"
+            style="width: 100%"
+          >
+            <el-option
+              label="政治"
+              value="POLITICS"
+            />
+            <el-option
+              label="色情"
+              value="PORN"
+            />
+            <el-option
+              label="暴力"
+              value="VIOLENCE"
+            />
+            <el-option
+              label="广告"
+              value="AD"
+            />
+            <el-option
+              label="其他"
+              value="OTHER"
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="级别">
           <el-radio-group v-model="batchImportLevel">
-            <el-radio :value="1">高危（拦截）</el-radio>
-            <el-radio :value="2">中危（人工审核）</el-radio>
-            <el-radio :value="3">低危（过滤替换）</el-radio>
+            <el-radio :value="1">
+              高危（拦截）
+            </el-radio>
+            <el-radio :value="2">
+              中危（人工审核）
+            </el-radio>
+            <el-radio :value="3">
+              低危（过滤替换）
+            </el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="batchImportVisible = false">取消</el-button>
-        <el-button type="primary" :loading="batchImporting" @click="confirmBatchImport">导入</el-button>
+        <el-button @click="batchImportVisible = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="batchImporting"
+          @click="confirmBatchImport"
+        >
+          导入
+        </el-button>
       </template>
     </el-dialog>
   </div>

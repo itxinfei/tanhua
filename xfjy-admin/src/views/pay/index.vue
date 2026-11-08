@@ -1,20 +1,56 @@
 <template>
   <div class="page-container">
-    <PageHeader title="订单管理" :subtitle="`共 ${total} 条记录`" />
+    <PageHeader
+      title="订单管理"
+      :subtitle="`共 ${total} 条记录`"
+    />
 
     <!-- 汇总卡片 -->
     <el-row :gutter="16">
-      <el-col :xs="12" :sm="6">
-        <StatCard label="总订单数" :value="summary.total" icon="Document" icon-bg="linear-gradient(135deg, var(--xfjy-primary-deep), var(--xfjy-primary))" />
+      <el-col
+        :xs="12"
+        :sm="6"
+      >
+        <StatCard
+          label="总订单数"
+          :value="summary.total"
+          icon="Document"
+          icon-bg="linear-gradient(135deg, var(--xfjy-primary-deep), var(--xfjy-primary))"
+        />
       </el-col>
-      <el-col :xs="12" :sm="6">
-        <StatCard label="已支付" :value="summary.paidCount" icon="CircleCheck" icon-bg="linear-gradient(135deg, var(--xfjy-chart-3), var(--xfjy-chart-8))" />
+      <el-col
+        :xs="12"
+        :sm="6"
+      >
+        <StatCard
+          label="已支付"
+          :value="summary.paidCount"
+          icon="CircleCheck"
+          icon-bg="linear-gradient(135deg, var(--xfjy-chart-3), var(--xfjy-chart-8))"
+        />
       </el-col>
-      <el-col :xs="12" :sm="6">
-        <StatCard label="待支付" :value="summary.pendingCount" icon="Clock" icon-bg="linear-gradient(135deg, var(--xfjy-chart-4), var(--xfjy-warning))" />
+      <el-col
+        :xs="12"
+        :sm="6"
+      >
+        <StatCard
+          label="待支付"
+          :value="summary.pendingCount"
+          icon="Clock"
+          icon-bg="linear-gradient(135deg, var(--xfjy-chart-4), var(--xfjy-warning))"
+        />
       </el-col>
-      <el-col :xs="12" :sm="6">
-        <StatCard label="总收入" :value="summary.totalAmount" suffix="分" icon="Wallet" icon-bg="linear-gradient(135deg, var(--xfjy-primary), var(--xfjy-primary-soft))" />
+      <el-col
+        :xs="12"
+        :sm="6"
+      >
+        <StatCard
+          label="总收入"
+          :value="summary.totalAmount"
+          suffix="分"
+          icon="Wallet"
+          icon-bg="linear-gradient(135deg, var(--xfjy-primary), var(--xfjy-primary-soft))"
+        />
       </el-col>
     </el-row>
 
@@ -27,18 +63,47 @@
       @reset="handleReset"
     >
       <el-form-item label="订单号">
-        <el-input v-model="query.orderNo" placeholder="订单号" clearable style="width: 200px" @keyup.enter="handleSearch" />
+        <el-input
+          v-model="query.orderNo"
+          placeholder="订单号"
+          clearable
+          style="width: 200px"
+          @keyup.enter="handleSearch"
+        />
       </el-form-item>
       <el-form-item label="状态">
-        <el-select v-model="query.status" placeholder="全部" clearable style="width: 120px">
-          <el-option label="待支付" value="PENDING" />
-          <el-option label="已支付" value="PAID" />
-          <el-option label="已过期" value="EXPIRED" />
-          <el-option label="已取消" value="CANCELLED" />
+        <el-select
+          v-model="query.status"
+          placeholder="全部"
+          clearable
+          style="width: 120px"
+        >
+          <el-option
+            label="待支付"
+            value="PENDING"
+          />
+          <el-option
+            label="已支付"
+            value="PAID"
+          />
+          <el-option
+            label="已过期"
+            value="EXPIRED"
+          />
+          <el-option
+            label="已取消"
+            value="CANCELLED"
+          />
         </el-select>
       </el-form-item>
       <el-form-item label="用户ID">
-        <el-input v-model.number="query.userId" placeholder="用户ID" clearable style="width: 120px" @keyup.enter="handleSearch" />
+        <el-input
+          v-model.number="query.userId"
+          placeholder="用户ID"
+          clearable
+          style="width: 120px"
+          @keyup.enter="handleSearch"
+        />
       </el-form-item>
       <el-form-item label="时间范围">
         <el-date-picker
@@ -53,45 +118,125 @@
         />
       </el-form-item>
       <template #extra-actions>
-        <el-button type="success" :icon="Download" @click="handleExport">导出</el-button>
+        <el-button
+          :icon="Download"
+          @click="handleExport"
+        >
+          导出
+        </el-button>
       </template>
     </SearchBar>
 
     <TableCard :skeleton="loading && !tableData.length">
-      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
-        <el-table-column v-if="!isMobile" prop="id" label="ID" width="70" align="center" />
-        <el-table-column label="订单号" width="280">
+      <el-table
+        v-loading="loading"
+        :data="tableData"
+        stripe
+        border
+        style="width: 100%"
+      >
+        <el-table-column
+          v-if="!isMobile"
+          prop="id"
+          label="ID"
+          width="70"
+          align="center"
+        />
+        <el-table-column
+          label="订单号"
+          width="280"
+        >
           <template #default="{ row }">
             <div class="order-no-cell">
               <span class="order-no-text">{{ row.orderNo }}</span>
-              <el-button link type="primary" size="small" :icon="CopyDocument" @click="copyOrderNo(row.orderNo)" />
+              <el-button
+                link
+                type="primary"
+                :icon="CopyDocument"
+                @click="copyOrderNo(row.orderNo)"
+              />
             </div>
           </template>
         </el-table-column>
-        <el-table-column v-if="!isMobile" prop="userId" label="用户ID" width="90" align="center" />
-        <el-table-column prop="packageName" label="套餐" width="110" />
-        <el-table-column label="金额" width="100" align="right">
-          <template #default="{ row }">¥{{ formatAmount(row.amount) }}</template>
-        </el-table-column>
-        <el-table-column label="状态" width="90" align="center">
+        <el-table-column
+          v-if="!isMobile"
+          prop="userId"
+          label="用户ID"
+          width="90"
+          align="center"
+        />
+        <el-table-column
+          prop="packageName"
+          label="套餐"
+          width="110"
+        />
+        <el-table-column
+          label="金额"
+          width="100"
+          align="right"
+        >
           <template #default="{ row }">
-            <StatusTag :status="row.status" :mapping="payStatusMapping" />
+            ¥{{ formatAmount(row.amount) }}
           </template>
         </el-table-column>
-        <el-table-column v-if="!isMobile" label="支付方式" width="100" align="center">
-          <template #default="{ row }">{{ payTypeLabel(row.payType) }}</template>
-        </el-table-column>
-        <el-table-column prop="paidTime" label="支付时间" width="170">
-          <template #default="{ row }">{{ row.paidTime || '-' }}</template>
-        </el-table-column>
-        <el-table-column v-if="!isMobile" prop="created" label="创建时间" width="170" />
-        <el-table-column label="操作" width="80" fixed="right" align="center">
+        <el-table-column
+          label="状态"
+          width="90"
+          align="center"
+        >
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="showDetail(row)">详情</el-button>
+            <StatusTag
+              :status="row.status"
+              :mapping="payStatusMapping"
+            />
+          </template>
+        </el-table-column>
+        <el-table-column
+          v-if="!isMobile"
+          label="支付方式"
+          width="100"
+          align="center"
+        >
+          <template #default="{ row }">
+            {{ payTypeLabel(row.payType) }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="paidTime"
+          label="支付时间"
+          width="170"
+        >
+          <template #default="{ row }">
+            {{ row.paidTime || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          v-if="!isMobile"
+          prop="created"
+          label="创建时间"
+          width="170"
+        />
+        <el-table-column
+          label="操作"
+          width="80"
+          fixed="right"
+          align="center"
+        >
+          <template #default="{ row }">
+            <el-button
+              link
+              type="primary"
+              @click="showDetail(row)"
+            >
+              详情
+            </el-button>
           </template>
         </el-table-column>
         <template #empty>
-          <TableEmpty description="暂无订单数据" hint="订单由用户支付行为产生，暂无数据时无需操作" />
+          <TableEmpty
+            description="暂无订单数据"
+            hint="订单由用户支付行为产生，暂无数据时无需操作"
+          />
         </template>
       </el-table>
       <template #pagination>
@@ -108,22 +253,61 @@
     </TableCard>
 
     <!-- 详情弹窗 -->
-    <el-dialog v-model="detailVisible" title="订单详情" width="560px">
-      <el-descriptions :column="2" border v-if="currentOrder">
-        <el-descriptions-item label="订单ID">{{ currentOrder.id }}</el-descriptions-item>
-        <el-descriptions-item label="订单号">{{ currentOrder.orderNo }}</el-descriptions-item>
-        <el-descriptions-item label="用户ID">{{ currentOrder.userId }}</el-descriptions-item>
-        <el-descriptions-item label="套餐ID">{{ currentOrder.packageId }}</el-descriptions-item>
-        <el-descriptions-item label="套餐名称">{{ currentOrder.packageName }}</el-descriptions-item>
-        <el-descriptions-item label="金额">¥{{ formatAmount(currentOrder.amount) }}</el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <StatusTag :status="currentOrder.status" :mapping="payStatusMapping" />
+    <el-dialog
+      v-model="detailVisible"
+      title="订单详情"
+      width="560px"
+    >
+      <el-descriptions
+        v-if="currentOrder"
+        :column="2"
+        border
+      >
+        <el-descriptions-item label="订单ID">
+          {{ currentOrder.id }}
         </el-descriptions-item>
-        <el-descriptions-item label="支付方式">{{ payTypeLabel(currentOrder.payType) }}</el-descriptions-item>
-        <el-descriptions-item label="支付时间">{{ currentOrder.paidTime || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="会员到期">{{ currentOrder.expireTime || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="创建时间" :span="2">{{ currentOrder.created }}</el-descriptions-item>
-        <el-descriptions-item label="更新时间" :span="2">{{ currentOrder.updated }}</el-descriptions-item>
+        <el-descriptions-item label="订单号">
+          {{ currentOrder.orderNo }}
+        </el-descriptions-item>
+        <el-descriptions-item label="用户ID">
+          {{ currentOrder.userId }}
+        </el-descriptions-item>
+        <el-descriptions-item label="套餐ID">
+          {{ currentOrder.packageId }}
+        </el-descriptions-item>
+        <el-descriptions-item label="套餐名称">
+          {{ currentOrder.packageName }}
+        </el-descriptions-item>
+        <el-descriptions-item label="金额">
+          ¥{{ formatAmount(currentOrder.amount) }}
+        </el-descriptions-item>
+        <el-descriptions-item label="状态">
+          <StatusTag
+            :status="currentOrder.status"
+            :mapping="payStatusMapping"
+          />
+        </el-descriptions-item>
+        <el-descriptions-item label="支付方式">
+          {{ payTypeLabel(currentOrder.payType) }}
+        </el-descriptions-item>
+        <el-descriptions-item label="支付时间">
+          {{ currentOrder.paidTime || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="会员到期">
+          {{ currentOrder.expireTime || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item
+          label="创建时间"
+          :span="2"
+        >
+          {{ currentOrder.created }}
+        </el-descriptions-item>
+        <el-descriptions-item
+          label="更新时间"
+          :span="2"
+        >
+          {{ currentOrder.updated }}
+        </el-descriptions-item>
       </el-descriptions>
     </el-dialog>
   </div>

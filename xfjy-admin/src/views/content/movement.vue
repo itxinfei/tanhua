@@ -1,26 +1,66 @@
 <template>
   <div class="page-container">
-    <PageHeader title="动态管理" :subtitle="`共 ${total} 条记录`">
+    <PageHeader
+      title="动态管理"
+      :subtitle="`共 ${total} 条记录`"
+    >
       <template #actions>
-        <el-radio-group v-model="viewMode" size="small">
-          <el-radio-button value="table">表格</el-radio-button>
-          <el-radio-button value="gallery">画廊</el-radio-button>
+        <el-radio-group
+          v-model="viewMode"
+          size="small"
+        >
+          <el-radio-button value="table">
+            表格
+          </el-radio-button>
+          <el-radio-button value="gallery">
+            画廊
+          </el-radio-button>
         </el-radio-group>
       </template>
     </PageHeader>
 
-    <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
+    <SearchBar
+      :model="query"
+      @search="handleSearch"
+      @reset="handleReset"
+    >
       <el-form-item label="关键词">
-        <el-input v-model="searchKeyword" placeholder="搜索动态文字内容" clearable style="width: 200px" @keyup.enter="handleSearch" />
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索动态文字内容"
+          clearable
+          style="width: 200px"
+          @keyup.enter="handleSearch"
+        />
       </el-form-item>
       <el-form-item label="用户ID">
-        <el-input v-model="searchUserId" placeholder="用户ID" clearable style="width: 120px" @keyup.enter="handleSearch" />
+        <el-input
+          v-model="searchUserId"
+          placeholder="用户ID"
+          clearable
+          style="width: 120px"
+          @keyup.enter="handleSearch"
+        />
       </el-form-item>
       <el-form-item label="可见范围">
-        <el-select v-model="searchSeeType" placeholder="全部" clearable style="width: 120px">
-          <el-option label="公开" :value="0" />
-          <el-option label="好友" :value="1" />
-          <el-option label="私密" :value="2" />
+        <el-select
+          v-model="searchSeeType"
+          placeholder="全部"
+          clearable
+          style="width: 120px"
+        >
+          <el-option
+            label="公开"
+            :value="0"
+          />
+          <el-option
+            label="好友"
+            :value="1"
+          />
+          <el-option
+            label="私密"
+            :value="2"
+          />
         </el-select>
       </el-form-item>
       <el-form-item label="发布时间">
@@ -38,10 +78,21 @@
     </SearchBar>
 
     <TableCard :skeleton="loading && !tableData.length">
-      <template #batch v-if="selectedRows.length > 0">
+      <template
+        v-if="selectedRows.length > 0"
+        #batch
+      >
         <span class="batch-count">已选 {{ selectedRows.length }} 项</span>
-        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="danger" size="small" @click="handleBatchDelete">批量删除</el-button>
-        <el-button size="small" @click="selectedRows = []">取消选择</el-button>
+        <el-button
+          v-perm="['SUPER_ADMIN','ADMIN']"
+          type="danger"
+          @click="handleBatchDelete"
+        >
+          批量删除
+        </el-button>
+        <el-button @click="selectedRows = []">
+          取消选择
+        </el-button>
       </template>
       <el-table
         v-if="viewMode === 'table'"
@@ -52,28 +103,53 @@
         :row-class-name="rowClassName"
         @selection-change="handleSelectionChange"
       >
-        <el-table-column type="selection" width="50" align="center" />
-        <el-table-column label="发布者" width="160">
+        <el-table-column
+          type="selection"
+          width="50"
+          align="center"
+        />
+        <el-table-column
+          label="发布者"
+          width="160"
+        >
           <template #default="{ row }">
             <div class="user-cell">
-              <el-avatar :size="32" :src="row.userAvatar">
+              <el-avatar
+                :size="32"
+                :src="row.userAvatar"
+              >
                 <el-icon><UserFilled /></el-icon>
               </el-avatar>
               <div class="user-text">
-                <div class="user-name">{{ row.userNickname }}</div>
-                <div class="user-id">ID: {{ row.userId }}</div>
+                <div class="user-name">
+                  {{ row.userNickname }}
+                </div>
+                <div class="user-id">
+                  ID: {{ row.userId }}
+                </div>
               </div>
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="内容" min-width="260">
+        <el-table-column
+          label="内容"
+          min-width="260"
+        >
           <template #default="{ row }">
-            <div class="text-content">{{ row.text || '(无文字)' }}</div>
+            <div class="text-content">
+              {{ row.text || '(无文字)' }}
+            </div>
           </template>
         </el-table-column>
-        <el-table-column label="图片" width="180">
+        <el-table-column
+          label="图片"
+          width="180"
+        >
           <template #default="{ row }">
-            <div v-if="row.medias && row.medias.length" class="media-list">
+            <div
+              v-if="row.medias && row.medias.length"
+              class="media-list"
+            >
               <el-image
                 v-for="(url, idx) in row.medias.slice(0, 3)"
                 :key="idx"
@@ -84,78 +160,174 @@
                 class="media-thumb"
                 preview-teleported
               />
-              <span v-if="row.medias.length > 3" class="media-more">+{{ row.medias.length - 3 }}</span>
+              <span
+                v-if="row.medias.length > 3"
+                class="media-more"
+              >+{{ row.medias.length - 3 }}</span>
             </div>
-            <span v-else class="no-media">无图片</span>
+            <span
+              v-else
+              class="no-media"
+            >无图片</span>
           </template>
         </el-table-column>
-        <el-table-column v-if="!isMobile" label="位置" width="120" show-overflow-tooltip>
+        <el-table-column
+          v-if="!isMobile"
+          label="位置"
+          width="120"
+          show-overflow-tooltip
+        >
           <template #default="{ row }">
             {{ row.locationName || '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="可见范围" width="90" align="center">
+        <el-table-column
+          label="可见范围"
+          width="90"
+          align="center"
+        >
           <template #default="{ row }">
-            <StatusTag :status="String(row.seeType)" :mapping="seeTypeMapping" />
+            <StatusTag
+              :status="String(row.seeType)"
+              :mapping="seeTypeMapping"
+            />
           </template>
         </el-table-column>
-        <el-table-column v-if="!isMobile" label="互动" width="140" align="center">
+        <el-table-column
+          v-if="!isMobile"
+          label="互动"
+          width="140"
+          align="center"
+        >
           <template #default="{ row }">
             <span class="stat-text">赞 {{ row.likeCount }}</span>
             <span class="stat-text">评 {{ row.commentCount }}</span>
             <span class="stat-text">喜 {{ row.loveCount }}</span>
           </template>
         </el-table-column>
-        <el-table-column v-if="!isMobile" label="举报" width="90" align="center">
+        <el-table-column
+          v-if="!isMobile"
+          label="举报"
+          width="90"
+          align="center"
+        >
           <template #default="{ row }">
-            <el-badge :value="row.reportCount" :hidden="row.reportCount === 0" type="danger">
+            <el-badge
+              :value="row.reportCount"
+              :hidden="row.reportCount === 0"
+              type="danger"
+            >
               <span class="stat-text">举报</span>
             </el-badge>
           </template>
         </el-table-column>
-        <el-table-column v-if="!isMobile" label="发布时间" width="170">
+        <el-table-column
+          v-if="!isMobile"
+          label="发布时间"
+          width="170"
+        >
           <template #default="{ row }">
             {{ formatDateTime(row.created) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="140" fixed="right" align="center">
+        <el-table-column
+          label="操作"
+          width="140"
+          fixed="right"
+          align="center"
+        >
           <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="handleDetail(row)">详情</el-button>
-            <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
+            <el-button
+              type="primary"
+              link
+              @click="handleDetail(row)"
+            >
+              详情
+            </el-button>
+            <el-button
+              v-perm="['SUPER_ADMIN','ADMIN']"
+              type="danger"
+              link
+              @click="handleDelete(row)"
+            >
+              删除
+            </el-button>
           </template>
         </el-table-column>
         <template #empty>
-          <TableEmpty description="暂无动态数据" hint="动态由 App 端用户发布，暂无数据时无需操作" />
+          <TableEmpty
+            description="暂无动态数据"
+            hint="动态由 App 端用户发布，暂无数据时无需操作"
+          />
         </template>
       </el-table>
       <!-- 画廊视图 -->
-      <div v-else v-loading="loading" class="gallery-grid">
+      <div
+        v-else
+        v-loading="loading"
+        class="gallery-grid"
+      >
         <div
           v-for="row in tableData"
           :key="row.id"
           class="gallery-card"
         >
-          <div v-if="row.medias && row.medias.length" class="gallery-card__cover" @click="handleDetail(row)">
-            <el-image :src="row.medias[0]" fit="cover" class="gallery-card__img" preview-teleported :preview-src-list="row.medias" />
-            <span v-if="row.medias.length > 1" class="gallery-card__count">{{ row.medias.length }} 图</span>
+          <div
+            v-if="row.medias && row.medias.length"
+            class="gallery-card__cover"
+            @click="handleDetail(row)"
+          >
+            <el-image
+              :src="row.medias[0]"
+              fit="cover"
+              class="gallery-card__img"
+              preview-teleported
+              :preview-src-list="row.medias"
+            />
+            <span
+              v-if="row.medias.length > 1"
+              class="gallery-card__count"
+            >{{ row.medias.length }} 图</span>
           </div>
-          <div v-else class="gallery-card__cover gallery-card__cover--empty" @click="handleDetail(row)">
-            <el-icon :size="24"><Picture /></el-icon>
+          <div
+            v-else
+            class="gallery-card__cover gallery-card__cover--empty"
+            @click="handleDetail(row)"
+          >
+            <el-icon :size="24">
+              <Picture />
+            </el-icon>
             <span>纯文字</span>
           </div>
           <div class="gallery-card__body">
             <div class="gallery-card__author">
-              <el-avatar :size="20" :src="row.userAvatar" />
+              <el-avatar
+                :size="20"
+                :src="row.userAvatar"
+              />
               <span>{{ row.userNickname }}</span>
             </div>
-            <div class="gallery-card__text">{{ row.text || '（无文字）' }}</div>
+            <div class="gallery-card__text">
+              {{ row.text || '（无文字）' }}
+            </div>
             <div class="gallery-card__footer">
               <span>赞 {{ row.likeCount }} · 评 {{ row.commentCount }}</span>
-              <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+              <el-button
+                v-perm="['SUPER_ADMIN','ADMIN']"
+                link
+                type="danger"
+                @click="handleDelete(row)"
+              >
+                删除
+              </el-button>
             </div>
           </div>
         </div>
-        <TableEmpty v-if="!loading && tableData.length === 0" description="暂无动态数据" hint="动态由 App 端用户发布，暂无数据时无需操作" />
+        <TableEmpty
+          v-if="!loading && tableData.length === 0"
+          description="暂无动态数据"
+          hint="动态由 App 端用户发布，暂无数据时无需操作"
+        />
       </div>
       <template #pagination>
         <el-pagination
@@ -171,24 +343,44 @@
     </TableCard>
 
     <!-- 动态详情弹窗 -->
-    <el-dialog v-model="detailVisible" title="动态详情" width="600px" destroy-on-close>
+    <el-dialog
+      v-model="detailVisible"
+      title="动态详情"
+      width="600px"
+      destroy-on-close
+    >
       <template v-if="detailRow">
         <!-- 发布者 -->
         <div class="detail-author">
-          <el-avatar :size="44" :src="detailRow.userAvatar">
+          <el-avatar
+            :size="44"
+            :src="detailRow.userAvatar"
+          >
             <el-icon><UserFilled /></el-icon>
           </el-avatar>
           <div class="detail-author-info">
-            <div class="detail-author-name">{{ detailRow.userNickname }}</div>
-            <div class="detail-author-id">ID: {{ detailRow.userId }} · {{ formatDateTime(detailRow.created) }}</div>
+            <div class="detail-author-name">
+              {{ detailRow.userNickname }}
+            </div>
+            <div class="detail-author-id">
+              ID: {{ detailRow.userId }} · {{ formatDateTime(detailRow.created) }}
+            </div>
           </div>
         </div>
 
         <!-- 文字内容 -->
-        <div v-if="detailRow.text" class="detail-text">{{ detailRow.text }}</div>
+        <div
+          v-if="detailRow.text"
+          class="detail-text"
+        >
+          {{ detailRow.text }}
+        </div>
 
         <!-- 图片列表 -->
-        <div v-if="detailRow.medias && detailRow.medias.length" class="detail-medias">
+        <div
+          v-if="detailRow.medias && detailRow.medias.length"
+          class="detail-medias"
+        >
           <el-image
             v-for="(url, idx) in detailRow.medias"
             :key="idx"
@@ -202,8 +394,14 @@
         </div>
 
         <!-- 位置 + 互动 -->
-        <el-descriptions :column="2" border class="detail-desc">
-          <el-descriptions-item label="位置">{{ detailRow.locationName || '-' }}</el-descriptions-item>
+        <el-descriptions
+          :column="2"
+          border
+          class="detail-desc"
+        >
+          <el-descriptions-item label="位置">
+            {{ detailRow.locationName || '-' }}
+          </el-descriptions-item>
           <el-descriptions-item label="互动">
             赞 {{ detailRow.likeCount }} · 评 {{ detailRow.commentCount }} · 喜 {{ detailRow.loveCount }}
           </el-descriptions-item>

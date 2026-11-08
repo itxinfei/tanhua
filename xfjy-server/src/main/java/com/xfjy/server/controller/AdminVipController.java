@@ -51,16 +51,28 @@ public class AdminVipController {
      */
     @PostMapping("packages")
     public ResponseEntity createPackage(@RequestBody Map<String, Object> body) {
+        String name;
+        Integer level;
+        Long price;
+        Long originalPrice;
+        Integer durationDays;
+        String description;
+        Integer sort;
         try {
-            String name = body.get("name") == null ? null : String.valueOf(body.get("name"));
-            Integer level = body.get("level") == null ? null : Integer.valueOf(String.valueOf(body.get("level")));
-            Long price = body.get("price") == null ? null : Long.valueOf(String.valueOf(body.get("price")));
-            Long originalPrice = body.get("originalPrice") == null ? null
+            name = body.get("name") == null ? null : String.valueOf(body.get("name"));
+            level = body.get("level") == null ? null : Integer.valueOf(String.valueOf(body.get("level")));
+            price = body.get("price") == null ? null : Long.valueOf(String.valueOf(body.get("price")));
+            originalPrice = body.get("originalPrice") == null ? null
                     : Long.valueOf(String.valueOf(body.get("originalPrice")));
-            Integer durationDays = body.get("durationDays") == null ? null
+            durationDays = body.get("durationDays") == null ? null
                     : Integer.valueOf(String.valueOf(body.get("durationDays")));
-            String description = body.get("description") == null ? null : String.valueOf(body.get("description"));
-            Integer sort = body.get("sort") == null ? null : Integer.valueOf(String.valueOf(body.get("sort")));
+            description = body.get("description") == null ? null : String.valueOf(body.get("description"));
+            sort = body.get("sort") == null ? null : Integer.valueOf(String.valueOf(body.get("sort")));
+        } catch (NumberFormatException e) {
+            // 数值字段传了非数字（如 level="abc"），属于客户端参数错误，返回 400 而非 500
+            return ResponseEntity.status(400).body(Map.of("message", "参数格式错误，数值字段必须为数字"));
+        }
+        try {
             Boolean success = this.adminVipService.createPackage(
                     name, level, price, originalPrice, durationDays, description, sort);
             if (success) {

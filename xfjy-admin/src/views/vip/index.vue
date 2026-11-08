@@ -1,10 +1,16 @@
 <template>
   <div class="page-container">
-    <PageHeader title="会员管理" subtitle="VIP 套餐与增值权益配置" />
+    <PageHeader
+      title="会员管理"
+      subtitle="VIP 套餐与增值权益配置"
+    />
 
     <el-tabs v-model="activeTab">
       <!-- 套餐管理 -->
-      <el-tab-pane label="VIP 套餐" name="package">
+      <el-tab-pane
+        label="VIP 套餐"
+        name="package"
+      >
         <SearchBar
           :model="pkgQuery"
           :filter-meta="{
@@ -14,48 +20,156 @@
           @reset="resetPkgQuery"
         >
           <el-form-item label="名称">
-            <el-input v-model="pkgQuery.name" placeholder="套餐名称" clearable style="width: 160px" @keyup.enter="loadPackages" />
+            <el-input
+              v-model="pkgQuery.name"
+              placeholder="套餐名称"
+              clearable
+              style="width: 160px"
+              @keyup.enter="loadPackages"
+            />
           </el-form-item>
           <el-form-item label="状态">
-            <el-select v-model="pkgQuery.status" placeholder="全部" clearable style="width: 110px">
-              <el-option label="上架" :value="1" />
-              <el-option label="下架" :value="0" />
+            <el-select
+              v-model="pkgQuery.status"
+              placeholder="全部"
+              clearable
+              style="width: 110px"
+            >
+              <el-option
+                label="上架"
+                :value="1"
+              />
+              <el-option
+                label="下架"
+                :value="0"
+              />
             </el-select>
           </el-form-item>
           <template #extra-actions>
-            <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" :icon="Plus" @click="handlePkgAdd">新增套餐</el-button>
+            <el-button
+              v-perm="['SUPER_ADMIN','ADMIN']"
+              type="primary"
+              :icon="Plus"
+              @click="handlePkgAdd"
+            >
+              新增套餐
+            </el-button>
           </template>
         </SearchBar>
 
         <TableCard :skeleton="pkgLoading && !pkgData.length">
-          <el-table :data="pkgData" v-loading="pkgLoading" stripe border style="width: 100%">
-            <el-table-column v-if="!isMobile" prop="id" label="ID" width="60" align="center" />
-            <el-table-column prop="name" label="套餐名称" width="120" />
-            <el-table-column label="等级" width="80" align="center">
-              <template #default="{ row }">{{ levelLabel(row.level) }}</template>
-            </el-table-column>
-            <el-table-column label="售价" width="90" align="right">
-              <template #default="{ row }">¥{{ formatAmount(row.price) }}</template>
-            </el-table-column>
-            <el-table-column v-if="!isMobile" label="原价" width="90" align="right">
-              <template #default="{ row }">{{ row.originalPrice ? '¥' + formatAmount(row.originalPrice) : '-' }}</template>
-            </el-table-column>
-            <el-table-column prop="durationDays" label="有效天数" width="90" align="center" />
-            <el-table-column label="状态" width="80" align="center">
+          <el-table
+            v-loading="pkgLoading"
+            :data="pkgData"
+            stripe
+            border
+            style="width: 100%"
+          >
+            <el-table-column
+              v-if="!isMobile"
+              prop="id"
+              label="ID"
+              width="60"
+              align="center"
+            />
+            <el-table-column
+              prop="name"
+              label="套餐名称"
+              width="120"
+            />
+            <el-table-column
+              label="等级"
+              width="80"
+              align="center"
+            >
               <template #default="{ row }">
-                <StatusTag :status="String(row.status)" :mapping="pkgStatusMapping" />
+                {{ levelLabel(row.level) }}
               </template>
             </el-table-column>
-            <el-table-column v-if="!isMobile" prop="sort" label="排序" width="70" align="center" />
-            <el-table-column label="操作" width="160" fixed="right" align="center">
+            <el-table-column
+              label="售价"
+              width="90"
+              align="right"
+            >
               <template #default="{ row }">
-                <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="primary" size="small" @click="handlePkgEdit(row)">编辑</el-button>
-                <el-button v-if="row.status === 1" v-perm="['SUPER_ADMIN','ADMIN']" link type="warning" size="small" @click="handlePkgToggle(row, 0)">下架</el-button>
-                <el-button v-else v-perm="['SUPER_ADMIN','ADMIN']" link type="success" size="small" @click="handlePkgToggle(row, 1)">上架</el-button>
+                ¥{{ formatAmount(row.price) }}
+              </template>
+            </el-table-column>
+            <el-table-column
+              v-if="!isMobile"
+              label="原价"
+              width="90"
+              align="right"
+            >
+              <template #default="{ row }">
+                {{ row.originalPrice ? '¥' + formatAmount(row.originalPrice) : '-' }}
+              </template>
+            </el-table-column>
+            <el-table-column
+              prop="durationDays"
+              label="有效天数"
+              width="90"
+              align="center"
+            />
+            <el-table-column
+              label="状态"
+              width="80"
+              align="center"
+            >
+              <template #default="{ row }">
+                <StatusTag
+                  :status="String(row.status)"
+                  :mapping="pkgStatusMapping"
+                />
+              </template>
+            </el-table-column>
+            <el-table-column
+              v-if="!isMobile"
+              prop="sort"
+              label="排序"
+              width="70"
+              align="center"
+            />
+            <el-table-column
+              label="操作"
+              width="160"
+              fixed="right"
+              align="center"
+            >
+              <template #default="{ row }">
+                <el-button
+                  v-perm="['SUPER_ADMIN','ADMIN']"
+                  link
+                  type="primary"
+                  @click="handlePkgEdit(row)"
+                >
+                  编辑
+                </el-button>
+                <el-button
+                  v-if="row.status === 1"
+                  v-perm="['SUPER_ADMIN','ADMIN']"
+                  link
+                  type="warning"
+                  @click="handlePkgToggle(row, 0)"
+                >
+                  下架
+                </el-button>
+                <el-button
+                  v-else
+                  v-perm="['SUPER_ADMIN','ADMIN']"
+                  link
+                  type="success"
+                  @click="handlePkgToggle(row, 1)"
+                >
+                  上架
+                </el-button>
               </template>
             </el-table-column>
             <template #empty>
-              <TableEmpty description="暂无套餐数据" hint="点击右上角「新增套餐」创建会员套餐" />
+              <TableEmpty
+                description="暂无套餐数据"
+                hint="点击右上角「新增套餐」创建会员套餐"
+              />
             </template>
           </el-table>
           <template #pagination>
@@ -73,7 +187,10 @@
       </el-tab-pane>
 
       <!-- 权益管理 -->
-      <el-tab-pane label="增值权益" name="benefit">
+      <el-tab-pane
+        label="增值权益"
+        name="benefit"
+      >
         <SearchBar
           :model="benefitQuery"
           :filter-meta="{
@@ -83,42 +200,136 @@
           @reset="resetBenefitQuery"
         >
           <el-form-item label="名称">
-            <el-input v-model="benefitQuery.name" placeholder="权益名称" clearable style="width: 160px" @keyup.enter="loadBenefits" />
+            <el-input
+              v-model="benefitQuery.name"
+              placeholder="权益名称"
+              clearable
+              style="width: 160px"
+              @keyup.enter="loadBenefits"
+            />
           </el-form-item>
           <el-form-item label="状态">
-            <el-select v-model="benefitQuery.status" placeholder="全部" clearable style="width: 110px">
-              <el-option label="启用" :value="1" />
-              <el-option label="停用" :value="0" />
+            <el-select
+              v-model="benefitQuery.status"
+              placeholder="全部"
+              clearable
+              style="width: 110px"
+            >
+              <el-option
+                label="启用"
+                :value="1"
+              />
+              <el-option
+                label="停用"
+                :value="0"
+              />
             </el-select>
           </el-form-item>
         </SearchBar>
 
         <TableCard :skeleton="benefitLoading && !benefitData.length">
-          <el-table :data="benefitData" v-loading="benefitLoading" stripe border style="width: 100%">
-            <el-table-column v-if="!isMobile" prop="id" label="ID" width="60" align="center" />
-            <el-table-column v-if="!isMobile" prop="serviceCode" label="权益码" width="160" show-overflow-tooltip />
-            <el-table-column prop="name" label="权益名称" width="140" />
-            <el-table-column label="所需等级" width="100" align="center">
-              <template #default="{ row }">{{ levelLabel(row.vipLevelRequired) }}</template>
-            </el-table-column>
-            <el-table-column label="每日限制" width="100" align="center">
-              <template #default="{ row }">{{ row.dailyLimit ?? '不限' }}</template>
-            </el-table-column>
-            <el-table-column prop="description" label="描述" min-width="180" show-overflow-tooltip />
-            <el-table-column label="状态" width="80" align="center">
+          <el-table
+            v-loading="benefitLoading"
+            :data="benefitData"
+            stripe
+            border
+            style="width: 100%"
+          >
+            <el-table-column
+              v-if="!isMobile"
+              prop="id"
+              label="ID"
+              width="60"
+              align="center"
+            />
+            <el-table-column
+              v-if="!isMobile"
+              prop="serviceCode"
+              label="权益码"
+              width="160"
+              show-overflow-tooltip
+            />
+            <el-table-column
+              prop="name"
+              label="权益名称"
+              width="140"
+            />
+            <el-table-column
+              label="所需等级"
+              width="100"
+              align="center"
+            >
               <template #default="{ row }">
-                <StatusTag :status="String(row.status)" :mapping="benefitStatusMapping" />
+                {{ levelLabel(row.vipLevelRequired) }}
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="160" fixed="right" align="center">
+            <el-table-column
+              label="每日限制"
+              width="100"
+              align="center"
+            >
               <template #default="{ row }">
-                <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="primary" size="small" @click="handleBenefitEdit(row)">编辑</el-button>
-                <el-button v-if="row.status === 1" v-perm="['SUPER_ADMIN','ADMIN']" link type="warning" size="small" @click="handleBenefitToggle(row, 0)">停用</el-button>
-                <el-button v-else v-perm="['SUPER_ADMIN','ADMIN']" link type="success" size="small" @click="handleBenefitToggle(row, 1)">启用</el-button>
+                {{ row.dailyLimit ?? '不限' }}
+              </template>
+            </el-table-column>
+            <el-table-column
+              prop="description"
+              label="描述"
+              min-width="180"
+              show-overflow-tooltip
+            />
+            <el-table-column
+              label="状态"
+              width="80"
+              align="center"
+            >
+              <template #default="{ row }">
+                <StatusTag
+                  :status="String(row.status)"
+                  :mapping="benefitStatusMapping"
+                />
+              </template>
+            </el-table-column>
+            <el-table-column
+              label="操作"
+              width="160"
+              fixed="right"
+              align="center"
+            >
+              <template #default="{ row }">
+                <el-button
+                  v-perm="['SUPER_ADMIN','ADMIN']"
+                  link
+                  type="primary"
+                  @click="handleBenefitEdit(row)"
+                >
+                  编辑
+                </el-button>
+                <el-button
+                  v-if="row.status === 1"
+                  v-perm="['SUPER_ADMIN','ADMIN']"
+                  link
+                  type="warning"
+                  @click="handleBenefitToggle(row, 0)"
+                >
+                  停用
+                </el-button>
+                <el-button
+                  v-else
+                  v-perm="['SUPER_ADMIN','ADMIN']"
+                  link
+                  type="success"
+                  @click="handleBenefitToggle(row, 1)"
+                >
+                  启用
+                </el-button>
               </template>
             </el-table-column>
             <template #empty>
-              <TableEmpty description="暂无权益数据" hint="点击右上角「新增权益」配置会员权益" />
+              <TableEmpty
+                description="暂无权益数据"
+                hint="权益由系统预置，可编辑所需等级与每日限制"
+              />
             </template>
           </el-table>
           <template #pagination>
@@ -137,72 +348,200 @@
     </el-tabs>
 
     <!-- 套餐新增/编辑弹窗 -->
-    <el-dialog v-model="pkgFormVisible" :title="pkgEditingId ? '编辑套餐' : '新增套餐'" width="520px">
-      <el-form ref="pkgFormRef" :model="pkgForm" :rules="pkgFormRules" label-width="80px">
-        <el-form-item label="套餐名称" prop="name">
-          <el-input v-model="pkgForm.name" placeholder="如：月卡/季卡/年卡" maxlength="20" />
+    <el-dialog
+      v-model="pkgFormVisible"
+      :title="pkgEditingId ? '编辑套餐' : '新增套餐'"
+      width="520px"
+    >
+      <el-form
+        ref="pkgFormRef"
+        :model="pkgForm"
+        :rules="pkgFormRules"
+        label-width="80px"
+      >
+        <el-form-item
+          label="套餐名称"
+          prop="name"
+        >
+          <el-input
+            v-model="pkgForm.name"
+            placeholder="如：月卡/季卡/年卡"
+            maxlength="20"
+          />
         </el-form-item>
-        <el-form-item label="VIP等级" prop="level">
-          <el-select v-model="pkgForm.level" placeholder="请选择等级" style="width: 100%">
-            <el-option label="1 - 月卡会员" :value="1" />
-            <el-option label="2 - 季卡会员" :value="2" />
-            <el-option label="3 - 年卡会员" :value="3" />
+        <el-form-item
+          label="VIP等级"
+          prop="level"
+        >
+          <el-select
+            v-model="pkgForm.level"
+            placeholder="请选择等级"
+            style="width: 100%"
+          >
+            <el-option
+              label="1 - 月卡会员"
+              :value="1"
+            />
+            <el-option
+              label="2 - 季卡会员"
+              :value="2"
+            />
+            <el-option
+              label="3 - 年卡会员"
+              :value="3"
+            />
           </el-select>
         </el-form-item>
-        <el-form-item label="售价(分)" prop="price">
-          <el-input-number v-model="pkgForm.price" :min="0" :step="100" style="width: 200px" />
+        <el-form-item
+          label="售价(分)"
+          prop="price"
+        >
+          <el-input-number
+            v-model="pkgForm.price"
+            :min="0"
+            :step="100"
+            style="width: 200px"
+          />
           <span class="form-tip">¥{{ formatAmount(pkgForm.price || 0) }}</span>
         </el-form-item>
         <el-form-item label="原价(分)">
-          <el-input-number v-model="pkgForm.originalPrice" :min="0" :step="100" style="width: 200px" />
-          <span class="form-tip" v-if="pkgForm.originalPrice">¥{{ formatAmount(pkgForm.originalPrice) }}</span>
+          <el-input-number
+            v-model="pkgForm.originalPrice"
+            :min="0"
+            :step="100"
+            style="width: 200px"
+          />
+          <span
+            v-if="pkgForm.originalPrice"
+            class="form-tip"
+          >¥{{ formatAmount(pkgForm.originalPrice) }}</span>
         </el-form-item>
-        <el-form-item label="有效天数" prop="durationDays">
-          <el-input-number v-model="pkgForm.durationDays" :min="1" :max="3650" style="width: 200px" />
+        <el-form-item
+          label="有效天数"
+          prop="durationDays"
+        >
+          <el-input-number
+            v-model="pkgForm.durationDays"
+            :min="1"
+            :max="3650"
+            style="width: 200px"
+          />
         </el-form-item>
         <el-form-item label="排序">
-          <el-input-number v-model="pkgForm.sort" :min="0" style="width: 200px" />
+          <el-input-number
+            v-model="pkgForm.sort"
+            :min="0"
+            style="width: 200px"
+          />
         </el-form-item>
         <el-form-item label="描述">
-          <el-input v-model="pkgForm.description" type="textarea" :rows="3" maxlength="200" show-word-limit />
+          <el-input
+            v-model="pkgForm.description"
+            type="textarea"
+            :rows="3"
+            maxlength="200"
+            show-word-limit
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="pkgFormVisible = false">取消</el-button>
-        <el-button type="primary" :loading="pkgSaving" @click="confirmPkgSave">保存</el-button>
+        <el-button @click="pkgFormVisible = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="pkgSaving"
+          @click="confirmPkgSave"
+        >
+          保存
+        </el-button>
       </template>
     </el-dialog>
 
     <!-- 权益编辑弹窗 -->
-    <el-dialog v-model="benefitFormVisible" title="编辑权益" width="480px">
-      <el-form ref="benefitFormRef" :model="benefitForm" :rules="benefitFormRules" label-width="80px">
+    <el-dialog
+      v-model="benefitFormVisible"
+      title="编辑权益"
+      width="480px"
+    >
+      <el-form
+        ref="benefitFormRef"
+        :model="benefitForm"
+        :rules="benefitFormRules"
+        label-width="80px"
+      >
         <el-form-item label="权益码">
-          <el-input :model-value="benefitForm.serviceCode" disabled />
+          <el-input
+            :model-value="benefitForm.serviceCode"
+            disabled
+          />
         </el-form-item>
         <el-form-item label="权益名称">
-          <el-input :model-value="benefitForm.name" disabled />
+          <el-input
+            :model-value="benefitForm.name"
+            disabled
+          />
         </el-form-item>
-        <el-form-item label="所需等级" prop="vipLevelRequired">
-          <el-select v-model="benefitForm.vipLevelRequired" style="width: 100%">
-            <el-option label="1 - 月卡会员" :value="1" />
-            <el-option label="2 - 季卡会员" :value="2" />
-            <el-option label="3 - 年卡会员" :value="3" />
+        <el-form-item
+          label="所需等级"
+          prop="vipLevelRequired"
+        >
+          <el-select
+            v-model="benefitForm.vipLevelRequired"
+            style="width: 100%"
+          >
+            <el-option
+              label="1 - 月卡会员"
+              :value="1"
+            />
+            <el-option
+              label="2 - 季卡会员"
+              :value="2"
+            />
+            <el-option
+              label="3 - 年卡会员"
+              :value="3"
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="每日限制">
-          <el-input-number v-model="benefitForm.dailyLimit" :min="1" style="width: 200px" placeholder="留空不限" />
+          <el-input-number
+            v-model="benefitForm.dailyLimit"
+            :min="1"
+            :value-on-clear="null"
+            style="width: 200px"
+            placeholder="留空不限"
+          />
           <span class="form-tip">留空表示不限次</span>
         </el-form-item>
         <el-form-item label="排序">
-          <el-input-number v-model="benefitForm.sort" :min="0" style="width: 200px" />
+          <el-input-number
+            v-model="benefitForm.sort"
+            :min="0"
+            style="width: 200px"
+          />
         </el-form-item>
         <el-form-item label="描述">
-          <el-input v-model="benefitForm.description" type="textarea" :rows="3" maxlength="200" show-word-limit />
+          <el-input
+            v-model="benefitForm.description"
+            type="textarea"
+            :rows="3"
+            maxlength="200"
+            show-word-limit
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="benefitFormVisible = false">取消</el-button>
-        <el-button type="primary" :loading="benefitSaving" @click="confirmBenefitSave">保存</el-button>
+        <el-button @click="benefitFormVisible = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="benefitSaving"
+          @click="confirmBenefitSave"
+        >
+          保存
+        </el-button>
       </template>
     </el-dialog>
   </div>

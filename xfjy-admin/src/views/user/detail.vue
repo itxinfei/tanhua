@@ -9,24 +9,54 @@
   >
     <div v-loading="detailLoading">
       <!-- 基本信息 -->
-      <el-tabs v-model="activeTab" class="detail-tabs">
-        <el-tab-pane label="基本信息" name="basic">
-          <div v-if="detail" class="tab-content">
+      <el-tabs
+        v-model="activeTab"
+        class="detail-tabs"
+      >
+        <el-tab-pane
+          label="基本信息"
+          name="basic"
+        >
+          <div
+            v-if="detail"
+            class="tab-content"
+          >
             <div class="user-profile">
-              <el-avatar :size="72" :src="detail.avatar">
-                <el-icon :size="36"><UserFilled /></el-icon>
+              <el-avatar
+                :size="72"
+                :src="detail.avatar"
+              >
+                <el-icon :size="36">
+                  <UserFilled />
+                </el-icon>
               </el-avatar>
               <div class="profile-info">
                 <div class="profile-name">
                   {{ detail.nickname }}
-                  <el-tag :type="detail.gender === '女' ? 'danger' : 'primary'" size="small">{{ detail.gender }}</el-tag>
-                  <el-tag v-if="detail.vipLevel > 0" type="warning" size="small">VIP{{ detail.vipLevel }}</el-tag>
-                  <el-tag :type="detail.status === 'NORMAL' ? 'success' : 'danger'" size="small">
+                  <el-tag
+                    :type="detail.gender === '女' ? 'danger' : 'primary'"
+                    size="small"
+                  >
+                    {{ detail.gender }}
+                  </el-tag>
+                  <el-tag
+                    v-if="detail.vipLevel > 0"
+                    type="warning"
+                    size="small"
+                  >
+                    VIP{{ detail.vipLevel }}
+                  </el-tag>
+                  <el-tag
+                    :type="detail.status === 'NORMAL' ? 'success' : 'danger'"
+                    size="small"
+                  >
                     {{ detail.status === 'NORMAL' ? '正常' : '已封禁' }}
                   </el-tag>
                 </div>
                 <div class="info-group">
-                  <div class="info-group__title">账号信息</div>
+                  <div class="info-group__title">
+                    账号信息
+                  </div>
                   <div class="profile-meta">
                     <span>ID: {{ detail.id }}</span>
                     <span>手机: {{ detail.mobile }}</span>
@@ -35,7 +65,9 @@
                   </div>
                 </div>
                 <div class="info-group">
-                  <div class="info-group__title">个人资料</div>
+                  <div class="info-group__title">
+                    个人资料
+                  </div>
                   <div class="profile-meta">
                     <span>学历: {{ detail.edu || '—' }}</span>
                     <span>行业: {{ detail.industry || '—' }}</span>
@@ -44,23 +76,46 @@
                   </div>
                 </div>
                 <div class="info-group">
-                  <div class="info-group__title">活跃时间</div>
+                  <div class="info-group__title">
+                    活跃时间
+                  </div>
                   <div class="profile-meta">
                     <span>注册: {{ detail.createdAt }}</span>
                     <span>最后活跃: {{ detail.lastActiveAt }}</span>
                   </div>
                 </div>
-                <div v-if="detail.signature" class="profile-signature">签名: {{ detail.signature }}</div>
-                <div v-if="detail.freezeReason" class="freeze-reason">封禁原因: {{ detail.freezeReason }}</div>
+                <div
+                  v-if="detail.signature"
+                  class="profile-signature"
+                >
+                  签名: {{ detail.signature }}
+                </div>
+                <div
+                  v-if="detail.freezeReason"
+                  class="freeze-reason"
+                >
+                  封禁原因: {{ detail.freezeReason }}
+                </div>
               </div>
             </div>
           </div>
         </el-tab-pane>
 
         <!-- 资料编辑（客服代改） -->
-        <el-tab-pane label="资料编辑" name="profile-edit">
-          <div v-if="detail" v-loading="profileSaving" class="tab-content">
-            <el-form :model="profileForm" label-width="80px" class="profile-form">
+        <el-tab-pane
+          label="资料编辑"
+          name="profile-edit"
+        >
+          <div
+            v-if="detail"
+            v-loading="profileSaving"
+            class="tab-content"
+          >
+            <el-form
+              :model="profileForm"
+              label-width="80px"
+              class="profile-form"
+            >
               <el-form-item label="头像">
                 <div class="avatar-edit-row">
                   <el-upload
@@ -79,25 +134,49 @@
                         tabindex="0"
                         aria-label="更换头像"
                       >
-                        <el-icon :size="28"><UserFilled /></el-icon>
+                        <el-icon :size="28">
+                          <UserFilled />
+                        </el-icon>
                       </el-avatar>
-                      <div v-if="avatarUploading" class="avatar-uploading">
-                        <el-icon class="is-loading" :size="20"><Loading /></el-icon>
+                      <div
+                        v-if="avatarUploading"
+                        class="avatar-uploading"
+                      >
+                        <el-icon
+                          class="is-loading"
+                          :size="20"
+                        >
+                          <Loading />
+                        </el-icon>
                       </div>
                     </div>
                   </el-upload>
-                  <el-button v-if="profileForm.avatar" @click="clearAvatar">清除头像</el-button>
+                  <el-button
+                    v-if="profileForm.avatar"
+                    @click="clearAvatar"
+                  >
+                    清除头像
+                  </el-button>
                 </div>
               </el-form-item>
 
               <el-form-item label="昵称">
-                <el-input v-model="profileForm.nickname" maxlength="20" show-word-limit style="max-width: 280px" />
+                <el-input
+                  v-model="profileForm.nickname"
+                  maxlength="20"
+                  show-word-limit
+                  style="max-width: 280px"
+                />
               </el-form-item>
 
               <el-form-item label="性别">
                 <el-radio-group v-model="profileForm.gender">
-                  <el-radio value="man">男</el-radio>
-                  <el-radio value="woman">女</el-radio>
+                  <el-radio value="man">
+                    男
+                  </el-radio>
+                  <el-radio value="woman">
+                    女
+                  </el-radio>
                 </el-radio-group>
               </el-form-item>
 
@@ -113,41 +192,90 @@
               </el-form-item>
 
               <el-form-item label="城市">
-                <el-input v-model="profileForm.city" maxlength="20" style="max-width: 280px" placeholder="如 北京市-朝阳区" />
+                <el-input
+                  v-model="profileForm.city"
+                  maxlength="20"
+                  style="max-width: 280px"
+                  placeholder="如 北京市-朝阳区"
+                />
               </el-form-item>
 
               <el-form-item label="身高">
-                <el-select v-model="profileForm.height" clearable placeholder="未设置" style="width: 200px">
-                  <el-option v-for="h in heightOptions" :key="h" :label="`${h}cm`" :value="h" />
+                <el-select
+                  v-model="profileForm.height"
+                  clearable
+                  placeholder="未设置"
+                  style="width: 200px"
+                >
+                  <el-option
+                    v-for="h in heightOptions"
+                    :key="h"
+                    :label="`${h}cm`"
+                    :value="h"
+                  />
                 </el-select>
               </el-form-item>
 
               <el-form-item label="学历">
-                <el-select v-model="profileForm.education" clearable placeholder="未设置" style="width: 200px">
-                  <el-option v-for="e in educationOptions" :key="e" :label="e" :value="e" />
+                <el-select
+                  v-model="profileForm.education"
+                  clearable
+                  placeholder="未设置"
+                  style="width: 200px"
+                >
+                  <el-option
+                    v-for="e in educationOptions"
+                    :key="e"
+                    :label="e"
+                    :value="e"
+                  />
                 </el-select>
               </el-form-item>
 
               <el-form-item label="行业">
-                <el-select v-model="profileForm.profession" clearable filterable placeholder="未设置" style="width: 200px">
-                  <el-option v-for="p in industryOptions" :key="p" :label="p" :value="p" />
+                <el-select
+                  v-model="profileForm.profession"
+                  clearable
+                  filterable
+                  placeholder="未设置"
+                  style="width: 200px"
+                >
+                  <el-option
+                    v-for="p in industryOptions"
+                    :key="p"
+                    :label="p"
+                    :value="p"
+                  />
                 </el-select>
               </el-form-item>
 
               <el-form-item label="收入">
-                <el-input v-model="profileForm.income" maxlength="20" style="max-width: 280px" placeholder="如 15000-20000" />
+                <el-input
+                  v-model="profileForm.income"
+                  maxlength="20"
+                  style="max-width: 280px"
+                  placeholder="如 15000-20000"
+                />
               </el-form-item>
 
               <el-form-item label="婚姻">
                 <el-radio-group v-model="profileForm.marriage">
-                  <el-radio :value="0">未婚</el-radio>
-                  <el-radio :value="1">已婚</el-radio>
+                  <el-radio :value="0">
+                    未婚
+                  </el-radio>
+                  <el-radio :value="1">
+                    已婚
+                  </el-radio>
                 </el-radio-group>
               </el-form-item>
 
               <el-form-item label="照片墙">
                 <div class="photo-editor">
-                  <div v-for="(photo, i) in profilePhotos" :key="`${photo}-${i}`" class="photo-edit-item">
+                  <div
+                    v-for="(photo, i) in profilePhotos"
+                    :key="`${photo}-${i}`"
+                    class="photo-edit-item"
+                  >
                     <el-image
                       :src="photo"
                       fit="cover"
@@ -157,8 +285,13 @@
                       :preview-src-list="profilePhotos"
                       :initial-index="i"
                     />
-                    <div class="photo-remove" @click="removePhoto(i)">
-                      <el-icon :size="12"><Close /></el-icon>
+                    <div
+                      class="photo-remove"
+                      @click="removePhoto(i)"
+                    >
+                      <el-icon :size="12">
+                        <Close />
+                      </el-icon>
                     </div>
                   </div>
                   <el-upload
@@ -167,28 +300,71 @@
                     :http-request="uploadPhoto"
                     accept="image/*"
                   >
-                    <div class="photo-add"><el-icon :size="24"><Plus /></el-icon></div>
+                    <div class="photo-add">
+                      <el-icon :size="24">
+                        <Plus />
+                      </el-icon>
+                    </div>
                   </el-upload>
                 </div>
-                <div class="photo-tip">最多 6 张（当前 {{ profilePhotos.length }}/6），修改后需点击底部保存</div>
+                <div class="photo-tip">
+                  最多 6 张（当前 {{ profilePhotos.length }}/6），修改后需点击底部保存
+                </div>
               </el-form-item>
 
               <el-form-item>
-                <el-button type="primary" :loading="profileSaving" @click="handleSaveProfile">保存修改</el-button>
-                <el-button @click="resetProfileForm">重置</el-button>
+                <el-button
+                  type="primary"
+                  :loading="profileSaving"
+                  @click="handleSaveProfile"
+                >
+                  保存修改
+                </el-button>
+                <el-button @click="resetProfileForm">
+                  重置
+                </el-button>
               </el-form-item>
             </el-form>
 
-            <div class="profile-log-title">资料修改记录</div>
-            <el-table :data="profileLogs" v-loading="profileLogsLoading" stripe size="small" style="width: 100%">
-              <el-table-column prop="operatorName" label="操作人" width="120" />
-              <el-table-column prop="detail" label="变更内容" min-width="220" show-overflow-tooltip />
-              <el-table-column prop="ip" label="IP" width="130" />
-              <el-table-column label="时间" width="150">
-                <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
+            <div class="profile-log-title">
+              资料修改记录
+            </div>
+            <el-table
+              v-loading="profileLogsLoading"
+              :data="profileLogs"
+              stripe
+              size="small"
+              style="width: 100%"
+            >
+              <el-table-column
+                prop="operatorName"
+                label="操作人"
+                width="120"
+              />
+              <el-table-column
+                prop="detail"
+                label="变更内容"
+                min-width="220"
+                show-overflow-tooltip
+              />
+              <el-table-column
+                prop="ip"
+                label="IP"
+                width="130"
+              />
+              <el-table-column
+                label="时间"
+                width="150"
+              >
+                <template #default="{ row }">
+                  {{ formatDateTime(row.createdAt) }}
+                </template>
               </el-table-column>
             </el-table>
-            <div v-if="profileLogs.length" class="pagination-wrapper">
+            <div
+              v-if="profileLogs.length"
+              class="pagination-wrapper"
+            >
               <el-pagination
                 v-model:current-page="profileLogQuery.page"
                 v-model:page-size="profileLogQuery.pageSize"
@@ -198,42 +374,119 @@
                 @current-change="loadProfileLogs"
               />
             </div>
-            <el-empty v-if="!profileLogs.length && !profileLogsLoading" description="暂无修改记录" :image-size="50" />
+            <el-empty
+              v-if="!profileLogs.length && !profileLogsLoading"
+              description="暂无修改记录"
+              :image-size="50"
+            />
           </div>
         </el-tab-pane>
 
         <!-- 关系链（关注/粉丝/匹配，只读） -->
-        <el-tab-pane label="关系链" name="relations">
-          <div v-if="detail" v-loading="relationLoading" class="tab-content">
-            <el-radio-group v-model="relationType" size="small" @change="onRelationTypeChange">
-              <el-radio-button value="follow">关注</el-radio-button>
-              <el-radio-button value="fans">粉丝</el-radio-button>
-              <el-radio-button value="match">匹配</el-radio-button>
+        <el-tab-pane
+          label="关系链"
+          name="relations"
+        >
+          <div
+            v-if="detail"
+            v-loading="relationLoading"
+            class="tab-content"
+          >
+            <el-radio-group
+              v-model="relationType"
+              size="small"
+              @change="onRelationTypeChange"
+            >
+              <el-radio-button value="follow">
+                关注
+              </el-radio-button>
+              <el-radio-button value="fans">
+                粉丝
+              </el-radio-button>
+              <el-radio-button value="match">
+                匹配
+              </el-radio-button>
             </el-radio-group>
-            <el-table :data="relationList" stripe size="small" class="relation-table">
-              <el-table-column label="头像" width="80">
+            <el-table
+              :data="relationList"
+              stripe
+              size="small"
+              class="relation-table"
+            >
+              <el-table-column
+                label="头像"
+                width="80"
+              >
                 <template #default="{ row }">
-                  <el-avatar :size="36" :src="row.avatar || undefined">{{ (row.nickname || '?').slice(0, 1) }}</el-avatar>
+                  <el-avatar
+                    :size="36"
+                    :src="row.avatar || undefined"
+                  >
+                    {{ (row.nickname || '?').slice(0, 1) }}
+                  </el-avatar>
                 </template>
               </el-table-column>
-              <el-table-column prop="nickname" label="昵称" min-width="120" show-overflow-tooltip />
-              <el-table-column label="性别" width="80" align="center">
+              <el-table-column
+                prop="nickname"
+                label="昵称"
+                min-width="120"
+                show-overflow-tooltip
+              />
+              <el-table-column
+                label="性别"
+                width="80"
+                align="center"
+              >
                 <template #default="{ row }">
-                  <el-tag :type="row.gender === '女' ? 'danger' : 'primary'" size="small">{{ row.gender }}</el-tag>
+                  <el-tag
+                    :type="row.gender === '女' ? 'danger' : 'primary'"
+                    size="small"
+                  >
+                    {{ row.gender }}
+                  </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="age" label="年龄" width="80" align="center" />
-              <el-table-column prop="city" label="城市" width="110" show-overflow-tooltip />
-              <el-table-column label="关注时间" width="150">
-                <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
-              </el-table-column>
-              <el-table-column label="操作" width="92" align="center" fixed="right">
+              <el-table-column
+                prop="age"
+                label="年龄"
+                width="80"
+                align="center"
+              />
+              <el-table-column
+                prop="city"
+                label="城市"
+                width="110"
+                show-overflow-tooltip
+              />
+              <el-table-column
+                label="关注时间"
+                width="150"
+              >
                 <template #default="{ row }">
-                  <el-button link type="primary" @click="viewRelationUser(row.userId)">查看详情</el-button>
+                  {{ formatDateTime(row.createdAt) }}
+                </template>
+              </el-table-column>
+              <el-table-column
+                label="操作"
+                width="92"
+                align="center"
+                fixed="right"
+              >
+                <template #default="{ row }">
+                  <el-button
+                    link
+                    type="primary"
+                    @click="viewRelationUser(row.userId)"
+                  >
+                    查看详情
+                  </el-button>
                 </template>
               </el-table-column>
             </el-table>
-            <div v-if="relationList.length" class="pagination-wrapper">
+            <div
+              v-if="relationList.length"
+              class="pagination-wrapper"
+            >
               <el-pagination
                 v-model:current-page="relationQuery.page"
                 v-model:page-size="relationQuery.pageSize"
@@ -243,18 +496,39 @@
                 @current-change="loadRelations"
               />
             </div>
-            <el-empty v-if="!relationList.length && !relationLoading" :description="relationEmptyText" :image-size="50" />
+            <el-empty
+              v-if="!relationList.length && !relationLoading"
+              :description="relationEmptyText"
+              :image-size="50"
+            />
           </div>
         </el-tab-pane>
 
         <!-- 数据统计 -->
-        <el-tab-pane label="数据统计" name="stats">
-          <div v-if="detail" class="tab-content">
-            <el-row :gutter="12" class="stat-row">
-              <el-col :span="8" v-for="stat in stats" :key="stat.label">
+        <el-tab-pane
+          label="数据统计"
+          name="stats"
+        >
+          <div
+            v-if="detail"
+            class="tab-content"
+          >
+            <el-row
+              :gutter="12"
+              class="stat-row"
+            >
+              <el-col
+                v-for="stat in stats"
+                :key="stat.label"
+                :span="8"
+              >
                 <div class="stat-box">
-                  <div class="stat-num">{{ stat.value }}</div>
-                  <div class="stat-text">{{ stat.label }}</div>
+                  <div class="stat-num">
+                    {{ stat.value }}
+                  </div>
+                  <div class="stat-text">
+                    {{ stat.label }}
+                  </div>
                 </div>
               </el-col>
             </el-row>
@@ -262,7 +536,10 @@
         </el-tab-pane>
 
         <!-- 照片墙 -->
-        <el-tab-pane label="照片墙" name="photos">
+        <el-tab-pane
+          label="照片墙"
+          name="photos"
+        >
           <div class="tab-content">
             <div class="photo-wall">
               <el-image
@@ -277,27 +554,50 @@
                 :initial-index="i"
               />
             </div>
-            <el-empty v-if="!detail?.photos?.length" description="暂无照片" :image-size="60" />
+            <el-empty
+              v-if="!detail?.photos?.length"
+              description="暂无照片"
+              :image-size="60"
+            />
           </div>
         </el-tab-pane>
 
         <!-- 个人标签 -->
-        <el-tab-pane label="个人标签" name="tags">
+        <el-tab-pane
+          label="个人标签"
+          name="tags"
+        >
           <div class="tab-content">
             <div class="tag-list">
-              <el-tag v-for="tag in detail?.tags || []" :key="tag" effect="plain" style="margin: 4px">{{ tag }}</el-tag>
+              <el-tag
+                v-for="tag in detail?.tags || []"
+                :key="tag"
+                effect="plain"
+                style="margin: 4px"
+              >
+                {{ tag }}
+              </el-tag>
             </div>
-            <el-empty v-if="!detail?.tags?.length" description="暂无标签" :image-size="60" />
+            <el-empty
+              v-if="!detail?.tags?.length"
+              description="暂无标签"
+              :image-size="60"
+            />
           </div>
         </el-tab-pane>
 
         <!-- 聊天记录 -->
-        <el-tab-pane label="聊天记录" name="chat">
+        <el-tab-pane
+          label="聊天记录"
+          name="chat"
+        >
           <div class="tab-content chat-tab-content">
             <div class="chat-container">
               <!-- 左侧会话列表 -->
               <div class="chat-session-panel">
-                <div class="session-header">会话列表</div>
+                <div class="session-header">
+                  会话列表
+                </div>
                 <div class="session-list">
                   <div
                     v-for="session in chatSessions"
@@ -306,53 +606,108 @@
                     :class="{ active: session.contactId === activeContactId }"
                     @click="loadChatMessages(session.contactId)"
                   >
-                    <el-avatar :size="36" :src="session.avatar" class="session-avatar">
-                      <el-icon :size="18"><UserFilled /></el-icon>
+                    <el-avatar
+                      :size="36"
+                      :src="session.avatar"
+                      class="session-avatar"
+                    >
+                      <el-icon :size="18">
+                        <UserFilled />
+                      </el-icon>
                     </el-avatar>
                     <div class="session-info">
                       <div class="session-contact">
                         <span class="session-name">{{ session.nickname || session.contactId }}</span>
                         <span class="session-id">#{{ session.contactId }}</span>
                       </div>
-                      <div class="session-msg">{{ session.lastMessage || '暂无消息' }}</div>
-                      <div class="session-time">{{ formatTime(session.lastTime) }}</div>
+                      <div class="session-msg">
+                        {{ session.lastMessage || '暂无消息' }}
+                      </div>
+                      <div class="session-time">
+                        {{ formatTime(session.lastTime) }}
+                      </div>
                     </div>
                   </div>
-                  <el-empty v-if="!chatSessions.length && !chatSessionsLoading" description="暂无会话" :image-size="50" />
-                  <div v-if="chatSessionsLoading" class="loading-tip">加载中...</div>
+                  <el-empty
+                    v-if="!chatSessions.length && !chatSessionsLoading"
+                    description="暂无会话"
+                    :image-size="50"
+                  />
+                  <div
+                    v-if="chatSessionsLoading"
+                    class="loading-tip"
+                  >
+                    加载中...
+                  </div>
                 </div>
               </div>
               <!-- 右侧聊天气泡 -->
               <div class="chat-message-panel">
                 <template v-if="activeContactId">
-                  <div class="message-header">与 {{ activeContactNickname }} 的聊天记录</div>
-                  <div ref="messageListRef" class="message-list">
+                  <div class="message-header">
+                    与 {{ activeContactNickname }} 的聊天记录
+                  </div>
+                  <div
+                    ref="messageListRef"
+                    class="message-list"
+                  >
                     <div
                       v-for="(msg, i) in chatMessages"
                       :key="i"
                       class="message-item"
                       :class="{ mine: msg.from === String(props.userId) }"
                     >
-                      <div class="message-time">{{ formatTime(msg.time) }}</div>
-                      <div class="bubble">{{ msg.content }}</div>
+                      <div class="message-time">
+                        {{ formatTime(msg.time) }}
+                      </div>
+                      <div class="bubble">
+                        {{ msg.content }}
+                      </div>
                     </div>
-                    <el-empty v-if="!chatMessages.length && !chatMessagesLoading" description="暂无消息" :image-size="50" />
+                    <el-empty
+                      v-if="!chatMessages.length && !chatMessagesLoading"
+                      description="暂无消息"
+                      :image-size="50"
+                    />
                   </div>
                 </template>
-                <el-empty v-else description="选择左侧会话查看聊天记录" :image-size="50" />
+                <el-empty
+                  v-else
+                  description="选择左侧会话查看聊天记录"
+                  :image-size="50"
+                />
               </div>
             </div>
           </div>
         </el-tab-pane>
 
         <!-- 发送的图片和视频 -->
-        <el-tab-pane label="发送的图片和视频" name="content">
+        <el-tab-pane
+          label="发送的图片和视频"
+          name="content"
+        >
           <div class="tab-content">
-            <el-tabs v-model="contentSubTab" class="content-sub-tabs">
+            <el-tabs
+              v-model="contentSubTab"
+              class="content-sub-tabs"
+            >
               <!-- 动态 -->
-              <el-tab-pane label="动态" name="movement">
-                <el-table :data="movementData" v-loading="movementLoading" stripe size="small" style="width: 100%">
-                  <el-table-column label="图片" width="100" align="center">
+              <el-tab-pane
+                label="动态"
+                name="movement"
+              >
+                <el-table
+                  v-loading="movementLoading"
+                  :data="movementData"
+                  stripe
+                  size="small"
+                  style="width: 100%"
+                >
+                  <el-table-column
+                    label="图片"
+                    width="100"
+                    align="center"
+                  >
                     <template #default="{ row }">
                       <el-image
                         v-if="row.medias && row.medias.length"
@@ -363,18 +718,47 @@
                         style="width: 48px; height: 48px; border-radius: var(--xfjy-radius-sm)"
                         :preview-src-list="row.medias"
                       />
-                      <span v-else class="text-muted">—</span>
+                      <span
+                        v-else
+                        class="text-muted"
+                      >—</span>
                     </template>
                   </el-table-column>
-                  <el-table-column prop="text" label="内容" min-width="120" show-overflow-tooltip />
-                  <el-table-column prop="created" label="时间" width="100" />
+                  <el-table-column
+                    prop="text"
+                    label="内容"
+                    min-width="120"
+                    show-overflow-tooltip
+                  />
+                  <el-table-column
+                    prop="created"
+                    label="时间"
+                    width="100"
+                  />
                 </el-table>
-                <el-empty v-if="!movementData.length && !movementLoading" description="暂无动态" :image-size="50" />
+                <el-empty
+                  v-if="!movementData.length && !movementLoading"
+                  description="暂无动态"
+                  :image-size="50"
+                />
               </el-tab-pane>
               <!-- 视频 -->
-              <el-tab-pane label="视频" name="video">
-                <el-table :data="videoData" v-loading="videoLoading" stripe size="small" style="width: 100%">
-                  <el-table-column label="封面" width="100" align="center">
+              <el-tab-pane
+                label="视频"
+                name="video"
+              >
+                <el-table
+                  v-loading="videoLoading"
+                  :data="videoData"
+                  stripe
+                  size="small"
+                  style="width: 100%"
+                >
+                  <el-table-column
+                    label="封面"
+                    width="100"
+                    align="center"
+                  >
                     <template #default="{ row }">
                       <el-image
                         :src="row.picUrl"
@@ -385,53 +769,143 @@
                       />
                     </template>
                   </el-table-column>
-                  <el-table-column prop="text" label="描述" min-width="120" show-overflow-tooltip />
-                  <el-table-column prop="created" label="时间" width="100" />
+                  <el-table-column
+                    prop="text"
+                    label="描述"
+                    min-width="120"
+                    show-overflow-tooltip
+                  />
+                  <el-table-column
+                    prop="created"
+                    label="时间"
+                    width="100"
+                  />
                 </el-table>
-                <el-empty v-if="!videoData.length && !videoLoading" description="暂无视频" :image-size="50" />
+                <el-empty
+                  v-if="!videoData.length && !videoLoading"
+                  description="暂无视频"
+                  :image-size="50"
+                />
               </el-tab-pane>
               <!-- 评论 -->
-              <el-tab-pane label="评论" name="comment">
-                <el-table :data="commentData" v-loading="commentLoading" stripe size="small" style="width: 100%">
-                  <el-table-column prop="content" label="评论内容" min-width="150" show-overflow-tooltip />
-                  <el-table-column prop="created" label="时间" width="100" />
+              <el-tab-pane
+                label="评论"
+                name="comment"
+              >
+                <el-table
+                  v-loading="commentLoading"
+                  :data="commentData"
+                  stripe
+                  size="small"
+                  style="width: 100%"
+                >
+                  <el-table-column
+                    prop="content"
+                    label="评论内容"
+                    min-width="150"
+                    show-overflow-tooltip
+                  />
+                  <el-table-column
+                    prop="created"
+                    label="时间"
+                    width="100"
+                  />
                 </el-table>
-                <el-empty v-if="!commentData.length && !commentLoading" description="暂无评论" :image-size="50" />
+                <el-empty
+                  v-if="!commentData.length && !commentLoading"
+                  description="暂无评论"
+                  :image-size="50"
+                />
               </el-tab-pane>
             </el-tabs>
           </div>
         </el-tab-pane>
 
         <!-- 被举报记录 -->
-        <el-tab-pane label="被举报记录" name="reports">
+        <el-tab-pane
+          label="被举报记录"
+          name="reports"
+        >
           <div class="tab-content">
-            <el-table :data="reportData" v-loading="reportLoading" stripe size="small" style="width: 100%">
-              <el-table-column prop="id" label="ID" width="60" align="center" />
-              <el-table-column label="举报人" width="100">
+            <el-table
+              v-loading="reportLoading"
+              :data="reportData"
+              stripe
+              size="small"
+              style="width: 100%"
+            >
+              <el-table-column
+                prop="id"
+                label="ID"
+                width="60"
+                align="center"
+              />
+              <el-table-column
+                label="举报人"
+                width="100"
+              >
                 <template #default="{ row }">
                   <div class="user-cell">
-                    <el-avatar :size="24" :src="row.reporterAvatar">
+                    <el-avatar
+                      :size="24"
+                      :src="row.reporterAvatar"
+                    >
                       <el-icon><UserFilled /></el-icon>
                     </el-avatar>
                     <span>{{ row.reporterNickname }}</span>
                   </div>
                 </template>
               </el-table-column>
-              <el-table-column label="类型" width="70" align="center">
+              <el-table-column
+                label="类型"
+                width="70"
+                align="center"
+              >
                 <template #default="{ row }">
-                  <el-tag :type="reportTypeColor(row.targetType)" size="small">{{ reportTypeLabel(row.targetType) }}</el-tag>
+                  <el-tag
+                    :type="reportTypeColor(row.targetType)"
+                    size="small"
+                  >
+                    {{ reportTypeLabel(row.targetType) }}
+                  </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="reason" label="原因" width="100" show-overflow-tooltip />
-              <el-table-column prop="description" label="描述" min-width="120" show-overflow-tooltip />
-              <el-table-column label="状态" width="80" align="center">
+              <el-table-column
+                prop="reason"
+                label="原因"
+                width="100"
+                show-overflow-tooltip
+              />
+              <el-table-column
+                prop="description"
+                label="描述"
+                min-width="120"
+                show-overflow-tooltip
+              />
+              <el-table-column
+                label="状态"
+                width="80"
+                align="center"
+              >
                 <template #default="{ row }">
-                  <el-tag :type="reportStatusColor(row.status)" size="small">{{ reportStatusLabel(row.status) }}</el-tag>
+                  <el-tag
+                    :type="reportStatusColor(row.status)"
+                    size="small"
+                  >
+                    {{ reportStatusLabel(row.status) }}
+                  </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="createdAt" label="举报时间" width="150" />
+              <el-table-column
+                prop="createdAt"
+                label="举报时间"
+                width="150"
+              />
             </el-table>
-            <div v-if="reportData.length" class="pagination-wrapper">
+            <div
+              v-if="reportData.length"
+              class="pagination-wrapper"
+            >
               <el-pagination
                 v-model:current-page="reportQuery.page"
                 v-model:page-size="reportQuery.pageSize"
@@ -445,27 +919,54 @@
         </el-tab-pane>
 
         <!-- 账号操作 -->
-        <el-tab-pane label="账号操作" name="actions">
-          <div v-if="detail" class="tab-content">
+        <el-tab-pane
+          label="账号操作"
+          name="actions"
+        >
+          <div
+            v-if="detail"
+            class="tab-content"
+          >
             <el-card shadow="never">
               <div class="action-bar">
                 <div class="action-info">
-                  <el-avatar :size="48" :src="detail.avatar">
+                  <el-avatar
+                    :size="48"
+                    :src="detail.avatar"
+                  >
                     <el-icon><UserFilled /></el-icon>
                   </el-avatar>
                   <div>
-                    <div class="action-name">{{ detail.nickname }}（{{ detail.mobile }}）</div>
+                    <div class="action-name">
+                      {{ detail.nickname }}（{{ detail.mobile }}）
+                    </div>
                     <div class="action-status">
-                      <el-tag :type="detail.status === 'NORMAL' ? 'success' : 'danger'" size="small">
+                      <el-tag
+                        :type="detail.status === 'NORMAL' ? 'success' : 'danger'"
+                        size="small"
+                      >
                         {{ detail.status === 'NORMAL' ? '正常' : '已封禁' }}
                       </el-tag>
                     </div>
                   </div>
                 </div>
                 <el-space wrap>
-                  <el-button v-if="detail.status === 'NORMAL'" type="danger" @click="handleFreeze">封禁账号</el-button>
-                  <el-button v-else type="success" @click="handleUnfreeze">解封账号</el-button>
-                  <el-button @click="handleResetPwd">重置密码</el-button>
+                  <el-button
+                    v-if="detail.status === 'NORMAL'"
+                    type="danger"
+                    @click="handleFreeze"
+                  >
+                    封禁账号
+                  </el-button>
+                  <el-button
+                    v-else
+                    @click="handleUnfreeze"
+                  >
+                    解封账号
+                  </el-button>
+                  <el-button @click="handleResetPwd">
+                    重置密码
+                  </el-button>
                 </el-space>
               </div>
             </el-card>

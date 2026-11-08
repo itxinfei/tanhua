@@ -1,10 +1,22 @@
 <template>
   <div class="page-container">
-    <PageHeader title="操作日志" :subtitle="`共 ${total} 条记录`" />
+    <PageHeader
+      title="操作日志"
+      :subtitle="`共 ${total} 条记录`"
+    />
 
-    <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
+    <SearchBar
+      :model="query"
+      @search="handleSearch"
+      @reset="handleReset"
+    >
       <el-form-item label="模块">
-        <el-select v-model="query.module" placeholder="模块" clearable style="width: 140px">
+        <el-select
+          v-model="query.module"
+          placeholder="模块"
+          clearable
+          style="width: 140px"
+        >
           <el-option
             v-for="m in moduleOptions"
             :key="m.value"
@@ -14,7 +26,13 @@
         </el-select>
       </el-form-item>
       <el-form-item label="操作账号">
-        <el-input v-model="query.adminUsername" placeholder="操作账号" clearable style="width: 160px" @keyup.enter="handleSearch" />
+        <el-input
+          v-model="query.adminUsername"
+          placeholder="操作账号"
+          clearable
+          style="width: 160px"
+          @keyup.enter="handleSearch"
+        />
       </el-form-item>
       <el-form-item label="时间范围">
         <el-date-picker
@@ -29,60 +47,142 @@
       </el-form-item>
       <template #extra-actions>
         <el-button-group>
-          <el-button size="small" @click="setDateRange(7)">近7天</el-button>
-          <el-button size="small" @click="setDateRange(30)">近30天</el-button>
-          <el-button size="small" @click="setDateRange(90)">近90天</el-button>
+          <el-button @click="setDateRange(7)">
+            近7天
+          </el-button>
+          <el-button @click="setDateRange(30)">
+            近30天
+          </el-button>
+          <el-button @click="setDateRange(90)">
+            近90天
+          </el-button>
         </el-button-group>
-        <el-button type="success" :icon="Download" @click="handleExport">导出</el-button>
+        <el-button
+          :icon="Download"
+          @click="handleExport"
+        >
+          导出
+        </el-button>
       </template>
     </SearchBar>
 
     <TableCard :skeleton="loading && !tableData.length">
-      <el-table v-loading="loading" :data="tableData" border stripe>
-      <el-table-column v-if="!isMobile" label="ID" prop="id" width="70" align="center" />
-      <el-table-column label="操作人" width="130">
-        <template #default="{ row }">
-          <div class="admin-cell">
-            <div class="admin-name">{{ row.adminUsername }}</div>
-            <div class="admin-id">ID: {{ row.adminId }}</div>
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column label="模块" width="110" align="center">
-        <template #default="{ row }">
-          <el-tag size="small" type="info">{{ moduleLabel(row.module) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="动作" width="120" align="center">
-        <template #default="{ row }">
-          <el-tag :type="actionTagType(row.action)" size="small">
-            {{ actionLabel(row.action) }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column v-if="!isMobile" label="目标ID" prop="targetId" width="100" align="center" show-overflow-tooltip>
-        <template #default="{ row }">
-          {{ row.targetId || '-' }}
-        </template>
-      </el-table-column>
-      <el-table-column label="详情" prop="detail" min-width="220" show-overflow-tooltip>
-        <template #default="{ row }">
-          {{ row.detail || '-' }}
-        </template>
-      </el-table-column>
-      <el-table-column v-if="!isMobile" label="IP" prop="ip" width="130" show-overflow-tooltip>
-        <template #default="{ row }">
-          {{ row.ip || '-' }}
-        </template>
-      </el-table-column>
-      <el-table-column v-if="!isMobile" label="操作时间" prop="created" width="170" />
-      <el-table-column label="操作" width="80" fixed="right" align="center">
-        <template #default="{ row }">
-          <el-button link type="primary" size="small" @click="showDetail(row)">详情</el-button>
-        </template>
-      </el-table-column>
+      <el-table
+        v-loading="loading"
+        :data="tableData"
+        border
+        stripe
+      >
+        <el-table-column
+          v-if="!isMobile"
+          label="ID"
+          prop="id"
+          width="70"
+          align="center"
+        />
+        <el-table-column
+          label="操作人"
+          width="130"
+        >
+          <template #default="{ row }">
+            <div class="admin-cell">
+              <div class="admin-name">
+                {{ row.adminUsername }}
+              </div>
+              <div class="admin-id">
+                ID: {{ row.adminId }}
+              </div>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="模块"
+          width="110"
+          align="center"
+        >
+          <template #default="{ row }">
+            <el-tag
+              size="small"
+              type="info"
+            >
+              {{ moduleLabel(row.module) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="动作"
+          width="120"
+          align="center"
+        >
+          <template #default="{ row }">
+            <el-tag
+              :type="actionTagType(row.action)"
+              size="small"
+            >
+              {{ actionLabel(row.action) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column
+          v-if="!isMobile"
+          label="目标ID"
+          prop="targetId"
+          width="100"
+          align="center"
+          show-overflow-tooltip
+        >
+          <template #default="{ row }">
+            {{ row.targetId || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="详情"
+          prop="detail"
+          min-width="220"
+          show-overflow-tooltip
+        >
+          <template #default="{ row }">
+            {{ row.detail || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          v-if="!isMobile"
+          label="IP"
+          prop="ip"
+          width="130"
+          show-overflow-tooltip
+        >
+          <template #default="{ row }">
+            {{ row.ip || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          v-if="!isMobile"
+          label="操作时间"
+          prop="created"
+          width="170"
+        />
+        <el-table-column
+          label="操作"
+          width="80"
+          fixed="right"
+          align="center"
+        >
+          <template #default="{ row }">
+            <el-button
+              link
+              type="primary"
+              @click="showDetail(row)"
+            >
+              详情
+            </el-button>
+          </template>
+        </el-table-column>
         <template #empty>
-          <TableEmpty description="暂无操作日志" hint="管理员执行操作后日志会出现在这里" />
+          <TableEmpty
+            description="暂无操作日志"
+            hint="管理员执行操作后日志会出现在这里"
+          />
         </template>
       </el-table>
       <template #pagination>
@@ -99,22 +199,50 @@
     </TableCard>
 
     <!-- 详情弹窗 -->
-    <el-dialog v-model="detailVisible" title="操作日志详情" width="600px">
-      <el-descriptions :column="1" border v-if="currentLog">
-        <el-descriptions-item label="ID">{{ currentLog.id }}</el-descriptions-item>
-        <el-descriptions-item label="操作人">{{ currentLog.adminUsername }}（ID: {{ currentLog.adminId }}）</el-descriptions-item>
+    <el-dialog
+      v-model="detailVisible"
+      title="操作日志详情"
+      width="600px"
+    >
+      <el-descriptions
+        v-if="currentLog"
+        :column="1"
+        border
+      >
+        <el-descriptions-item label="ID">
+          {{ currentLog.id }}
+        </el-descriptions-item>
+        <el-descriptions-item label="操作人">
+          {{ currentLog.adminUsername }}（ID: {{ currentLog.adminId }}）
+        </el-descriptions-item>
         <el-descriptions-item label="模块">
-          <el-tag size="small" type="info">{{ moduleLabel(currentLog.module) }}</el-tag>
+          <el-tag
+            size="small"
+            type="info"
+          >
+            {{ moduleLabel(currentLog.module) }}
+          </el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="动作">
-          <el-tag :type="actionTagType(currentLog.action)" size="small">{{ actionLabel(currentLog.action) }}</el-tag>
+          <el-tag
+            :type="actionTagType(currentLog.action)"
+            size="small"
+          >
+            {{ actionLabel(currentLog.action) }}
+          </el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="目标ID">{{ currentLog.targetId || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="目标ID">
+          {{ currentLog.targetId || '-' }}
+        </el-descriptions-item>
         <el-descriptions-item label="详情">
           <pre style="margin: 0; white-space: pre-wrap; word-break: break-all;">{{ currentLog.detail || '-' }}</pre>
         </el-descriptions-item>
-        <el-descriptions-item label="IP">{{ currentLog.ip || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="操作时间">{{ currentLog.created }}</el-descriptions-item>
+        <el-descriptions-item label="IP">
+          {{ currentLog.ip || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="操作时间">
+          {{ currentLog.created }}
+        </el-descriptions-item>
       </el-descriptions>
     </el-dialog>
   </div>

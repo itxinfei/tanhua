@@ -1,63 +1,139 @@
 <template>
   <div class="page-container">
-    <PageHeader title="管理员管理" :subtitle="`共 ${total} 条记录`">
+    <PageHeader
+      title="管理员管理"
+      :subtitle="`共 ${total} 条记录`"
+    >
       <template #actions>
-        <el-button v-if="isSuperAdmin" type="success" :icon="Plus" @click="openCreateDialog">新增管理员</el-button>
+        <el-button
+          v-if="isSuperAdmin"
+          type="primary"
+          :icon="Plus"
+          @click="openCreateDialog"
+        >
+          新增管理员
+        </el-button>
       </template>
     </PageHeader>
 
-    <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
+    <SearchBar
+      :model="query"
+      @search="handleSearch"
+      @reset="handleReset"
+    >
       <el-form-item label="关键词">
-        <el-input v-model="query.keyword" placeholder="搜索用户名或昵称" clearable style="width: 240px" @keyup.enter="handleSearch" />
+        <el-input
+          v-model="query.keyword"
+          placeholder="搜索用户名或昵称"
+          clearable
+          style="width: 240px"
+          @keyup.enter="handleSearch"
+        />
       </el-form-item>
     </SearchBar>
 
     <TableCard :skeleton="loading && !tableData.length">
-      <el-table v-loading="loading" :data="tableData" border stripe>
-      <el-table-column v-if="!isMobile" label="ID" prop="id" width="70" align="center" />
-      <el-table-column label="用户名" prop="username" width="140" />
-      <el-table-column v-if="!isMobile" label="昵称" prop="nickname" width="140" />
-      <el-table-column label="角色" width="120" align="center">
-        <template #default="{ row }">
-          <el-tag :type="roleTagType(row.role)" size="small">
-            {{ roleLabel(row.role) }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="状态" width="90" align="center">
-        <template #default="{ row }">
-          <StatusTag :status="row.status" :mapping="adminStatusMapping" />
-        </template>
-      </el-table-column>
-      <el-table-column v-if="!isMobile" label="创建时间" prop="created" width="170" />
-      <el-table-column label="操作" width="240" fixed="right" align="center">
-        <template #default="{ row }">
-          <template v-if="isSuperAdmin">
-            <el-button type="primary" link size="small" @click="openEditDialog(row)">编辑</el-button>
-            <el-button
-              v-if="row.role !== 'SUPER_ADMIN'"
-              :type="row.status === 'NORMAL' ? 'warning' : 'success'"
-              link
+      <el-table
+        v-loading="loading"
+        :data="tableData"
+        border
+        stripe
+      >
+        <el-table-column
+          v-if="!isMobile"
+          label="ID"
+          prop="id"
+          width="70"
+          align="center"
+        />
+        <el-table-column
+          label="用户名"
+          prop="username"
+          width="140"
+        />
+        <el-table-column
+          v-if="!isMobile"
+          label="昵称"
+          prop="nickname"
+          width="140"
+        />
+        <el-table-column
+          label="角色"
+          width="120"
+          align="center"
+        >
+          <template #default="{ row }">
+            <el-tag
+              :type="roleTagType(row.role)"
               size="small"
-              @click="handleToggleStatus(row)"
             >
-              {{ row.status === 'NORMAL' ? '禁用' : '启用' }}
-            </el-button>
-            <el-button
-              v-if="row.role !== 'SUPER_ADMIN'"
-              type="danger"
-              link
-              size="small"
-              @click="handleResetPassword(row)"
-            >
-              重置密码
-            </el-button>
+              {{ roleLabel(row.role) }}
+            </el-tag>
           </template>
-          <span v-else class="no-op">仅超管可操作</span>
-        </template>
-      </el-table-column>
+        </el-table-column>
+        <el-table-column
+          label="状态"
+          width="90"
+          align="center"
+        >
+          <template #default="{ row }">
+            <StatusTag
+              :status="row.status"
+              :mapping="adminStatusMapping"
+            />
+          </template>
+        </el-table-column>
+        <el-table-column
+          v-if="!isMobile"
+          label="创建时间"
+          prop="created"
+          width="170"
+        />
+        <el-table-column
+          label="操作"
+          width="240"
+          fixed="right"
+          align="center"
+        >
+          <template #default="{ row }">
+            <template v-if="isSuperAdmin">
+              <el-button
+                type="primary"
+                link
+                @click="openEditDialog(row)"
+              >
+                编辑
+              </el-button>
+              <el-button
+                v-if="row.role !== 'SUPER_ADMIN'"
+                :type="row.status === 'NORMAL' ? 'warning' : 'success'"
+                link
+                size="small"
+                @click="handleToggleStatus(row)"
+              >
+                {{ row.status === 'NORMAL' ? '禁用' : '启用' }}
+              </el-button>
+              <el-button
+                v-if="row.role !== 'SUPER_ADMIN'"
+                type="danger"
+                link
+                size="small"
+                @click="handleResetPassword(row)"
+              >
+                重置密码
+              </el-button>
+            </template>
+            <span
+              v-else
+              class="no-op"
+            >仅超管可操作</span>
+          </template>
+        </el-table-column>
         <template #empty>
-          <TableEmpty description="暂无管理员数据" hint="点击右上角「新增管理员」添加" />
+          <TableEmpty
+            description="暂无管理员数据"
+            hint="点击右上角「新增管理员」添加"
+          />
         </template>
       </el-table>
       <template #pagination>
@@ -74,46 +150,132 @@
     </TableCard>
 
     <!-- 新增弹窗 -->
-    <el-dialog v-model="createVisible" title="新增管理员" width="440px" destroy-on-close>
-      <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="80px">
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="createForm.username" placeholder="登录用户名" />
+    <el-dialog
+      v-model="createVisible"
+      title="新增管理员"
+      width="440px"
+      destroy-on-close
+    >
+      <el-form
+        ref="createFormRef"
+        :model="createForm"
+        :rules="createRules"
+        label-width="80px"
+      >
+        <el-form-item
+          label="用户名"
+          prop="username"
+        >
+          <el-input
+            v-model="createForm.username"
+            placeholder="登录用户名"
+          />
         </el-form-item>
-        <el-form-item label="密码" prop="password">
-          <el-input v-model="createForm.password" type="password" show-password placeholder="至少6位" />
+        <el-form-item
+          label="密码"
+          prop="password"
+        >
+          <el-input
+            v-model="createForm.password"
+            type="password"
+            show-password
+            placeholder="至少6位"
+          />
         </el-form-item>
-        <el-form-item label="昵称" prop="nickname">
-          <el-input v-model="createForm.nickname" placeholder="显示昵称" />
+        <el-form-item
+          label="昵称"
+          prop="nickname"
+        >
+          <el-input
+            v-model="createForm.nickname"
+            placeholder="显示昵称"
+          />
         </el-form-item>
-        <el-form-item label="角色" prop="role">
-          <el-select v-model="createForm.role" style="width: 100%">
-            <el-option label="管理员" value="ADMIN" />
-            <el-option label="运营" value="OPERATOR" />
+        <el-form-item
+          label="角色"
+          prop="role"
+        >
+          <el-select
+            v-model="createForm.role"
+            style="width: 100%"
+          >
+            <el-option
+              label="管理员"
+              value="ADMIN"
+            />
+            <el-option
+              label="运营"
+              value="OPERATOR"
+            />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="createVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleCreate">确定</el-button>
+        <el-button @click="createVisible = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="submitting"
+          @click="handleCreate"
+        >
+          确定
+        </el-button>
       </template>
     </el-dialog>
 
     <!-- 编辑弹窗 -->
-    <el-dialog v-model="editVisible" title="编辑管理员" width="440px" destroy-on-close>
-      <el-form ref="editFormRef" :model="editForm" :rules="editRules" label-width="80px">
-        <el-form-item label="昵称" prop="nickname">
-          <el-input v-model="editForm.nickname" placeholder="显示昵称" />
+    <el-dialog
+      v-model="editVisible"
+      title="编辑管理员"
+      width="440px"
+      destroy-on-close
+    >
+      <el-form
+        ref="editFormRef"
+        :model="editForm"
+        :rules="editRules"
+        label-width="80px"
+      >
+        <el-form-item
+          label="昵称"
+          prop="nickname"
+        >
+          <el-input
+            v-model="editForm.nickname"
+            placeholder="显示昵称"
+          />
         </el-form-item>
-        <el-form-item label="角色" prop="role">
-          <el-select v-model="editForm.role" style="width: 100%">
-            <el-option label="管理员" value="ADMIN" />
-            <el-option label="运营" value="OPERATOR" />
+        <el-form-item
+          label="角色"
+          prop="role"
+        >
+          <el-select
+            v-model="editForm.role"
+            style="width: 100%"
+          >
+            <el-option
+              label="管理员"
+              value="ADMIN"
+            />
+            <el-option
+              label="运营"
+              value="OPERATOR"
+            />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="editVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleEdit">确定</el-button>
+        <el-button @click="editVisible = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="submitting"
+          @click="handleEdit"
+        >
+          确定
+        </el-button>
       </template>
     </el-dialog>
   </div>

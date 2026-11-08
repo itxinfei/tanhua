@@ -1,8 +1,18 @@
 <template>
   <div class="page-container">
-    <PageHeader title="FAQ 管理" :subtitle="`共 ${total} 条记录`">
+    <PageHeader
+      title="FAQ 管理"
+      :subtitle="`共 ${total} 条记录`"
+    >
       <template #actions>
-        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" :icon="Plus" @click="openCreate">新增FAQ</el-button>
+        <el-button
+          v-perm="['SUPER_ADMIN','ADMIN']"
+          type="primary"
+          :icon="Plus"
+          @click="openCreate"
+        >
+          新增FAQ
+        </el-button>
       </template>
     </PageHeader>
 
@@ -16,30 +26,93 @@
       @reset="handleReset"
     >
       <el-form-item label="分类">
-        <el-select v-model="query.category" placeholder="全部分类" clearable style="width: 140px">
-          <el-option v-for="cat in categories" :key="cat" :label="cat" :value="cat" />
+        <el-select
+          v-model="query.category"
+          placeholder="全部分类"
+          clearable
+          style="width: 140px"
+        >
+          <el-option
+            v-for="cat in categories"
+            :key="cat"
+            :label="cat"
+            :value="cat"
+          />
         </el-select>
       </el-form-item>
       <el-form-item label="状态">
-        <el-select v-model="query.status" placeholder="全部" clearable style="width: 110px">
-          <el-option label="启用" :value="1" />
-          <el-option label="停用" :value="0" />
+        <el-select
+          v-model="query.status"
+          placeholder="全部"
+          clearable
+          style="width: 110px"
+        >
+          <el-option
+            label="启用"
+            :value="1"
+          />
+          <el-option
+            label="停用"
+            :value="0"
+          />
         </el-select>
       </el-form-item>
     </SearchBar>
 
     <TableCard :skeleton="loading && !tableData.length">
-      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
-        <el-table-column v-if="!isMobile" prop="id" label="ID" width="70" align="center" />
-        <el-table-column prop="category" label="分类" width="110" align="center">
+      <el-table
+        v-loading="loading"
+        :data="tableData"
+        stripe
+        border
+        style="width: 100%"
+      >
+        <el-table-column
+          v-if="!isMobile"
+          prop="id"
+          label="ID"
+          width="70"
+          align="center"
+        />
+        <el-table-column
+          prop="category"
+          label="分类"
+          width="110"
+          align="center"
+        >
           <template #default="{ row }">
-            <el-tag size="small" type="primary">{{ row.category || '未分类' }}</el-tag>
+            <el-tag
+              size="small"
+              type="primary"
+            >
+              {{ row.category || '未分类' }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="question" label="问题" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="answer" label="回答" min-width="260" show-overflow-tooltip />
-        <el-table-column v-if="!isMobile" prop="sort" label="排序" width="80" align="center" />
-        <el-table-column label="状态" width="90" align="center">
+        <el-table-column
+          prop="question"
+          label="问题"
+          min-width="200"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          prop="answer"
+          label="回答"
+          min-width="260"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          v-if="!isMobile"
+          prop="sort"
+          label="排序"
+          width="80"
+          align="center"
+        />
+        <el-table-column
+          label="状态"
+          width="90"
+          align="center"
+        >
           <template #default="{ row }">
             <el-switch
               :model-value="row.status === 1"
@@ -48,14 +121,36 @@
             />
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="130" fixed="right" align="center">
+        <el-table-column
+          label="操作"
+          width="130"
+          fixed="right"
+          align="center"
+        >
           <template #default="{ row }">
-            <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
-            <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+            <el-button
+              v-perm="['SUPER_ADMIN','ADMIN']"
+              link
+              type="primary"
+              @click="openEdit(row)"
+            >
+              编辑
+            </el-button>
+            <el-button
+              v-perm="['SUPER_ADMIN','ADMIN']"
+              link
+              type="danger"
+              @click="handleDelete(row)"
+            >
+              删除
+            </el-button>
           </template>
         </el-table-column>
         <template #empty>
-          <TableEmpty description="暂无FAQ数据" hint="点击右上角「新增FAQ」添加常见问题" />
+          <TableEmpty
+            description="暂无FAQ数据"
+            hint="点击右上角「新增FAQ」添加常见问题"
+          />
         </template>
       </el-table>
       <template #pagination>
@@ -72,27 +167,81 @@
     </TableCard>
 
     <!-- 新增/编辑弹窗 -->
-    <el-dialog v-model="formVisible" :title="formData.id ? '编辑FAQ' : '新增FAQ'" width="560px">
-      <el-form ref="formRef" :model="formData" :rules="formRules" label-width="80px">
-        <el-form-item label="分类" prop="category">
-          <el-select v-model="formData.category" placeholder="选择分类" style="width: 100%">
-            <el-option v-for="cat in categories" :key="cat" :label="cat" :value="cat" />
+    <el-dialog
+      v-model="formVisible"
+      :title="formData.id ? '编辑FAQ' : '新增FAQ'"
+      width="560px"
+    >
+      <el-form
+        ref="formRef"
+        :model="formData"
+        :rules="formRules"
+        label-width="80px"
+      >
+        <el-form-item
+          label="分类"
+          prop="category"
+        >
+          <el-select
+            v-model="formData.category"
+            placeholder="选择分类"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="cat in categories"
+              :key="cat"
+              :label="cat"
+              :value="cat"
+            />
           </el-select>
         </el-form-item>
-        <el-form-item label="问题" prop="question">
-          <el-input v-model="formData.question" maxlength="200" show-word-limit placeholder="FAQ问题（不可与其他问题重复）" />
+        <el-form-item
+          label="问题"
+          prop="question"
+        >
+          <el-input
+            v-model="formData.question"
+            maxlength="200"
+            show-word-limit
+            placeholder="FAQ问题（不可与其他问题重复）"
+          />
         </el-form-item>
-        <el-form-item label="回答" prop="answer">
-          <el-input v-model="formData.answer" type="textarea" :rows="5" maxlength="1000" show-word-limit placeholder="FAQ回答内容" />
+        <el-form-item
+          label="回答"
+          prop="answer"
+        >
+          <el-input
+            v-model="formData.answer"
+            type="textarea"
+            :rows="5"
+            maxlength="1000"
+            show-word-limit
+            placeholder="FAQ回答内容"
+          />
         </el-form-item>
-        <el-form-item label="排序" prop="sort">
-          <el-input-number v-model="formData.sort" :min="0" :max="9999" />
+        <el-form-item
+          label="排序"
+          prop="sort"
+        >
+          <el-input-number
+            v-model="formData.sort"
+            :min="0"
+            :max="9999"
+          />
           <span class="sort-tip">数字越小越靠前</span>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="formVisible = false">取消</el-button>
-        <el-button type="primary" :loading="formSubmitting" @click="submitForm">保存</el-button>
+        <el-button @click="formVisible = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="formSubmitting"
+          @click="submitForm"
+        >
+          保存
+        </el-button>
       </template>
     </el-dialog>
   </div>

@@ -1,12 +1,29 @@
 <template>
   <div class="page-container">
-    <PageHeader title="用户列表" :subtitle="`共 ${total} 条记录`">
+    <PageHeader
+      title="用户列表"
+      :subtitle="`共 ${total} 条记录`"
+    >
       <template #actions>
-        <el-radio-group v-model="viewMode" size="small">
-          <el-radio-button value="table">表格</el-radio-button>
-          <el-radio-button value="card">卡片</el-radio-button>
+        <el-radio-group
+          v-model="viewMode"
+          size="small"
+        >
+          <el-radio-button value="table">
+            表格
+          </el-radio-button>
+          <el-radio-button value="card">
+            卡片
+          </el-radio-button>
         </el-radio-group>
-        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="primary" :icon="Download" @click="handleExport">导出</el-button>
+        <el-button
+          v-perm="['SUPER_ADMIN','ADMIN']"
+          type="primary"
+          :icon="Download"
+          @click="handleExport"
+        >
+          导出
+        </el-button>
       </template>
     </PageHeader>
 
@@ -20,18 +37,46 @@
       @reset="handleReset"
     >
       <el-form-item label="关键词">
-        <el-input v-model="query.keyword" placeholder="手机号/昵称" clearable style="width: 180px" @keyup.enter="handleSearch" />
+        <el-input
+          v-model="query.keyword"
+          placeholder="手机号/昵称"
+          clearable
+          style="width: 180px"
+          @keyup.enter="handleSearch"
+        />
       </el-form-item>
       <el-form-item label="性别">
-        <el-select v-model="query.gender" placeholder="全部" clearable style="width: 100px">
-          <el-option label="男" value="男" />
-          <el-option label="女" value="女" />
+        <el-select
+          v-model="query.gender"
+          placeholder="全部"
+          clearable
+          style="width: 100px"
+        >
+          <el-option
+            label="男"
+            value="男"
+          />
+          <el-option
+            label="女"
+            value="女"
+          />
         </el-select>
       </el-form-item>
       <el-form-item label="状态">
-        <el-select v-model="query.status" placeholder="全部" clearable style="width: 120px">
-          <el-option label="正常" value="NORMAL" />
-          <el-option label="已封禁" value="FROZEN" />
+        <el-select
+          v-model="query.status"
+          placeholder="全部"
+          clearable
+          style="width: 120px"
+        >
+          <el-option
+            label="正常"
+            value="NORMAL"
+          />
+          <el-option
+            label="已封禁"
+            value="FROZEN"
+          />
         </el-select>
       </el-form-item>
       <el-form-item label="注册时间">
@@ -49,88 +94,277 @@
     </SearchBar>
 
     <TableCard :skeleton="loading && !tableData.length">
-      <template #batch v-if="selectedRows.length > 0">
+      <template
+        v-if="selectedRows.length > 0"
+        #batch
+      >
         <span class="batch-count">已选 {{ selectedRows.length }} 项</span>
-        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="danger" @click="handleBatchFreeze">批量封禁</el-button>
-        <el-button v-perm="['SUPER_ADMIN','ADMIN']" @click="handleBatchUnfreeze">批量解封</el-button>
-        <el-button @click="selectedRows = []">取消选择</el-button>
+        <el-button
+          v-perm="['SUPER_ADMIN','ADMIN']"
+          type="danger"
+          @click="handleBatchFreeze"
+        >
+          批量封禁
+        </el-button>
+        <el-button
+          v-perm="['SUPER_ADMIN','ADMIN']"
+          @click="handleBatchUnfreeze"
+        >
+          批量解封
+        </el-button>
+        <el-button @click="selectedRows = []">
+          取消选择
+        </el-button>
       </template>
-      <el-table v-if="viewMode === 'table'" :data="tableData" v-loading="loading" stripe border style="width: 100%" @selection-change="handleSelectionChange">
-        <el-table-column type="selection" width="50" align="center" :selectable="() => true" />
-        <el-table-column v-if="!isMobile" type="index" label="#" width="50" align="center" />
-        <el-table-column label="头像" width="80" align="center">
+      <el-table
+        v-if="viewMode === 'table'"
+        v-loading="loading"
+        :data="tableData"
+        stripe
+        border
+        style="width: 100%"
+        @selection-change="handleSelectionChange"
+      >
+        <el-table-column
+          type="selection"
+          width="50"
+          align="center"
+          :selectable="() => true"
+        />
+        <el-table-column
+          v-if="!isMobile"
+          type="index"
+          label="#"
+          width="50"
+          align="center"
+        />
+        <el-table-column
+          label="头像"
+          width="80"
+          align="center"
+        >
           <template #default="{ row }">
-            <el-avatar :size="36" :src="row.avatar">
+            <el-avatar
+              :size="36"
+              :src="row.avatar"
+            >
               <el-icon><UserFilled /></el-icon>
             </el-avatar>
           </template>
         </el-table-column>
-        <el-table-column prop="nickname" label="昵称" min-width="120" show-overflow-tooltip />
-        <el-table-column prop="mobile" label="手机号" width="130" />
-        <el-table-column prop="gender" label="性别" width="80" align="center">
+        <el-table-column
+          prop="nickname"
+          label="昵称"
+          min-width="120"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          prop="mobile"
+          label="手机号"
+          width="130"
+        />
+        <el-table-column
+          prop="gender"
+          label="性别"
+          width="80"
+          align="center"
+        >
           <template #default="{ row }">
-            <el-tag :type="row.gender === '女' ? 'danger' : 'primary'" size="small">{{ row.gender }}</el-tag>
+            <el-tag
+              :type="row.gender === '女' ? 'danger' : 'primary'"
+              size="small"
+            >
+              {{ row.gender }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column v-if="!isMobile" prop="age" label="年龄" width="80" align="center" />
-        <el-table-column v-if="!isMobile" prop="city" label="城市" width="90" />
-        <el-table-column v-if="!isMobile" label="VIP" width="80" align="center">
+        <el-table-column
+          v-if="!isMobile"
+          prop="age"
+          label="年龄"
+          width="80"
+          align="center"
+        />
+        <el-table-column
+          v-if="!isMobile"
+          prop="city"
+          label="城市"
+          width="90"
+        />
+        <el-table-column
+          v-if="!isMobile"
+          label="VIP"
+          width="80"
+          align="center"
+        >
           <template #default="{ row }">
-            <el-tag v-if="row.vipLevel > 0" type="warning" size="small">V{{ row.vipLevel }}</el-tag>
-            <span v-else class="text-muted">-</span>
+            <el-tag
+              v-if="row.vipLevel > 0"
+              type="warning"
+              size="small"
+            >
+              V{{ row.vipLevel }}
+            </el-tag>
+            <span
+              v-else
+              class="text-muted"
+            >-</span>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="90" align="center">
+        <el-table-column
+          label="状态"
+          width="90"
+          align="center"
+        >
           <template #default="{ row }">
-            <StatusTag :status="row.status" :mapping="userStatusMapping" />
+            <StatusTag
+              :status="row.status"
+              :mapping="userStatusMapping"
+            />
           </template>
         </el-table-column>
-        <el-table-column v-if="!isMobile" prop="createdAt" label="注册时间" width="170" />
-        <el-table-column v-if="!isMobile" prop="lastActiveAt" label="最后活跃" width="170" />
-        <el-table-column label="操作" width="220" fixed="right" align="center">
+        <el-table-column
+          v-if="!isMobile"
+          prop="createdAt"
+          label="注册时间"
+          width="170"
+        />
+        <el-table-column
+          v-if="!isMobile"
+          prop="lastActiveAt"
+          label="最后活跃"
+          width="170"
+        />
+        <el-table-column
+          label="操作"
+          width="220"
+          fixed="right"
+          align="center"
+        >
           <template #default="{ row }">
-            <el-button link type="primary" @click="goDetail(row.id)">详情</el-button>
-            <el-button v-if="row.status === 'NORMAL'" v-perm="['SUPER_ADMIN','ADMIN']" link type="danger" @click="handleFreeze(row)">封禁</el-button>
-            <el-button v-else v-perm="['SUPER_ADMIN','ADMIN']" link type="success" @click="handleUnfreeze(row)">解封</el-button>
-            <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="warning" @click="handleResetPwd(row)">重置密码</el-button>
+            <el-button
+              link
+              type="primary"
+              @click="goDetail(row.id)"
+            >
+              详情
+            </el-button>
+            <el-button
+              v-if="row.status === 'NORMAL'"
+              v-perm="['SUPER_ADMIN','ADMIN']"
+              link
+              type="danger"
+              @click="handleFreeze(row)"
+            >
+              封禁
+            </el-button>
+            <el-button
+              v-else
+              v-perm="['SUPER_ADMIN','ADMIN']"
+              link
+              type="success"
+              @click="handleUnfreeze(row)"
+            >
+              解封
+            </el-button>
+            <el-button
+              v-perm="['SUPER_ADMIN','ADMIN']"
+              link
+              type="warning"
+              @click="handleResetPwd(row)"
+            >
+              重置密码
+            </el-button>
           </template>
         </el-table-column>
         <template #empty>
-          <TableEmpty description="暂无用户数据" hint="试试调整搜索条件或清除筛选" />
+          <TableEmpty
+            description="暂无用户数据"
+            hint="试试调整搜索条件或清除筛选"
+          />
         </template>
       </el-table>
       <!-- 卡片视图 -->
-      <div v-else v-loading="loading" class="user-card-grid">
+      <div
+        v-else
+        v-loading="loading"
+        class="user-card-grid"
+      >
         <div
           v-for="row in tableData"
           :key="row.id"
           class="user-card"
         >
           <div class="user-card__header">
-            <el-avatar :size="48" :src="row.avatar">
+            <el-avatar
+              :size="48"
+              :src="row.avatar"
+            >
               <el-icon><UserFilled /></el-icon>
             </el-avatar>
             <div class="user-card__info">
               <div class="user-card__name">
                 {{ row.nickname }}
-                <el-tag :type="row.gender === '女' ? 'danger' : 'primary'" size="small">{{ row.gender }}</el-tag>
-                <el-tag v-if="row.vipLevel > 0" type="warning" size="small">V{{ row.vipLevel }}</el-tag>
+                <el-tag
+                  :type="row.gender === '女' ? 'danger' : 'primary'"
+                  size="small"
+                >
+                  {{ row.gender }}
+                </el-tag>
+                <el-tag
+                  v-if="row.vipLevel > 0"
+                  type="warning"
+                  size="small"
+                >
+                  V{{ row.vipLevel }}
+                </el-tag>
               </div>
-              <div class="user-card__meta">{{ row.mobile }}</div>
+              <div class="user-card__meta">
+                {{ row.mobile }}
+              </div>
             </div>
-            <StatusTag :status="row.status" :mapping="userStatusMapping" />
+            <StatusTag
+              :status="row.status"
+              :mapping="userStatusMapping"
+            />
           </div>
           <div class="user-card__body">
             <span>{{ row.age }}岁 · {{ row.city || '—' }}</span>
             <span>注册: {{ row.createdAt }}</span>
           </div>
           <div class="user-card__actions">
-            <el-button link type="primary" size="small" @click="goDetail(row.id)">详情</el-button>
-            <el-button v-if="row.status === 'NORMAL'" v-perm="['SUPER_ADMIN','ADMIN']" link type="danger" size="small" @click="handleFreeze(row)">封禁</el-button>
-            <el-button v-else v-perm="['SUPER_ADMIN','ADMIN']" link type="success" size="small" @click="handleUnfreeze(row)">解封</el-button>
+            <el-button
+              link
+              type="primary"
+              @click="goDetail(row.id)"
+            >
+              详情
+            </el-button>
+            <el-button
+              v-if="row.status === 'NORMAL'"
+              v-perm="['SUPER_ADMIN','ADMIN']"
+              link
+              type="danger"
+              @click="handleFreeze(row)"
+            >
+              封禁
+            </el-button>
+            <el-button
+              v-else
+              v-perm="['SUPER_ADMIN','ADMIN']"
+              link
+              type="success"
+              @click="handleUnfreeze(row)"
+            >
+              解封
+            </el-button>
           </div>
         </div>
-        <TableEmpty v-if="!loading && tableData.length === 0" description="暂无用户数据" hint="试试调整搜索条件或清除筛选" />
+        <TableEmpty
+          v-if="!loading && tableData.length === 0"
+          description="暂无用户数据"
+          hint="试试调整搜索条件或清除筛选"
+        />
       </div>
       <template #pagination>
         <el-pagination
@@ -146,49 +380,121 @@
     </TableCard>
 
     <!-- 封禁弹窗 -->
-    <el-dialog v-model="freezeDialogVisible" title="封禁用户" width="440px">
+    <el-dialog
+      v-model="freezeDialogVisible"
+      title="封禁用户"
+      width="440px"
+    >
       <el-form label-width="80px">
-        <el-form-item label="用户">{{ freezeTarget?.nickname }}（{{ freezeTarget?.mobile }}）</el-form-item>
+        <el-form-item label="用户">
+          {{ freezeTarget?.nickname }}（{{ freezeTarget?.mobile }}）
+        </el-form-item>
         <el-form-item label="封禁原因">
-          <el-select v-model="freezeReason" placeholder="选择或输入封禁原因" filterable allow-create style="width: 100%">
-            <el-option label="发布违规内容" value="发布违规内容" />
-            <el-option label="涉嫌欺诈" value="涉嫌欺诈" />
-            <el-option label="骚扰其他用户" value="骚扰其他用户" />
-            <el-option label="恶意注册" value="恶意注册" />
-            <el-option label="其他" value="其他" />
+          <el-select
+            v-model="freezeReason"
+            placeholder="选择或输入封禁原因"
+            filterable
+            allow-create
+            style="width: 100%"
+          >
+            <el-option
+              label="发布违规内容"
+              value="发布违规内容"
+            />
+            <el-option
+              label="涉嫌欺诈"
+              value="涉嫌欺诈"
+            />
+            <el-option
+              label="骚扰其他用户"
+              value="骚扰其他用户"
+            />
+            <el-option
+              label="恶意注册"
+              value="恶意注册"
+            />
+            <el-option
+              label="其他"
+              value="其他"
+            />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="freezeDialogVisible = false">取消</el-button>
-        <el-button type="danger" :loading="freezeSubmitting" @click="confirmFreeze">确认封禁</el-button>
+        <el-button @click="freezeDialogVisible = false">
+          取消
+        </el-button>
+        <el-button
+          type="danger"
+          :loading="freezeSubmitting"
+          @click="confirmFreeze"
+        >
+          确认封禁
+        </el-button>
       </template>
     </el-dialog>
 
     <!-- 批量封禁弹窗 -->
-    <el-dialog v-model="batchFreezeDialogVisible" title="批量封禁用户" width="440px">
+    <el-dialog
+      v-model="batchFreezeDialogVisible"
+      title="批量封禁用户"
+      width="440px"
+    >
       <el-form label-width="80px">
         <el-form-item label="数量">
           <span>{{ selectedRows.length }} 个用户</span>
         </el-form-item>
         <el-form-item label="封禁原因">
-          <el-select v-model="batchFreezeReason" placeholder="选择或输入封禁原因" filterable allow-create style="width: 100%">
-            <el-option label="发布违规内容" value="发布违规内容" />
-            <el-option label="涉嫌欺诈" value="涉嫌欺诈" />
-            <el-option label="骚扰其他用户" value="骚扰其他用户" />
-            <el-option label="恶意注册" value="恶意注册" />
-            <el-option label="其他" value="其他" />
+          <el-select
+            v-model="batchFreezeReason"
+            placeholder="选择或输入封禁原因"
+            filterable
+            allow-create
+            style="width: 100%"
+          >
+            <el-option
+              label="发布违规内容"
+              value="发布违规内容"
+            />
+            <el-option
+              label="涉嫌欺诈"
+              value="涉嫌欺诈"
+            />
+            <el-option
+              label="骚扰其他用户"
+              value="骚扰其他用户"
+            />
+            <el-option
+              label="恶意注册"
+              value="恶意注册"
+            />
+            <el-option
+              label="其他"
+              value="其他"
+            />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="batchFreezeDialogVisible = false">取消</el-button>
-        <el-button type="danger" :loading="freezeSubmitting" @click="confirmBatchFreeze">确认封禁</el-button>
+        <el-button @click="batchFreezeDialogVisible = false">
+          取消
+        </el-button>
+        <el-button
+          type="danger"
+          :loading="freezeSubmitting"
+          @click="confirmBatchFreeze"
+        >
+          确认封禁
+        </el-button>
       </template>
     </el-dialog>
 
     <!-- 用户详情抽屉 -->
-    <UserDetailDrawer v-model="detailVisible" :user-id="detailUserId" @view-user="goDetail" />
+    <UserDetailDrawer
+      v-model="detailVisible"
+      :user-id="detailUserId"
+      @view-user="goDetail"
+    />
   </div>
 </template>
 
