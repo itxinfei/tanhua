@@ -53,7 +53,10 @@
     </view>
 
     <!-- 结果区：有关键词时展示 tab + 瀑布流 -->
-    <template v-if="keyword">
+    <view
+      v-if="keyword"
+      class="result-section"
+    >
       <!-- 结果分类：综合 / 视频 / 用户 -->
       <view
         class="result-tabs"
@@ -282,7 +285,7 @@
           </text>
         </view>
       </view>
-    </template>
+    </view>
 
     <!-- 建议区：无关键词时展示历史 + 热搜 -->
     <view
@@ -451,13 +454,16 @@ const showError = computed(() => errorText.value !== "" && list.value.length ===
 onLoad((options) => {
   const raw = options?.keyword ? decodeURIComponent(String(options.keyword)) : "";
   const word = raw.trim();
-  history.value = readHistory();
-  loadHotWords();
   if (word) {
     inputKeyword.value = word;
     keyword.value = word;
     load(1, false);
   }
+});
+
+onMounted(() => {
+  history.value = readHistory();
+  loadHotWords();
 });
 
 onReachBottom(() => {
@@ -878,6 +884,10 @@ function titleSegments(title: string): TitleSegment[] {
 }
 
 /* ===== 结果区（有关键词） ===== */
+.result-section {
+  /* 结果区容器，无额外样式，仅作为 v-if 包裹层 */
+}
+
 .result-tabs {
   position: sticky;
   top: calc(var(--category-bar-h) + env(safe-area-inset-top));
