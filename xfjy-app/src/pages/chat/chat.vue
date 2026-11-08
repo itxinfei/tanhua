@@ -478,6 +478,8 @@ import ErrorBoundary from "@/components/error-boundary.vue";
 import EmptyState from "@/components/empty-state.vue";
 import Skeleton from "@/components/skeleton.vue";
 import { useUserStore } from "@/store/user";
+import { useUnreadStore } from "@/store/unread";
+import { showNotification } from "@/utils/notification";
 import { uploadChatImage, uploadChatAudio, getContacts } from "@/api/chat";
 import { getUserProfile } from "@/api/mine";
 import {
@@ -1228,6 +1230,15 @@ onLoad(async (options: any) => {
   nickname.value = options?.nickname || "聊天";
   uni.setNavigationBarTitle({ title: nickname.value });
 
+  // 进入聊天页即已读：清零未读数，避免 tabbar badge 残留
+  const unreadStore = useUnreadStore();
+  unreadStore.clearUnread();
+  // H5 全局 tabbar 由 global-tabbar.ts 管理，需同步清 DOM badge
+  // #ifdef H5
+  const matchItem = document.querySelector<HTMLElement>("#xfjy-global-tabbar .app-tabbar__item");
+  matchItem?.querySelector(".app-tabbar__badge")?.remove();
+  // #endif
+
   // 恢复最近使用表情
   try {
     const saved = uni.getStorageSync("chat_recent_emojis");
@@ -1289,6 +1300,12 @@ async function reconnectIM(): Promise<void> {
       } else {
         pendingMessages.push(msg);
       }
+      // 页面在后台时弹系统通知（H5 Web Notification / MP 订阅消息）
+      // #ifdef H5
+      if (document.hidden) {
+        showNotification(nickname.value, msg.content);
+      }
+      // #endif
     });
 
     // 历史拉取单独内层 try/catch：失败只置错误空态，不影响已完成的 IM 登录与消息监听

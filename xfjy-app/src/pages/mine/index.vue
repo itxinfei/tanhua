@@ -132,10 +132,9 @@
       @tap="goVip"
     >
       <view class="vip-left">
-        <uni-icons
-          class="vip-icon"
-          type="vip"
-          size="24"
+        <view
+          class="vip-icon i-ph-crown"
+          aria-hidden="true"
         />
         <view>
           <text class="vip-title">
@@ -543,7 +542,8 @@ onShow(() => {
     gap: 20rpx;
 
     .vip-icon {
-      font-size: 48rpx;
+      font-size: 40rpx;
+      line-height: 1;
     }
 
     .vip-title {

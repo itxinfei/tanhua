@@ -41,6 +41,14 @@
         <text class="app-tabbar__label">
           {{ TABS[0].text }}
         </text>
+        <!-- 未读消息红点：匹配 tab 上显示未读消息总数 -->
+        <view
+          v-if="unreadCount > 0"
+          class="app-tabbar__badge"
+          aria-hidden="true"
+        >
+          <text class="app-tabbar__badge-text">{{ unreadCount > 99 ? '99+' : unreadCount }}</text>
+        </view>
       </view>
       <view class="app-tabbar__item">
         <a11y-button
@@ -145,6 +153,11 @@
 import { ref, onMounted, watch, getCurrentInstance } from "vue";
 import A11yButton from "@/components/a11y-button.vue";
 import { TABS, PUBLISH_PAGE } from "@/config/tab-config";
+import { useUnreadStore } from "@/store/unread";
+
+/** 未读消息数（tabbar badge 数据源；由 setUnreadCount 驱动 DOM 更新） */
+const unreadStore = useUnreadStore();
+const unreadCount = ref(0);
 
 /** 当前选中 tab 索引：0-3 对应 4 个 tab，-1 表示发布页（mid 发布键高亮） */
 const props = defineProps<{ active?: number }>();
@@ -172,6 +185,37 @@ watch(
 function setActive(i: number): void {
   activeIndex.value = i;
   applyActiveClass(i);
+}
+
+/** 进入页面时刷新未读数（每 30s 最多一次） */
+onMounted(() => {
+  unreadStore.refreshUnread();
+});
+
+/** 由 global-tabbar.ts 轮询时调用，更新未读数（DOM 操作，绕过全局实例响应式不可靠问题） */
+function setUnreadCount(count: number): void {
+  unreadCount.value = count;
+  const root = localRoot ?? document.getElementById("xfjy-global-tabbar");
+  if (!root) return;
+  // 匹配 tab 是第一个 item（idx=0）
+  const matchItem = root.querySelectorAll<HTMLElement>(".app-tabbar__item")[0];
+  if (!matchItem) return;
+  let badge = matchItem.querySelector<HTMLElement>(".app-tabbar__badge");
+  if (count > 0) {
+    if (!badge) {
+      badge = document.createElement("view");
+      badge.className = "app-tabbar__badge";
+      badge.setAttribute("aria-hidden", "true");
+      const text = document.createElement("text");
+      text.className = "app-tabbar__badge-text";
+      badge.appendChild(text);
+      matchItem.appendChild(badge);
+    }
+    const textEl = badge.querySelector<HTMLElement>(".app-tabbar__badge-text");
+    if (textEl) textEl.textContent = count > 99 ? "99+" : String(count);
+  } else if (badge) {
+    badge.remove();
+  }
 }
 
 /**
@@ -221,7 +265,7 @@ onMounted(() => {
   applyActiveClass(activeIndex.value);
 });
 
-defineExpose({ setActive });
+defineExpose({ setActive, setUnreadCount });
 
 function go(tab: (typeof TABS)[number]): void {
   uni.switchTab({ url: `/${tab.pagePath}` });
@@ -331,6 +375,30 @@ function goPublish(): void {
     &--active {
       color: var(--color-primary);
       font-weight: 600;
+    }
+  }
+
+  /* 未读消息红点：右上角，品牌色底白字 */
+  &__badge {
+    position: absolute;
+    top: 4px;
+    right: 20%;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    box-sizing: border-box;
+
+    .app-tabbar__badge-text {
+      font-size: 10px;
+      color: #ffffff;
+      font-weight: 600;
+      line-height: 1;
     }
   }
 

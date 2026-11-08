@@ -309,6 +309,19 @@
             心动
           </text>
         </a11y-button>
+        <a11y-button
+          class="action-btn say-hi"
+          label="和对方打招呼"
+          @tap="handleSayHi"
+        >
+          <view
+            class="action-ico i-ph-chat-circle-text"
+            aria-hidden="true"
+          />
+          <text class="action-label">
+            打招呼
+          </text>
+        </a11y-button>
       </view>
 
       <!-- 匹配成功弹窗（与匹配页行为一致）：仅正常态挂载，无用户数据时弹窗无意义 -->
@@ -327,6 +340,7 @@ import MatchPopup from "@/components/match-popup.vue";
 import { useMatchStore } from "@/store/match";
 import { useUserStore } from "@/store/user";
 import { submitReport, REPORT_TARGET_TYPE, checkBenefit, recordBenefitUsage } from "@/api/mine";
+import { addContact } from "@/api/chat";
 import { getPersonalInfo, getStrangerQuestion, type TodayBest } from "@/api/match";
 import { getUserMovements, type Movement } from "@/api/circle";
 import { safeGoBack } from "@/utils/nav";
@@ -490,6 +504,27 @@ async function handleLike(): Promise<void> {
     success(matched ? "互相喜欢，已匹配！" : "已喜欢");
     // 匹配成功时留在本页展示匹配弹窗，由弹窗承接后续；未匹配才自动返回
     if (!matched) scheduleNav(800, goBack);
+  } catch {
+    // 请求失败由 request 层统一 toast
+  } finally {
+    acting.value = false;
+  }
+}
+
+/** 打招呼：注册 IM 联系人关系后进入聊天页（无需互相喜欢） */
+async function handleSayHi(): Promise<void> {
+  if (!userId.value || acting.value) return;
+  acting.value = true;
+  try {
+    // 注册 IM 联系人关系（让双方可以开始聊天）
+    await addContact(userId.value);
+    success("已添加联系人，去聊天吧");
+    // 跳转到聊天页
+    setTimeout(() => {
+      uni.navigateTo({
+        url: `/pages/chat/chat?userId=${userId.value}&nickname=${encodeURIComponent(user.value?.nickname || "")}`,
+      });
+    }, 600);
   } catch {
     // 请求失败由 request 层统一 toast
   } finally {
@@ -670,19 +705,20 @@ onLoad(async (options: any) => {
 
 .name-row { display: flex; align-items: center; gap: 16rpx;
   .nickname { font-size: 42rpx; font-weight: bold; color: var(--text-primary); }
-  .age-badge { background: var(--gradient-brand); color: var(--bg-card); font-size: 24rpx; padding: 4rpx 16rpx; border-radius: 16rpx; }
+  /* 年龄徽章：描边样式与匹配页统一，不再用实心渐变 */
+  .age-badge { border: 2rpx solid var(--color-primary); color: var(--color-primary); font-size: 24rpx; font-weight: 600; padding: 2rpx 16rpx; border-radius: var(--radius-pill); }
 }
 
 /* 缘分值进度条 */
 .fate-row { display: flex; align-items: center; gap: 16rpx; margin-top: 24rpx;
   .fate-label { font-size: 24rpx; color: var(--text-hint); flex-shrink: 0; }
-  .fate-bar { flex: 1; height: 16rpx; background: var(--bg-sub); border-radius: 8rpx; overflow: hidden; }
-  .fate-fill { height: 100%; background: var(--gradient-brand-h); border-radius: 8rpx; transition: width 0.6s ease-out; }
+  .fate-bar { flex: 1; height: 12rpx; background: var(--bg-sub); border-radius: var(--radius-pill); overflow: hidden; }
+  .fate-fill { height: 100%; background: var(--gradient-brand-h); border-radius: var(--radius-pill); transition: width 0.6s ease-out; }
   .fate-score { font-size: 30rpx; font-weight: bold; color: var(--color-primary); flex-shrink: 0; min-width: 48rpx; text-align: right; }
 }
 
-.meta-grid { display: flex; flex-wrap: wrap; gap: 20rpx; margin-top: 28rpx;
-  .meta-item { flex: 1; min-width: calc(33.33% - 14rpx); background: var(--bg-sub); border-radius: 16rpx; padding: 16rpx 20rpx;
+.meta-grid { display: flex; flex-wrap: wrap; gap: 16rpx; margin-top: 28rpx;
+  .meta-item { flex: 1; min-width: calc(33.33% - 12rpx); background: var(--bg-sub); border-radius: var(--radius-md); padding: 16rpx 20rpx;
     .label { font-size: 22rpx; color: var(--text-hint); display: block; }
     .value { font-size: 28rpx; color: var(--text-primary); margin-top: 6rpx; display: block; font-weight: 500; }
   }
@@ -691,7 +727,7 @@ onLoad(async (options: any) => {
 /* 个人标签 */
 .tags-section { margin-top: 28rpx;
   .tags-wrap { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 16rpx; }
-  .tag { background: var(--bg-icon-soft); color: var(--color-primary); font-size: 24rpx; padding: 8rpx 20rpx; border-radius: 20rpx; border: 1rpx solid var(--color-primary-mist); }
+  .tag { background: var(--bg-icon-soft); color: var(--color-primary-text); font-size: 24rpx; padding: 8rpx 20rpx; border-radius: var(--radius-pill); border: 1rpx solid var(--color-primary-mist); }
 }
 
 .question-section { margin-top: 32rpx;
@@ -709,7 +745,7 @@ onLoad(async (options: any) => {
 
 .movement-item { display: flex; gap: 20rpx; padding: 20rpx 0; border-bottom: 1rpx solid var(--border-faint);
   &:last-child { border-bottom: none; }
-  .m-cover { width: 160rpx; height: 160rpx; border-radius: 16rpx; background: var(--bg-sub); flex-shrink: 0; }
+  .m-cover { width: 160rpx; height: 160rpx; border-radius: var(--radius-md); background: var(--bg-sub); flex-shrink: 0; }
   .m-body { flex: 1; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
   .m-text { font-size: 26rpx; color: var(--text-primary); line-height: 1.5; }
   .m-stats { display: flex; gap: 24rpx;
@@ -733,6 +769,7 @@ onLoad(async (options: any) => {
   &.chat { background: var(--bg-card); color: var(--color-primary); border-color: var(--color-primary); box-shadow: 0 6rpx 20rpx rgba(var(--color-primary-rgb), 0.25); }
   &.super-like { background: var(--bg-card); color: var(--info-blue-soft); border-color: var(--info-blue-soft); box-shadow: 0 6rpx 20rpx rgba(var(--info-blue-soft-rgb), 0.25); }
   &.like { background: var(--bg-card); color: var(--success); border-color: var(--success); box-shadow: 0 6rpx 20rpx rgba(var(--success-rgb), 0.3); }
+  &.say-hi { background: var(--bg-card); color: var(--info-blue-soft); border-color: var(--info-blue-soft); box-shadow: 0 6rpx 20rpx rgba(var(--info-blue-soft-rgb), 0.25); }
 }
 
 /* ===== 加载骨架（三态之一）=====

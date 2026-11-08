@@ -21,12 +21,16 @@ import {
   EXCLUDED_PREFIXES,
   TAB_BAR_HEIGHT_PX,
 } from "@/config/tab-config";
+import { useUnreadStore } from "@/store/unread";
 
 /** 挂载目标容器 id */
 const BAR_ID = "xfjy-global-tabbar";
 
-/** AppTabbar 实例（通过 setupState.setActive 调用） */
-let vm: { setActive?: (i: number) => void } | null = null;
+/** AppTabbar 实例（通过 setupState.setActive / setUnreadCount 调用） */
+let vm: {
+  setActive?: (i: number) => void;
+  setUnreadCount?: (count: number) => void;
+} | null = null;
 /** 挂载目标 div */
 let bar: HTMLElement | null = null;
 
@@ -78,6 +82,22 @@ function applyWindowBottom(value: string): void {
   });
 }
 
+/** 未读数刷新定时器（30s 轮询，与 store 内部节流一致） */
+let unreadTimer: ReturnType<typeof setInterval> | null = null;
+
+/** 启动未读数刷新：立即拉一次，之后每 30s 轮询 */
+function startUnreadRefresh(): void {
+  const unreadStore = useUnreadStore();
+  unreadStore.refreshUnread().then(() => {
+    vm?.setUnreadCount?.(unreadStore.unreadCount);
+  });
+  unreadTimer = setInterval(() => {
+    unreadStore.refreshUnread().then(() => {
+      vm?.setUnreadCount?.(unreadStore.unreadCount);
+    });
+  }, 30_000);
+}
+
 function refresh(): void {
   if (!bar) return;
   const route = currentRoute();
@@ -109,9 +129,15 @@ export function installGlobalTabbar(): void {
   // app.mount() 返回的 proxy 不暴露 defineExpose 的方法（uni-app 编译机制），
   // 需通过 _instance.setupState 访问 setActive。
   const instance = app._instance as unknown as {
-    setupState?: { setActive?: (i: number) => void };
+    setupState?: {
+      setActive?: (i: number) => void;
+      setUnreadCount?: (count: number) => void;
+    };
   };
   vm = instance?.setupState ?? null;
+
+  // 启动未读数刷新：每 30s 拉一次 IM 会话未读数，更新 tabbar badge
+  startUnreadRefresh();
 
   // 路由变化（hash 路由）与兜底轮询刷新显示/高亮/占位
   window.addEventListener("hashchange", refresh);
