@@ -27,11 +27,11 @@
         <text>您好，我是心飞交友在线客服，很高兴为您服务 🎧</text>
       </view>
       <template
-        v-for="msg in messageList"
+        v-for="(msg, index) in messageList"
         :key="msg.id"
       >
         <view
-          v-if="showTimeDivider(msg)"
+          v-if="showTimeDivider(index)"
           class="time-divider"
         >
           <text class="time-text">
@@ -157,6 +157,17 @@
         </view>
       </scroll-view>
       <view class="input-bar">
+        <!-- 语音/键盘切换：客服场景纯文本，语音按钮占位提示暂不支持 -->
+        <a11y-button
+          class="icon-btn"
+          :label="isVoiceMode ? '切换到键盘输入' : '切换到语音输入'"
+          @tap="switchInputMode"
+        >
+          <view
+            :class="isVoiceMode ? 'i-ph-keyboard-fill' : 'i-ph-microphone-fill'"
+            aria-hidden="true"
+          />
+        </a11y-button>
         <input
           v-model="inputText"
           class="text-input"
@@ -166,19 +177,103 @@
           aria-label="客服聊天输入框"
           confirm-type="send"
           @confirm="sendText"
-          @focus="isInputFocus = true"
+          @focus="onInputFocus"
           @blur="isInputFocus = false"
         >
+        <!-- 表情按钮 -->
         <a11y-button
+          class="icon-btn"
+          role="tab"
+          :checked="activePanel === 'emoji'"
+          label="表情面板"
+          @tap="togglePanel('emoji')"
+        >
+          <view
+            class="i-ph-smiley"
+            :class="{ 'icon-active': activePanel === 'emoji' }"
+            aria-hidden="true"
+          />
+        </a11y-button>
+        <!-- 有内容时发送按钮，无内容时更多面板入口（微信式交互） -->
+        <a11y-button
+          v-if="inputText.trim()"
           class="send-btn"
           variant="primary"
-          :class="{ disabled: !inputText.trim() || sending }"
-          :disabled="!inputText.trim() || sending"
+          :class="{ disabled: sending }"
+          :disabled="sending"
           label="发送消息"
           @tap="sendText"
         >
           <text>发送</text>
         </a11y-button>
+        <a11y-button
+          v-else
+          class="icon-btn"
+          role="tab"
+          :checked="activePanel === 'more'"
+          label="更多功能面板"
+          @tap="togglePanel('more')"
+        >
+          <view
+            class="i-ph-plus"
+            :class="{ 'icon-active': activePanel === 'more' }"
+            aria-hidden="true"
+          />
+        </a11y-button>
+      </view>
+
+      <!-- 表情面板 -->
+      <view
+        v-if="activePanel === 'emoji'"
+        class="panel emoji-panel"
+      >
+        <scroll-view
+          scroll-y
+          class="emoji-scroll"
+        >
+          <view class="emoji-grid">
+            <a11y-button
+              v-for="emoji in EMOJI_LIST"
+              :key="emoji"
+              class="emoji-item"
+              :label="`插入表情 ${emoji}`"
+              @tap="sendEmoji(emoji)"
+            >
+              <text aria-hidden="true">
+                {{ emoji }}
+              </text>
+            </a11y-button>
+          </view>
+        </scroll-view>
+      </view>
+
+      <!-- 更多面板：客服场景只保留图片与拍照 -->
+      <view
+        v-if="activePanel === 'more'"
+        class="panel more-panel"
+      >
+        <view class="more-grid">
+          <a11y-button
+            v-for="action in QUICK_ACTIONS"
+            :key="action.label"
+            class="more-item"
+            :label="action.label"
+            @tap="action.handler"
+          >
+            <view
+              class="more-icon"
+              :style="{ background: action.bg }"
+            >
+              <view
+                :class="action.icon"
+                aria-hidden="true"
+              />
+            </view>
+            <text class="more-label">
+              {{ action.label }}
+            </text>
+          </a11y-button>
+        </view>
       </view>
     </view>
   </view>
@@ -201,12 +296,30 @@ import {
   getChatHistory,
   type ReceivedMessage,
 } from "@/utils/wukongim";
-import { fail } from "@/utils/ux";
+import { fail, info } from "@/utils/ux";
 import { warn } from "@/utils/logger";
 import { resolveAvatar, DEFAULT_AVATAR } from "@/utils/avatar";
 
 /** 时间分隔线最小间隔（分钟） */
 const TIME_GAP_MINUTES = 5;
+
+/** 表情面板数据（与好友聊天页统一 24 个 emoji） */
+const EMOJI_LIST: string[] = [
+  "😊", "😂", "❤️", "👍", "😍", "🥰", "😘", "💕",
+  "🌹", "🎉", "🔥", "✨", "😭", "😅", "🤔", "😎",
+  "🙌", "💪", "🙏", "🤝", "💋", "🎁", "☕", "🌙",
+];
+
+/** 底部面板类型 */
+type PanelType = "none" | "emoji" | "more";
+
+/** 更多面板快捷操作配置（表驱动，仅图片与拍照） */
+interface QuickAction { icon: string; label: string; bg: string; handler: () => void; }
+const QUICK_ACTIONS: QuickAction[] = [
+  { icon: "i-ph-image", label: "图片", bg: "var(--color-primary)", handler: () => selectImage("album") },
+  { icon: "i-ph-camera", label: "拍照", bg: "var(--info-blue)", handler: () => selectImage("camera") },
+];
+
 /** 快捷问题预设（与 FAQ 种子数据呼应，引导首次提问） */
 const QUICK_QUESTIONS: string[] = [
   "如何修改绑定手机？",
@@ -241,6 +354,10 @@ const scrollToId = ref("");
 const messageList = ref<Message[]>([]);
 /** 是否 VIP（exclusive_service 专属客服标识） */
 const isVip = ref(false);
+/** 底部面板类型（表情/更多/无） */
+const activePanel = ref<PanelType>("none");
+/** 语音/键盘切换：客服场景纯文本，语音模式仅占位提示暂不支持 */
+const isVoiceMode = ref(false);
 /** 历史消息是否已填充（填充前的实时消息进 pending 缓冲，填充后实时追加）。
  *  原 onLoad 局部变量提升为 ref：重试 loadHistory 与消息回调需共享同一状态 */
 const historyLoaded = ref(false);
@@ -249,11 +366,15 @@ const historyLoadFailed = ref(false);
 /** 在途实时消息缓冲：历史填充前到达的消息先缓存，loadHistory 合并后清空，供重试复用 */
 let pendingMessages: ReceivedMessage[] = [];
 
-/** 是否显示时间分隔线（与上一条间隔超过阈值） */
-function showTimeDivider(msg: Message): boolean {
-  const idx = messageList.value.indexOf(msg);
-  if (idx <= 0) return false;
-  return msg.timestamp - messageList.value[idx - 1].timestamp > TIME_GAP_MINUTES * 60 * 1000;
+/**
+ * 是否显示时间分隔线（与好友聊天页统一：首条必显，后续间隔超过阈值才显示）
+ * @param index 当前消息索引
+ */
+function showTimeDivider(index: number): boolean {
+  if (index === 0) return true;
+  const prev = messageList.value[index - 1];
+  const curr = messageList.value[index];
+  return curr.timestamp - prev.timestamp > TIME_GAP_MINUTES * 60 * 1000;
 }
 
 /** 格式化聊天时间：今天 HH:mm，昨天"昨天 HH:mm"，同年更早 MM-DD HH:mm，跨年 YYYY-MM-DD HH:mm（P2-5） */
@@ -293,6 +414,52 @@ async function sendText(): Promise<void> {
 /** 点击快捷问题直接发送 */
 async function sendQuick(text: string): Promise<void> {
   await sendMessage(text);
+}
+
+/** 插入表情到输入框 */
+function sendEmoji(emoji: string): void {
+  inputText.value += emoji;
+}
+
+/** 切换底部面板（同一面板再次点击则收起） */
+function togglePanel(panel: "emoji" | "more"): void {
+  if (activePanel.value !== panel) {
+    // 开面板先收键盘，避免面板与软键盘互相遮挡
+    uni.hideKeyboard();
+    isInputFocus.value = false;
+  }
+  activePanel.value = activePanel.value === panel ? "none" : panel;
+  isVoiceMode.value = false;
+}
+
+/** 输入框聚焦：收起底部面板，避免键盘与面板同屏 */
+function onInputFocus(): void {
+  isInputFocus.value = true;
+  activePanel.value = "none";
+}
+
+/** 语音/键盘切换：客服场景纯文本，暂不支持语音 */
+function switchInputMode(): void {
+  info("客服暂不支持语音");
+}
+
+/** 选择图片并直接发送（不实现上传，因为后端可能不支持） */
+function selectImage(source: "album" | "camera"): void {
+  uni.chooseImage({
+    count: 1,
+    sourceType: source === "camera" ? ["camera"] : ["album"],
+    success: (res) => {
+      const path = res.tempFilePaths[0];
+      if (!path) return;
+      // 客服场景仅文本，图片选择后提示用户
+      info("客服暂不支持发送图片");
+    },
+    fail: (err: any) => {
+      const msg = String(err?.errMsg || "");
+      if (msg.includes("cancel")) return;
+      info(source === "camera" ? "需要相机权限才能拍照" : "需要相册权限才能发送图片");
+    },
+  });
 }
 
 /** 本地消息自增序号（避免 Date.now() 同毫秒撞 id） */
@@ -567,16 +734,31 @@ onUnmounted(() => {
 }
 
 .input-bar { display: flex; align-items: center; gap: 12rpx; padding: 14rpx 16rpx; }
-.text-input { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; transition: background 0.2s, box-shadow 0.2s;
-  &.focus { background: var(--bg-card); box-shadow: 0 0 0 3rpx rgba(var(--color-primary-rgb), 0.35); }
+/* 图标按钮：64rpx 圆形，热区由 a11y-button 组件保证 */
+.icon-btn { width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center; font-size: 40rpx; border-radius: 50%; flex-shrink: 0;
+  .icon-active { filter: drop-shadow(0 0 6rpx rgba(var(--color-primary-rgb), 0.6)); }
 }
-/* 发送按钮：primary variant 提供底色/热区/按压反馈，此处只处理禁用态。
-   禁用态灰底灰字（--border 底 + --text-hint-strong 字，明暗双模式对比均 ≥4.5:1）；
-   组件对 primary 禁用自带 opacity:.4 会把灰字压得过淡，这里重置为 1，靠配色本身表达禁用。
-   间距由父级 input-bar 的 gap 提供，不再额外加 margin-left（与好友聊天页一致） */
+/* 发送按钮：与 icon-btn 同位切换，gap 已提供间距，仅防 flex 压缩 */
 .send-btn {
   flex-shrink: 0;
 
   &.disabled { background: var(--border); color: var(--text-hint-strong); box-shadow: none; opacity: 1; }
 }
+.text-input { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; transition: background 0.2s, box-shadow 0.2s;
+  &.focus { background: var(--bg-card); box-shadow: 0 0 0 3rpx rgba(var(--color-primary-rgb), 0.35); }
+}
+
+/* ===== 底部面板 ===== */
+.panel { height: 380rpx; background: var(--bg-page); border-top: 1rpx solid var(--border-light); animation: slideUp 0.2s ease-out; overflow: hidden; }
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+.emoji-panel .emoji-scroll { height: 100%; }
+.emoji-grid { display: flex; flex-wrap: wrap; padding: 16rpx 12rpx; }
+/* height 88rpx：满足 44px 最小可点击热区，宽度 12.5% 一行 8 个 */
+.emoji-item { width: 12.5%; height: 88rpx; display: flex; align-items: center; justify-content: center; font-size: 44rpx; }
+
+.more-grid { display: flex; flex-wrap: wrap; padding: 36rpx 16rpx; }
+.more-item { width: 25%; display: flex; flex-direction: column; align-items: center; gap: 14rpx; }
+.more-icon { width: 104rpx; height: 104rpx; border-radius: 24rpx; display: flex; align-items: center; justify-content: center; font-size: 44rpx; box-shadow: var(--shadow-float); }
+.more-label { font-size: 24rpx; color: var(--text-secondary); }
 </style>

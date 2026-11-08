@@ -96,7 +96,7 @@
             <a11y-button
               v-else-if="msg.isMine && msg.status === 'failed'"
               class="status-failed"
-              label="发送失败，点击重发"
+              :label="`发送失败，重新发送：${msg.content || '消息'}`"
               @tap="resendMessage(msg)"
             >
               <text
@@ -1318,6 +1318,8 @@ onUnmounted(() => {
 .text-input { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; transition: background 0.2s, box-shadow 0.2s;
   &.focus { background: var(--bg-card); box-shadow: 0 0 0 3rpx rgba(var(--color-primary-rgb), 0.35); }
 }
+/* placeholder 颜色：与 change-phone/verify 等页面对齐，走 --text-hint */
+.ph { color: var(--text-hint); }
 .voice-btn { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; display: flex; align-items: center; justify-content: center; font-size: 28rpx; color: var(--text-secondary); transition: background 0.15s, transform 0.15s;
   &:active { background: var(--border); transform: scale(0.98); }
 }
