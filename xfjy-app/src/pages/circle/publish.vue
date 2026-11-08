@@ -777,13 +777,13 @@ onUnload(() => {
   gap: 10rpx;
   margin-top: 20rpx;
   padding: 16rpx 20rpx;
-  border-radius: 16rpx;
-  background: var(--bg-icon-soft, #f4efff);
-  border: 1rpx solid rgba(138, 92, 246, 0.22);
+  border-radius: var(--radius-md);
+  background: var(--bg-icon-soft);
+  border: 1rpx solid var(--color-primary-mist);
 
   .publish-hint-text {
     font-size: 24rpx;
-    color: var(--color-primary-text, #7a4bd0);
+    color: var(--color-primary-text);
   }
 }
 

@@ -804,15 +804,15 @@ onShow(async () => {
 
 /* ===== 照片墙 ===== */
 .album-grid { display: flex; flex-wrap: wrap; gap: 16rpx; padding-bottom: 24rpx;
-  .album-item { position: relative; width: 180rpx; height: 180rpx; border-radius: 16rpx; overflow: visible;
-    .album-img { width: 100%; height: 100%; border-radius: 16rpx; border: 2rpx solid var(--border-light); }
+  .album-item { position: relative; width: 180rpx; height: 180rpx; border-radius: var(--radius-md); overflow: visible;
+    .album-img { width: 100%; height: 100%; border-radius: var(--radius-md); border: 2rpx solid var(--border-light); }
     .remove { position: absolute; top: -16rpx; right: -16rpx; width: 56rpx; height: 56rpx; background: rgba(0, 0, 0, 0.55); color: var(--bg-card); border-radius: 50%; display: flex; align-items: center; justify-content: center;
       /* 视觉 56rpx + ::before 扩热区至 88rpx（§7.1 sm 例外：照片卡片 180rpx 为主热区） */
       &::before { content: ""; position: absolute; inset: -16rpx; }
       .remove-icon { font-size: 32rpx; line-height: 1; color: var(--text-inverse); }
     }
   }
-  .add-photo { width: 180rpx; height: 180rpx; background: var(--bg-sub); border-radius: 16rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8rpx; border: 2rpx dashed var(--border);
+  .add-photo { width: 180rpx; height: 180rpx; background: var(--bg-sub); border-radius: var(--radius-md); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8rpx; border: 2rpx dashed var(--border);
     .plus { font-size: 56rpx; color: var(--text-hint); line-height: 1; }
     .add-label { font-size: 22rpx; color: var(--text-hint); }
   }
@@ -835,7 +835,9 @@ onShow(async () => {
 
 /* 性别 toggle 容器（flex 右对齐） */
 .gender-flex { flex: 1; display: flex; justify-content: flex-end; gap: 12rpx;
-  :deep(.gender-chip) { display: inline-flex; align-items: center; gap: 8rpx; padding: 12rpx 28rpx; border-radius: 32rpx; font-size: 26rpx; border: 2rpx solid var(--border-light); background: var(--bg-sub); color: var(--text-secondary);
+  :deep(.gender-chip) { display: inline-flex; align-items: center; gap: 8rpx; padding: 12rpx 28rpx; border-radius: var(--radius-pill); font-size: 26rpx; border: 2rpx solid var(--border-light); background: var(--bg-sub); color: var(--text-secondary);
+    /* 最小热区 88rpx（AGENTS §7.1） */
+    min-height: 88rpx;
     .option-label { color: inherit; }
     &.male.active { background: linear-gradient(135deg, var(--info-blue), var(--info-blue-soft)); border-color: var(--info-blue); box-shadow: 0 4rpx 14rpx rgba(74, 144, 217, 0.3); color: var(--text-inverse); }
     &.female.active { background: var(--gradient-brand); border-color: var(--color-primary); box-shadow: 0 4rpx 14rpx rgba(var(--color-primary-rgb), 0.3); color: var(--text-inverse); }

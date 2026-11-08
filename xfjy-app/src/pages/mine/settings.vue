@@ -568,7 +568,7 @@ function inputDeleteCode() {
   padding: 20rpx 24rpx calc(var(--tab-bar-height, 50px) + env(safe-area-inset-bottom, 0px) + 80rpx);
 }
 
-.group { background: var(--bg-card); margin: 0 0 24rpx; padding: 8rpx 32rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+.group { background: var(--bg-card); margin: 0 0 24rpx; padding: 8rpx 32rpx; border-radius: var(--radius-lg); box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   /* 分组标题原 #999（≈2.85:1）→ #767676 */
   .group-title { font-size: 24rpx; color: var(--text-hint); padding: 16rpx 0 8rpx; display: block; }
   .item { display: flex; align-items: center; min-height: var(--row-h-touch-md); border-bottom: 1rpx solid var(--border-faint); min-width: 0;

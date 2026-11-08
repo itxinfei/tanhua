@@ -225,7 +225,7 @@ function goFeedback(): void {
     display: flex;
     align-items: center;
     background: var(--bg-card);
-    border-radius: 36rpx;
+    border-radius: var(--radius-pill);
     padding: 0 24rpx;
     height: 76rpx;
     gap: 12rpx;
@@ -269,7 +269,7 @@ function goFeedback(): void {
 
 .faq-group {
   background: var(--bg-card);
-  border-radius: 24rpx;
+  border-radius: var(--radius-lg);
   margin-top: 24rpx;
   overflow: hidden;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
@@ -369,7 +369,7 @@ function goFeedback(): void {
     flex: 1;
     background: var(--bg-icon-soft);
     border: 1rpx solid var(--color-primary-mist);
-    border-radius: 44rpx;
+    border-radius: var(--radius-pill);
     text-align: center;
     padding: 22rpx 0;
 

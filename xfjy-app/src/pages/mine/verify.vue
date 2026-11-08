@@ -136,7 +136,7 @@ async function submit() {
 /* 原生导航页：min-height 需减去导航栏，否则内容不足时底部仍溢出 44px */
 .verify-page { min-height: calc(100vh - var(--window-top, 0px)); background: var(--bg-sub); padding: 24rpx; }
 .tips { font-size: 24rpx; color: var(--text-hint); line-height: 1.6; margin-bottom: 24rpx; }
-.form-card { background: var(--bg-card); border-radius: 24rpx; padding: 8rpx 32rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+.form-card { background: var(--bg-card); border-radius: var(--radius-lg); padding: 8rpx 32rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   .form-item { display: flex; align-items: center; padding: 26rpx 0; border-bottom: 1rpx solid var(--border-faint);
     &:last-child { border-bottom: none; }
     .form-label { width: 160rpx; font-size: 28rpx; color: var(--text-primary); flex-shrink: 0; }
@@ -147,7 +147,7 @@ async function submit() {
 .ph { color: var(--text-hint); }
 /* 提交按钮：a11y-button primary 变体（品牌渐变），仅补外边距与宽度 */
 .submit-btn { margin-top: 60rpx; }
-.verified-card { background: var(--bg-card); border-radius: 24rpx; padding: 80rpx 32rpx; text-align: center; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+.verified-card { background: var(--bg-card); border-radius: var(--radius-lg); padding: 80rpx 32rpx; text-align: center; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   .verified-icon { display: block; width: 96rpx; height: 96rpx; line-height: 96rpx; margin: 0 auto 24rpx; border-radius: 50%; background: var(--color-primary); color: var(--bg-card); font-size: 48rpx; }
   .verified-text { font-size: 30rpx; color: var(--text-primary); }
 }

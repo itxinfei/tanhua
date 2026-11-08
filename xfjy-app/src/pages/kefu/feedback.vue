@@ -203,7 +203,7 @@ function statusClass(status: number): string {
     position: relative;
     margin-top: 24rpx;
     background: var(--bg-sub);
-    border-radius: 16rpx;
+    border-radius: var(--radius-md);
     padding: 20rpx;
 
     .content-input {
@@ -234,7 +234,7 @@ function statusClass(status: number): string {
   .contact-input {
     margin-top: 20rpx;
     background: var(--bg-sub);
-    border-radius: 16rpx;
+    border-radius: var(--radius-md);
     padding: 20rpx;
     font-size: 28rpx;
     color: var(--text-primary);
@@ -284,7 +284,7 @@ function statusClass(status: number): string {
     .item-status {
       font-size: 24rpx;
       padding: 4rpx 16rpx;
-      border-radius: 20rpx;
+      border-radius: var(--radius-pill);
 
       /* 状态徽章：走 CSS 变量，原写死 #b35c00/#fff7e6 等 hex 在暗色模式下成刺眼色块 */
       &.st-pending {
@@ -321,7 +321,7 @@ function statusClass(status: number): string {
     margin-top: 16rpx;
     padding: 16rpx 20rpx;
     background: var(--bg-icon-soft);
-    border-radius: 12rpx;
+    border-radius: var(--radius-sm);
 
     /* 主色 #fe3c72 在 #ffeff5 底上仅约 3.1:1，提深至 ≥4.5:1 */
     .reply-label {

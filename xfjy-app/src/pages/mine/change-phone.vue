@@ -194,7 +194,7 @@ async function submit() {
 .change-phone-page { min-height: calc(100vh - var(--window-top, 0px)); background: var(--bg-sub); padding: 24rpx; }
 /* 提示文案 #999（≈2.85:1）→ #767676 */
 .tips { font-size: 24rpx; color: var(--text-hint); line-height: 1.6; margin-bottom: 24rpx; }
-.form-card { background: var(--bg-card); border-radius: 24rpx; padding: 8rpx 32rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+.form-card { background: var(--bg-card); border-radius: var(--radius-lg); padding: 8rpx 32rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   .form-item { display: flex; align-items: center; padding: 32rpx 0; border-bottom: 1rpx solid var(--border-faint);
     &:last-child { border-bottom: none; }
     .form-label { width: 160rpx; font-size: 28rpx; color: var(--text-primary); flex-shrink: 0; }
