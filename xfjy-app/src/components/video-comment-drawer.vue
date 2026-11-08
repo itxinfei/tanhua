@@ -269,7 +269,6 @@ async function send() {
 .drawer-mask { background: rgba(0, 0, 0, 0.5); }
 /* 高度用 vh 但加 max-height 兼窄屏：列表区 flex 伸缩，小屏不会把输入栏挤出面板 */
 .drawer-panel { width: 100%; height: min(70vh, 900rpx); background: var(--bg-card); border-radius: 32rpx 32rpx 0 0; display: flex; flex-direction: column; animation: slideUp 0.25s ease; box-sizing: border-box; }
-@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .drawer-header { display: flex; align-items: center; justify-content: space-between; padding: var(--space-md) var(--space-lg); border-bottom: 1rpx solid var(--border-faint);
   .drawer-title { font-size: var(--fs-md); font-weight: 600; color: var(--text-primary); }
   .drawer-close { font-size: 40rpx; color: var(--text-hint); padding: 0 var(--space-sm); min-height: 88rpx; line-height: 1; }

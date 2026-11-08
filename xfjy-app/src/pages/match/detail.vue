@@ -65,7 +65,7 @@
         circular
         indicator-dots
         indicator-color="rgba(255,255,255,0.4)"
-        indicator-active-color="#fff"
+        indicator-active-color="var(--text-inverse)"
         @change="onSwiperChange"
       >
         <swiper-item
@@ -666,7 +666,7 @@ onLoad(async (options: any) => {
 .photo-count { position: absolute; right: 24rpx; top: 780rpx; padding: 6rpx 20rpx; border-radius: 20rpx; font-size: 22rpx; color: var(--text-inverse); z-index: 10; }
 
 /* ===== 资料卡 ===== */
-.info-card { margin: -40rpx 24rpx 0; background: var(--bg-card); border-radius: 32rpx; padding: 36rpx 32rpx; position: relative; }
+.info-card { margin: -40rpx 24rpx 0; background: var(--bg-card); border-radius: var(--radius-xl); padding: 36rpx 32rpx; position: relative; }
 
 .name-row { display: flex; align-items: center; gap: 16rpx;
   .nickname { font-size: 42rpx; font-weight: bold; color: var(--text-primary); }
@@ -705,7 +705,7 @@ onLoad(async (options: any) => {
 .section-title { font-size: 30rpx; font-weight: bold; display: block; margin-bottom: 12rpx; color: var(--text-primary); }
 
 /* ===== TA的动态 ===== */
-.movements-card { margin: 24rpx 24rpx 0; background: var(--bg-card); border-radius: 32rpx; padding: 32rpx; }
+.movements-card { margin: 24rpx 24rpx 0; background: var(--bg-card); border-radius: var(--radius-xl); padding: 32rpx; }
 
 .movement-item { display: flex; gap: 20rpx; padding: 20rpx 0; border-bottom: 1rpx solid var(--border-faint);
   &:last-child { border-bottom: none; }

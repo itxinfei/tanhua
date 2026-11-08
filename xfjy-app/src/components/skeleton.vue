@@ -39,6 +39,21 @@
     <template v-else-if="variant === 'match'">
       <view class="skeleton sk-match-card" />
     </template>
+
+    <!-- list：用户列表项占位（friends/blacklist/notifications，与 user-list-item 同构） -->
+    <template v-else-if="variant === 'list'">
+      <view
+        v-for="i in count"
+        :key="i"
+        class="sk-list-item"
+      >
+        <view class="skeleton sk-list-avatar" />
+        <view class="sk-list-info">
+          <view class="skeleton sk-list-name" />
+          <view class="skeleton sk-list-meta" />
+        </view>
+      </view>
+    </template>
   </view>
 </template>
 
@@ -47,9 +62,9 @@ import { computed, withDefaults } from 'vue';
 
 const props = withDefaults(
   defineProps<{
-    /** 骨架形态：feed=信息流卡片 / video=视频全屏 / match=卡片页全屏 */
-    variant?: 'feed' | 'video' | 'match';
-    /** feed 形态下的占位卡片数量 */
+    /** 骨架形态：feed=信息流卡片 / video=视频全屏 / match=卡片页全屏 / list=用户列表项 */
+    variant?: 'feed' | 'video' | 'match' | 'list';
+    /** feed/list 形态下的占位项数量 */
     count?: number;
     /** feed 形态九宫格列数 */
     gridCols?: number;
@@ -161,6 +176,40 @@ const rootClass = computed(() => {
     position: absolute;
     inset: 0;
     border-radius: 0;
+  }
+}
+
+/* ===== list：用户列表项占位（与 user-list-item 同构） ===== */
+.sk-list-item {
+  display: flex;
+  align-items: center;
+  padding: 24rpx;
+  background: var(--bg-card);
+  border-radius: 24rpx;
+  margin-bottom: 16rpx;
+
+  .sk-list-avatar {
+    width: 88rpx;
+    height: 88rpx;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .sk-list-info {
+    flex: 1;
+    min-width: 0;
+    margin-left: 20rpx;
+
+    .sk-list-name {
+      width: 40%;
+      height: 32rpx;
+      margin-bottom: 12rpx;
+    }
+
+    .sk-list-meta {
+      width: 60%;
+      height: 24rpx;
+    }
   }
 }
 </style>

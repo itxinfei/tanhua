@@ -684,7 +684,7 @@ async function handleLogin() {
   .logo {
     width: 160rpx;
     height: 160rpx;
-    border-radius: 32rpx;
+    border-radius: var(--radius-xl);
     animation: logoBeat 2.4s ease-in-out 1s infinite;
   }
 
@@ -707,7 +707,7 @@ async function handleLogin() {
 
 .form {
   background: var(--bg-card);
-  border-radius: 32rpx;
+  border-radius: var(--radius-xl);
   padding: 48rpx 40rpx;
   box-shadow: 0 8rpx 40rpx rgba(0, 0, 0, 0.06);
 }
@@ -857,7 +857,7 @@ async function handleLogin() {
      （max-height + 固定高 scroll-view 会把 footer 挤出面板外） */
   height: 72vh;
   background: var(--bg-card);
-  border-radius: 32rpx 32rpx 0 0;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   padding: 32rpx 32rpx calc(env(safe-area-inset-bottom, 0px) + 24rpx);
   box-sizing: border-box;
 }

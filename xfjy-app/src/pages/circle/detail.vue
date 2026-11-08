@@ -340,7 +340,7 @@ onLoad((options: any) => {
   color: var(--text-inverse);
   background: var(--gradient-brand);
 }
-.post-card { background: var(--bg-card); padding: 28rpx; margin-bottom: 16rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+.post-card { background: var(--bg-card); padding: 28rpx; margin-bottom: 16rpx; border-radius: var(--radius-lg); box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   .post-header { display: flex; align-items: center; min-width: 0;
     .avatar { width: 76rpx; height: 76rpx; border-radius: 50%; border: 3rpx solid var(--bg-icon-soft); flex-shrink: 0; }
     /* min-width:0：长昵称才能被约束在剩余空间内，不撑破 flex 行 */
@@ -356,7 +356,7 @@ onLoad((options: any) => {
   /* 话题标签（发布页勾选，落库 Movement.tags） */
   .tag-row { display: flex; flex-wrap: wrap; gap: 12rpx; margin: 0 0 20rpx; }
   /* 与列表页统一：纯展示标签，不需要 88rpx 大热区（详情页标签不可点） */
-  .tag-chip { display: inline-block; font-size: 22rpx; color: var(--color-primary-text); background: var(--bg-icon-soft); padding: 8rpx 18rpx; line-height: 1.4; border-radius: 24rpx; }
+  .tag-chip { display: inline-block; font-size: 22rpx; color: var(--color-primary-text); background: var(--bg-icon-soft); padding: 8rpx 18rpx; line-height: 1.4; border-radius: var(--radius-lg); }
   /* 九宫格：按容器宽度等分而非固定 rpx，避免窄屏（320px）三格 + 间距
      超出卡片内宽导致横向溢出；aspect-ratio 保证正方形 */
   .image-grid { display: flex; flex-wrap: wrap; gap: 8rpx;
@@ -371,7 +371,7 @@ onLoad((options: any) => {
     .grid-img-inner { width: 100%; height: 100%; display: block; }
   }
 }
-.comment-section { background: var(--bg-card); padding: 28rpx; border-radius: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+.comment-section { background: var(--bg-card); padding: 28rpx; border-radius: var(--radius-lg); box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   .section-title { font-size: 28rpx; font-weight: bold; display: block; margin-bottom: 16rpx; color: var(--text-primary); }
   .comment-item { display: flex; align-items: flex-start; padding: 18rpx 0; border-bottom: 1rpx solid var(--border-faint);
     &:last-child { border-bottom: none; }

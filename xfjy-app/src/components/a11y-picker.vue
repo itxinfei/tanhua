@@ -254,17 +254,6 @@ defineExpose({ syncFromProp });
   animation: slide-up 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slide-up {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
-
-/* ===== 标题栏 ===== */
 .picker-header {
   display: flex;
   align-items: center;

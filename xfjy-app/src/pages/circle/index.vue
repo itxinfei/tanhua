@@ -1057,7 +1057,7 @@ flex-direction: column;
 
 .post-card {
   background: var(--bg-card);
-  border-radius: 24rpx;
+  border-radius: var(--radius-lg);
   padding: 24rpx;
   margin-bottom: 16rpx;
   box-shadow: var(--shadow-card);
@@ -1112,7 +1112,7 @@ flex-direction: column;
     display: inline-block;
     padding: 8rpx 18rpx;
     line-height: 1.4;
-    border-radius: 24rpx;
+    border-radius: var(--radius-lg);
   }
 
   .image-grid {

@@ -647,8 +647,6 @@ onUnmounted(() => {
   }
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
-
 .input-area { background: var(--bg-card); border-top: 1rpx solid var(--border-light); }
 
 .quick-bar { position: relative; background: var(--bg-sub); border-bottom: 1rpx solid var(--border-light); }

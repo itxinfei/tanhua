@@ -1319,11 +1319,13 @@ onShareAppMessage(() => ({
     &.boost {
       /* VIP 曝光提升按钮规范色为紫色（需求文档 B2.1「⚡曝光提升(紫)」）；
          使用独立 token --color-vip-purple 而非历史紫 --color-primary-deep，
-         避免与 §7.1「禁止新代码使用历史紫」冲突，且支持暗色适配 */
-      background: linear-gradient(135deg, var(--color-vip-purple), var(--color-vip-purple-deep));
+         避免与 §7.1「禁止新代码使用历史紫」冲突，且支持暗色适配。
+         视觉语言统一：仅「心动」实心为主操作，曝光改描边（白底紫边紫字） */
+      background: var(--bg-card);
+      border: 4rpx solid var(--color-vip-purple);
 
       .action-ico,
-      .action-label { color: var(--text-inverse); }
+      .action-label { color: var(--color-vip-purple); }
     }
   }
 }

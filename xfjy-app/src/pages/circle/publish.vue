@@ -15,7 +15,7 @@
         <uni-icons
           type="close"
           size="26"
-          color="#161823"
+          color="var(--text-primary)"
         />
       </a11y-button>
       <text class="top-title">
@@ -59,7 +59,7 @@
       <uni-icons
         type="info"
         size="14"
-        color="#8a5cf6"
+        color="var(--color-primary-text)"
       />
       <text class="publish-hint-text">
         写点文字，或添加图片 / 视频后即可发布
@@ -122,7 +122,7 @@
             <uni-icons
               type="videocam-filled"
               size="16"
-              color="#fff"
+              color="var(--text-inverse)"
             />
           </view>
           <a11y-button
@@ -133,7 +133,7 @@
             <uni-icons
               type="close"
               size="13"
-              color="#ffffff"
+              color="var(--text-inverse)"
             />
           </a11y-button>
         </view>
@@ -159,7 +159,7 @@
             <uni-icons
               type="close"
               size="13"
-              color="#ffffff"
+              color="var(--text-inverse)"
             />
           </a11y-button>
         </view>
@@ -172,7 +172,7 @@
           <uni-icons
             type="image"
             size="30"
-            color="#767676"
+            color="var(--text-hint)"
           />
           <text class="media-add-label">
             发图片
@@ -186,7 +186,7 @@
           <uni-icons
             type="videocam"
             size="30"
-            color="#767676"
+            color="var(--text-hint)"
           />
           <text class="media-add-label">
             发视频
@@ -238,7 +238,7 @@
           <uni-icons
             type="right"
             size="14"
-            color="#c4c8d0"
+            color="var(--text-hint)"
           />
         </view>
       </a11y-button>
@@ -252,7 +252,7 @@
           <uni-icons
             type="location"
             size="20"
-            color="#161823"
+            color="var(--text-primary)"
           />
           <text class="row-name">
             位置
@@ -268,7 +268,7 @@
           <uni-icons
             type="right"
             size="14"
-            color="#c4c8d0"
+            color="var(--text-hint)"
           />
         </view>
       </a11y-button>
@@ -282,7 +282,7 @@
           <uni-icons
             type="trash"
             size="20"
-            color="#767676"
+            color="var(--text-hint)"
           />
           <text class="row-name">
             清除位置

@@ -611,6 +611,35 @@ scroll-view {
   }
 }
 
+/* ===== 页面浮层/加载动画唯一真源（页面禁止自行复制 keyframes） =====
+   与 shimmer 同理：slideUp / spin / fadeIn 原为 a11y-picker、chat、kefu/chat、
+   video、vip 各自重复定义，现收口到全局。页面直接 animation: slideUp ... 即可。 */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* 骨架占位块（统一灰底闪光，令牌化以支持暗色/系统主题） */
 .skeleton {
   background: var(--skel-bg);

@@ -355,7 +355,7 @@ function goPublish(): void {
     box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.35);
 
     &__label {
-      color: #8c8c8c;
+      color: var(--text-hint);
 
       &--active {
         color: var(--color-primary);

@@ -153,8 +153,14 @@
         </template>
       </user-list-item>
 
+      <!-- 首屏加载：list 骨架屏替代文字 spinner，提前感知列表结构 -->
+      <skeleton
+        v-if="loading && userList.length === 0"
+        variant="list"
+        :count="6"
+      />
       <view
-        v-if="loading"
+        v-if="loading && userList.length > 0"
         class="loading-tip"
       >
         <text>加载中…</text>
@@ -184,6 +190,7 @@ import EmptyState from "@/components/empty-state.vue";
 import { onLoad } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
 import UserListItem from "@/components/user-list-item.vue";
+import Skeleton from "@/components/skeleton.vue";
 import MatchCelebrate from "@/components/match-celebrate.vue";
 import {
   getFriendList,

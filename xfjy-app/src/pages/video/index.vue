@@ -1776,13 +1776,19 @@ onShareAppMessage(() => ({
     display: flex;
     justify-content: center;
     align-items: stretch;
-    gap: var(--space-xl);
+    /* 390px 下 4 tab + 右侧 2 图标：原 --space-xl(40rpx) 过宽，压到 16rpx；
+       tab 自身 flex:0 0 auto，宁可整体居中也不挤压文字 */
+    gap: 16rpx;
+    min-width: 0;
   }
 
   .tab {
     position: relative;
     display: flex;
     align-items: center;
+    /* 防止 flex 压缩导致文字竖排：保持单行，必要时整体溢出而非挤压 */
+    flex: 0 0 auto;
+    white-space: nowrap;
     /* 非选中：高亮白降至 60%（叠在深色画面上呈中性灰），字重 400 作次级层级 */
     font-size: var(--fs-lg);
     font-weight: 400;
@@ -1827,6 +1833,14 @@ onShareAppMessage(() => ({
   padding: 20rpx;
   box-sizing: border-box;
   flex-shrink: 0;
+
+  /* 顶部刷新/搜索：390px 下与 tab-group 争宽，热区压到 72rpx（仍 > 44px 物理下限） */
+  &.refresh-btn,
+  &.search-btn {
+    min-width: 72rpx;
+    min-height: 88rpx;
+    padding: 20rpx 8rpx;
+  }
 
   .side-ico {
     width: 48rpx;
@@ -2205,10 +2219,6 @@ onShareAppMessage(() => ({
   animation-play-state: paused;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
 @keyframes marquee {
   0% { transform: translateX(0); }
   100% { transform: translateX(-100%); }
@@ -2478,10 +2488,5 @@ onShareAppMessage(() => ({
       margin-top: var(--space-xs);
     }
   }
-}
-
-@keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
 }
 </style>

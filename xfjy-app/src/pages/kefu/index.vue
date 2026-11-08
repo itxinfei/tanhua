@@ -47,7 +47,7 @@
             <uni-icons
               type="headphones"
               size="14"
-              color="#ffffff"
+              color="var(--text-inverse)"
             /> 在线咨询
           </text>
         </a11y-button>

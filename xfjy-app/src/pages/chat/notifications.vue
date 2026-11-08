@@ -9,7 +9,7 @@
         <uni-icons
           type="locked"
           size="28"
-          color="#fff"
+          color="var(--text-inverse)"
         />
       </view>
       <text class="locked-title">
@@ -27,10 +27,16 @@
       </a11y-button>
     </view>
 
-    <!-- 空状态 + 通知列表（非锁定态时二选一） -->
+      <!-- 空状态 + 通知列表（非锁定态时二选一） -->
     <template v-else>
+      <!-- 首屏加载：list 骨架屏替代空白，提前感知列表结构 -->
+      <skeleton
+        v-if="list.length === 0 && loading && !loadFailed"
+        variant="list"
+        :count="6"
+      />
       <empty-state
-        v-if="list.length === 0 && !loadFailed"
+        v-else-if="list.length === 0 && !loading && !loadFailed"
         icon="notification"
         title="暂无通知"
         desc="有人喜欢你时会在这里提醒你"
@@ -75,7 +81,7 @@
             <uni-icons
               :type="typeMeta.uniIcon"
               size="18"
-              color="#fff"
+              color="var(--text-inverse)"
             />
           </view>
         </view>
@@ -125,6 +131,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import EmptyState from "@/components/empty-state.vue";
+import Skeleton from "@/components/skeleton.vue";
 import { onLoad, onShow, onPullDownRefresh, onReachBottom } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
 import SmartImage from "@/components/smart-image.vue";
@@ -386,7 +393,7 @@ onReachBottom(async () => {
   background: var(--gradient-brand);
 }
 
-.notice-item { display: flex; align-items: center; padding: 24rpx; min-height: var(--row-h-touch-md); box-sizing: border-box; background: var(--bg-card); border-radius: 24rpx; margin-bottom: 16rpx;
+.notice-item { display: flex; align-items: center; padding: 24rpx; min-height: var(--row-h-touch-md); box-sizing: border-box; background: var(--bg-card); border-radius: var(--radius-lg); margin-bottom: 16rpx;
   .avatar-wrap { position: relative; flex-shrink: 0;
     .avatar { width: 88rpx; height: 88rpx; border-radius: 50%; background: var(--bg-sub); border: 3rpx solid var(--bg-icon-soft); }
     .type-badge { position: absolute; bottom: -4rpx; right: -4rpx; width: 36rpx; height: 36rpx; border-radius: 50%; border: 3rpx solid var(--text-inverse); display: flex; align-items: center; justify-content: center; font-size: 18rpx; color: var(--text-inverse); }
@@ -406,6 +413,6 @@ onReachBottom(async () => {
   .locked-icon { width: 120rpx; height: 120rpx; border-radius: 50%; background: linear-gradient(135deg, var(--gold), var(--gold-soft)); display: flex; align-items: center; justify-content: center; font-size: 56rpx; margin-bottom: 24rpx; box-shadow: 0 8rpx 24rpx rgba(255, 179, 71, 0.35); }
   .locked-title { font-size: 32rpx; color: var(--text-primary); font-weight: bold; }
   .locked-desc { font-size: 24rpx; color: var(--text-hint); margin-top: 12rpx; text-align: center; }
-  .locked-btn { margin-top: 40rpx; width: 320rpx; min-height: 88rpx; padding: 0 48rpx; display: flex; align-items: center; justify-content: center; background: linear-gradient(90deg, var(--gold), var(--gold-soft)); color: var(--bg-deep); font-size: 28rpx; font-weight: bold; border-radius: 44rpx; box-sizing: border-box; }
+  .locked-btn { margin-top: 40rpx; width: 320rpx; min-height: 88rpx; padding: 0 48rpx; display: flex; align-items: center; justify-content: center; background: linear-gradient(90deg, var(--gold), var(--gold-soft)); color: var(--bg-deep); font-size: 28rpx; font-weight: bold; border-radius: var(--radius-pill); box-sizing: border-box; }
 }
 </style>

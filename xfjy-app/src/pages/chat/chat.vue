@@ -327,7 +327,7 @@
             :class="{ 'icon-active': activePanel === 'more' }"
             type="plus"
             size="24"
-            color="#767676"
+            color="var(--text-hint)"
           />
         </a11y-button>
       </view>
@@ -377,7 +377,7 @@
               <uni-icons
                 :type="action.uniIcon"
                 size="24"
-                color="#fff"
+                color="var(--text-inverse)"
               />
             </view>
             <text class="more-label">
@@ -1228,8 +1228,6 @@ onUnmounted(() => {
   0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
   30% { transform: translateY(-6rpx); opacity: 1; }
 }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(-8rpx); } to { opacity: 1; transform: translateY(0); } }
-
 /* 头像：76rpx 已 ≥44px 热区基线；外层 a11y-button 补足可点击语义与键盘可达 */
 .msg-item { display: flex; align-items: flex-start; margin-bottom: 28rpx; gap: 16rpx;
 /* DOM 顺序 [对方头像, bubble-wrap, 我的头像]，普通 row：
@@ -1287,7 +1285,6 @@ onUnmounted(() => {
   }
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
 /* 语音波形：原 height 动画每帧触发布局，改 scaleY 只走合成层；
    16rpx 基准 ×0.75/1.5 等价原 12rpx↔24rpx，视觉不变 */
 @keyframes wave {
@@ -1317,8 +1314,6 @@ onUnmounted(() => {
 /* ===== 底部面板 ===== */
 /* min-height 保证小屏可用，max-height 防止大屏过高挤压消息区 */
 .panel { min-height: 380rpx; max-height: 50vh; background: var(--bg-page); border-top: 1rpx solid var(--border-light); animation: slideUp 0.2s ease-out; overflow: hidden; }
-@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-
 .emoji-panel .emoji-scroll { height: 100%; }
 .emoji-grid { display: flex; flex-wrap: wrap; padding: 16rpx 12rpx; }
 /* height 88rpx：满足 44px 最小可点击热区（原 80rpx≈40px 不达标），宽度 12.5% 一行 8 个不变 */

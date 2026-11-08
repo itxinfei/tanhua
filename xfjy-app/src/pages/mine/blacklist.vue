@@ -55,8 +55,14 @@
         </template>
       </user-list-item>
 
+      <!-- 首屏加载：list 骨架屏替代文字 spinner -->
+      <skeleton
+        v-if="loading && userList.length === 0"
+        variant="list"
+        :count="6"
+      />
       <view
-        v-if="loading"
+        v-if="loading && userList.length > 0"
         class="loading-tip"
       >
         <text>加载中…</text>
@@ -76,6 +82,7 @@ import { ref, onMounted } from "vue";
 import EmptyState from "@/components/empty-state.vue";
 import A11yButton from "@/components/a11y-button.vue";
 import UserListItem from "@/components/user-list-item.vue";
+import Skeleton from "@/components/skeleton.vue";
 import {
   getBlacklist,
   removeFromBlacklist,

@@ -186,7 +186,7 @@ function statusClass(status: number): string {
 
 .form-card {
   background: var(--bg-card);
-  border-radius: 24rpx;
+  border-radius: var(--radius-lg);
   padding: 32rpx 24rpx;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 
@@ -271,7 +271,7 @@ function statusClass(status: number): string {
 
 .history-item {
   background: var(--bg-card);
-  border-radius: 24rpx;
+  border-radius: var(--radius-lg);
   padding: 24rpx;
   margin-top: 16rpx;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
