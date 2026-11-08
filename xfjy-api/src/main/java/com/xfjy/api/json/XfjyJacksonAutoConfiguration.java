@@ -21,4 +21,14 @@ public class XfjyJacksonAutoConfiguration {
     public JsonMapperBuilderCustomizer mongoObjectIdCustomizer() {
         return builder -> builder.addModule(new MongoObjectIdModule());
     }
+
+    /**
+     * 仅在使用方具备 spring-data-mongodb（即 {@link org.springframework.data.mongodb.core.geo.GeoJsonPoint}
+     * 可加载）时注册，避免无 Mongo 依赖的服务在启动期触发 NoClassDefFoundError。
+     */
+    @Bean
+    @ConditionalOnClass(name = "org.springframework.data.mongodb.core.geo.GeoJsonPoint")
+    public JsonMapperBuilderCustomizer geoJsonPointCustomizer() {
+        return builder -> builder.addModule(new GeoJsonPointModule());
+    }
 }
