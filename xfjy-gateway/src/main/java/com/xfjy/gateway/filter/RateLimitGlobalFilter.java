@@ -91,20 +91,63 @@ public class RateLimitGlobalFilter implements GlobalFilter, Ordered {
     }
 
     /**
-     * 解析客户端真实 IP：X-Forwarded-For 首段 → X-Real-IP → 远端地址
+     * 解析客户端真实 IP。
+     *
+     * <p>优先级：RemoteAddress（host 网络模式下即真实客户端 IP）→ X-Real-IP → X-Forwarded-For 首段。</p>
+     *
+     * <p>安全考量：X-Forwarded-For / X-Real-IP 可被客户端伪造，仅当 RemoteAddress 为内网地址
+     * （即请求来自反向代理/容器网络）时才信任这两个头；否则直接使用 RemoteAddress，
+     * 防止伪造头绕过限流。</p>
      */
     private String resolveClientIp(ServerWebExchange exchange) {
-        String xff = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
-        if (xff != null && !xff.isEmpty()) {
-            return xff.split(",")[0].trim();
+        String remoteAddr = exchange.getRequest().getRemoteAddress() != null
+                ? exchange.getRequest().getRemoteAddress().getAddress().getHostAddress()
+                : "";
+
+        // RemoteAddress 不是内网地址 → 直连场景（host 模式），直接使用，不信任代理头
+        if (!remoteAddr.isEmpty() && !isPrivateIp(remoteAddr)) {
+            return remoteAddr;
         }
+
+        // RemoteAddress 是内网地址或为空 → 请求来自反代/容器，尝试从代理头取真实 IP
         String xRealIp = exchange.getRequest().getHeaders().getFirst("X-Real-IP");
         if (xRealIp != null && !xRealIp.isEmpty()) {
             return xRealIp;
         }
-        return exchange.getRequest().getRemoteAddress() != null
-                ? exchange.getRequest().getRemoteAddress().getAddress().getHostAddress()
-                : "unknown";
+
+        String xff = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
+        if (xff != null && !xff.isEmpty()) {
+            // XFF 格式：client, proxy1, proxy2...，取第一段（真实客户端）
+            return xff.split(",")[0].trim();
+        }
+
+        return remoteAddr.isEmpty() ? "unknown" : remoteAddr;
+    }
+
+    /**
+     * 判断是否为内网/私有 IP（RFC 1918 + 本地回环）
+     */
+    private boolean isPrivateIp(String ip) {
+        if (ip == null || ip.isEmpty()) {
+            return false;
+        }
+        // IPv4 私有地址段
+        if (ip.startsWith("10.") || ip.startsWith("192.168.")) {
+            return true;
+        }
+        if (ip.startsWith("172.")) {
+            String[] parts = ip.split("\\.");
+            if (parts.length >= 2) {
+                try {
+                    int second = Integer.parseInt(parts[1]);
+                    return second >= 16 && second <= 31;
+                } catch (NumberFormatException ignored) {
+                    return false;
+                }
+            }
+        }
+        // 本地回环
+        return ip.equals("127.0.0.1") || ip.equals("::1") || ip.equals("0:0:0:0:0:0:0:1");
     }
 
     @Override
