@@ -340,6 +340,12 @@ public class VideoService {
         }
         try {
             List<Video> pool = this.videoApi.queryRecommendVideoList(recommendPoolLimit());
+            // 池级作者轮转打散（在缓存写入前做，翻页切片共享同一打散结果）：
+            // 推荐流按热度分排序，测试/冷启动数据常来自同一作者，会连续霸屏；
+            // 打散后保留热度分相对顺序，仅消除相邻同作者。与热点流的打散口径一致。
+            if (pool != null) {
+                pool = interleaveByAuthor(pool);
+            }
             List<Long> vids = new ArrayList<>();
             if (pool != null) {
                 for (Video video : pool) {
