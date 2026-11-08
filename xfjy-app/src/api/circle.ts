@@ -75,6 +75,18 @@ export interface Comment {
   audioUrl?: string;
   /** 语音时长秒（type=2 时有值） */
   duration?: number;
+  /** 楼下回复（楼中楼第二层，后端楼中楼模式返回最新几条预览） */
+  replies?: Comment[];
+  /** 楼下回复总数（用于「查看全部 N 条回复」） */
+  replyCount?: number;
+  /** 前端本地状态：已展开回复的页码（后端不下发） */
+  replyPage?: number;
+  /** 前端本地状态：楼中楼回复是否还有下一页（后端不下发） */
+  replyHasMore?: boolean;
+  /** 前端本地状态：已展开为全量回复列表（后端不下发） */
+  replyExpanded?: boolean;
+  /** 前端本地状态：回复列表加载中（后端不下发） */
+  replyLoading?: boolean;
 }
 
 /** 发布动态参数 */
@@ -210,15 +222,30 @@ export function unloveMovement(id: string): Promise<number> {
 /**
  * 查询评论列表
  * 对接后端: GET /comments
+ *
+ * @param threaded true=楼中楼（顶层评论分页 + 每条回复预览与回复总数），false=扁平列表
  */
 export function getComments(
   movementId: string,
-  params: PageParam
+  params: PageParam,
+  threaded = true
 ): Promise<PageResult<Comment>> {
   return get<PageResult<Comment>>("/comments", {
     movementId,
+    threaded,
     ...params,
   });
+}
+
+/**
+ * 查询某条顶层评论下的全部回复（楼中楼「查看全部 N 条回复」）
+ * 对接后端: GET /comments/{id}/replies
+ */
+export function getCommentReplies(
+  commentId: string,
+  params: PageParam
+): Promise<PageResult<Comment>> {
+  return get<PageResult<Comment>>(`/comments/${commentId}/replies`, params as any);
 }
 
 /**
@@ -241,9 +268,19 @@ export function searchMovementsByTag(
 /**
  * 发表评论
  * 对接后端: POST /comments
+ *
+ * @param movementId    动态ID
+ * @param comment       评论内容
+ * @param replyCommentId 被回复的评论ID（可选；传了即为楼中楼回复，后端归一到根评论）
  */
-export function publishComment(movementId: string, comment: string): Promise<void> {
-  return post<void>("/comments", { movementId, comment });
+export function publishComment(
+  movementId: string,
+  comment: string,
+  replyCommentId?: string
+): Promise<void> {
+  const body: Record<string, string> = { movementId, comment };
+  if (replyCommentId) body.commentId = replyCommentId;
+  return post<void>("/comments", body);
 }
 
 /**

@@ -49,8 +49,13 @@ public class CircleMongoIndexInitializer implements ApplicationRunner {
                         new Document("publishId", 1).append("commentType", 1)
                                 .append("deleted", 1).append("created", 1))
                 .append("name", "idx_pub_id_type_deleted_created");
+        // 楼中楼：queryCommentReplyList / queryCommentReplySummary 按 parentId 等值 + commentType/deleted 过滤 + created 排序
+        Document byParent = new Document("key",
+                        new Document("parentId", 1).append("commentType", 1)
+                                .append("deleted", 1).append("created", 1))
+                .append("name", "idx_parent_id_type_deleted_created");
         // 旧索引（不含 deleted）保留：同名冲突会导致 createIndexes 失败，旧索引可减少回表范围，仍有价值
-        ensureIndexes(COLLECTION_COMMENT, List.of(byUser, byPublish));
+        ensureIndexes(COLLECTION_COMMENT, List.of(byUser, byPublish, byParent));
     }
 
     private void ensureIndexes(String collection, List<Document> indexes) {

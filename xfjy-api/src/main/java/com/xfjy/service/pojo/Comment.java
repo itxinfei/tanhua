@@ -24,7 +24,10 @@ import java.util.Date;
                 def = "{'publishUserId': 1, 'commentType': 1, 'deleted': 1, 'created': -1}"),
         // queryCommentList / saveLikeComment / saveLoveComment：publishId + commentType + deleted 等值 + created ASC
         @CompoundIndex(name = "idx_pub_id_type_deleted_created",
-                def = "{'publishId': 1, 'commentType': 1, 'deleted': 1, 'created': 1}")
+                def = "{'publishId': 1, 'commentType': 1, 'deleted': 1, 'created': 1}"),
+        // queryCommentReplyList / queryCommentReplySummary：parentId + commentType + deleted 等值 + created 排序
+        @CompoundIndex(name = "idx_parent_id_type_deleted_created",
+                def = "{'parentId': 1, 'commentType': 1, 'deleted': 1, 'created': 1}")
 })
 public class Comment implements java.io.Serializable{
 
@@ -39,7 +42,12 @@ public class Comment implements java.io.Serializable{
     private Long publishUserId; //发布人的用户id
 
     private Boolean isParent = false; //是否为父节点，默认是否
-    private ObjectId parentId; // 父节点id
+    private ObjectId parentId; // 父节点id（楼中楼统一挂根评论，见 QuanziApiImpl#saveReplyComment）
+    /**
+     * 被回复人用户ID：直接回复的那条评论的作者。
+     * <p>历史数据无此字段（null），列表展示时降级为父（根）评论作者。</p>
+     */
+    private Long replyUserId;
 
     private Long created; //发表时间
 

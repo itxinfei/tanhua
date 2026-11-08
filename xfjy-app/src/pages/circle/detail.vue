@@ -93,15 +93,16 @@
         </view>
       </view>
 
-      <!-- 评论区 -->
+      <!-- 评论区（楼中楼：顶层评论 + 楼下回复，点任意评论即可回复） -->
       <view class="comment-section">
         <text class="section-title">
-          评论 ({{ comments.length }})
+          评论 ({{ commentTotal }})
         </text>
         <view
           v-for="c in comments"
           :key="c.id"
           class="comment-item"
+          :class="{ 'is-replying': replyTarget && replyTarget.id === c.id }"
         >
           <smart-image
             lazy-load
@@ -111,31 +112,87 @@
             :aria-label="`${c.nickname} 的头像`"
           />
           <view class="comment-info">
-            <text class="nickname">
-              {{ c.nickname }}
-            </text>
-            <text class="content">
-              {{ c.content }}
-            </text>
-            <text class="time">
-              {{ c.createDate }}
-            </text>
-          </view>
-          <a11y-button
-            class="comment-like"
-            :class="{ liked: c.hasLiked }"
-            :label="c.hasLiked ? '取消点赞，当前 ' + (c.likeCount || 0) + ' 赞' : '点赞，当前 ' + (c.likeCount || 0) + ' 赞'"
-            @tap="toggleCommentLike(c)"
-          >
+            <view class="comment-main">
+              <!-- 整条评论即「回复这条评论」主热区（视觉零样式，热区由组件保证） -->
+              <a11y-button
+                class="comment-body"
+                :label="`回复 ${c.nickname || '这条评论'}`"
+                @tap="startReply(c)"
+              >
+                <text class="nickname">
+                  {{ c.nickname }}
+                </text>
+                <text class="content">
+                  {{ c.content }}
+                </text>
+                <text class="time">
+                  {{ c.createDate }}
+                </text>
+              </a11y-button>
+              <a11y-button
+                class="comment-like"
+                :class="{ liked: c.hasLiked }"
+                :label="c.hasLiked ? '取消点赞，当前 ' + (c.likeCount || 0) + ' 赞' : '点赞，当前 ' + (c.likeCount || 0) + ' 赞'"
+                @tap="toggleCommentLike(c)"
+              >
+                <view
+                  class="comment-like-icon"
+                  :class="{ 'i-ph-heart-fill': c.hasLiked, 'i-ph-heart': !c.hasLiked }"
+                  aria-hidden="true"
+                />
+                <text class="comment-like-count">
+                  {{ c.likeCount > 0 ? c.likeCount : '' }}
+                </text>
+              </a11y-button>
+            </view>
+
+            <!-- 楼下回复：默认给最新几条预览，超出点「查看全部」 -->
             <view
-              class="comment-like-icon"
-              :class="{ 'i-ph-heart-fill': c.hasLiked, 'i-ph-heart': !c.hasLiked }"
-              aria-hidden="true"
-            />
-            <text class="comment-like-count">
-              {{ c.likeCount > 0 ? c.likeCount : '' }}
-            </text>
-          </a11y-button>
+              v-if="(c.replies && c.replies.length) || (c.replyCount || 0) > 0"
+              class="reply-list"
+            >
+              <a11y-button
+                v-for="r in c.replies"
+                :key="r.id"
+                class="reply-item"
+                :class="{ 'is-replying': replyTarget && replyTarget.id === r.id }"
+                :label="`回复 ${r.nickname || '这条回复'}`"
+                @tap="startReply(r, c)"
+              >
+                <!-- 整行放进一个 text：多段文字拼成同一行内文本流，
+                     否则 <text> 会各自成为 flex item，长内容换行时冒号被甩到下一行开头 -->
+                <text class="reply-text">
+                  <text class="reply-nick">{{ r.nickname }}</text>
+                  <text
+                    v-if="r.replyNickname"
+                    class="reply-to"
+                  > 回复 @{{ r.replyNickname }}</text>
+                  <text class="reply-content">：{{ r.content }}</text>
+                </text>
+              </a11y-button>
+              <a11y-button
+                v-if="!c.replyExpanded && (c.replyCount || 0) > (c.replies ? c.replies.length : 0)"
+                class="reply-more"
+                variant="text"
+                size="sm"
+                :label="`查看全部 ${c.replyCount} 条回复`"
+                @tap="expandReplies(c)"
+              >
+                <text>查看全部 {{ c.replyCount }} 条回复</text>
+              </a11y-button>
+              <a11y-button
+                v-else-if="c.replyHasMore"
+                class="reply-more"
+                variant="text"
+                size="sm"
+                :label="'加载更多回复'"
+                :loading="c.replyLoading"
+                @tap="loadMoreReplies(c)"
+              >
+                <text>加载更多回复</text>
+              </a11y-button>
+            </view>
+          </view>
         </view>
         <!-- 评论首屏失败：显式错误态 + 重试，与「暂无评论」真空态区分 -->
         <empty-state
@@ -176,16 +233,30 @@
       <input
         v-model="commentText"
         class="comment-input"
-        placeholder="写评论…"
+        :placeholder="replyTarget ? `回复 @${replyTarget.nickname}…` : '写评论…'"
         maxlength="500"
-        aria-label="写评论"
+        :aria-label="replyTarget ? `回复 ${replyTarget.nickname}` : '写评论'"
         confirm-type="send"
         @confirm="sendComment"
       >
+      <!-- 回复中：可一键取消，退回给动态发顶层评论（输入栏高度不变，避免遮挡最后一条评论） -->
+      <a11y-button
+        v-if="replyTarget"
+        class="reply-cancel"
+        variant="text"
+        label="取消回复"
+        @tap="cancelReply"
+      >
+        <view
+          class="i-ph-x reply-cancel-icon"
+          aria-hidden="true"
+        />
+      </a11y-button>
       <a11y-button
         class="send-btn"
         variant="primary"
-        label="发送评论"
+        :label="replyTarget ? '发送回复' : '发送评论'"
+        :loading="sending"
         @tap="sendComment"
       >
         <text>发送</text>
@@ -202,17 +273,23 @@ import SmartImage from "@/components/smart-image.vue";
 import ErrorBoundary from "@/components/error-boundary.vue";
 import EmptyState from "@/components/empty-state.vue";
 import Skeleton from "@/components/skeleton.vue";
-import { getMovementById, getComments, publishComment, likeComment, dislikeComment } from "@/api/circle";
+import { getMovementById, getComments, getCommentReplies, publishComment, likeComment, dislikeComment } from "@/api/circle";
 import type { Movement, Comment } from "@/api/circle";
 import { success } from "@/utils/ux";
 
 const PAGE_SIZE = 20;
+/** 楼下回复分页大小（「查看全部 N 条回复」后逐页加载） */
+const REPLY_PAGE_SIZE = 20;
 const postId = ref("");
 const commentText = ref("");
 const post = ref<Movement | null>(null);
 const postLoading = ref(false);
 const postLoadFailed = ref(false);
 const comments = ref<Comment[]>([]);
+/** 顶层评论总数（楼中楼模式下 = 后端返回的顶层评论 count） */
+const commentTotal = ref(0);
+/** 当前回复目标：点哪条评论就回复哪条（顶层评论或楼下回复均可） */
+const replyTarget = ref<Comment | null>(null);
 const sending = ref(false);
 const commentPage = ref(1);
 const commentHasMore = ref(false);
@@ -244,8 +321,9 @@ async function loadDetail() {
 /** 加载评论列表（首页/刷新） */
 async function loadComments() {
   try {
-    const res = await getComments(postId.value, { page: 1, pagesize: PAGE_SIZE });
+    const res = await getComments(postId.value, { page: 1, pagesize: PAGE_SIZE }, true);
     comments.value = res.items || [];
+    commentTotal.value = res.counts || comments.value.length;
     commentPage.value = 1;
     commentHasMore.value = (res.pages || 1) > 1;
     commentLoadFailed.value = false;
@@ -255,13 +333,13 @@ async function loadComments() {
   }
 }
 
-/** 加载更多评论 */
+/** 加载更多顶层评论 */
 async function loadMoreComments() {
   if (commentLoading.value || !commentHasMore.value) return;
   commentLoading.value = true;
   try {
     const nextPage = commentPage.value + 1;
-    const res = await getComments(postId.value, { page: nextPage, pagesize: PAGE_SIZE });
+    const res = await getComments(postId.value, { page: nextPage, pagesize: PAGE_SIZE }, true);
     comments.value = comments.value.concat(res.items || []);
     commentPage.value = nextPage;
     commentHasMore.value = (res.pages || 1) > nextPage;
@@ -270,6 +348,51 @@ async function loadMoreComments() {
   } finally {
     commentLoading.value = false;
   }
+}
+
+/** 查看全部回复：把预览替换为第一页全量回复 */
+async function expandReplies(root: Comment) {
+  if (root.replyLoading) return;
+  root.replyLoading = true;
+  try {
+    const res = await getCommentReplies(root.id, { page: 1, pagesize: REPLY_PAGE_SIZE });
+    root.replies = res.items || [];
+    root.replyPage = 1;
+    root.replyHasMore = (res.pages || 1) > 1;
+    root.replyExpanded = true;
+  } catch {
+    // request 层统一 toast
+  } finally {
+    root.replyLoading = false;
+  }
+}
+
+/** 加载更多楼下回复 */
+async function loadMoreReplies(root: Comment) {
+  if (root.replyLoading || !root.replyHasMore) return;
+  root.replyLoading = true;
+  try {
+    const nextPage = (root.replyPage || 1) + 1;
+    const res = await getCommentReplies(root.id, { page: nextPage, pagesize: REPLY_PAGE_SIZE });
+    root.replies = (root.replies || []).concat(res.items || []);
+    root.replyPage = nextPage;
+    root.replyHasMore = (res.pages || 1) > nextPage;
+  } catch {
+    // request 层统一 toast
+  } finally {
+    root.replyLoading = false;
+  }
+}
+
+/** 点评论进入回复态（再点一次同一条不重复触发） */
+function startReply(comment: Comment, _root?: Comment) {
+  if (replyTarget.value && replyTarget.value.id === comment.id) return;
+  replyTarget.value = comment;
+}
+
+/** 取消回复，退回顶层评论 */
+function cancelReply() {
+  replyTarget.value = null;
 }
 
 /** 切换评论点赞状态 */
@@ -295,15 +418,17 @@ async function toggleCommentLike(comment: Comment) {
   }
 }
 
-/** 发表评论，成功后刷新列表 */
+/** 发表评论/回复，成功后刷新列表 */
 async function sendComment() {
   const text = commentText.value.trim();
   if (!text || sending.value) return;
+  const target = replyTarget.value;
   sending.value = true;
   try {
-    await publishComment(postId.value, text);
+    await publishComment(postId.value, text, target ? target.id : undefined);
     commentText.value = "";
-    success("评论成功");
+    replyTarget.value = null;
+    success(target ? "回复成功" : "评论成功");
     await loadComments();
   } catch {
     // request 层统一 toast
@@ -365,7 +490,7 @@ onLoad((options: any) => {
       flex: 1 1 calc(33.333% - 8rpx);
       max-width: calc(33.333% - 8rpx);
       aspect-ratio: 1 / 1;
-      border-radius: 12rpx;
+      border-radius: var(--radius-sm);
       overflow: hidden;
     }
     .grid-img-inner { width: 100%; height: 100%; display: block; }
@@ -375,12 +500,34 @@ onLoad((options: any) => {
   .section-title { font-size: 28rpx; font-weight: bold; display: block; margin-bottom: 16rpx; color: var(--text-primary); }
   .comment-item { display: flex; align-items: flex-start; padding: 18rpx 0; border-bottom: 1rpx solid var(--border-faint);
     &:last-child { border-bottom: none; }
+    /* 回复中：左侧主色细条标记「正在回复谁」，取消后自动消失（不做整块底色，避免压过正文） */
+    &.is-replying { box-shadow: inset 4rpx 0 0 var(--color-primary); padding-left: 12rpx; }
     .avatar { width: 64rpx; height: 64rpx; border-radius: 50%; background: var(--bg-sub); flex-shrink: 0; }
     .comment-info { margin-left: 16rpx; flex: 1; min-width: 0;
       .nickname { font-size: 24rpx; color: var(--color-primary-text); display: block; }
-      .content { font-size: 28rpx; color: var(--text-primary); margin-top: 6rpx; display: block; }
+      .content { font-size: 28rpx; color: var(--text-primary); margin-top: 6rpx; display: block; overflow-wrap: anywhere; }
       /* 20rpx 极小字号 + #ccc → 提字号并提深 */
       .time { font-size: 22rpx; color: var(--text-hint); margin-top: 6rpx; display: block; }
+      /* 评论行：整条评论是「回复这条」的主热区，点赞按钮保持右侧独立 */
+      .comment-main { display: flex; align-items: flex-start; gap: 8rpx; }
+      /* 零样式行为壳：文字左对齐、撑满剩余宽度（热区 88rpx 由 a11y-button 保证） */
+      .comment-body { flex: 1; min-width: 0; flex-direction: column; align-items: flex-start; text-align: left; }
+      /* 楼下回复区：浅底圆角块 + 内距，与主评论形成两级层次（避免竖线割裂感） */
+      .reply-list { margin-top: 12rpx; padding: 2rpx var(--space-sm); background: var(--bg-sub); border-radius: var(--radius-md); }
+      /* 每条回复整行可点=回复这条回复；文字垂直居中，避免顶部对齐造成的行间空档 */
+      .reply-item { align-self: stretch; align-items: center; justify-content: flex-start; text-align: left; padding: 0;
+        /* 回复中被选中：主色细条，与评论行同一套标记语言 */
+        &.is-replying { box-shadow: inset 4rpx 0 0 var(--color-primary); padding-left: 12rpx; border-radius: var(--radius-sm); }
+        /* 行间细分隔：把 88rpx 触控热区形成的空隙读成「行」，而非段落空档 */
+        & + & { border-top: 1rpx solid var(--border-faint); }
+        /* 整行文本流：昵称 + 回复@ + 内容，长文按字符换行且不在标点前断行 */
+        .reply-text { font-size: 26rpx; line-height: 1.6; color: var(--text-primary); word-break: break-word; }
+        .reply-nick { font-size: 26rpx; font-weight: 600; color: var(--color-primary-text); }
+        .reply-to { font-size: 26rpx; color: var(--text-hint); }
+        .reply-content { font-size: 26rpx; color: var(--text-primary); }
+      }
+      /* 「查看全部 N 条回复」/「加载更多回复」：主色小字，行内紧凑操作（56rpx 热区） */
+      .reply-more { margin-top: 0; padding: 0; align-self: flex-start; font-size: var(--fs-sm); font-weight: 500; }
     }
     .comment-like { display: flex; flex-direction: column; align-items: center; gap: 4rpx; flex-shrink: 0; padding: 0 8rpx;
       .comment-like-icon { font-size: 32rpx; color: var(--text-hint); line-height: 1; }
@@ -395,11 +542,15 @@ onLoad((options: any) => {
 }
   /* background 走 --bg-card：写死 rgba(255,255,255,.92) 在暗色模式下会变成刺眼白条 */
   .comment-bar { position: fixed; left: 0; right: 0; bottom: var(--tab-bar-height, 0px); display: flex; align-items: center; gap: 16rpx; padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom, 0px)); background: var(--bg-card); backdrop-filter: blur(20px); box-shadow: 0 -8rpx 32rpx rgba(0, 0, 0, 0.08);
-  .comment-input { flex: 1; height: 76rpx; background: var(--bg-sub); border-radius: 38rpx; padding: 0 28rpx; font-size: 28rpx; border: 2rpx solid transparent; transition: border-color 0.2s ease;
+  .comment-input { flex: 1; height: 76rpx; background: var(--bg-sub); border-radius: var(--radius-pill); padding: 0 28rpx; font-size: 28rpx; border: 2rpx solid transparent; transition: border-color 0.2s ease;
     &:focus { border-color: var(--color-primary); background: var(--bg-card); }
   }
-  .send-btn { flex-shrink: 0; height: 76rpx; padding: 0 40rpx; border-radius: 38rpx;
+  .send-btn { flex-shrink: 0; height: 76rpx; padding: 0 40rpx; border-radius: var(--radius-pill);
     text { font-size: 28rpx; font-weight: 600; }
+  }
+  /* 回复态取消：中性色小图标按钮，不抢发送按钮视觉权重 */
+  .reply-cancel { flex-shrink: 0; padding: 0 12rpx; color: var(--text-hint);
+    .reply-cancel-icon { font-size: 32rpx; color: var(--text-hint); }
   }
 }
 </style>

@@ -29,6 +29,8 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.bson.Document;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -395,6 +397,9 @@ public class QuanziApiImpl implements QuanZiApi {
             reply.setUserId(userId);
             reply.setId(ObjectId.get());
             reply.setCreated(System.currentTimeMillis());
+            // 被回复人 = 直接被回复的那条评论作者（回复"回复"时 parentId 归一到了根评论，
+            // 不记这一项前端就只能显示"回复楼主"，楼中楼对话关系会丢）
+            reply.setReplyUserId(parent.getUserId());
 
             // 设置发布人的id（软删除过滤：已删除内容不允许回复）
             Publish publish = this.mongoTemplate.findOne(Query.query(Criteria.where("_id").is(reply.getPublishId()).and("deleted").ne(true)), Publish.class);
@@ -541,6 +546,138 @@ public class QuanziApiImpl implements QuanZiApi {
         pageInfo.setRecords(commentList);
 
         return pageInfo;
+    }
+
+    @Override
+    @GetMapping("/queryCommentRootList")
+    public PageInfo<Comment> queryCommentRootList(@RequestParam(value = "publishId", required = false) String publishId,
+                                                  @RequestParam(value = "page", required = false) Integer page,
+                                                  @RequestParam(value = "pageSize", required = false) Integer pageSize) {
+
+        int p = safePage(page);
+        int size = (pageSize == null || pageSize < 1) ? 10 : pageSize;
+        PageInfo<Comment> pageInfo = new PageInfo<>();
+        pageInfo.setPageNum(p);
+        pageInfo.setPageSize(size);
+        // 无效 publishId 直接返回空页，避免 new ObjectId 抛异常打到 BFF 500
+        ObjectId publishObjectId;
+        try {
+            publishObjectId = new ObjectId(publishId);
+        } catch (Exception e) {
+            pageInfo.setTotal(0);
+            pageInfo.setPages(0);
+            pageInfo.setRecords(new ArrayList<>());
+            return pageInfo;
+        }
+
+        // 顶层评论：isParent=true（saveComment 写入）；历史数据缺 isParent 时以 parentId 为空兜底
+        Criteria criteria = Criteria.where("publishId").is(publishObjectId)
+                .and("commentType").is(2)
+                .and("deleted").ne(true)
+                .orOperator(Criteria.where("isParent").is(true), Criteria.where("parentId").is(null));
+        Query query = Query.query(criteria).with(PageRequest.of(p - 1, size, Sort.by(Sort.Order.asc("created"))));
+        List<Comment> commentList = this.mongoTemplate.find(query, Comment.class);
+        long total = this.mongoTemplate.count(Query.query(criteria), Comment.class);
+
+        pageInfo.setTotal((int) total);
+        pageInfo.setPages(size > 0 ? (int) ((total + size - 1) / size) : 0);
+        pageInfo.setRecords(commentList);
+        return pageInfo;
+    }
+
+    @Override
+    @GetMapping("/queryCommentReplyList")
+    public PageInfo<Comment> queryCommentReplyList(@RequestParam(value = "parentId", required = false) String parentId,
+                                                   @RequestParam(value = "page", required = false) Integer page,
+                                                   @RequestParam(value = "pageSize", required = false) Integer pageSize) {
+
+        int p = safePage(page);
+        int size = (pageSize == null || pageSize < 1) ? 10 : pageSize;
+        PageInfo<Comment> pageInfo = new PageInfo<>();
+        pageInfo.setPageNum(p);
+        pageInfo.setPageSize(size);
+        ObjectId parentObjectId;
+        try {
+            parentObjectId = new ObjectId(parentId);
+        } catch (Exception e) {
+            pageInfo.setTotal(0);
+            pageInfo.setPages(0);
+            pageInfo.setRecords(new ArrayList<>());
+            return pageInfo;
+        }
+
+        // 楼中楼第二层：saveReplyComment 已把 parentId 归一到根评论
+        Criteria criteria = Criteria.where("parentId").is(parentObjectId)
+                .and("commentType").is(2)
+                .and("deleted").ne(true);
+        Query query = Query.query(criteria).with(PageRequest.of(p - 1, size, Sort.by(Sort.Order.asc("created"))));
+        List<Comment> replyList = this.mongoTemplate.find(query, Comment.class);
+        long total = this.mongoTemplate.count(Query.query(criteria), Comment.class);
+
+        pageInfo.setTotal((int) total);
+        pageInfo.setPages(size > 0 ? (int) ((total + size - 1) / size) : 0);
+        pageInfo.setRecords(replyList);
+        return pageInfo;
+    }
+
+    @Override
+    @PostMapping("/queryCommentReplySummary")
+    public Map<String, CommentReplySummary> queryCommentReplySummary(@RequestBody List<String> parentIds,
+                                                                    @RequestParam(value = "previewSize", required = false) Integer previewSize) {
+
+        Map<String, CommentReplySummary> result = new HashMap<>();
+        if (CollectionUtils.isEmpty(parentIds)) {
+            return result;
+        }
+        // 预览条数上限 10，避免单个根评论把整页响应撑大
+        int preview = (previewSize == null || previewSize < 1) ? 3 : Math.min(previewSize, 10);
+
+        List<ObjectId> objectIds = new ArrayList<>();
+        for (String pid : parentIds) {
+            try {
+                objectIds.add(new ObjectId(pid));
+            } catch (Exception e) {
+                LOGGER.warn("无效的父评论ID，回复汇总时跳过: {}", pid);
+            }
+        }
+        if (objectIds.isEmpty()) {
+            return result;
+        }
+
+        // 一次聚合给出「回复总数 + 最新 N 条预览」，替代逐个根评论 count+find 的 N+1 查询
+        // 走驱动层 aggregate：$topN 是 $group 累加器，Aggregation 的强类型算子没有对应 API
+        Document match = new Document("$match", new Document("parentId", new Document("$in", objectIds))
+                .append("commentType", 2)
+                .append("deleted", new Document("$ne", true)));
+        Document group = new Document("$group", new Document("_id", "$parentId")
+                .append("total", new Document("$sum", 1))
+                .append("replies", new Document("$topN", new Document("n", preview)
+                        .append("sortBy", new Document("created", -1))
+                        .append("output", "$$ROOT"))));
+
+        Iterable<Document> aggDocs = this.mongoTemplate.getCollection("quanzi_comment")
+                .aggregate(List.of(match, group));
+        for (Document doc : aggDocs) {
+            Object idObj = doc.get("_id");
+            if (!(idObj instanceof ObjectId)) {
+                continue;
+            }
+            List<Comment> replies = new ArrayList<>();
+            Object repliesObj = doc.get("replies");
+            if (repliesObj instanceof Collection) {
+                for (Object item : (Collection<?>) repliesObj) {
+                    if (item instanceof Document) {
+                        replies.add(this.mongoTemplate.getConverter().read(Comment.class, (Document) item));
+                    }
+                }
+            }
+            // $topN 按 created 倒序取最新 N 条，返回前转正序，前端按对话先后展示
+            Collections.reverse(replies);
+            Object totalObj = doc.get("total");
+            long total = totalObj instanceof Number ? ((Number) totalObj).longValue() : replies.size();
+            result.put(((ObjectId) idObj).toHexString(), new CommentReplySummary(total, replies));
+        }
+        return result;
     }
 
     @Override

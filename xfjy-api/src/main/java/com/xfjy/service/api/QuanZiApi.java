@@ -1,6 +1,7 @@
 package com.xfjy.service.api;
 
 import com.xfjy.service.pojo.Comment;
+import com.xfjy.service.pojo.CommentReplySummary;
 import com.xfjy.service.pojo.Publish;
 import com.xfjy.service.vo.PageInfo;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -142,13 +143,43 @@ public interface QuanZiApi {
     Map<String, Comment> queryCommentByIdBatch(@RequestBody List<String> commentIds);
 
     /**
-     * 查询评论
+     * 查询评论（扁平列表：顶层评论与回复混排，视频评论沿用此语义）
      */
     @GetExchange("/queryCommentList")
     @GetMapping("/queryCommentList")
     PageInfo<Comment> queryCommentList(@RequestParam(value = "publishId", required = false) String publishId,
                                        @RequestParam(value = "page", required = false) Integer page,
                                        @RequestParam(value = "pageSize", required = false) Integer pageSize);
+
+    /**
+     * 查询顶层评论（楼中楼第一层分页）：parentId 为空或 isParent=true
+     */
+    @GetExchange("/queryCommentRootList")
+    @GetMapping("/queryCommentRootList")
+    PageInfo<Comment> queryCommentRootList(@RequestParam(value = "publishId", required = false) String publishId,
+                                           @RequestParam(value = "page", required = false) Integer page,
+                                           @RequestParam(value = "pageSize", required = false) Integer pageSize);
+
+    /**
+     * 查询某条顶层评论下的回复（楼中楼第二层分页，按 created 升序）
+     */
+    @GetExchange("/queryCommentReplyList")
+    @GetMapping("/queryCommentReplyList")
+    PageInfo<Comment> queryCommentReplyList(@RequestParam(value = "parentId", required = false) String parentId,
+                                            @RequestParam(value = "page", required = false) Integer page,
+                                            @RequestParam(value = "pageSize", required = false) Integer pageSize);
+
+    /**
+     * 批量查询顶层评论的回复汇总（总数 + 最新 N 条预览），一次装配楼中楼列表
+     *
+     * @param parentIds   顶层评论ID列表
+     * @param previewSize 每条评论返回的预览条数
+     * @return parentId -> 回复汇总；无回复的根评论不出现在结果中
+     */
+    @PostExchange("/queryCommentReplySummary")
+    @PostMapping("/queryCommentReplySummary")
+    Map<String, CommentReplySummary> queryCommentReplySummary(@RequestBody List<String> parentIds,
+                                                              @RequestParam(value = "previewSize", required = false) Integer previewSize);
 
     /**
      * 根据pid批量查询数据

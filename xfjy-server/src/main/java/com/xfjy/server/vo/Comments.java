@@ -25,4 +25,9 @@ public class Comments {
     private String audioUrl; //语音地址（type=2 时有值）
     private Integer duration; //语音时长秒（type=2 时有值）
 
+    /** 楼下回复（楼中楼第二层，仅楼中楼模式返回；先给最新几条预览，点「查看全部」再拉全量） */
+    private java.util.List<Comments> replies;
+    /** 楼下回复总数（前端据此展示「查看全部 N 条回复」；无回复为 0） */
+    private Integer replyCount;
+
 }

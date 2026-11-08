@@ -282,7 +282,7 @@ public class VideoController {
     public ResponseEntity<PageResult> queryCommentsList(@PathVariable("id") String videoId,
                                                         @RequestParam(value = "page", defaultValue = "1") Integer page,
                                                         @RequestParam(value = "pagesize", defaultValue = "10") Integer pagesize) {
-        return this.commentsController.queryCommentsList(videoId, page, pagesize);
+        return this.commentsController.queryCommentsList(videoId, page, pagesize, false);
     }
 
     /**

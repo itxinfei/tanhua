@@ -39,17 +39,45 @@ public class CommentsController {
     /**
      * 查询评论列表
      *
-     * @param publishId
-     * @param page
-     * @param pageSize
-     * @return
+     * <p>threaded=true 返回楼中楼结构（顶层评论分页 + 每条回复预览与回复总数）；
+     * 默认 false 保持扁平列表，视频评论沿用旧语义。</p>
+     *
+     * @param publishId 动态ID
+     * @param page      页码
+     * @param pageSize  每页条数
+     * @param threaded  是否楼中楼
      */
     @GetMapping
     public ResponseEntity<PageResult> queryCommentsList(@RequestParam("movementId") String publishId,
                                                         @RequestParam(value = "page", defaultValue = "1") Integer page,
-                                                        @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize) {
+                                                        @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize,
+                                                        @RequestParam(value = "threaded", defaultValue = "false") Boolean threaded) {
         try {
-            PageResult pageResult = this.commentsService.queryCommentsList(publishId, page, ParamConvertUtils.capPageSize(pageSize, 10, 100));
+            PageResult pageResult = this.commentsService.queryCommentsList(publishId, page,
+                    ParamConvertUtils.capPageSize(pageSize, 10, 100), Boolean.TRUE.equals(threaded));
+            if (null != pageResult) {
+                return ResponseEntity.ok(pageResult);
+            }
+        } catch (Exception e) {
+            LOGGER.error("接口处理异常", e);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+
+    /**
+     * 查询某条顶层评论下的全部回复（楼中楼「查看全部 N 条回复」）
+     *
+     * @param commentId 顶层评论id
+     * @param page      页码
+     * @param pageSize  每页条数
+     */
+    @GetMapping("/{id}/replies")
+    public ResponseEntity<PageResult> queryCommentReplies(@PathVariable("id") String commentId,
+                                                         @RequestParam(value = "page", defaultValue = "1") Integer page,
+                                                         @RequestParam(value = "pagesize", defaultValue = "10") Integer pageSize) {
+        try {
+            PageResult pageResult = this.commentsService.queryCommentReplies(commentId, page,
+                    ParamConvertUtils.capPageSize(pageSize, 10, 100));
             if (null != pageResult) {
                 return ResponseEntity.ok(pageResult);
             }
