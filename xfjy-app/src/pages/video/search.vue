@@ -1,6 +1,6 @@
 <template>
   <view class="search-page">
-    <!-- 顶部：返回 + 输入框 + 取消（对齐抖音搜索页的操作顺序） -->
+    <!-- 顶部：返回 + 常驻输入框 + 搜索按钮 -->
     <view class="search-header">
       <a11y-button
         class="icon-btn"
@@ -18,7 +18,7 @@
           aria-hidden="true"
         />
         <input
-          v-model="keyword"
+          v-model="inputKeyword"
           class="search-input"
           type="text"
           :focus="autoFocus"
@@ -27,13 +27,13 @@
           placeholder="搜索视频、用户"
           placeholder-class="search-placeholder"
           aria-label="搜索视频、用户"
-          @confirm="submit(keyword)"
+          @confirm="submitSearch"
         >
         <a11y-button
-          v-if="keyword"
+          v-if="inputKeyword"
           class="clear-btn"
           label="清空输入"
-          @tap="keyword = ''"
+          @tap="clearInput"
         >
           <view
             class="ico-sm i-ph-x-circle"
@@ -43,15 +43,252 @@
       </view>
       <a11y-button
         class="header-action"
-        label="取消搜索"
-        @tap="goBack"
+        label="搜索"
+        @tap="submitSearch"
       >
-        <text>取消</text>
+        <text class="header-action-text">
+          搜索
+        </text>
       </a11y-button>
     </view>
 
-    <view class="suggest-body">
-      <!-- 搜索历史：本地存储，单条删除 + 全部清空 -->
+    <!-- 结果区：有关键词时展示 tab + 瀑布流 -->
+    <template v-if="keyword">
+      <!-- 结果分类：综合 / 视频 / 用户 -->
+      <view
+        class="result-tabs"
+        role="tablist"
+        aria-label="搜索结果分类"
+      >
+        <a11y-button
+          v-for="tab in TABS"
+          :key="tab.key"
+          class="result-tab"
+          :class="{ active: activeTab === tab.key }"
+          role="tab"
+          :checked="activeTab === tab.key"
+          :label="tab.label"
+          @tap="activeTab = tab.key"
+        >
+          <text class="result-tab-text">
+            {{ tab.label }}
+          </text>
+          <view
+            v-if="activeTab === tab.key"
+            class="tab-line"
+            aria-hidden="true"
+          />
+        </a11y-button>
+      </view>
+
+      <!-- 用户 Tab：后端暂无用户搜索接口，明确标注未实现 -->
+      <view
+        v-if="activeTab === 'user'"
+        class="state-wrap"
+      >
+        <empty-state
+          icon="person"
+          title="用户搜索本期未实现"
+          desc="后端尚未提供按昵称检索用户的接口，这里不展示占位数据"
+        />
+        <view class="reco">
+          <text class="reco-title">
+            换个视频关键词试试
+          </text>
+          <view class="chips">
+            <a11y-button
+              v-for="word in recoWords"
+              :key="word"
+              class="chip"
+              :label="`搜索 ${word}`"
+              @tap="searchWord(word)"
+            >
+              <text class="chip-text">
+                {{ word }}
+              </text>
+            </a11y-button>
+          </view>
+        </view>
+      </view>
+
+      <view
+        v-else
+        class="result-body"
+      >
+        <!-- 综合 Tab：用户维度未实现，用一行说明如实告知 -->
+        <view
+          v-if="activeTab === 'comprehensive' && !showError"
+          class="tab-note"
+        >
+          <view
+            class="tab-note-ico i-ph-info"
+            aria-hidden="true"
+          />
+          <text class="tab-note-text">
+            用户搜索本期未实现，当前仅展示视频结果
+          </text>
+        </view>
+
+        <!-- 请求失败：独立错误态 + 重试 -->
+        <view
+          v-if="showError"
+          class="state-wrap"
+        >
+          <empty-state
+            icon="info"
+            title="搜索失败"
+            :desc="errorText"
+          />
+          <a11y-button
+            class="retry-btn"
+            variant="primary"
+            label="重新搜索"
+            @tap="retry"
+          >
+            <text class="retry-text">
+              重新搜索
+            </text>
+          </a11y-button>
+        </view>
+
+        <!-- 首屏加载：骨架屏 -->
+        <view
+          v-else-if="loading && list.length === 0"
+          class="waterfall"
+        >
+          <view
+            v-for="n in 4"
+            :key="`skeleton-${n}`"
+            class="card skeleton"
+          >
+            <view class="cover-wrap skeleton-cover" />
+            <view class="skeleton-line" />
+            <view class="skeleton-line short" />
+          </view>
+        </view>
+
+        <!-- 空结果：说明 + 推荐词 -->
+        <view
+          v-else-if="!loading && list.length === 0"
+          class="state-wrap"
+        >
+          <empty-state
+            icon="search"
+            title="没有找到相关内容"
+            desc="换个关键词试试，或看看这些热门搜索"
+          />
+          <view class="reco">
+            <view class="chips center">
+              <a11y-button
+                v-for="word in recoWords"
+                :key="word"
+                class="chip"
+                :label="`搜索 ${word}`"
+                @tap="searchWord(word)"
+              >
+                <text class="chip-text">
+                  {{ word }}
+                </text>
+              </a11y-button>
+            </view>
+          </view>
+        </view>
+
+        <!-- 双列瀑布流 -->
+        <view
+          v-else
+          class="waterfall"
+        >
+          <a11y-button
+            v-for="item in list"
+            :key="item.id"
+            class="card"
+            :label="cardAriaLabel(item)"
+            @tap="openVideo(item)"
+          >
+            <view class="cover-wrap">
+              <smart-image
+                v-if="item.cover"
+                class="cover"
+                :src="item.cover"
+                :fallback="''"
+                mode="aspectFill"
+                lazy-load
+              />
+              <view
+                v-else
+                class="cover cover-empty"
+                aria-hidden="true"
+              />
+              <view
+                class="cover-mask"
+                aria-hidden="true"
+              />
+              <view class="cover-meta">
+                <view class="author">
+                  <view
+                    class="meta-ico i-ph-user"
+                    aria-hidden="true"
+                  />
+                  <text class="author-name">
+                    {{ item.authorName || "用户" }}
+                  </text>
+                </view>
+                <view class="like">
+                  <view
+                    class="meta-ico i-ph-heart"
+                    aria-hidden="true"
+                  />
+                  <text class="like-num">
+                    {{ formatCount(item.likeCount) }}
+                  </text>
+                </view>
+              </view>
+            </view>
+            <view class="card-title">
+              <text
+                v-for="(seg, idx) in titleSegments(item.title)"
+                :key="`${item.id}-seg-${idx}`"
+                class="title-seg"
+                :class="{ hit: seg.hit }"
+              >
+                {{ seg.text }}
+              </text>
+            </view>
+          </a11y-button>
+        </view>
+
+        <view
+          v-if="list.length > 0"
+          class="list-foot"
+        >
+          <text
+            v-if="loading"
+            class="foot-text"
+          >
+            加载中…
+          </text>
+          <text
+            v-else-if="hasMore"
+            class="foot-text"
+          >
+            上拉加载更多
+          </text>
+          <text
+            v-else
+            class="foot-text"
+          >
+            没有更多了
+          </text>
+        </view>
+      </view>
+    </template>
+
+    <!-- 建议区：无关键词时展示历史 + 热搜 -->
+    <view
+      v-else
+      class="suggest-body"
+    >
       <view
         v-if="history.length > 0"
         class="block"
@@ -75,8 +312,6 @@
           </a11y-button>
         </view>
         <view class="chips">
-          <!-- chip 主体与删除按钮拆成兄弟节点：嵌套按钮在 HTML 中非法，
-             且外层 view 直接 @tap 无键盘/读屏入口（§7.1） -->
           <view
             v-for="word in history"
             :key="word"
@@ -85,7 +320,7 @@
             <a11y-button
               class="chip-main"
               :label="`搜索 ${word}`"
-              @tap="submit(word)"
+              @tap="searchWord(word)"
             >
               <text class="chip-text">
                 {{ word }}
@@ -105,7 +340,6 @@
         </view>
       </view>
 
-      <!-- 热搜榜：后端带名次，前三名强调 -->
       <view class="block">
         <view class="block-head">
           <text class="block-title">
@@ -123,7 +357,7 @@
           :key="`${item.rank}-${item.word}`"
           class="hot-row"
           :label="`搜索热搜词 ${item.word}，排名第 ${item.rank}`"
-          @tap="submit(item.word)"
+          @tap="searchWord(item.word)"
         >
           <text
             class="hot-rank"
@@ -153,19 +387,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { computed, ref, onMounted } from "vue";
+import { onLoad, onReachBottom } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
-import { confirm } from "@/utils/ux";
+import SmartImage from "@/components/smart-image.vue";
+import EmptyState from "@/components/empty-state.vue";
+import { formatCount } from "@/utils/format";
 import { safeGoBack } from "@/utils/nav";
-import { getHotSearchWords, type HotSearchWord } from "@/api/video-search";
+import { fail, info, confirm } from "@/utils/ux";
+import {
+  getHotSearchWords,
+  searchVideos,
+  type VideoSearchItem,
+  type HotSearchWord,
+} from "@/api/video-search";
+import { useSystemStore } from "@/store/system";
 
-/** 与后端 VideoSearchService.KEYWORD_MAX 一致 */
+const systemStore = useSystemStore();
+
 const KEYWORD_MAX = 30;
-/** 搜索历史本地存储 key（与旧版本不兼容时直接换代） */
+const PAGE_SIZE = 10;
 const HISTORY_KEY = "xfjy_video_search_history_v1";
 const HISTORY_MAX = 10;
 
-/** 后端热搜接口不可用时的兜底词（与后端 FALLBACK_HOT_WORDS 保持同一份） */
 const FALLBACK_WORDS = [
   "交友",
   "同城",
@@ -179,15 +423,47 @@ const FALLBACK_WORDS = [
   "治愈",
 ];
 
+const TABS = [
+  { key: "comprehensive", label: "综合" },
+  { key: "video", label: "视频" },
+  { key: "user", label: "用户" },
+] as const;
+
+type TabKey = (typeof TABS)[number]["key"];
+
+const inputKeyword = ref("");
 const keyword = ref("");
 const autoFocus = ref(true);
+const activeTab = ref<TabKey>("comprehensive");
+const list = ref<VideoSearchItem[]>([]);
+const page = ref(0);
+const pages = ref(0);
+const hasMore = ref(false);
+const loading = ref(false);
+const errorText = ref("");
 const history = ref<string[]>([]);
 const hotWords = ref<HotSearchWord[]>([]);
 const hotFromFallback = ref(false);
+const recoWords = ref<string[]>(FALLBACK_WORDS.slice(0, 6));
 
-onMounted(() => {
+const showError = computed(() => errorText.value !== "" && list.value.length === 0);
+
+onLoad((options) => {
+  const raw = options?.keyword ? decodeURIComponent(String(options.keyword)) : "";
+  const word = raw.trim();
   history.value = readHistory();
   loadHotWords();
+  if (word) {
+    inputKeyword.value = word;
+    keyword.value = word;
+    load(1, false);
+  }
+});
+
+onReachBottom(() => {
+  if (keyword.value && hasMore.value && !loading.value && !showError.value) {
+    load(page.value + 1, true);
+  }
 });
 
 function readHistory(): string[] {
@@ -197,7 +473,7 @@ function readHistory(): string[] {
       return raw.filter((item) => typeof item === "string" && item.trim()).slice(0, HISTORY_MAX);
     }
     return [];
-  } catch (e) {
+  } catch {
     return [];
   }
 }
@@ -206,8 +482,8 @@ function writeHistory(words: string[]): void {
   history.value = words;
   try {
     uni.setStorageSync(HISTORY_KEY, words);
-  } catch (e) {
-    // 本地存储写满/被禁用时只影响历史展示，不阻断搜索
+  } catch {
+    // 本地存储写满/被禁用时只影响历史展示
   }
 }
 
@@ -217,10 +493,11 @@ async function loadHotWords(): Promise<void> {
     if (Array.isArray(list) && list.length > 0) {
       hotWords.value = list;
       hotFromFallback.value = false;
+      recoWords.value = list.slice(0, 6).map((item) => item.word);
       return;
     }
     throw new Error("empty hot words");
-  } catch (e) {
+  } catch {
     hotWords.value = FALLBACK_WORDS.map((word, index) => ({
       rank: index + 1,
       word,
@@ -230,20 +507,71 @@ async function loadHotWords(): Promise<void> {
   }
 }
 
-function goBack(): void {
-  // 无历史栈（直达/分享/H5 刷新）时兜底回视频 tab，避免 navigateBack 静默失效
-  safeGoBack("/pages/video/index");
+async function load(targetPage: number, append: boolean): Promise<void> {
+  if (loading.value) return;
+  loading.value = true;
+  if (!append) errorText.value = "";
+
+  try {
+    const res = await searchVideos({
+      keyword: keyword.value,
+      page: targetPage,
+      pageSize: PAGE_SIZE,
+    });
+    const items = Array.isArray(res.items) ? res.items : [];
+    list.value = append ? list.value.concat(items) : items;
+    page.value = targetPage;
+    pages.value = res.pages || 0;
+    hasMore.value = items.length > 0 && page.value < pages.value;
+  } catch {
+    if (append || list.value.length > 0) {
+      fail("加载失败，请稍后重试");
+    } else {
+      errorText.value = "网络或服务暂时不可用，请稍后重试";
+    }
+  } finally {
+    loading.value = false;
+  }
 }
 
-/** 提交搜索：写入历史后跳结果页 */
-function submit(rawWord: string): void {
-  const word = (rawWord || "").trim().replace(/\s+/g, " ");
-  if (!word) return;
+function submitSearch(): void {
+  const word = (inputKeyword.value || "").trim().replace(/\s+/g, " ");
+  if (!word) {
+    info("请输入搜索内容");
+    return;
+  }
+  // 写入历史
   const next = [word, ...history.value.filter((item) => item !== word)].slice(0, HISTORY_MAX);
   writeHistory(next);
-  uni.navigateTo({
-    url: `/pages/video/search-result?keyword=${encodeURIComponent(word)}`,
-  });
+
+  if (word === keyword.value) {
+    uni.pageScrollTo({ scrollTop: 0, duration: 0 });
+    if (!loading.value) load(1, false);
+    return;
+  }
+  keyword.value = word;
+  inputKeyword.value = word;
+  list.value = [];
+  page.value = 0;
+  pages.value = 0;
+  hasMore.value = false;
+  errorText.value = "";
+  activeTab.value = "comprehensive";
+  uni.pageScrollTo({ scrollTop: 0, duration: 0 });
+  load(1, false);
+}
+
+function searchWord(word: string): void {
+  inputKeyword.value = word;
+  submitSearch();
+}
+
+function clearInput(): void {
+  inputKeyword.value = "";
+  keyword.value = "";
+  list.value = [];
+  errorText.value = "";
+  autoFocus.value = true;
 }
 
 function removeHistory(word: string): void {
@@ -254,15 +582,68 @@ async function clearHistory(): Promise<void> {
   const ok = await confirm("确定清空全部搜索历史吗？");
   if (ok) writeHistory([]);
 }
+
+function retry(): void {
+  load(1, false);
+}
+
+function cardAriaLabel(item: VideoSearchItem): string {
+  const title = item.title || "未命名视频";
+  const author = item.authorName || "未知作者";
+  return `播放视频：${title}，作者：${author}`;
+}
+
+function openVideo(item: VideoSearchItem): void {
+  systemStore.setPendingVideoDeepLink(item.id, item);
+  uni.switchTab({ url: "/pages/video/index" });
+}
+
+function goBack(): void {
+  safeGoBack("/pages/video/index");
+}
+
+interface TitleSegment {
+  text: string;
+  hit: boolean;
+}
+
+function titleSegments(title: string): TitleSegment[] {
+  const text = title || "";
+  const kw = keyword.value.trim();
+  if (!kw) return [{ text, hit: false }];
+
+  const lowerText = text.toLowerCase();
+  const lowerKw = kw.toLowerCase();
+  const segments: TitleSegment[] = [];
+  let cursor = 0;
+  let index = lowerText.indexOf(lowerKw, cursor);
+
+  while (index >= 0) {
+    if (index > cursor) {
+      segments.push({ text: text.slice(cursor, index), hit: false });
+    }
+    segments.push({ text: text.slice(index, index + kw.length), hit: true });
+    cursor = index + kw.length;
+    index = lowerText.indexOf(lowerKw, cursor);
+  }
+  if (cursor < text.length) {
+    segments.push({ text: text.slice(cursor), hit: false });
+  }
+  return segments.length > 0 ? segments : [{ text, hit: false }];
+}
 </script>
 
 <style lang="scss" scoped>
 .search-page {
   min-height: 100vh;
   background-color: var(--bg-page);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .search-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   align-items: center;
   gap: var(--space-sm);
@@ -319,7 +700,6 @@ async function clearHistory(): Promise<void> {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    /* 宽度扩到 88rpx：仅靠图标宽会形成竖条热区，不足 44px */
     width: 88rpx;
 
     .ico-sm {
@@ -335,16 +715,22 @@ async function clearHistory(): Promise<void> {
   font-size: var(--fs-sm);
 }
 
-/* 热区 88rpx：原纯文字无最小尺寸，且直接 @tap 无键盘入口 */
 .header-action {
   flex-shrink: 0;
   min-height: 88rpx;
   display: flex;
   align-items: center;
-  font-size: var(--fs-sm);
-  color: var(--text-secondary);
+  justify-content: center;
+  padding: 0 20rpx;
 }
 
+.header-action-text {
+  font-size: var(--fs-sm);
+  color: var(--color-primary-text);
+  font-weight: 600;
+}
+
+/* ===== 建议区（无关键词） ===== */
 .suggest-body {
   padding: var(--space-md);
 }
@@ -371,7 +757,6 @@ async function clearHistory(): Promise<void> {
   color: var(--text-hint);
 }
 
-/* 热区 88rpx：原 48rpx 难以点中 */
 .block-action {
   display: flex;
   align-items: center;
@@ -390,9 +775,12 @@ async function clearHistory(): Promise<void> {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-sm);
+
+  &.center {
+    justify-content: center;
+  }
 }
 
-/* chip 容器只做布局；可点击主体与删除按钮各自承担热区 */
 .chip {
   display: flex;
   align-items: center;
@@ -419,7 +807,6 @@ async function clearHistory(): Promise<void> {
     color: var(--text-secondary);
   }
 
-  /* 热区 88rpx：原 32rpx（≈19px）远低于 44px 可点击尺寸 */
   .chip-del {
     display: flex;
     align-items: center;
@@ -436,7 +823,6 @@ async function clearHistory(): Promise<void> {
   }
 }
 
-/* 热区 88rpx：原 84rpx 略低 */
 .hot-row {
   display: flex;
   align-items: center;
@@ -488,6 +874,253 @@ async function clearHistory(): Promise<void> {
       font-size: var(--fs-xs);
       color: var(--color-primary-text);
     }
+  }
+}
+
+/* ===== 结果区（有关键词） ===== */
+.result-tabs {
+  position: sticky;
+  top: calc(var(--category-bar-h) + env(safe-area-inset-top));
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  height: var(--category-bar-h);
+  padding: 0 var(--space-md);
+  background-color: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.result-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+
+  .result-tab-text {
+    font-size: var(--fs-md);
+    color: var(--text-secondary);
+  }
+
+  &.active .result-tab-text {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  .tab-line {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    width: 48rpx;
+    height: 8rpx;
+    border-radius: var(--radius-pill);
+    background: var(--color-primary);
+  }
+}
+
+.result-body {
+  padding: var(--space-md);
+}
+
+.tab-note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-card);
+
+  .tab-note-ico {
+    width: 28rpx;
+    height: 28rpx;
+    flex-shrink: 0;
+    color: var(--text-hint);
+  }
+
+  .tab-note-text {
+    font-size: var(--fs-xs);
+    color: var(--text-hint);
+  }
+}
+
+.waterfall {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  width: calc((100% - var(--space-sm)) / 2);
+  margin-bottom: var(--space-sm);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-card);
+  overflow: hidden;
+}
+
+.cover-wrap {
+  position: relative;
+  width: 100%;
+  padding-top: 133.33%;
+  background-color: var(--bg-sub);
+  overflow: hidden;
+
+  .cover {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .cover-empty {
+    background-color: var(--bg-sub);
+  }
+
+  .cover-mask {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 40%;
+    background: var(--bg-deep);
+    opacity: 0.55;
+  }
+
+  .cover-meta {
+    position: absolute;
+    left: var(--space-xs);
+    right: var(--space-xs);
+    bottom: var(--space-xs);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-xs);
+
+    .author,
+    .like {
+      display: flex;
+      align-items: center;
+      gap: 4rpx;
+      min-width: 0;
+    }
+
+    .meta-ico {
+      width: 24rpx;
+      height: 24rpx;
+      flex-shrink: 0;
+      color: var(--text-inverse);
+    }
+
+    .author-name {
+      max-width: 160rpx;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-size: var(--fs-xs);
+      color: var(--text-inverse);
+    }
+
+    .like-num {
+      font-size: var(--fs-xs);
+      color: var(--text-inverse);
+    }
+  }
+}
+
+.card-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  padding: var(--space-xs) var(--space-sm);
+  min-height: 76rpx;
+
+  .title-seg {
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+    color: var(--text-primary);
+    word-break: break-all;
+
+    &.hit {
+      color: var(--color-primary);
+      font-weight: 600;
+    }
+  }
+}
+
+.skeleton-cover {
+  background-color: var(--bg-sub);
+}
+
+.skeleton-line {
+  height: 20rpx;
+  margin: var(--space-xs) var(--space-sm) 0;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-sub);
+
+  &.short {
+    width: 50%;
+    margin-bottom: var(--space-sm);
+  }
+}
+
+.list-foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md) 0 var(--space-lg);
+
+  .foot-text {
+    font-size: var(--fs-xs);
+    color: var(--text-hint);
+  }
+}
+
+.state-wrap {
+  padding: var(--space-md) 0;
+}
+
+.retry-btn {
+  align-self: center;
+  margin: 0 auto;
+  width: 240rpx;
+
+  .retry-text {
+    font-size: var(--fs-sm);
+  }
+}
+
+.reco {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+
+  .reco-title {
+    font-size: var(--fs-xs);
+    color: var(--text-hint);
+  }
+}
+
+.chips .chip {
+  display: flex;
+  align-items: center;
+  min-height: 88rpx;
+  padding: 0 var(--space-md);
+  box-sizing: border-box;
+  border-radius: var(--radius-pill);
+  background-color: var(--bg-card);
+
+  .chip-text {
+    font-size: var(--fs-sm);
+    color: var(--text-secondary);
   }
 }
 </style>

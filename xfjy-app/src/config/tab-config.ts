@@ -40,7 +40,6 @@ export const EXCLUDED_PREFIXES = [
   "pages/mine/avatar-crop",
   PUBLISH_PAGE,
   "pages/video/search",
-  "pages/video/search-result",
 ];
 
 export interface TabDef {

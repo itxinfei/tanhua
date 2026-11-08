@@ -25,7 +25,7 @@
       <a11y-button
         class="side-btn"
         label="刷新视频列表"
-        :loading="refreshing"
+        :disabled="refreshing"
         @tap="onRefresh"
       >
         <view
@@ -35,14 +35,17 @@
         />
       </a11y-button>
       <a11y-button
-        class="side-btn search-btn"
-        label="搜索"
+        class="search-entry"
+        label="搜索视频、用户"
         @tap="onSearch"
       >
         <view
-          class="side-ico i-ph-magnifying-glass"
+          class="search-entry-ico i-ph-magnifying-glass"
           aria-hidden="true"
         />
+        <text class="search-entry-text">
+          搜索
+        </text>
       </a11y-button>
     </view>
 
@@ -1736,7 +1739,7 @@ onShareAppMessage(() => ({
 .video-loading__retry {
   margin-top: 44rpx;
   padding: 16rpx 56rpx;
-  border-radius: 999rpx;
+  border-radius: var(--radius-pill);
   font-size: var(--fs-md, 28rpx);
   color: var(--text-inverse);
   /* 冻结表：抖音按钮范式为红底白字实色，不用品牌粉橙渐变 */
@@ -1811,7 +1814,7 @@ onShareAppMessage(() => ({
         transform: translateX(-50%);
         width: 40rpx;
         height: 6rpx;
-        border-radius: 3rpx;
+        border-radius: var(--radius-pill);
         /* 冻结表：频道选中条纯白，不用品牌渐变 */
         background: var(--text-inverse);
       }
@@ -1819,7 +1822,7 @@ onShareAppMessage(() => ({
   }
 }
 
-/* 顶部右侧图标按钮（刷新 / 搜索）：88rpx 热区满足 §7.1 独立功能按钮要求。
+/* 顶部右侧图标按钮（刷新）：88rpx 热区满足 §7.1 独立功能按钮要求。
    用 padding 撑热区而非写死 width/height——写死尺寸会把热区限死在图标大小，
    而 a11y-button 的 default 变体是零样式壳，不自带 min-height。
    视觉上仍是 48rpx 图标，热区由 padding 外扩到 88rpx。 */
@@ -1834,24 +1837,39 @@ onShareAppMessage(() => ({
   box-sizing: border-box;
   flex-shrink: 0;
 
-  /* 顶部刷新/搜索：390px 下与 tab-group 争宽，热区压到 72rpx（仍 > 44px 物理下限） */
-  &.refresh-btn,
-  &.search-btn {
-    min-width: 72rpx;
-    min-height: 88rpx;
-    padding: 20rpx 8rpx;
-  }
-
   .side-ico {
     width: 48rpx;
     height: 48rpx;
     color: var(--text-inverse);
   }
 
-  /* 刷新中的图标旋转：与 a11y-button 的 loading spinner 并存，
-     图标本身转圈比spinner更贴合「刷新」语义 */
+  /* 刷新中的图标旋转 */
   .is-spinning {
     animation: refreshSpin 0.8s linear infinite;
+  }
+}
+
+/* 搜索入口：搜索框样式，比纯图标更引导点击 */
+.search-entry {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 72rpx;
+  padding: 0 var(--space-md);
+  margin-left: var(--space-xs);
+  border-radius: var(--radius-pill);
+  background: var(--bg-card);
+  flex-shrink: 0;
+
+  .search-entry-ico {
+    width: 32rpx;
+    height: 32rpx;
+    color: var(--text-hint);
+  }
+
+  .search-entry-text {
+    font-size: var(--fs-sm);
+    color: var(--text-hint);
   }
 }
 
@@ -2362,7 +2380,7 @@ onShareAppMessage(() => ({
   justify-content: space-between;
   gap: var(--space-sm);
   padding: 16rpx 20rpx;
-  border-radius: 16rpx;
+  border-radius: var(--radius-md);
   background: rgba(0, 0, 0, 0.55);
 
   &__text {
@@ -2376,7 +2394,7 @@ onShareAppMessage(() => ({
   &__btn {
     flex-shrink: 0;
     padding: 8rpx 20rpx;
-    border-radius: 999rpx;
+    border-radius: var(--radius-pill);
     font-size: var(--fs-sm);
     color: var(--text-inverse);
     background: var(--brand-primary);
@@ -2410,7 +2428,7 @@ onShareAppMessage(() => ({
   &__btn {
     margin-top: var(--space-sm);
     padding: 16rpx 40rpx;
-    border-radius: 999rpx;
+    border-radius: var(--radius-pill);
     font-size: var(--fs-base);
     color: var(--text-inverse);
     background: var(--brand-primary);
