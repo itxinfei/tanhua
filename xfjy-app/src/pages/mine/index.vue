@@ -79,11 +79,14 @@
       <view class="stats-row anim-fade-up anim-delay-1">
         <a11y-button
           class="stat-item"
-          :label="`互相喜欢 ${counts.eachLoveCount} 人，查看列表`"
+          :label="counts.eachLoveCount === null ? '互相喜欢，加载中' : `互相喜欢 ${counts.eachLoveCount} 人，查看列表`"
           @tap="goFriends(FRIEND_TYPE.MUTUAL)"
         >
-          <text class="stat-num">
-            {{ counts.eachLoveCount }}
+          <text
+            class="stat-num skeleton-text"
+            :class="{ 'is-loading': counts.eachLoveCount === null }"
+          >
+            {{ counts.eachLoveCount === null ? '—' : counts.eachLoveCount }}
           </text>
           <text class="stat-label">
             互相喜欢
@@ -91,11 +94,14 @@
         </a11y-button>
         <a11y-button
           class="stat-item"
-          :label="`我喜欢 ${counts.loveCount} 人，查看列表`"
+          :label="counts.loveCount === null ? '我喜欢，加载中' : `我喜欢 ${counts.loveCount} 人，查看列表`"
           @tap="goFriends(FRIEND_TYPE.FOLLOW)"
         >
-          <text class="stat-num">
-            {{ counts.loveCount }}
+          <text
+            class="stat-num skeleton-text"
+            :class="{ 'is-loading': counts.loveCount === null }"
+          >
+            {{ counts.loveCount === null ? '—' : counts.loveCount }}
           </text>
           <text class="stat-label">
             我喜欢
@@ -103,11 +109,14 @@
         </a11y-button>
         <a11y-button
           class="stat-item"
-          :label="`粉丝 ${counts.fanCount} 人，查看列表`"
+          :label="counts.fanCount === null ? '粉丝，加载中' : `粉丝 ${counts.fanCount} 人，查看列表`"
           @tap="goFriends(FRIEND_TYPE.FANS)"
         >
-          <text class="stat-num">
-            {{ counts.fanCount }}
+          <text
+            class="stat-num skeleton-text"
+            :class="{ 'is-loading': counts.fanCount === null }"
+          >
+            {{ counts.fanCount === null ? '—' : counts.fanCount }}
           </text>
           <text class="stat-label">
             粉丝
@@ -167,7 +176,7 @@
             class="menu-icon"
             :type="item.uniIcon"
             size="24"
-            color="#fff"
+            color="var(--text-inverse)"
           />
         </view>
         <text class="menu-label">
@@ -220,12 +229,18 @@ const DEFAULT_STATUS_BAR_HEIGHT_PX = 20;
 /** 头部额外顶部留白（px，状态栏下方间距） */
 const HEADER_EXTRA_PADDING_PX = 24;
 
-/** 关系统计（与后端 CountsVo 对齐） */
-const counts = ref<RelationCounts>({
-  eachLoveCount: 0,
-  loveCount: 0,
-  fanCount: 0,
-  visitorCount: 0,
+/**
+ * 关系统计展示值：null = 加载中（骨架占位），避免先闪 0 再跳数字。
+ * 与后端 RelationCounts（全 number）分离，接口层不改。
+ */
+const counts = ref<{
+  eachLoveCount: number | null;
+  loveCount: number | null;
+  fanCount: number | null;
+}>({
+  eachLoveCount: null,
+  loveCount: null,
+  fanCount: null,
 });
 
 /** 菜单项配置（表驱动：图标/文案/色块颜色/点击行为） */
@@ -480,13 +495,24 @@ onShow(() => {
       display: flex;
       flex-direction: column;
       align-items: center;
-      /* 热区 ≥44px：文案仅 2 字时宽度不足（「粉丝」实测 30px），补足可点击宽度 */
+      /* 热区 ≥44px：文案仅 2 字时宽度不足（「粉丝」实测 30px），补足可点击宽度；
+         min-width:0 防止长数字（如 9999）撑破 flex 容器致右侧留白丢失 */
       min-width: 88rpx;
+      flex: 1;
 
       .stat-num {
         font-size: 36rpx;
         font-weight: bold;
         color: var(--text-inverse);
+
+        /* 加载占位：与文字同色的柔光条，避免 0 → 数字的跳变感 */
+        &.is-loading {
+          min-width: 48rpx;
+          border-radius: 8rpx;
+          color: transparent;
+          background: rgba(255, 255, 255, 0.35);
+          animation: skeletonPulse 1.2s ease-in-out infinite;
+        }
       }
 
       /* 22rpx 小字 + 半透明不达标 → 提至 0.95 */
@@ -613,6 +639,16 @@ onShow(() => {
   }
 }
 
+@keyframes skeletonPulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
 @keyframes circleFloatA {
   0%,
   100% {
@@ -639,7 +675,8 @@ onShow(() => {
 
 /* 减弱动效偏好下停用页面独有的装饰动画（入场动画由 App.vue 全局收口） */
 @media (prefers-reduced-motion: reduce) {
-  .deco-circle {
+  .deco-circle,
+  .stat-num.is-loading {
     animation: none !important;
   }
 }

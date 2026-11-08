@@ -1108,7 +1108,10 @@ flex-direction: column;
     font-size: 22rpx;
     color: var(--color-primary-text);
     background: var(--bg-icon-soft);
-    padding: 6rpx 18rpx;
+    /* 与详情页统一：inline-block + 行高控制高度，不再用 88rpx 大热区（列表卡片非可点标签） */
+    display: inline-block;
+    padding: 8rpx 18rpx;
+    line-height: 1.4;
     border-radius: 24rpx;
   }
 
@@ -1119,9 +1122,13 @@ flex-direction: column;
     margin: 16rpx 0;
 
     .grid-image {
-      width: 200rpx;
-      height: 200rpx;
-      border-radius: 8rpx;
+      /* 与详情页九宫格一致：按容器宽度等分，避免窄屏（320px）三格溢出 */
+      flex: 1 1 calc(33.333% - 8rpx);
+      max-width: calc(33.333% - 8rpx);
+      aspect-ratio: 1 / 1;
+      width: auto;
+      height: auto;
+      border-radius: 12rpx;
     }
   }
 

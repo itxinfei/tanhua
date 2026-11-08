@@ -161,7 +161,7 @@
       </el-form>
       <template #footer>
         <el-button @click="freezeDialogVisible = false">取消</el-button>
-        <el-button type="danger" @click="confirmFreeze">确认封禁</el-button>
+        <el-button type="danger" :loading="freezeSubmitting" @click="confirmFreeze">确认封禁</el-button>
       </template>
     </el-dialog>
 
@@ -183,7 +183,7 @@
       </el-form>
       <template #footer>
         <el-button @click="batchFreezeDialogVisible = false">取消</el-button>
-        <el-button type="danger" @click="confirmBatchFreeze">确认封禁</el-button>
+        <el-button type="danger" :loading="freezeSubmitting" @click="confirmBatchFreeze">确认封禁</el-button>
       </template>
     </el-dialog>
 
@@ -315,6 +315,7 @@ function goDetail(id: number) {
 const freezeDialogVisible = ref(false)
 const freezeTarget = ref<UserItem | null>(null)
 const freezeReason = ref('')
+const freezeSubmitting = ref(false)
 
 function handleFreeze(row: UserItem) {
   freezeTarget.value = row
@@ -328,6 +329,8 @@ async function confirmFreeze() {
     return
   }
   if (!freezeTarget.value) return
+  if (freezeSubmitting.value) return
+  freezeSubmitting.value = true
   try {
     await freezeUserApi(freezeTarget.value.id, freezeReason.value)
     ElMessage.success('已封禁')
@@ -336,6 +339,8 @@ async function confirmFreeze() {
   } catch {
     // 封禁失败：不提示成功、不改本地状态、不关弹窗，让用户重试
     ElMessage.error('封禁失败，请稍后重试')
+  } finally {
+    freezeSubmitting.value = false
   }
 }
 
@@ -375,6 +380,8 @@ async function confirmBatchFreeze() {
     return
   }
   const ids = selectedRows.value.map(r => r.id)
+  if (freezeSubmitting.value) return
+  freezeSubmitting.value = true
   try {
     const res: any = await request.put('/admin/users/batch-freeze', { userIds: ids, reason: batchFreezeReason.value })
     const { success, failed } = res
@@ -384,6 +391,8 @@ async function confirmBatchFreeze() {
     loadData()
   } catch {
     ElMessage.error('批量封禁失败')
+  } finally {
+    freezeSubmitting.value = false
   }
 }
 

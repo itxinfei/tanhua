@@ -102,7 +102,7 @@
       </el-form>
       <template #footer>
         <el-button @click="formVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmSave">保存</el-button>
+        <el-button type="primary" :loading="formSubmitting" @click="confirmSave">保存</el-button>
       </template>
     </el-dialog>
   </div>
@@ -205,6 +205,7 @@ const agreementStatusMapping = {
 const formVisible = ref(false)
 const formRef = ref<FormInstance>()
 const editingId = ref<number | null>(null)
+const formSubmitting = ref(false)
 
 const form = reactive<AgreementForm>({
   title: '',
@@ -237,7 +238,8 @@ function handleEdit(row: AgreementItem) {
 async function confirmSave() {
   if (!formRef.value) return
   await formRef.value.validate(async (valid) => {
-    if (!valid) return
+    if (!valid || formSubmitting.value) return
+    formSubmitting.value = true
     try {
       if (editingId.value) {
         await updateAgreementApi(editingId.value, form)
@@ -250,6 +252,8 @@ async function confirmSave() {
       loadData()
     } catch {
       // 错误已由拦截器处理
+    } finally {
+      formSubmitting.value = false
     }
   })
 }

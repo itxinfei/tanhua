@@ -569,7 +569,9 @@ async function handleLogin() {
   min-height: 100vh;
   /* 渐变只用 --color-primary（真源主色）：--color-primary-deep 属历史紫，
      §7.1 已禁止新代码使用，登录页大渐变背景是最高频命中点 */
-  background: linear-gradient(180deg, var(--color-primary) 0%, var(--color-primary) 30%, var(--bg-page) 60%);
+  /* 副标题区域保持主色实底：原 30% 过渡到 --bg-page 后，白字落在浅粉上仅 2.5:1。
+     把过渡点压到 45%，让 slogan 始终坐在足够深的玫红底上。 */
+  background: linear-gradient(180deg, var(--color-primary) 0%, var(--color-primary) 45%, var(--bg-page) 72%);
   padding: 0 60rpx;
   display: flex;
   flex-direction: column;
@@ -695,9 +697,10 @@ async function handleLogin() {
 
   .slogan {
     font-size: 26rpx;
-    /* 走 --text-inverse：写死 rgba(255,255,255,.85) 在暗色模式下与深底对比度不足 */
+    /* 纯 --text-inverse：品牌渐变背景（--color-primary）上纯白可读性最佳；
+       再加极轻文字阴影，防止装饰心形/渐变局部偏亮时对比度波动 */
     color: var(--text-inverse);
-    opacity: 0.85;
+    text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.18);
     margin-top: 12rpx;
   }
 }
@@ -804,9 +807,10 @@ async function handleLogin() {
   margin: 32rpx 0;
   box-sizing: content-box;
 
+  /* 48rpx 视觉尺寸（WCAG 2.5.5 建议 44px≈88rpx 热区由外层 a11y-button 的 min-height:88rpx 保证） */
   .checkbox {
-    width: 36rpx;
-    height: 36rpx;
+    width: 48rpx;
+    height: 48rpx;
     border: 2rpx solid var(--border);
     border-radius: 50%;
     margin-right: 12rpx;
@@ -822,7 +826,7 @@ async function handleLogin() {
 
     .check-icon {
       color: var(--text-inverse);
-      font-size: 24rpx;
+      font-size: 28rpx;
     }
   }
 

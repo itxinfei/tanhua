@@ -90,6 +90,13 @@
         <text class="time">
           {{ item.time }}
         </text>
+        <!-- 右侧箭头：指示可点击进详情（装饰，避免读屏逐字朗读） -->
+        <text
+          class="notice-arrow"
+          aria-hidden="true"
+        >
+          ›
+        </text>
       </a11y-button>
       <!-- 加载更多/没有更多（M-K7） -->
       <view
@@ -391,6 +398,7 @@ onReachBottom(async () => {
   }
   /* #ccc → #767676 */
   .time { font-size: 22rpx; color: var(--text-hint); flex-shrink: 0; margin-left: 16rpx; }
+  .notice-arrow { font-size: 32rpx; color: var(--text-hint); flex-shrink: 0; margin-left: 12rpx; }
 }
 
 /* VIP 权益锁定状态 */

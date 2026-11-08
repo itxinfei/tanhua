@@ -237,7 +237,7 @@
       </el-form>
       <template #footer>
         <el-button @click="rejectDialogVisible = false">取消</el-button>
-        <el-button type="danger" @click="confirmReject">确认驳回</el-button>
+        <el-button type="danger" :loading="submitting" @click="confirmReject">确认驳回</el-button>
       </template>
     </el-dialog>
   </div>
@@ -440,6 +440,8 @@ async function confirmReject() {
     ElMessage.warning('请选择或输入驳回原因')
     return
   }
+  if (submitting.value) return
+  submitting.value = true
   try {
     if (batchMode.value) {
       const ids = [...selectedIds.value]
@@ -467,6 +469,8 @@ async function confirmReject() {
     }
   } catch {
     // 错误已由拦截器统一提示，弹窗保留以便重试
+  } finally {
+    submitting.value = false
   }
 }
 
@@ -922,7 +926,7 @@ kbd {
   width: 16px;
   height: 16px;
   flex-shrink: 0;
-  border-radius: 3px;
+  border-radius: var(--xfjy-radius-sm);
   background: var(--xfjy-bg-hover);
   position: relative;
   overflow: hidden;
@@ -950,7 +954,7 @@ kbd {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  background: linear-gradient(90deg, transparent, var(--xfjy-skeleton-shimmer), transparent);
   animation: queue-sk-shimmer 1.8s ease-in-out infinite;
 }
 

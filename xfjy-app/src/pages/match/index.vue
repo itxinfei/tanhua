@@ -1119,6 +1119,12 @@ onShareAppMessage(() => ({
         font-size: 40rpx;
         font-weight: bold;
         color: var(--text-inverse);
+        /* 长昵称不撑破卡片：单行省略，年龄胶囊保持可读 */
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .age {
@@ -1177,6 +1183,12 @@ onShareAppMessage(() => ({
         font-size: 24rpx;
         color: rgba(255, 255, 255, 0.92);
         text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.6);
+        /* 城市/学历/行业拼接行：单行省略，避免长字段撑破底部信息区 */
+        display: block;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
     }
 
@@ -1255,6 +1267,15 @@ onShareAppMessage(() => ({
     width: 96rpx;
     height: 96rpx;
 
+    /* 白底圆徽上文字用深色（原金/蓝/绿文字仅 1.8~2.3:1）；
+       去除彩色 box-shadow 光晕，降低 5 个高饱和色块同时抢视觉的噪声 */
+    color: var(--text-primary);
+    box-shadow: none;
+
+    .action-label {
+      color: var(--text-primary);
+    }
+
     .action-ico {
       font-size: 34rpx;
       line-height: 1;
@@ -1267,30 +1288,32 @@ onShareAppMessage(() => ({
 
     &.rewind {
       background: var(--bg-card);
-      color: var(--gold-soft);
       border: 4rpx solid var(--gold-soft);
-      box-shadow: 0 6rpx 20rpx rgba(var(--gold-soft-rgb), 0.25);
+
+      .action-ico { color: var(--gold-soft); }
     }
 
     &.dislike {
       background: var(--bg-card);
-      color: var(--color-danger);
       border: 4rpx solid var(--color-danger);
-      box-shadow: 0 6rpx 20rpx rgba(var(--color-danger-rgb), 0.25);
+
+      .action-ico { color: var(--color-danger); }
     }
 
     &.superlike {
       background: var(--bg-card);
-      color: var(--info-blue-soft);
       border: 4rpx solid var(--info-blue-soft);
-      box-shadow: 0 6rpx 20rpx rgba(var(--info-blue-soft-rgb), 0.25);
+
+      .action-ico { color: var(--info-blue-soft); }
     }
 
     &.like {
-      background: var(--bg-card);
-      color: var(--success);
-      border: 4rpx solid var(--success);
-      box-shadow: 0 6rpx 20rpx rgba(var(--success-rgb), 0.3);
+      /* 主操作：实心主色，视觉权重高于其余四键 */
+      background: var(--color-primary);
+      border: 4rpx solid var(--color-primary);
+
+      .action-ico,
+      .action-label { color: var(--text-inverse); }
     }
 
     &.boost {
@@ -1298,12 +1321,9 @@ onShareAppMessage(() => ({
          使用独立 token --color-vip-purple 而非历史紫 --color-primary-deep，
          避免与 §7.1「禁止新代码使用历史紫」冲突，且支持暗色适配 */
       background: linear-gradient(135deg, var(--color-vip-purple), var(--color-vip-purple-deep));
-      color: var(--text-inverse);
-      box-shadow: 0 6rpx 20rpx rgba(var(--color-vip-purple-rgb), 0.4);
 
-      .action-label {
-        color: var(--text-inverse);
-      }
+      .action-ico,
+      .action-label { color: var(--text-inverse); }
     }
   }
 }

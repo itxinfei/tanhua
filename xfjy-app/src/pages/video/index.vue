@@ -2043,6 +2043,8 @@ onShareAppMessage(() => ({
       width: 64rpx;
       height: 64rpx;
       color: var(--text-inverse);
+      /* 视频画面明暗不可控：给白图标加极轻阴影，避免浅画面下消失 */
+      filter: drop-shadow(0 2rpx 6rpx rgba(0, 0, 0, 0.45));
     }
 
     .side-ico__ph--liked {

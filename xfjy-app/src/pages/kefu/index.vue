@@ -242,12 +242,12 @@ function goFeedback(): void {
       color: var(--text-primary);
     }
 
-    /* 清除按钮 #ccc → #767676，触摸目标 ≥24px */
+    /* 清除按钮：热区 ≥44px（88rpx），图标色走 --text-hint 适配暗色 */
     .search-clear {
       font-size: 28rpx;
       color: var(--text-hint);
       padding: 8rpx 12rpx;
-      min-height: 48rpx;
+      min-height: 88rpx;
       display: flex;
       align-items: center;
       flex-shrink: 0;

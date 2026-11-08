@@ -405,10 +405,10 @@ onMounted(() => {
   position: absolute;
   right: var(--xfjy-space-2);
   bottom: var(--xfjy-space-2);
-  background: rgba(0, 0, 0, 0.6);
-  color: #fff;
+  background: var(--xfjy-overlay-strong);
+  color: var(--xfjy-text-inverse);
   font-size: var(--xfjy-font-size-xs);
-  padding: 2px 6px;
+  padding: var(--xfjy-space-1) var(--xfjy-space-2);
   border-radius: var(--xfjy-radius-sm);
   }
   &__body {

@@ -431,7 +431,7 @@ onLoad(() => {
 /* ===== 顶部权益区 ===== */
 .header { text-align: center; padding-bottom: 24rpx; background: linear-gradient(180deg, var(--bg-deep-grad) 0%, var(--bg-deep) 100%); position: relative; overflow: hidden; flex-shrink: 0;
   /* 自绘返回按钮：毛玻璃圆形底，触摸目标 ≥44px */
-    .back-btn { position: absolute; left: 24rpx; width: 88rpx; height: 88rpx; display: flex; align-items: center; justify-content: center; z-index: 10; background: rgba(255, 255, 255, 0.12); border-radius: 50%; backdrop-filter: blur(8px);
+    .back-btn { position: absolute; left: 24rpx; top: calc(var(--window-top, 0px) + 16rpx); width: 88rpx; height: 88rpx; display: flex; align-items: center; justify-content: center; z-index: 10; background: rgba(255, 255, 255, 0.12); border-radius: 50%; backdrop-filter: blur(8px);
       /* UnoCSS mask 图标：font-size 控制图标尺寸，color 控制填充色，mask 图标天然视觉居中 */
       .back-icon { font-size: 44rpx; color: rgba(255, 255, 255, 0.95); line-height: 1; }
     }
@@ -604,7 +604,13 @@ onLoad(() => {
     animation: shimmer 3s infinite;
   }
 
-  /* 禁用态：仅停微光动画，透明度/阴影由 variant 系统统一处理 */
+  /* 禁用态：仅停微光动画，透明度/阴影由 variant 系统统一处理。
+     但 global variant 的 opacity:0.4 在金色渐变上会让深色文字几乎不可见，
+     这里覆写为 0.6 并降低饱和度，保证「请选择套餐」仍可读。 */
+  &.a11y-btn--disabled {
+    opacity: 0.6;
+    filter: saturate(0.6);
+  }
   &.a11y-btn--disabled::after {
     animation: none;
   }

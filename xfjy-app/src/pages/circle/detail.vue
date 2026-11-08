@@ -355,8 +355,8 @@ onLoad((options: any) => {
 
   /* 话题标签（发布页勾选，落库 Movement.tags） */
   .tag-row { display: flex; flex-wrap: wrap; gap: 12rpx; margin: 0 0 20rpx; }
-  /* 热区：88rpx 基线（含上下 padding），原 view 无键盘/读屏入口 */
-  .tag-chip { font-size: 22rpx; color: var(--color-primary-text); background: var(--bg-icon-soft); padding: 20rpx 18rpx; min-height: 88rpx; box-sizing: border-box; border-radius: 24rpx; }
+  /* 与列表页统一：纯展示标签，不需要 88rpx 大热区（详情页标签不可点） */
+  .tag-chip { display: inline-block; font-size: 22rpx; color: var(--color-primary-text); background: var(--bg-icon-soft); padding: 8rpx 18rpx; line-height: 1.4; border-radius: 24rpx; }
   /* 九宫格：按容器宽度等分而非固定 rpx，避免窄屏（320px）三格 + 间距
      超出卡片内宽导致横向溢出；aspect-ratio 保证正方形 */
   .image-grid { display: flex; flex-wrap: wrap; gap: 8rpx;

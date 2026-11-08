@@ -265,23 +265,16 @@
             aria-hidden="true"
           />
         </a11y-button>
-        <!-- 语音模式：按住说话 -->
-        <view
+        <!-- 语音模式：点击开始/停止录音（a11y-button 保证 88rpx 热区与键盘可达） -->
+        <a11y-button
           v-if="isVoiceMode"
-          class="voice-btn btn-feedback"
-          role="button"
-          :aria-label="voiceCancelled ? '松开手指，取消发送' : isVoicePressing ? '松开 发送' : '按住 说话'"
-          tabindex="0"
-          @touchstart="onVoiceStart"
-          @touchmove="onVoiceMove"
-          @touchend="onVoiceEnd"
-          @touchcancel="onVoiceCancel"
-          @keydown.enter="onVoiceStart"
-          @keydown.space.prevent="onVoiceStart"
-          @keyup="onVoiceEnd"
+          class="voice-btn"
+          :class="{ recording: isVoicePressing }"
+          :label="isVoicePressing ? '停止录音' : '开始录音'"
+          @tap="onVoiceClick"
         >
-          <text>{{ voiceCancelled ? "松开手指，取消发送" : isVoicePressing ? "松开 发送" : "按住 说话" }}</text>
-        </view>
+          <text>{{ isVoicePressing ? "停止" : "按住说话" }}</text>
+        </a11y-button>
         <!-- 文字模式：输入框 + 表情 -->
         <template v-else>
           <input
@@ -517,21 +510,15 @@ const playingVoiceId = ref("");
 let audioContext: UniApp.InnerAudioContext | null = null;
 /** 录音起始时间戳（计算有效时长用） */
 let voiceStartAt = 0;
-/** 上滑取消阈值（px）：手指上移超过此距离进入取消区 */
-const VOICE_CANCEL_THRESHOLD = 80;
-/** 录音中手指是否已上滑至取消区（控制提示文案） */
-const voiceCancelled = ref(false);
 /** 本次录音是否取消发送：onStop 同步读取（M-K2） */
 let voiceCancelFlag = false;
-/** 录音按下时手指 Y 起始坐标（计算上滑距离） */
-let voiceTouchStartY = 0;
 
 // 录音完成：上传 → 以 JSON 管道发送（type:"voice", url, duration）
 function onRecorderStop(res: any): void {
   const cancelled = voiceCancelFlag;
   voiceCancelFlag = false;
   if (cancelled) {
-    info("已取消");
+    // 取消发送不再 toast：用户主动停止，静默即可
     return;
   }
   const duration = Date.now() - voiceStartAt;
@@ -547,7 +534,6 @@ recorderManager?.onStop(onRecorderStop);
 // 录音异常：麦克风权限被拒等场景必须显式提示，否则松手只会走到 onStop 的「说话时间太短」（M-K1）
 recorderManager?.onError((err: any) => {
   isVoicePressing.value = false;
-  voiceCancelled.value = false;
   voiceCancelFlag = true; // 让可能迟到的 onStop 不发送
   const msg = String(err?.errMsg || err?.message || "");
   if (msg.includes("auth") || msg.includes("permission") || msg.includes("deny")) {
@@ -560,17 +546,24 @@ recorderManager?.onError((err: any) => {
   }
 });
 
-/** 语音按钮按下：开始录音 */
-function onVoiceStart(e: any): void {
+/** 语音按钮点击：切换录音状态（a11y-button tap 交互） */
+function onVoiceClick(): void {
+  if (isVoicePressing.value) {
+    stopVoiceRecording();
+  } else {
+    startVoiceRecording();
+  }
+}
+
+/** 开始录音 */
+function startVoiceRecording(): void {
   if (!recorderManager) {
     info("当前环境不支持录音");
     return;
   }
   isVoicePressing.value = true;
-  voiceCancelled.value = false;
   voiceCancelFlag = false;
   voiceStartAt = Date.now();
-  voiceTouchStartY = e?.touches?.[0]?.clientY ?? 0;
   try {
     recorderManager.start({ format: "mp3", duration: MAX_VOICE_DURATION_MS });
   } catch {
@@ -579,11 +572,15 @@ function onVoiceStart(e: any): void {
   }
 }
 
-/** 录音中手指移动：上滑超过阈值进入取消区（M-K2） */
-function onVoiceMove(e: any): void {
+/** 停止录音 */
+function stopVoiceRecording(): void {
   if (!isVoicePressing.value) return;
-  const y = e?.touches?.[0]?.clientY ?? voiceTouchStartY;
-  voiceCancelled.value = voiceTouchStartY - y > VOICE_CANCEL_THRESHOLD;
+  isVoicePressing.value = false;
+  try {
+    recorderManager?.stop();
+  } catch {
+    // onStop 会处理异常
+  }
 }
 
 /**
@@ -811,20 +808,10 @@ function onInputFocus(): void {
   activePanel.value = "none";
 }
 
-/** 语音按钮松开：停止录音，onStop 回调中上传发送 */
-function onVoiceEnd(): void {
-  if (!isVoicePressing.value) return;
-  isVoicePressing.value = false;
-  voiceCancelFlag = voiceCancelled.value;
-  voiceCancelled.value = false;
-  recorderManager?.stop();
-}
-
 /** 触摸被系统中断（来电等）：取消本次录音，不发送（M-K2） */
 function onVoiceCancel(): void {
   if (!isVoicePressing.value) return;
   isVoicePressing.value = false;
-  voiceCancelled.value = false;
   voiceCancelFlag = true;
   recorderManager?.stop();
 }
@@ -1253,7 +1240,8 @@ onUnmounted(() => {
 .avatar-btn { flex-shrink: 0; display: flex; }
 /* 圆形头像（探探式，两聊天页统一）；typing-avatar/card-avatar 本就 50% */
 .avatar { width: 76rpx; height: 76rpx; border-radius: 50%; background: var(--border-light); }
-  .bubble-wrap { display: flex; align-items: center; gap: 12rpx; max-width: 480rpx; min-width: 0;
+  /* max-width: 75% 自适应屏幕宽度，同时保留 480rpx 上限防止宽屏过宽 */
+.bubble-wrap { display: flex; align-items: center; gap: 12rpx; max-width: 75%; min-width: 0;
     /* 我的消息：status 图标（转圈/失败）应在 bubble 与头像之间，
        DOM [status, bubble] + row-reverse → [bubble, status]，status 靠右（近头像） */
     &.mine { flex-direction: row-reverse; }
@@ -1310,7 +1298,8 @@ onUnmounted(() => {
 /* ===== 输入区 ===== */
 .input-area { background: var(--bg-card); border-top: 1rpx solid var(--border-light); }
 .input-bar { display: flex; align-items: center; gap: 12rpx; padding: 14rpx 16rpx; }
-.icon-btn { width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center; font-size: 40rpx; border-radius: 50%; flex-shrink: 0;
+/* 88rpx 热区（§7.1 WCAG 2.5.5），原 64rpx≈32px 不达标 */
+.icon-btn { width: 88rpx; height: 88rpx; display: flex; align-items: center; justify-content: center; font-size: 40rpx; border-radius: 50%; flex-shrink: 0;
   .icon-active { filter: drop-shadow(0 0 6rpx rgba(var(--color-primary-rgb), 0.6)); }
 }
 /* 发送按钮：与 icon-btn 同位切换，gap 已提供间距，仅防 flex 压缩 */
@@ -1320,12 +1309,14 @@ onUnmounted(() => {
 }
 /* placeholder 颜色：与 change-phone/verify 等页面对齐，走 --text-hint */
 .ph { color: var(--text-hint); }
-.voice-btn { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; display: flex; align-items: center; justify-content: center; font-size: 28rpx; color: var(--text-secondary); transition: background 0.15s, transform 0.15s;
-  &:active { background: var(--border); transform: scale(0.98); }
+/* 语音按钮：a11y-button default 变体（88rpx 热区），视觉由页面控制 */
+.voice-btn { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; display: flex; align-items: center; justify-content: center; font-size: 28rpx; color: var(--text-secondary);
+  &:active { background: var(--border); }
 }
 
 /* ===== 底部面板 ===== */
-.panel { height: 380rpx; background: var(--bg-page); border-top: 1rpx solid var(--border-light); animation: slideUp 0.2s ease-out; overflow: hidden; }
+/* min-height 保证小屏可用，max-height 防止大屏过高挤压消息区 */
+.panel { min-height: 380rpx; max-height: 50vh; background: var(--bg-page); border-top: 1rpx solid var(--border-light); animation: slideUp 0.2s ease-out; overflow: hidden; }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
 .emoji-panel .emoji-scroll { height: 100%; }

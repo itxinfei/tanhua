@@ -1777,7 +1777,7 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  background: linear-gradient(90deg, transparent, var(--xfjy-skeleton-shimmer), transparent);
   animation: dash-sk-shimmer 1.8s ease-in-out infinite;
 }
 

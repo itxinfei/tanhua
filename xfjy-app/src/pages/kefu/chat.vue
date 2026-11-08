@@ -24,7 +24,8 @@
       </view>
       <!-- 客服欢迎语 -->
       <view class="welcome-tip">
-        <text>您好，我是心飞交友在线客服，很高兴为您服务 🎧</text>
+        <text class="i-ph-headphones welcome-icon" aria-hidden="true" />
+        <text>您好，我是心飞交友在线客服，很高兴为您服务</text>
       </view>
       <template
         v-for="(msg, index) in messageList"
@@ -183,31 +184,16 @@
             aria-hidden="true"
           />
         </a11y-button>
-        <!-- 有内容时发送按钮，无内容时更多面板入口（微信式交互） -->
+        <!-- 发送按钮：始终显示，无内容时禁用 -->
         <a11y-button
-          v-if="inputText.trim()"
           class="send-btn"
           variant="primary"
-          :class="{ disabled: sending }"
-          :disabled="sending"
+          :class="{ disabled: sending || !inputText.trim() }"
+          :disabled="sending || !inputText.trim()"
           label="发送消息"
           @tap="sendText"
         >
           <text>发送</text>
-        </a11y-button>
-        <a11y-button
-          v-else
-          class="icon-btn"
-          role="tab"
-          :checked="activePanel === 'more'"
-          label="更多功能面板"
-          @tap="togglePanel('more')"
-        >
-          <view
-            class="i-ph-plus"
-            :class="{ 'icon-active': activePanel === 'more' }"
-            aria-hidden="true"
-          />
         </a11y-button>
       </view>
 
@@ -236,34 +222,6 @@
         </scroll-view>
       </view>
 
-      <!-- 更多面板：客服场景只保留图片与拍照 -->
-      <view
-        v-if="activePanel === 'more'"
-        class="panel more-panel"
-      >
-        <view class="more-grid">
-          <a11y-button
-            v-for="action in QUICK_ACTIONS"
-            :key="action.label"
-            class="more-item"
-            :label="action.label"
-            @tap="action.handler"
-          >
-            <view
-              class="more-icon"
-              :style="{ background: action.bg }"
-            >
-              <view
-                :class="action.icon"
-                aria-hidden="true"
-              />
-            </view>
-            <text class="more-label">
-              {{ action.label }}
-            </text>
-          </a11y-button>
-        </view>
-      </view>
     </view>
   </view>
 </template>
@@ -285,7 +243,7 @@ import {
   getChatHistory,
   type ReceivedMessage,
 } from "@/utils/wukongim";
-import { fail, info } from "@/utils/ux";
+import { fail } from "@/utils/ux";
 import { warn } from "@/utils/logger";
 import { resolveAvatar, DEFAULT_AVATAR } from "@/utils/avatar";
 
@@ -300,14 +258,17 @@ const EMOJI_LIST: string[] = [
 ];
 
 /** 底部面板类型 */
-type PanelType = "none" | "emoji" | "more";
+type PanelType = "none" | "emoji";
 
-/** 更多面板快捷操作配置（表驱动，仅图片与拍照） */
+/**
+ * 更多面板快捷操作配置（表驱动）。
+ *
+ * 原「图片 / 拍照」入口已移除：客服场景仅支持文本，点击后只会弹
+ * 「暂不支持发送图片」toast，属无效转化路径（P1 转化断点）。
+ * 若后续后端支持图片消息，在此表驱动恢复即可。
+ */
 interface QuickAction { icon: string; label: string; bg: string; handler: () => void; }
-const QUICK_ACTIONS: QuickAction[] = [
-  { icon: "i-ph-image", label: "图片", bg: "var(--color-primary)", handler: () => selectImage("album") },
-  { icon: "i-ph-camera", label: "拍照", bg: "var(--info-blue)", handler: () => selectImage("camera") },
-];
+const QUICK_ACTIONS: QuickAction[] = [];
 
 /** 快捷问题预设（与 FAQ 种子数据呼应，引导首次提问） */
 const QUICK_QUESTIONS: string[] = [
@@ -409,7 +370,7 @@ function sendEmoji(emoji: string): void {
 }
 
 /** 切换底部面板（同一面板再次点击则收起） */
-function togglePanel(panel: "emoji" | "more"): void {
+function togglePanel(panel: "emoji"): void {
   if (activePanel.value !== panel) {
     // 开面板先收键盘，避免面板与软键盘互相遮挡
     uni.hideKeyboard();
@@ -424,24 +385,6 @@ function onInputFocus(): void {
   activePanel.value = "none";
 }
 
-/** 选择图片并直接发送（不实现上传，因为后端可能不支持） */
-function selectImage(source: "album" | "camera"): void {
-  uni.chooseImage({
-    count: 1,
-    sourceType: source === "camera" ? ["camera"] : ["album"],
-    success: (res) => {
-      const path = res.tempFilePaths[0];
-      if (!path) return;
-      // 客服场景仅文本，图片选择后提示用户
-      info("客服暂不支持发送图片");
-    },
-    fail: (err: any) => {
-      const msg = String(err?.errMsg || "");
-      if (msg.includes("cancel")) return;
-      info(source === "camera" ? "需要相机权限才能拍照" : "需要相册权限才能发送图片");
-    },
-  });
-}
 
 /** 本地消息自增序号（避免 Date.now() 同毫秒撞 id） */
 let msgSeq = 0;
@@ -655,7 +598,8 @@ onUnmounted(() => {
   .vip-text { font-size: 24rpx; color: var(--text-inverse); letter-spacing: 1rpx; font-weight: 500; }
 }
 
-.welcome-tip { display: flex; justify-content: center; margin: 24rpx 0;
+.welcome-tip { display: flex; justify-content: center; align-items: center; gap: 8rpx; margin: 24rpx 0;
+  .welcome-icon { font-size: 28rpx; color: var(--color-primary); }
   text { font-size: 24rpx; color: var(--text-hint); background: var(--bg-card); padding: 10rpx 28rpx; border-radius: 24rpx; }
 }
 

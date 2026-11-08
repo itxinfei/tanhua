@@ -188,16 +188,45 @@
       <text>退出登录</text>
     </a11y-button>
 
-    <!-- 注销账号（破坏性操作：需可聚焦 + 语义化 + 足够对比度） -->
+    <!-- 注销账号：破坏性操作，用 text 变体 + 危险色降低视觉权重但保持警示 -->
     <a11y-button
       class="delete-account"
-      variant="ghost"
+      variant="text"
       block
       label="注销账号"
       @tap="handleDeleteAccount"
     >
       <text>注销账号</text>
     </a11y-button>
+
+    <!-- 注销账号二次确认：a11y-dialog 替代 native showModal，视觉统一 -->
+    <a11y-dialog
+      :visible="deleteDialogVisible"
+      title="注销账号"
+      @close="deleteDialogVisible = false"
+    >
+      <view class="delete-confirm">
+        <text class="delete-confirm-text">
+          注销后账号将立即无法登录，数据保留 30 天后永久删除。确定要注销吗？
+        </text>
+        <view class="delete-confirm-actions">
+          <a11y-button
+            variant="ghost"
+            label="取消注销"
+            @tap="deleteDialogVisible = false"
+          >
+            <text>取消</text>
+          </a11y-button>
+          <a11y-button
+            variant="danger"
+            label="确认注销账号"
+            @tap="onDeleteConfirm"
+          >
+            <text>继续注销</text>
+          </a11y-button>
+        </view>
+      </view>
+    </a11y-dialog>
   </view>
 </template>
 
@@ -206,6 +235,7 @@ import { ref } from "vue";
 import { onShow, onUnload } from "@dcloudio/uni-app";
 import { useUserStore } from "@/store/user";
 import A11yButton from "@/components/a11y-button.vue";
+import A11yDialog from "@/components/a11y-dialog.vue";
 import { getUserSettings, deleteAccount, getVerifyStatus, updateNotificationSetting, type NotificationSettingParam } from "@/api/mine";
 import { sendSmsCode } from "@/api/auth";
 import { success, fail, info, loading, hideLoading, confirm } from "@/utils/ux";
@@ -462,21 +492,18 @@ function handleLogout() {
   });
 }
 
-/** 注销账号：二次确认 → 发验证码 → 输入验证码 → 调接口注销 */
+/** 注销账号二次确认弹窗可见性 */
+const deleteDialogVisible = ref(false);
+
+/** 注销账号：打开 a11y-dialog 二次确认（替代 native showModal，视觉统一） */
 function handleDeleteAccount() {
-  uni.showModal({
-    title: '注销账号',
-    content: '注销后账号将立即无法登录，数据保留30天后永久删除。确定要注销吗？',
-    confirmText: '继续',
-    // uni.showModal 是原生弹窗，confirmColor 只接受 hex（平台限制，无法传 CSS 变量）；
-    // 按 §11.7 #44 裁决属平台限制豁免，不视为 §7.1 违规
-    confirmColor: '#ff3b30',
-    success: (res) => {
-      if (res.confirm) {
-        sendDeleteCode();
-      }
-    },
-  });
+  deleteDialogVisible.value = true;
+}
+
+/** 用户确认注销 → 发验证码 */
+function onDeleteConfirm() {
+  deleteDialogVisible.value = false;
+  sendDeleteCode();
 }
 
 /** 向当前账号手机号发送验证码 */
@@ -555,17 +582,39 @@ function inputDeleteCode() {
   }
 }
 
+/* 退出登录：ghost 变体，中性色（非危险色，避免与注销账号混淆） */
 .logout-btn {
   margin: 16rpx 0 0;
-  /* ghost variant 提供热区/按压反馈/字体，此处只覆写颜色为危险色 */
-  color: var(--color-danger);
-  border-color: var(--color-danger);
+  color: var(--text-secondary);
+  border-color: var(--border);
 }
 
-/* 破坏性操作：同样走 ghost variant，只覆写颜色 */
+/* 注销账号：text 变体 + 危险色，与退出登录拉开分组间距，降低误触 */
 .delete-account {
-  margin: 16rpx 0 0;
+  margin: 24rpx 0 0;
   color: var(--color-danger);
-  border-color: var(--color-danger);
+}
+
+/* 注销确认弹窗内容：文案 + 双按钮 */
+.delete-confirm {
+  padding: 24rpx 24rpx 32rpx;
+
+  .delete-confirm-text {
+    font-size: 28rpx;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    text-align: center;
+    display: block;
+  }
+
+  .delete-confirm-actions {
+    display: flex;
+    gap: var(--space-md);
+    margin-top: 32rpx;
+
+    a11y-button {
+      flex: 1;
+    }
+  }
 }
 </style>

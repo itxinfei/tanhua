@@ -11,6 +11,7 @@
         v-for="(p, i) in paragraphs"
         :key="i"
         class="paragraph"
+        :class="{ 'paragraph--heading': isHeading(p) }"
       >
         {{ p }}
       </text>
@@ -28,6 +29,11 @@ import { AGREEMENT_CONTENT } from '@/config/agreement-content'
 
 const title = ref('协议')
 const paragraphs = ref<string[]>([])
+
+/** 识别章节标题段（如「一、」「二、」「第一条」），用于视觉分层 */
+function isHeading(text: string): boolean {
+  return /^[一二三四五六七八九十]+、/.test(text) || /^第[一二三四五六七八九十]+条/.test(text)
+}
 
 onLoad((query: any) => {
   const rawType = (query && query.type) || 'user'
@@ -92,5 +98,14 @@ onLoad((query: any) => {
   color: var(--text-secondary);
   margin-bottom: 20rpx;
   text-align: justify;
+  /* 长 URL/英文连续字符换行：justify 对齐会产生难看的字间距，break-all 保证可读 */
+  word-break: break-all;
+}
+
+/* 章节标题段加粗 + 深色，长文阅读时提供视觉锚点（替代 TOC 导航） */
+.paragraph--heading {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 12rpx;
 }
 </style>

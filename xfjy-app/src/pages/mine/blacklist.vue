@@ -207,6 +207,22 @@ async function loadPrevPage(): Promise<void> {
   box-sizing: border-box;
   overflow-x: hidden;
   padding: 20rpx 24rpx;
+
+  /* 黑名单列表项：左侧 4rpx 危险色竖条，与 friends 页视觉区分，强化「隔离空间」暗示 */
+  :deep(.user-list-item) {
+    position: relative;
+
+    &::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 16rpx;
+      bottom: 16rpx;
+      width: 4rpx;
+      border-radius: 2rpx;
+      background: var(--color-danger);
+    }
+  }
 }
 
 .loading-tip {

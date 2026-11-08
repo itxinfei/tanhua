@@ -73,6 +73,18 @@
   --xfjy-text-inverse: #ffffff;
   --xfjy-media-bg: #000;
 
+  /* ===== 遮罩层（媒体徽标 / 深色底条 / 文字阴影） ===== */
+  --xfjy-overlay-soft: rgba(0, 0, 0, 0.25);
+  --xfjy-overlay-medium: rgba(0, 0, 0, 0.35);
+  --xfjy-overlay-strong: rgba(0, 0, 0, 0.6);
+
+  /* ===== 骨架屏 shimmer 高光 ===== */
+  --xfjy-skeleton-shimmer: rgba(255, 255, 255, 0.65);
+
+  /* ===== 品牌主色深阶（按钮 hover/active 降对比档） ===== */
+  --xfjy-primary-dark: #a8284d;
+  --xfjy-primary-darker: #8f2241;
+
   /* ===== Header 专用 ===== */
   --xfjy-header-bg: #ffffff;
   --xfjy-header-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);

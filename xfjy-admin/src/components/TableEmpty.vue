@@ -21,4 +21,14 @@ const tableCardCtx = inject<{ emptyText: Ref<string | undefined> } | null>('xfjy
 const resolvedDescription = computed(
   () => props.description ?? tableCardCtx?.emptyText.value ?? '暂无数据'
 )
+
+const resolvedHint = computed(() => props.hint)
 </script>
+
+<style scoped>
+.table-empty__hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+</style>

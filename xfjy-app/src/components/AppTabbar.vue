@@ -322,13 +322,15 @@ function goPublish(): void {
   }
 
   &__label {
-    font-size: 10px;
+    /* 10px 低于检测器 11px 底线（5 个页面均命中），提至 11px 并加粗选中态 */
+    font-size: 11px;
     line-height: 1;
     color: var(--text-secondary);
     pointer-events: none;
 
     &--active {
       color: var(--color-primary);
+      font-weight: 600;
     }
   }
 

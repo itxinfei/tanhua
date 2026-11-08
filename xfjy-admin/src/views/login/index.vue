@@ -236,7 +236,7 @@ async function handleLogin() {
   opacity: 1;
   letter-spacing: 1px;
   /* 渐变浅区辅助，保证 15px 白字全区域可读 */
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  text-shadow: 0 1px 2px var(--xfjy-overlay-soft);
 }
 
 /* 特性列表（半透明卡片） */
@@ -291,7 +291,7 @@ async function handleLogin() {
   color: var(--xfjy-text-inverse);
   z-index: 2;
   /* 深色底条：12px 小字在渐变最浅区也达 4.8:1 AA（原 0.5 白直落背景仅 1.6:1） */
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--xfjy-overlay-medium);
   padding: var(--xfjy-space-2) var(--xfjy-space-3);
 }
 
@@ -335,10 +335,10 @@ async function handleLogin() {
   /* 品牌主色 #fe3c72 白字仅 3.4:1，按钮降一档到 dark-2 系达 5.1:1 AA */
   --el-button-bg-color: var(--el-color-primary-dark-2);
   --el-button-border-color: var(--el-color-primary-dark-2);
-  --el-button-hover-bg-color: #a8284d;
-  --el-button-hover-border-color: #a8284d;
-  --el-button-active-bg-color: #8f2241;
-  --el-button-active-border-color: #8f2241;
+  --el-button-hover-bg-color: var(--xfjy-primary-dark);
+  --el-button-hover-border-color: var(--xfjy-primary-dark);
+  --el-button-active-bg-color: var(--xfjy-primary-darker);
+  --el-button-active-border-color: var(--xfjy-primary-darker);
 }
 
 .login-footer {

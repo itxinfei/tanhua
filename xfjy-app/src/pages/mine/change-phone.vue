@@ -195,7 +195,7 @@ async function submit() {
 /* 提示文案 #999（≈2.85:1）→ #767676 */
 .tips { font-size: 24rpx; color: var(--text-hint); line-height: 1.6; margin-bottom: 24rpx; }
 .form-card { background: var(--bg-card); border-radius: 24rpx; padding: 8rpx 32rpx; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
-  .form-item { display: flex; align-items: center; padding: 26rpx 0; border-bottom: 1rpx solid var(--border-faint);
+  .form-item { display: flex; align-items: center; padding: 32rpx 0; border-bottom: 1rpx solid var(--border-faint);
     &:last-child { border-bottom: none; }
     .form-label { width: 160rpx; font-size: 28rpx; color: var(--text-primary); flex-shrink: 0; }
     /* 热区 ≥88rpx（44px）：原仅由 line-height 撑高约 38.8rpx，点中困难 */
@@ -204,8 +204,9 @@ async function submit() {
 }
 /* 发送验证码按钮：#fe3c72 on #fff ≈3.4:1 → #c2185b；禁用态 #ccc → #767676。
    触摸热区由 a11y-button 组件内置 min-height:88rpx 兜底（页面级 (0,2,0) 无法覆盖组件 (0,3,0)），
-   此处不再写会失效的 min-height，避免误导维护者 */
-.send-btn { font-size: 26rpx; color: var(--color-primary-text); flex-shrink: 0; margin-left: 16rpx; padding: 12rpx 8rpx;
+   此处不再写会失效的 min-height，避免误导维护者。
+   padding 只保留垂直方向，水平内边距由 a11y-button 的 gap/padding 系统统一提供。 */
+.send-btn { font-size: 26rpx; color: var(--color-primary-text); flex-shrink: 0; margin-left: 16rpx;
   &.disabled { color: var(--text-hint); }
 }
 /* 占位符 #ccc → #767676 */

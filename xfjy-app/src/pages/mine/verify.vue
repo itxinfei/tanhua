@@ -31,6 +31,8 @@
           <input
             v-model="realName"
             maxlength="20"
+            inputmode="text"
+            autocomplete="off"
             placeholder="请输入真实姓名"
             placeholder-class="ph"
             aria-label="真实姓名"
@@ -47,6 +49,8 @@
           <input
             v-model="idCard"
             maxlength="18"
+            inputmode="text"
+            autocomplete="off"
             placeholder="18位身份证号"
             placeholder-class="ph"
             aria-label="身份证号"

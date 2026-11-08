@@ -90,7 +90,7 @@ const columnWidths = ['28%', '14%', '18%', '14%', '16%']
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.65),
+    var(--xfjy-skeleton-shimmer),
     transparent
   );
   animation: sk-shimmer 1.8s ease-in-out infinite;

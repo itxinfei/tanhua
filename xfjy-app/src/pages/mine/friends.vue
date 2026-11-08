@@ -80,10 +80,10 @@
         <a11y-button
           class="empty-cta"
           variant="primary"
-          label="去认识更多人"
+          label="去匹配页认识新朋友"
           @tap="goMatch"
         >
-          去认识更多人
+          去匹配页认识新朋友
         </a11y-button>
       </empty-state>
 

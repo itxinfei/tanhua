@@ -714,6 +714,11 @@ onUnload(() => {
 
   &.disabled {
     background: var(--bg-sub);
+
+    /* 原白字浅灰底不可读：改用 --text-hint，并在暗色下由 token 自动适配 */
+    text {
+      color: var(--text-hint);
+    }
   }
 }
 

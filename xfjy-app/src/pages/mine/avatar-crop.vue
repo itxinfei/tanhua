@@ -82,7 +82,7 @@
       </text>
       <view class="crop-tools">
         <a11y-button
-          variant="text"
+          variant="default"
           label="旋转头像 90 度"
           :disabled="!imageReady || exporting"
           @tap="rotateImage"

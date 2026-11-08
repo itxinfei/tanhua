@@ -148,7 +148,7 @@
       </el-form>
       <template #footer>
         <el-button @click="formVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmSave">保存</el-button>
+        <el-button type="primary" :loading="formSubmitting" @click="confirmSave">保存</el-button>
       </template>
     </el-dialog>
 
@@ -183,7 +183,7 @@
       </el-form>
       <template #footer>
         <el-button @click="batchImportVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmBatchImport">导入</el-button>
+        <el-button type="primary" :loading="batchImporting" @click="confirmBatchImport">导入</el-button>
       </template>
     </el-dialog>
   </div>
@@ -288,6 +288,7 @@ const sensitiveStatusMapping = {
 const formVisible = ref(false)
 const formRef = ref<FormInstance>()
 const editingId = ref<number | null>(null)
+const formSubmitting = ref(false)
 
 const form = reactive<SensitiveWordForm>({
   word: '',
@@ -320,7 +321,8 @@ function handleEdit(row: SensitiveWordItem) {
 async function confirmSave() {
   if (!formRef.value) return
   await formRef.value.validate(async (valid) => {
-    if (!valid) return
+    if (!valid || formSubmitting.value) return
+    formSubmitting.value = true
     try {
       if (editingId.value) {
         await updateSensitiveWordApi(editingId.value, form)
@@ -333,6 +335,8 @@ async function confirmSave() {
       loadData()
     } catch {
       // 错误已由拦截器处理
+    } finally {
+      formSubmitting.value = false
     }
   })
 }
@@ -398,6 +402,7 @@ const batchImportVisible = ref(false)
 const batchImportText = ref('')
 const batchImportCategory = ref('OTHER')
 const batchImportLevel = ref(3)
+const batchImporting = ref(false)
 
 function handleBatchImport() {
   batchImportText.value = ''
@@ -407,6 +412,7 @@ function handleBatchImport() {
 }
 
 async function confirmBatchImport() {
+  if (batchImporting.value) return
   // 按换行、逗号、空格拆分，过滤空字符串并去重
   const words = [...new Set(
     batchImportText.value
@@ -420,6 +426,7 @@ async function confirmBatchImport() {
     return
   }
 
+  batchImporting.value = true
   try {
     const res = await batchImportSensitiveWordsApi(words, batchImportCategory.value, batchImportLevel.value)
     ElMessage.success(`导入完成：成功 ${res.success} 个，失败 ${res.failed} 个`)
@@ -427,6 +434,8 @@ async function confirmBatchImport() {
     loadData()
   } catch {
     // 错误已由拦截器处理
+  } finally {
+    batchImporting.value = false
   }
 }
 

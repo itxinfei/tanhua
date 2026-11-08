@@ -18,7 +18,10 @@
             :maxlength="500"
             auto-height
           />
-          <view class="char-count">
+          <view
+            class="char-count"
+            :class="{ 'near-limit': form.content.length >= 450 }"
+          >
             <text>{{ form.content.length }}/500</text>
           </view>
         </view>
@@ -34,8 +37,7 @@
           class="submit-btn"
           variant="primary"
           block
-          :class="{ disabled: submitting }"
-          :disabled="submitting"
+          :disabled="submitting || !form.content.trim()"
           @tap="handleSubmit"
         >
           <text>{{ submitting ? '提交中…' : '提交反馈' }}</text>
@@ -63,12 +65,12 @@
             重新加载
           </a11y-button>
         </empty-state>
-        <view
+        <empty-state
           v-else-if="myList.length === 0 && !listLoading"
-          class="empty-tip"
-        >
-          <text>暂无反馈记录</text>
-        </view>
+          icon="paperplane"
+          title="暂无反馈记录"
+          desc="您提交的反馈将在这里显示"
+        />
         <view
           v-for="item in myList"
           :key="item.id"
@@ -198,6 +200,7 @@ function statusClass(status: number): string {
   }
 
   .form-content {
+    position: relative;
     margin-top: 24rpx;
     background: var(--bg-sub);
     border-radius: 16rpx;
@@ -209,16 +212,21 @@ function statusClass(status: number): string {
       font-size: 28rpx;
       color: var(--text-primary);
       line-height: 1.6;
+      /* 底部留出计数器空间，避免文字被遮挡 */
+      padding-bottom: 40rpx;
     }
 
+    /* 字符计数器：绝对定位到 textarea 右下角，接近上限 450 字变色警示 */
     .char-count {
-      text-align: right;
-      margin-top: 8rpx;
+      position: absolute;
+      right: 20rpx;
+      bottom: 16rpx;
+      font-size: 22rpx;
+      color: var(--text-hint);
 
-      text {
-        /* 字数统计：原 #ccc 对比不足 */
-        font-size: 22rpx;
-        color: var(--text-hint);
+      &.near-limit {
+        color: var(--color-danger);
+        font-weight: 500;
       }
     }
   }
@@ -234,11 +242,6 @@ function statusClass(status: number): string {
 
   .submit-btn {
     margin-top: 32rpx;
-    /* primary variant 提供底色/热区/按压反馈/字体，此处只处理禁用态 */
-
-    &.disabled {
-      opacity: 0.6;
-    }
   }
 }
 
@@ -253,16 +256,6 @@ function statusClass(status: number): string {
     display: block;
     padding: 8rpx 8rpx 8rpx 16rpx;
     border-left: 6rpx solid var(--color-primary);
-  }
-
-  .empty-tip {
-    text-align: center;
-    padding: 60rpx 0;
-
-    text {
-      font-size: 26rpx;
-      color: var(--text-hint);
-    }
   }
 
   .retry-btn {

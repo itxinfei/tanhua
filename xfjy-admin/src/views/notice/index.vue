@@ -2,7 +2,7 @@
   <div class="page-container">
     <PageHeader title="公告管理" :subtitle="`共 ${total} 条记录`">
       <template #actions>
-        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="primary" :icon="Plus" @click="handleAdd">新增公告</el-button>
+        <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="success" :icon="Plus" @click="handleAdd">新增公告</el-button>
       </template>
     </PageHeader>
 
@@ -121,7 +121,7 @@
       </el-form>
       <template #footer>
         <el-button @click="formVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmSave">保存</el-button>
+        <el-button type="primary" :loading="formSubmitting" @click="confirmSave">保存</el-button>
       </template>
     </el-dialog>
 
@@ -257,6 +257,7 @@ function statusColor(status: string) {
 const formVisible = ref(false)
 const formRef = ref<FormInstance>()
 const editingId = ref<number | null>(null)
+const formSubmitting = ref(false)
 
 const form = reactive<NoticeForm>({
   title: '',
@@ -323,7 +324,8 @@ function handleEdit(row: NoticeItem) {
 async function confirmSave() {
   if (!formRef.value) return
   await formRef.value.validate(async (valid) => {
-    if (!valid) return
+    if (!valid || formSubmitting.value) return
+    formSubmitting.value = true
     try {
       if (editingId.value) {
         await updateNoticeApi(editingId.value, form)
@@ -336,6 +338,8 @@ async function confirmSave() {
       loadData()
     } catch {
       // 错误已由拦截器处理
+    } finally {
+      formSubmitting.value = false
     }
   })
 }

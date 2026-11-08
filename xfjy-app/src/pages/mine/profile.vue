@@ -326,6 +326,36 @@
         </view>
       </view>
     </a11y-dialog>
+
+    <!-- 头像来源选择 bottom-sheet：明确来源，避免系统默认行为不确定 -->
+    <a11y-dialog
+      :visible="avatarSourceSheetVisible"
+      title="更换头像"
+      :mask-closable="true"
+      class="avatar-source-sheet"
+      placement="bottom"
+      @close="avatarSourceSheetVisible = false"
+    >
+      <view class="source-panel">
+        <view class="sheet-grabber" aria-hidden="true" />
+        <a11y-button
+          class="source-item"
+          label="从相册选择"
+          @tap="pickAvatarFrom('album')"
+        >
+          <view class="source-icon i-ph-image" aria-hidden="true" />
+          <text>从相册选择</text>
+        </a11y-button>
+        <a11y-button
+          class="source-item"
+          label="拍照"
+          @tap="pickAvatarFrom('camera')"
+        >
+          <view class="source-icon i-ph-camera" aria-hidden="true" />
+          <text>拍照</text>
+        </a11y-button>
+      </view>
+    </a11y-dialog>
   </view>
 </template>
 
@@ -531,12 +561,22 @@ function validateAvatarFile(file: { size?: number; type?: string }, path: string
   return typeOk ? null : "仅支持 JPG/PNG/WebP 图片";
 }
 
-/** 更换头像：选图 → 校验 → 进入独立裁剪页（1:1 导出后回传上传） */
+/** 头像来源选择弹窗 */
+const avatarSourceSheetVisible = ref(false);
+
+/** 更换头像：先弹出来源选择 bottom-sheet，再选图 */
 function changeAvatar(): void {
   if (avatarUploading.value) return;
+  avatarSourceSheetVisible.value = true;
+}
+
+/** 从指定来源选图 */
+function pickAvatarFrom(source: "album" | "camera"): void {
+  avatarSourceSheetVisible.value = false;
   uni.chooseImage({
     count: 1,
     sizeType: ["compressed"],
+    sourceType: [source],
     success: (res) => {
       const tempPath = res.tempFilePaths[0];
       if (!tempPath) return; // 用户取消
@@ -850,7 +890,10 @@ onShow(async () => {
 
 .edit-textarea {
   width: 100%;
-  height: 200rpx;
+  /* auto + min/max：长文可撑高至 40vh，短文保持 200rpx 不塌陷 */
+  height: auto;
+  min-height: 200rpx;
+  max-height: 40vh;
   box-sizing: border-box;
   padding: 20rpx 24rpx;
   background: var(--bg-sub);
@@ -866,6 +909,44 @@ onShow(async () => {
   gap: 16rpx;
   margin-top: 24rpx;
   justify-content: flex-end;
+}
+
+/* ===== 头像来源选择 bottom-sheet ===== */
+.avatar-source-sheet {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.source-panel {
+  width: 100%;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: 16rpx 32rpx calc(32rpx + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+
+  .sheet-grabber {
+    width: 64rpx;
+    height: 8rpx;
+    border-radius: var(--radius-pill);
+    background: var(--border-light);
+    margin: 0 auto 8rpx;
+  }
+
+  .source-item {
+    display: flex;
+    align-items: center;
+    gap: 20rpx;
+    min-height: 88rpx;
+    font-size: 28rpx;
+    color: var(--text-primary);
+
+    .source-icon {
+      font-size: 40rpx;
+      color: var(--color-primary);
+    }
+  }
 }
 
 </style>

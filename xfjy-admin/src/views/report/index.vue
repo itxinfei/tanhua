@@ -47,7 +47,7 @@
         @selection-change="handleSelectionChange"
         @row-click="onRowClick"
       >
-        <el-table-column type="selection" width="44" align="center" :selectable="isSelectable" reserve-selection />
+        <el-table-column type="selection" width="50" align="center" :selectable="isSelectable" reserve-selection />
         <el-table-column v-if="!isMobile" prop="id" label="ID" width="70" align="center" />
         <el-table-column label="举报人" width="120">
           <template #default="{ row }">
