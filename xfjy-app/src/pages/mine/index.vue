@@ -128,6 +128,7 @@
     <!-- VIP 入口 -->
     <a11y-button
       class="vip-card anim-fade-up anim-delay-2"
+      :class="{ 'is-vip': userInfo?.vip }"
       :label="userInfo?.vip ? '会员中心' : '开通会员'"
       @tap="goVip"
     >
@@ -535,15 +536,43 @@ onShow(() => {
   border-radius: 24rpx;
   border: 2rpx solid rgba(var(--gold-rgb), 0.6);
   box-shadow: 0 8rpx 32rpx rgba(var(--gold-rgb), 0.15);
+  position: relative;
+  z-index: 2;
+
+  /* VIP 流光：仅 is-vip 状态显示 */
+  &.is-vip::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    overflow: hidden;
+    background: linear-gradient(
+      120deg,
+      transparent 20%,
+      rgba(255, 215, 0, 0.15) 45%,
+      rgba(255, 179, 71, 0.25) 50%,
+      rgba(255, 215, 0, 0.15) 55%,
+      transparent 80%
+    );
+    background-size: 200% 200%;
+    animation: vipShimmer 3.5s ease-in-out infinite;
+    pointer-events: none;
+    z-index: -1;
+  }
 
   .vip-left {
     display: flex;
     align-items: center;
     gap: 20rpx;
+    position: relative;
+    z-index: 2;
 
     .vip-icon {
       font-size: 40rpx;
       line-height: 1;
+      /* 金色发光：Phosphor 图标用 color + text-shadow 模拟光晕 */
+      color: var(--gold-light);
+      text-shadow: 0 0 12rpx rgba(var(--gold-rgb), 0.55);
     }
 
     .vip-title {
@@ -564,7 +593,14 @@ onShow(() => {
   .vip-arrow {
     font-size: 36rpx;
     color: var(--gold);
+    position: relative;
+    z-index: 2;
   }
+}
+
+@keyframes vipShimmer {
+  0% { background-position: 200% 200%; }
+  100% { background-position: -100% -100%; }
 }
 
 /* 菜单组：卡片容器，纵向排布，高度由行数 × 行高决定。
