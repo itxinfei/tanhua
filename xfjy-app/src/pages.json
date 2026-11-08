@@ -41,6 +41,14 @@
 			}
 		},
 		{
+			"path": "pages/video/search-result",
+			"style": {
+				"navigationStyle": "custom",
+				"enablePullDownRefresh": true,
+				"backgroundTextStyle": "dark"
+			}
+		},
+		{
 			"path": "pages/auth/login",
 			"style": {
 				"navigationStyle": "custom"
@@ -58,6 +66,12 @@
 				"navigationBarTitleText": "附近的人",
 				"enablePullDownRefresh": true,
 				"backgroundTextStyle": "dark"
+			}
+		},
+		{
+			"path": "pages/chat/index",
+			"style": {
+				"navigationStyle": "custom"
 			}
 		},
 		{
