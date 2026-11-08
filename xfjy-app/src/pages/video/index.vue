@@ -35,17 +35,14 @@
         />
       </a11y-button>
       <a11y-button
-        class="search-entry"
+        class="side-btn"
         label="搜索视频、用户"
         @tap="onSearch"
       >
         <view
-          class="search-entry-ico i-ph-magnifying-glass"
+          class="side-ico i-ph-magnifying-glass"
           aria-hidden="true"
         />
-        <text class="search-entry-text">
-          搜索
-        </text>
       </a11y-button>
     </view>
 
@@ -1846,30 +1843,6 @@ onShareAppMessage(() => ({
   /* 刷新中的图标旋转 */
   .is-spinning {
     animation: refreshSpin 0.8s linear infinite;
-  }
-}
-
-/* 搜索入口：搜索框样式，比纯图标更引导点击 */
-.search-entry {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  min-height: 72rpx;
-  padding: 0 var(--space-md);
-  margin-left: var(--space-xs);
-  border-radius: var(--radius-pill);
-  background: var(--bg-card);
-  flex-shrink: 0;
-
-  .search-entry-ico {
-    width: 32rpx;
-    height: 32rpx;
-    color: var(--text-hint);
-  }
-
-  .search-entry-text {
-    font-size: var(--fs-sm);
-    color: var(--text-hint);
   }
 }
 
