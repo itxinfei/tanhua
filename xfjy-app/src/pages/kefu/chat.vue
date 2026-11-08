@@ -238,6 +238,7 @@ import { getAgentApi } from "@/api/kefu";
 import { getVipStatus } from "@/api/mine";
 import {
   ensureSelfIM,
+  isIMConnected,
   onMessageReceived,
   sendTextMessage,
   getChatHistory,
@@ -259,16 +260,6 @@ const EMOJI_LIST: string[] = [
 
 /** 底部面板类型 */
 type PanelType = "none" | "emoji";
-
-/**
- * 更多面板快捷操作配置（表驱动）。
- *
- * 原「图片 / 拍照」入口已移除：客服场景仅支持文本，点击后只会弹
- * 「暂不支持发送图片」toast，属无效转化路径（P1 转化断点）。
- * 若后续后端支持图片消息，在此表驱动恢复即可。
- */
-interface QuickAction { icon: string; label: string; bg: string; handler: () => void; }
-const QUICK_ACTIONS: QuickAction[] = [];
 
 /** 快捷问题预设（与 FAQ 种子数据呼应，引导首次提问） */
 const QUICK_QUESTIONS: string[] = [
@@ -388,6 +379,17 @@ function onInputFocus(): void {
 
 /** 本地消息自增序号（避免 Date.now() 同毫秒撞 id） */
 let msgSeq = 0;
+/** 接收消息自增序号：msg.time 是秒级时间戳，同秒多条消息相等，用它保证 key 唯一 */
+let recvMsgSeq = 0;
+
+/**
+ * 消息业务指纹：跨「历史快照」与「实时/在途缓冲」两个来源的稳定去重键。
+ * 两来源的本地 id 前缀不同（hist-/recv-），按 id 去重会失效；同一条服务端消息的
+ * 归属/时间戳/内容必然一致，故以此为指纹（历史与实时都经 wukongim.toReceivedMessage 解析，字段同源）。
+ */
+function messageFingerprint(m: Message): string {
+  return `${m.isMine ? "me" : "peer"}|${m.timestamp}|${m.content}`;
+}
 
 /** 发送新消息：追加气泡 → SDK 发送 → 按结果置 sent/failed */
 async function sendMessage(text: string): Promise<void> {
@@ -403,9 +405,18 @@ async function sendMessage(text: string): Promise<void> {
   await deliver(msg);
 }
 
-/** 失败重发：复用原气泡（同一消息在途时忽略，不同消息可并行） */
+/** 失败重发：复用原气泡（同一消息在途时忽略，不同消息可并行）。
+ *  底层连接已断时先 ensureSelfIM 重建，避免红点永久卡死（对齐好友聊天页 resendMessage）。 */
 async function retrySend(msg: Message): Promise<void> {
   if (msg.status === "sending") return;
+  if (!isIMConnected()) {
+    const reconnected = await ensureSelfIM();
+    if (!reconnected) {
+      imLoginFailed.value = true;
+      fail("消息服务未连接，请点击上方「重新连接」");
+      return;
+    }
+  }
   await deliver(msg);
 }
 
@@ -446,20 +457,22 @@ async function loadHistory(): Promise<void> {
     timestamp: msg.time,
     status: "read" as MsgStatus,
   }));
-  // 合并缓冲：按时间排序并以 timestamp 去重（历史可能已含在途消息）
+  // 合并缓冲：按时间排序；缓冲消息加自增序号保证 key 唯一（同秒多条 time 相等）
   const buffered: Message[] = pendingMessages.map((msg) => ({
-    id: `recv-${msg.time}`,
+    id: `recv-${msg.time}-${++recvMsgSeq}`,
     content: msg.content,
     isMine: false,
     timestamp: msg.time,
     status: "read" as MsgStatus,
   }));
   const merged = [...historyItems, ...buffered].sort((a, b) => a.timestamp - b.timestamp);
-  // 用 id 去重而非 timestamp：同一毫秒可有多条消息，timestamp 去重会误丢
+  // 按业务指纹去重：历史(hist-)与在途(recv-)本地 id 前缀不同，按 id 无法识别同一条消息，
+  // 用 归属+时间戳+内容 指纹识别历史快照已包含的在途消息
   const seen = new Set<string>();
   messageList.value = merged.filter((item) => {
-    if (seen.has(item.id)) return false;
-    seen.add(item.id);
+    const fp = messageFingerprint(item);
+    if (seen.has(fp)) return false;
+    seen.add(fp);
     return true;
   });
   // 合并完成后清空缓冲并切到实时通道：后续到达消息直接追加，重试也不会重复合并
@@ -499,7 +512,14 @@ async function reconnectIM(): Promise<void> {
     // 2. 以「用户本人」身份连接 WuKongIM（消息发给客服账号 kefu0001）；
     //    严禁以客服身份登录——会顶掉 admin 工作台且消息 from_uid 错乱
     const ok = await ensureSelfIM();
-    if (!ok) return;
+    if (!ok) {
+      // ensureSelfIM 内部全 catch、只返回 boolean 不抛异常，必须在此显式置错误态，
+      // 否则模板的「客服连接失败 + 重新连接」横幅永不出现，用户只能杀进程重进
+      imLoginFailed.value = true;
+      warn(`[kefu-chat] IM 连接失败，agentId=${agentId.value}`);
+      fail("客服连接失败，请重试");
+      return;
+    }
 
     // 3. 先注册消息到达回调再拉历史：历史是最后一次性赋值的，
     //    在途实时消息先进 pending 缓冲，避免注册晚于拉取导致消息丢失。
@@ -508,7 +528,7 @@ async function reconnectIM(): Promise<void> {
       if (msg.from !== agentId.value) return;
       if (historyLoaded.value) {
         messageList.value.push({
-          id: `recv-${msg.time}`,
+          id: `recv-${msg.time}-${++recvMsgSeq}`,
           content: msg.content,
           isMine: false,
           timestamp: msg.time,

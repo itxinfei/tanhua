@@ -1,8 +1,8 @@
 <template>
   <view class="chat-room">
     <!-- 消息列表 -->
-    <!-- S6：错误边界捕获消息列表渲染异常，@retry 重新拉取历史消息 -->
-    <error-boundary @retry="loadHistory">
+    <!-- S6：错误边界捕获消息列表渲染异常，@retry 走带 try/catch 的安全重试，避免裸 async 重抛 -->
+    <error-boundary @retry="retryLoadHistory">
     <scroll-view
       scroll-y
       class="msg-list"
@@ -442,19 +442,21 @@
       @close="cardPickerVisible = false"
     >
       <view class="card-picker">
-        <view
+        <a11y-button
           v-for="c in cardContacts"
           :key="c.userId"
           class="card-contact-item"
+          :label="`选择 ${c.nickname || c.userId} 发送名片`"
           @tap="selectCardContact(c)"
         >
           <smart-image
             class="card-contact-avatar"
             :src="resolveAvatar(c.avatar)"
             mode="aspectFill"
+            :aria-hidden="true"
           />
           <text class="card-contact-name">{{ c.nickname || c.userId }}</text>
-        </view>
+        </a11y-button>
         <view
           v-if="cardContacts.length === 0"
           class="card-picker-empty"
@@ -795,6 +797,15 @@ let localMsgSeq = 0;
 let recvMsgSeq = 0;
 
 /**
+ * 消息业务指纹：跨「历史快照」与「实时/在途缓冲」两个来源的稳定去重键。
+ * 两来源本地 id 前缀不同（hist-/recv-/local-），按 id 去重会失效；同一条服务端消息的
+ * 归属/时间戳/类型/内容必然一致（历史与实时都经 wukongim.toReceivedMessage 解析，字段同源），故以此为指纹。
+ */
+function messageFingerprint(m: Message): string {
+  return `${m.isMine ? "me" : "peer"}|${m.timestamp}|${m.type}|${m.content}`;
+}
+
+/**
  * 追加消息并通过 IM（WuKongIM）发送
  * 图片/语音：先本地预览，OSS 上传成功后发 URL，成功后把气泡替换为远程地址
  * 任何失败（上传 reject、发送失败）都标记为 failed，可点击气泡重发
@@ -1125,14 +1136,16 @@ async function loadHistory(): Promise<void> {
     timestamp: msg.time,
     status: "read" as MsgStatus,
   }));
-  // 合并缓冲：按时间排序并以 id 去重（历史可能已含在途消息）
+  // 合并缓冲：按时间排序
   const buffered = pendingMessages.map(toReceivedItem);
   const merged = [...historyItems, ...buffered].sort((a, b) => a.timestamp - b.timestamp);
-  // 用 id 去重而非 timestamp：同一毫秒可有多条消息，timestamp 去重会误丢
+  // 按业务指纹去重：历史(hist-)与在途(recv-)本地 id 前缀不同，按 id 无法识别同一条消息，
+  // 用 归属+时间戳+类型+内容 指纹识别历史快照已包含的在途消息，避免重复显示
   const seen = new Set<string>();
   messageList.value = merged.filter((item) => {
-    if (seen.has(item.id)) return false;
-    seen.add(item.id);
+    const fp = messageFingerprint(item);
+    if (seen.has(fp)) return false;
+    seen.add(fp);
     return true;
   });
   // 合并完成后清空缓冲并切到实时通道：后续到达消息直接追加，重试也不会重复合并
@@ -1182,9 +1195,10 @@ async function loadMoreHistory(): Promise<void> {
       timestamp: msg.time,
       status: "read" as MsgStatus,
     }));
-    // id 去重：续拉可能与已加载消息重叠（与 loadHistory 一致）
-    const existingIds = new Set(messageList.value.map((m) => m.id));
-    const deduped = olderItems.filter((m) => !existingIds.has(m.id));
+    // 指纹去重：续拉(hist-more-)与已加载消息(hist-/recv-)id 前缀不同，按 id 无法识别重叠，
+    // 改用业务指纹，避免同一条消息在续拉后重复显示
+    const existingFp = new Set(messageList.value.map(messageFingerprint));
+    const deduped = olderItems.filter((m) => !existingFp.has(messageFingerprint(m)));
     if (deduped.length === 0) {
       noMoreHistory.value = true;
       return;
@@ -1496,7 +1510,7 @@ onUnmounted(() => {
 
 /* 名片选择弹窗 */
 .card-picker { max-height: 60vh; overflow-y: auto; padding: 16rpx 0;
-  .card-contact-item { display: flex; align-items: center; padding: 20rpx 24rpx; min-height: 88rpx;
+  .card-contact-item { display: flex; width: 100%; justify-content: flex-start; align-items: center; padding: 20rpx 24rpx; min-height: 88rpx;
     &:active { background: var(--bg-sub); }
   }
   .card-contact-avatar { width: 72rpx; height: 72rpx; border-radius: 50%; flex-shrink: 0; background: var(--bg-sub); }
