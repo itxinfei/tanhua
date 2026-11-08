@@ -16,7 +16,7 @@ import java.util.Map;
  * 后台视频内容管理Controller
  */
 @RestController
-@RequireRole("ADMIN")
+@RequireRole({"ADMIN", "OPERATOR"})
 @RequestMapping("admin/videos")
 public class AdminVideoController {
 

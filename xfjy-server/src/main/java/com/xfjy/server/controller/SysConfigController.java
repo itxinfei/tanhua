@@ -25,7 +25,7 @@ import java.util.Map;
  * 切换 IM 通道后约 30 秒内全节点生效（Redis 缓存 TTL），无需重启服务
  */
 @RestController
-@RequireRole("ADMIN")
+@RequireRole("SUPER_ADMIN")
 @RequestMapping("admin/sys-config")
 public class SysConfigController {
 

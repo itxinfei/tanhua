@@ -16,7 +16,7 @@ import java.util.Map;
  * 后台评论管理Controller
  */
 @RestController
-@RequireRole("ADMIN")
+@RequireRole({"ADMIN", "OPERATOR"})
 @RequestMapping("admin/comments")
 public class AdminCommentController {
 

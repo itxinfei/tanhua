@@ -16,7 +16,7 @@ import java.util.Map;
  * 后台动态内容管理Controller
  */
 @RestController
-@RequireRole("ADMIN")
+@RequireRole({"ADMIN", "OPERATOR"})
 @RequestMapping("admin/movements")
 public class AdminMovementController {
 
