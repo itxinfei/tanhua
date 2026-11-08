@@ -389,6 +389,7 @@ function getPreviewCanvasEl(): HTMLCanvasElement | null {
   return (host.tagName === "CANVAS" ? host : host.querySelector("canvas")) as HTMLCanvasElement | null;
   // #endif
   // #ifndef H5
+  // eslint-disable-next-line no-unreachable -- uni-app 条件编译：H5 构建时此块被移除
   return null;
   // #endif
 }
