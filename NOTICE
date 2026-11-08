@@ -1,0 +1,12 @@
+心飞交友（xfjy）
+Copyright 2026 itxinfei
+
+本产品依据 Apache License 2.0 授权，许可证全文见仓库根目录 LICENSE 文件。
+
+本产品构建时使用了若干第三方开源组件。这些组件的版权归其各自权利人所有，
+各自的许可证条款以其随分发提供的 LICENSE / NOTICE 文件为准；组件清单与
+核对方式见 THIRD-PARTY-NOTICES.md。
+
+本 NOTICE 仅出于 Apache License 2.0 第 4(d) 条的归属声明目的而提供。
+若随本产品分发的第三方组件自带 NOTICE 文件，分发时应一并保留其内容；
+本文件不替代、也不修改任何第三方组件的许可条款。

@@ -37,6 +37,16 @@ target/
 !/AGENTS.md
 !/CLAUDE.md
 !/pom.xml
+!/CONTRIBUTING.md
+!/SECURITY.md
+!/CODE_OF_CONDUCT.md
+!/NOTICE
+!/THIRD-PARTY-NOTICES.md
+
+# 3.1) 开源社区模板（Gitee 读取 .gitee/ 下的模板文件）
+!/.gitee/
+!/.gitee/ISSUE_TEMPLATE.md
+!/.gitee/PULL_REQUEST_TEMPLATE.md
 
 # 4) CI（只放行 Gitea 自建 CI；GitHub 不做 CI，.github 整体忽略）
 !/.gitea/workflows/**
@@ -134,3 +144,29 @@ dep-tree-all.txt
 docs/**/*.log
 docs/**/*.log.err
 docs/**/e2e-results.json
+
+# 12) 内部过程资料（2026-11-07 开源范围整改）
+#     与 11) 中已排除的审查记录/需求文档/AI 交接同类，补齐漏网项；
+#     保留 docs/screenshots（产品展示）、docs/logo（品牌资产）、
+#     docs/diagrams（架构图）与「架构优化方案」「后台管理系统组件使用规范」等技术文档。
+/docs/UX-AUDIT.md
+/docs/App端UX审查报告-2026-11-06.md
+/docs/后台管理系统页面设计审查报告-2026-11-05.md
+/docs/数据归属审计-2026-11-05.md
+/docs/网关安全审查-2026-11-05.md
+/docs/软删除改造任务分配.md
+/docs/项目管理分析报告-2026-11-05.md
+/docs/archive/
+/docs/agent-rules/
+
+# 13) 二次整改（2026-11-07）：内部运维流程、开发流水账与审查报告
+#     对自托管用户无价值，且暴露内网管理入口、部署路径与内部开发过程；
+#     本地文件保留，仅从 Gitee 收录范围剔除。
+#     通用兜底：后续新增的审查 / 审计报告无需逐条登记文件名。
+/docs/*审查报告*
+/docs/*审查记录*
+/docs/*UI审查*
+/docs/*AUDIT*
+/deploy/gitea/GITEE_WEBHOOK.md
+/deploy/sync-gitee-to-gitea.sh
+/CHANGELOG.md

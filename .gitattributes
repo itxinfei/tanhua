@@ -25,6 +25,11 @@ Jenkinsfile text eol=lf
 *.sql text eol=lf
 *.md text eol=lf
 
+# 仓库白名单文件必须保持 LF（白名单制对行尾敏感，AGENTS.md §8 要求）
+.gitignore text eol=lf
+NOTICE text eol=lf
+.gitee/*.md text eol=lf
+
 # 二进制资源：不做任何处理
 *.jpg binary
 *.jpeg binary

@@ -91,7 +91,7 @@
 
 <table>
   <tr>
-    <td align="center"><h2>11</h2>微服务模块</td>
+    <td align="center"><h2>12</h2>微服务模块</td>
     <td align="center"><h2>12</h2>端统一输出</td>
     <td align="center"><h2>12</h2>中间件技术栈</td>
     <td align="center"><h2>6</h2>核心域服务<br/><sub><code>recommend</code> / <code>elasticsearch</code> 按能力组件另计，早期文档曾以 8 计</sub></td>
@@ -199,7 +199,7 @@
 
 | 项目 | 框架栈 | 核心优势 |
 |------|--------|----------|
-| **xfjy-app** | uni-app + Vue 3.5 + uview-plus + Pinia + Sass | 一套代码输出 12 端（H5 + App + 微信/支付宝/抖音/QQ/百度/快手/飞书/小红书/京东/微信小程序 + 鸿蒙 + 快应用） |
+| **xfjy-app** | uni-app + Vue 3.5 + Pinia + Sass | 一套代码输出 12 端（H5 + App + 微信/支付宝/抖音/QQ/百度/快手/飞书/小红书/京东/微信小程序 + 鸿蒙 + 快应用） |
 | **xfjy-admin** | Vue 3.5 + TypeScript + Element Plus 2.14 + ECharts 6 + Vite 8 + Pinia | 热更新 50ms，Element Plus 开箱即用，TS 全类型安全 |
 | **WuKongIM SDK** | 独立 JS SDK（uni-app 集成） | 前后端 IM 共用同一 SDK，离线消息 / 历史 / 漫游全支持 |
 
@@ -228,6 +228,8 @@
 | 权重导出 | `torch.onnx` + numpy 序列 | float32 向量文件 |
 | 在线落地 | Qdrant `PUT /points` upsert | pointId=userId 免映射检索 |
 | 离线验证 | `--mock` 模式无依赖跑通管线 | 一键验证训练 + 召回链路完整性 |
+
+> 状态说明：训练与权重导出管线已就绪；Qdrant 向量召回由 `xfjy.qdrant.enabled` 开关控制，当前默认关闭，在线候选仍由既有召回链路产出。开启前需完成向量灌库与灰度验证。
 
 ![AI 双塔训练管线](docs/diagrams/recommend-twin-tower.png)
 
@@ -366,7 +368,7 @@ xfjy/
 ├── xfjy-api/                   # @HttpExchange 契约模块（POJO + 接口）
 │
 ├── xfjy-admin/                 # Vue3 + Element Plus + ECharts（管理后台）
-├── xfjy-app/                   # uni-app + Vue 3.5 + uview-plus（12 端）
+├── xfjy-app/                   # uni-app + Vue 3.5（12 端）
 │
 ├── deploy/
 │   ├── docker-compose.app.yml  # 11 个 Java 容器编排（仅 :8090 对外）
@@ -441,8 +443,8 @@ xfjy/
 mysql -u root -p --default-character-set=utf8mb4 -e "CREATE DATABASE IF NOT EXISTS xfjy DEFAULT CHARSET utf8mb4;"
 for f in deploy/mysql/init/*.sql; do mysql -u root -p --default-character-set=utf8mb4 xfjy < "$f"; done
 
-# 2. 克隆
-git clone gitea@yourhost:itxinfei/xfjy.git && cd xfjy
+# 2. 克隆公开仓库
+git clone https://gitee.com/itxinfei/mytanhua.git && cd mytanhua
 
 # 3. 后端一键部署（自动解析 git tag）
 bash deploy/manage.sh deploy all
@@ -509,6 +511,8 @@ curl http://127.0.0.1:18081/actuator/health
 6. 数据库表变更 → **走专属域服务**，禁止跨域写表
 7. Qdrant / Neo4j 调用 → **必须有 `enabled: false` 降级开关**
 
+完整流程见 [CONTRIBUTING.md](CONTRIBUTING.md)；社区行为准则见 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)；安全漏洞请按 [SECURITY.md](SECURITY.md) 私下报告，不要公开提 Issue。
+
 ---
 
 <a id="路线图"></a>
@@ -518,14 +522,14 @@ curl http://127.0.0.1:18081/actuator/health
 |------|------|----------|
 | **P1 核心社交闭环** | ✅ 已完成 | 探花匹配 · 圈子动态 · 短视频 · 即时通讯 · VIP 权益 · 内容审核 |
 | **P2 智能推荐增强** | 🟡 进行中 | Qdrant 向量召回 + Neo4j 二度好友（开关可控，不可用时自动降级） |
-| **P3 实时音视频** | 🟡 进行中 | LiveKit SFU 1v1 通话，WuKongIM Token 签发链路已打通 |
+| **P3 实时音视频** | ⏳ 规划中 | LiveKit SFU 基础设施已就位，1v1 通话接口链路待实现 |
 | **P4 运营增长** | ⏳ 规划中 | 活动中心 · 裂变拉新 · 数据看板增强 · 多端小程序上架 |
 
 ---
 
 ## License
 
-[MIT](LICENSE)
+[Apache-2.0](LICENSE) · 归属声明见 [NOTICE](NOTICE) · 第三方组件清单见 [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES.md)
 
 ---
 

@@ -163,6 +163,7 @@ Copilot / Serena / Trae）开工前必须读完本文件。
   禁止横向溢出页面容器；数字列 `font-variant-numeric: tabular-nums`。
 - 表单：`label-width` 统一 80px，一行 ≤3 字段；详情用 `el-descriptions`（2 列 border），
   禁止用 `el-table` 冒充键值对。
+- 组件使用细则（按钮层级/统一尺寸/表单必填/容器单层边框）：`docs/后台管理系统组件使用规范.md`。
 - 禁止 `!important` 覆盖 EP 内部样式；确需穿透必须 `:deep()` 且同行注释原因。
 - 视觉验收：每页 1280/1440 各截图一次，与 `src/views/user/index.vue` 并排比对
   标题字号/卡片圆角/按钮高度；`npm run lint:style` 新增代码零 warning。
