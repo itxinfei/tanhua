@@ -432,10 +432,23 @@ scroll-view {
   -webkit-text-fill-color: transparent;
 }
 
+/* VIP 金色渐变文字：全局唯一实现，页面勿再各写一份渐变裁切；
+   金色只走 --gold 系 token，与徽章（components/vip-badge.vue）、
+   头像环（components/vip-ring.vue）共同构成 VIP 视觉的唯一入口 */
+.vip-gradient-text {
+  background: linear-gradient(90deg, var(--gold), var(--gold-light), var(--gold));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  /* 小程序/旧内核不支持 text-fill-color 时兜底 */
+  color: transparent;
+}
+
 /* 无障碍：-webkit-text-fill-color: transparent 在强制颜色模式（高对比度）下会让文字彻底消失，
    此处回退为系统色，保证 1.4.3 / 1.4.8 在强制颜色模式下仍可读 */
 @media (forced-colors: active) {
-  .gradient-text {
+  .gradient-text,
+  .vip-gradient-text {
     -webkit-text-fill-color: CanvasText;
     color: CanvasText;
     background: none;
@@ -671,7 +684,9 @@ scroll-view {
   .anim-fade-up,
   .anim-fade-down,
   .anim-fade-in,
-  .anim-slide-up {
+  .anim-slide-up,
+  .vip-badge--pill,
+  .vip-ring-spin {
     animation: none !important;
     transition: none !important;
   }

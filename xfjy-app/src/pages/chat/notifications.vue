@@ -12,9 +12,16 @@
           color="var(--text-inverse)"
         />
       </view>
-      <text class="locked-title">
-        VIP 专享权益
-      </text>
+      <!-- 权益态徽章：统一走 components/vip-badge.vue（营销态，不冒充用户身份） -->
+      <view class="locked-title-row">
+        <vip-badge
+          promo
+          variant="pill"
+        />
+        <text class="locked-title">
+          专享权益
+        </text>
+      </view>
       <text class="locked-desc">
         开通会员即可查看谁喜欢你
       </text>
@@ -136,6 +143,7 @@ import { onLoad, onShow, onPullDownRefresh, onReachBottom } from "@dcloudio/uni-
 import A11yButton from "@/components/a11y-button.vue";
 import SmartImage from "@/components/smart-image.vue";
 import AnnouncementDetailDialog from "@/components/announcement-detail-dialog.vue";
+import VipBadge from "@/components/vip-badge.vue";
 import { useChatStore, type NoticeType } from "@/store/chat";
 import {
   getLikeMessages,
@@ -393,24 +401,23 @@ onReachBottom(async () => {
   background: var(--gradient-brand);
 }
 
-.notice-item { display: flex; align-items: center; padding: 24rpx; min-height: var(--row-h-touch-md); box-sizing: border-box; background: var(--bg-card); border-radius: var(--radius-lg); margin-bottom: 16rpx;
+.notice-item { display: flex; align-items: center; padding: 20rpx 24rpx; min-height: var(--row-h-touch-md); box-sizing: border-box; background: var(--bg-card); border-radius: var(--radius-lg); margin-bottom: 12rpx;
   .avatar-wrap { position: relative; flex-shrink: 0;
-    .avatar { width: 88rpx; height: 88rpx; border-radius: 50%; background: var(--bg-sub); border: 3rpx solid var(--bg-icon-soft); }
-    .type-badge { position: absolute; bottom: -4rpx; right: -4rpx; width: 36rpx; height: 36rpx; border-radius: 50%; border: 3rpx solid var(--text-inverse); display: flex; align-items: center; justify-content: center; font-size: 18rpx; color: var(--text-inverse); }
+    .avatar { width: 80rpx; height: 80rpx; border-radius: 50%; background: var(--bg-sub); border: 2rpx solid var(--bg-icon-soft); }
+    .type-badge { position: absolute; bottom: -4rpx; right: -4rpx; width: 32rpx; height: 32rpx; border-radius: 50%; border: 2rpx solid var(--text-inverse); display: flex; align-items: center; justify-content: center; font-size: 16rpx; color: var(--text-inverse); }
   }
-  .info { flex: 1; margin-left: 20rpx;
-    .nickname { font-size: 28rpx; font-weight: bold; color: var(--text-primary); display: block; }
-    /* #999 → #767676 */
-    .desc { font-size: 24rpx; color: var(--text-hint); margin-top: 6rpx; display: block; }
+  .info { flex: 1; margin-left: 16rpx; min-width: 0;
+    .nickname { font-size: 26rpx; font-weight: 600; color: var(--text-primary); display: block; }
+    .desc { font-size: 24rpx; color: var(--text-hint); margin-top: 4rpx; display: block; line-height: 1.4; }
   }
-  /* #ccc → #767676 */
-  .time { font-size: 22rpx; color: var(--text-hint); flex-shrink: 0; margin-left: 16rpx; }
-  .notice-arrow { font-size: 32rpx; color: var(--text-hint); flex-shrink: 0; margin-left: 12rpx; }
+  .time { font-size: 22rpx; color: var(--text-hint); flex-shrink: 0; margin-left: 12rpx; }
+  .notice-arrow { font-size: 32rpx; color: var(--text-hint); flex-shrink: 0; margin-left: 8rpx; }
 }
 
 /* VIP 权益锁定状态 */
 .locked-state { display: flex; flex-direction: column; align-items: center; padding: 160rpx 48rpx 80rpx;
   .locked-icon { width: 120rpx; height: 120rpx; border-radius: 50%; background: linear-gradient(135deg, var(--gold), var(--gold-soft)); display: flex; align-items: center; justify-content: center; font-size: 56rpx; margin-bottom: 24rpx; box-shadow: 0 8rpx 24rpx rgba(255, 179, 71, 0.35); }
+  .locked-title-row { display: flex; align-items: center; justify-content: center; gap: 10rpx; }
   .locked-title { font-size: 32rpx; color: var(--text-primary); font-weight: bold; }
   .locked-desc { font-size: 24rpx; color: var(--text-hint); margin-top: 12rpx; text-align: center; }
   .locked-btn { margin-top: 40rpx; width: 320rpx; min-height: 88rpx; padding: 0 48rpx; display: flex; align-items: center; justify-content: center; background: linear-gradient(90deg, var(--gold), var(--gold-soft)); color: var(--bg-deep); font-size: 28rpx; font-weight: bold; border-radius: var(--radius-pill); box-sizing: border-box; }

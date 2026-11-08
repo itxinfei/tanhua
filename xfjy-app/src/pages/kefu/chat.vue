@@ -13,10 +13,10 @@
         v-if="isVip"
         class="vip-banner"
       >
-        <uni-icons
-          class="vip-crown"
-          type="vip"
-          size="28"
+        <!-- 身份徽章：统一走 components/vip-badge.vue（仅已开通渲染，banner 本身也只在 isVip 时出现） -->
+        <vip-badge
+          :is-vip="isVip"
+          variant="pill"
         />
         <text class="vip-text">
           VIP 专属客服通道 · 优先服务
@@ -231,6 +231,7 @@ import { ref, computed, nextTick, onUnmounted } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
 import SmartImage from "@/components/smart-image.vue";
+import VipBadge from "@/components/vip-badge.vue";
 import EmptyState from "@/components/empty-state.vue";
 import ErrorBoundary from "@/components/error-boundary.vue";
 import { useUserStore } from "@/store/user";
@@ -603,6 +604,8 @@ onUnmounted(() => {
   /* 底部让出全局 tabbar：H5 由 global-tabbar 写入其实测高度，输入栏落在底栏上方；
      小程序端无此变量，0px 兜底，chat-room 仍满屏（二级页原生无 tabBar，行为同现状） */
   bottom: var(--tab-bar-height, 0px);
+  /* 顶部让出原生导航栏：本页 fixed 从 y=0 铺满，首个内容块（VIP 通道 banner）否则会被导航栏压住一截 */
+  padding-top: var(--window-top, 0px);
   z-index: 997;
   display: flex;
   flex-direction: column;
@@ -612,15 +615,14 @@ onUnmounted(() => {
 .vip-banner { display: flex; align-items: center; justify-content: center; gap: 8rpx;
   margin: 24rpx 24rpx 0; padding: 16rpx 24rpx;
   /* 用 --gradient-brand（同源主色渐变）替代已废弃的 --color-primary-deep 历史紫 */
-  background: var(--gradient-brand); border-radius: 20rpx;
+  background: var(--gradient-brand); border-radius: var(--radius-lg);
   box-shadow: 0 4rpx 16rpx rgba(var(--color-primary-rgb), 0.25);
-  .vip-crown { font-size: 28rpx; color: var(--text-inverse); }
   .vip-text { font-size: 24rpx; color: var(--text-inverse); letter-spacing: 1rpx; font-weight: 500; }
 }
 
 .welcome-tip { display: flex; justify-content: center; align-items: center; gap: 8rpx; margin: 24rpx 0;
   .welcome-icon { font-size: 28rpx; color: var(--color-primary); }
-  text { font-size: 24rpx; color: var(--text-hint); background: var(--bg-card); padding: 10rpx 28rpx; border-radius: 24rpx; }
+  text { font-size: 24rpx; color: var(--text-hint); background: var(--bg-card); padding: 10rpx 28rpx; border-radius: var(--radius-pill); box-shadow: 0 1rpx 4rpx rgba(0, 0, 0, 0.04); }
 }
 
 /* flex:1 配 min-height:0：纵向 flex 子项默认 min-height:auto，
@@ -633,7 +635,7 @@ onUnmounted(() => {
 }
 
 .time-divider { display: flex; justify-content: center; margin: 16rpx 0 24rpx;
-  .time-text { font-size: 22rpx; color: var(--text-hint); background: var(--bg-card); padding: 6rpx 24rpx; border-radius: 24rpx; }
+  .time-text { font-size: 22rpx; color: var(--text-hint); background: var(--bg-card); padding: 8rpx 28rpx; border-radius: var(--radius-pill); box-shadow: 0 1rpx 4rpx rgba(0, 0, 0, 0.04); }
 }
 
 /* DOM 顺序 [对方头像, bubble-wrap, 我的头像]，普通 row：
@@ -661,9 +663,10 @@ onUnmounted(() => {
      客服头像在左→左上角收小 8rpx；我的头像在右→右上角收小；其余三角 32rpx 大圆角。
      min-width:0 + 断行：长文本/连续英文/URL 收在气泡内，防止撑破 flex 容器致页面横向滚动。
      扁平无阴影，靠白/粉底与灰底的色差区分（对标探探） */
-  .bubble { position: relative; min-width: 0; overflow-wrap: anywhere; padding: 20rpx 24rpx; border-radius: 8rpx 32rpx 32rpx 32rpx; background: var(--bg-card); font-size: 28rpx; line-height: 1.5; color: var(--text-primary);
+  .bubble { position: relative; min-width: 0; overflow-wrap: anywhere; padding: 20rpx 24rpx; border-radius: var(--radius-sm) var(--radius-xl) var(--radius-xl) var(--radius-xl); background: var(--bg-card); font-size: 28rpx; line-height: 1.5; color: var(--text-primary);
+    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
     /* 我的消息：纯品牌粉实心（无渐变）+ 白字，右上角收小靠头像侧 */
-    &.mine { background: var(--color-primary); color: var(--text-inverse); border-radius: 32rpx 8rpx 32rpx 32rpx; }
+    &.mine { background: var(--color-primary); color: var(--text-inverse); border-radius: var(--radius-xl) var(--radius-sm) var(--radius-xl) var(--radius-xl); box-shadow: 0 2rpx 12rpx rgba(var(--color-primary-rgb), 0.25); }
   }
 }
 
@@ -674,7 +677,7 @@ onUnmounted(() => {
 .quick-bar::after { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 80rpx; background: linear-gradient(to right, transparent, var(--bg-sub)); pointer-events: none; }
 .quick-list { display: flex; gap: 16rpx; padding: 16rpx 20rpx; }
 /* 快捷问题 chip：#fe3c72 on #fff ≈3.4:1 → #c2185b */
-.quick-chip { flex-shrink: 0; background: var(--bg-card); border: 1rpx solid var(--color-primary-mist); border-radius: 32rpx; padding: 14rpx 28rpx; min-height: 48rpx;
+.quick-chip { flex-shrink: 0; background: var(--bg-card); border: 1rpx solid var(--color-primary-mist); border-radius: var(--radius-pill); padding: 14rpx 28rpx; min-height: 48rpx;
   text { font-size: 24rpx; color: var(--color-primary-text); white-space: nowrap; }
 }
 
@@ -689,8 +692,8 @@ onUnmounted(() => {
 
   &.disabled { background: var(--border); color: var(--text-hint-strong); box-shadow: none; opacity: 1; }
 }
-.text-input { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; transition: background 0.2s, box-shadow 0.2s;
-  &.focus { background: var(--bg-card); box-shadow: 0 0 0 3rpx rgba(var(--color-primary-rgb), 0.35); }
+.text-input { flex: 1; height: 72rpx; background: var(--bg-sub); border-radius: var(--radius-pill); padding: 0 28rpx; font-size: 28rpx; transition: background 0.2s, box-shadow 0.2s;
+  &.focus { background: var(--bg-card); box-shadow: 0 0 0 3rpx rgba(var(--color-primary-rgb), 0.2), 0 2rpx 8rpx rgba(var(--color-primary-rgb), 0.08); }
 }
 
 /* ===== 底部面板 ===== */
@@ -704,6 +707,6 @@ onUnmounted(() => {
 
 .more-grid { display: flex; flex-wrap: wrap; padding: 36rpx 16rpx; }
 .more-item { width: 25%; display: flex; flex-direction: column; align-items: center; gap: 14rpx; }
-.more-icon { width: 104rpx; height: 104rpx; border-radius: 24rpx; display: flex; align-items: center; justify-content: center; font-size: 44rpx; box-shadow: var(--shadow-float); }
+.more-icon { width: 104rpx; height: 104rpx; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; font-size: 44rpx; box-shadow: var(--shadow-float); }
 .more-label { font-size: 24rpx; color: var(--text-secondary); }
 </style>
