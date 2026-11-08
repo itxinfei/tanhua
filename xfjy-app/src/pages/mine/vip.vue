@@ -22,7 +22,7 @@
         class="crown float i-ph-crown"
         aria-hidden="true"
       />
-      <text class="title gradient-gold">
+      <text class="title vip-gradient-text">
         心飞 VIP
       </text>
       <text class="subtitle">
@@ -53,9 +53,16 @@
           aria-hidden="true"
         />
         <view class="status-text">
-          <text class="status-level">
-            {{ vipInfo.levelName }}生效中
-          </text>
+          <!-- 身份徽章：统一走 components/vip-badge.vue，仅在已开通卡片内渲染 -->
+          <view class="status-title-row">
+            <vip-badge
+              :is-vip="vipInfo.isVip"
+              variant="pill"
+            />
+            <text class="status-level">
+              {{ vipInfo.levelName }}生效中
+            </text>
+          </view>
           <text class="status-expire">
             {{ vipInfo.expireText }}到期
           </text>
@@ -239,6 +246,7 @@ import { ref, computed } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
 import A11yRadioGroup from "@/components/a11y-radio-group.vue";
+import VipBadge from "@/components/vip-badge.vue";
 import {
   getVipPackages,
   createVipOrder,
@@ -508,18 +516,7 @@ onLoad(() => {
   .subtitle { font-size: 24rpx; color: rgba(var(--gold-rgb), 0.8); margin-top: 8rpx; display: block; letter-spacing: 2rpx; }
 }
 
-/* 金色渐变文字 */
-.gradient-gold { background: linear-gradient(90deg, var(--gold), var(--gold-light), var(--gold)); -webkit-background-clip: text; color: transparent; }
-
-/* 强制颜色模式下 color:transparent 会让文字彻底消失，需回退为系统文本色 */
-@media (forced-colors: active) {
-  .gradient-gold {
-    color: CanvasText;
-    background: none;
-    -webkit-background-clip: border-box;
-    background-clip: border-box;
-  }
-}
+/* 金色渐变文字统一走 App.vue 的 .vip-gradient-text（全局唯一实现，含强制颜色模式回退） */
 
 /* 装饰光斑 */
 .glow-circle { position: absolute; border-radius: 50%; filter: blur(80rpx); pointer-events: none;
@@ -531,6 +528,7 @@ onLoad(() => {
 .vip-status-card { margin: 24rpx 32rpx 0; background: linear-gradient(135deg, rgba(var(--gold-rgb), 0.2), rgba(var(--gold-soft-rgb), 0.12)); border: 1rpx solid rgba(var(--gold-rgb), 0.4); border-radius: var(--radius-lg); padding: 28rpx 32rpx; display: flex; align-items: center; gap: 20rpx; box-shadow: 0 8rpx 32rpx rgba(var(--gold-rgb), 0.12);
   .status-icon { font-size: 44rpx; }
   .status-text { display: flex; flex-direction: column; gap: 6rpx; }
+  .status-title-row { display: flex; align-items: center; gap: 12rpx; }
   .status-level { font-size: 30rpx; color: var(--gold); font-weight: bold; }
   .status-expire { font-size: 22rpx; color: rgba(var(--gold-rgb), 0.8); }
 }

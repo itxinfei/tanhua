@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { getToken, setToken, removeToken } from "@/utils/request";
 import { login, sendSmsCode } from "@/api/auth";
-import { getUserProfile } from "@/api/mine";
+import { getUserProfile, getVipStatus } from "@/api/mine";
 import { clearVideoCache } from "@/utils/video-cache";
 
 // 用户信息类型
@@ -99,33 +99,39 @@ export const useUserStore = defineStore("user", () => {
 
   /** 从后端拉取最新用户信息（保留本地无后端字段的旧值） */
   async function fetchUserInfo(): Promise<void> {
-    const profile = await getUserProfile();
-    if (!profile) return;
+    // 并行拉取资料与 VIP 状态：VIP 状态独立接口，失败不阻塞资料展示
+    const [profile, vipStatus] = await Promise.allSettled([
+      getUserProfile(),
+      getVipStatus(),
+    ]);
+    if (profile.status === "rejected") return;
+    const p = profile.value;
     // photoAlbum 后端为 JSON 数组字符串，解析失败保留本地旧值
     let album: string[] = userInfo.value?.photoAlbum || [];
-    if (profile.photoAlbum) {
+    if (p.photoAlbum) {
       try {
-        const parsed = JSON.parse(profile.photoAlbum);
+        const parsed = JSON.parse(p.photoAlbum);
         if (Array.isArray(parsed)) album = parsed;
       } catch {
         // 非法 JSON 不覆盖本地
       }
     }
     userInfo.value = {
-      id: profile.id ?? userInfo.value?.id ?? 0,
-      nickname: profile.nickname || userInfo.value?.nickname || "",
-      avatar: profile.avatar || userInfo.value?.avatar || "",
-      gender: profile.gender || userInfo.value?.gender || "",
-      age: Number(profile.age) || userInfo.value?.age || 0,
-      city: profile.city || userInfo.value?.city || "",
-      signature: profile.signature || userInfo.value?.signature || "",
+      id: p.id ?? userInfo.value?.id ?? 0,
+      nickname: p.nickname || userInfo.value?.nickname || "",
+      avatar: p.avatar || userInfo.value?.avatar || "",
+      gender: p.gender || userInfo.value?.gender || "",
+      age: Number(p.age) || userInfo.value?.age || 0,
+      city: p.city || userInfo.value?.city || "",
+      signature: p.signature || userInfo.value?.signature || "",
       verified: userInfo.value?.verified || false,
-      vip: userInfo.value?.vip || false,
+      // VIP 状态以独立接口为准（level > 0 即已开通），不再依赖登录响应的旧值
+      vip: vipStatus.status === "fulfilled" && vipStatus.value.level > 0,
       photoAlbum: album,
       completeness: userInfo.value?.completeness || 0,
-      height: profile.height || userInfo.value?.height || "",
-      education: profile.education || userInfo.value?.education || "",
-      profession: profile.profession || userInfo.value?.profession || "",
+      height: p.height || userInfo.value?.height || "",
+      education: p.education || userInfo.value?.education || "",
+      profession: p.profession || userInfo.value?.profession || "",
     };
   }
 

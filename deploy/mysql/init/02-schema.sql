@@ -601,7 +601,7 @@ INSERT INTO `tb_value_added_service` (`service_code`, `name`, `vip_level_require
   -- ---- 既有权益 ----
   ('super_like',              '超级喜欢',         1, 5,    '每日5次优先曝光喜欢，对方优先收到通知',                     10),
   ('see_who_likes',           '查看谁喜欢我',     1, NULL, '无限制查看喜欢我的人',                                    20),
-  ('unlimited_swipe',         '无限滑动',         2, NULL, '每日推荐滑动次数不限（普通用户50次/天）',                  30),
+  ('unlimited_swipe',         '无限滑动',         1, NULL, '每日推荐滑动次数不限（普通用户50次/天）',                  30),
   ('stealth_visit',           '隐身访问',         2, NULL, '访问他人主页不留访客记录',                                40),
   ('exclusive_service',       '专属客服',         3, NULL, 'VIP 专属客服通道，优先响应',                              50),
   -- ★ v1.0 新增 7 项权益（PRD 定义，原 DB 种子缺失）

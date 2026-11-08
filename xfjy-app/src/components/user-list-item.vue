@@ -10,6 +10,7 @@
       <view class="item-avatar-wrap">
         <smart-image
           class="item-avatar"
+          :class="{ 'item-avatar--vip': vip }"
           :src="avatar"
           mode="aspectFill"
           lazy-load
@@ -51,6 +52,7 @@
       <view class="item-avatar-wrap">
         <smart-image
           class="item-avatar"
+          :class="{ 'item-avatar--vip': vip }"
           :src="avatar"
           mode="aspectFill"
           lazy-load
@@ -126,6 +128,8 @@ interface Props {
   age?: number | string;
   clickable?: boolean;
   online?: boolean;
+  /** 是否 VIP 会员（true 时头像显示金色尊贵边框） */
+  vip?: boolean;
 }
 
 withDefaults(defineProps<Props>(), {
@@ -134,6 +138,7 @@ withDefaults(defineProps<Props>(), {
   age: "",
   clickable: false,
   online: false,
+  vip: false,
 });
 
 const emit = defineEmits<{ (e: "tap-item"): void }>();
@@ -187,6 +192,12 @@ const emit = defineEmits<{ (e: "tap-item"): void }>();
   border: 4rpx solid var(--bg-icon-soft);
   /* 主色分量走 CSS 变量：硬编码 rgba(254,60,114,.12) 在暗色模式下仍是玫红，与 --color-primary 暗色值不同源 */
   box-shadow: 0 4rpx 16rpx rgba(var(--color-primary-rgb), 0.12);
+}
+
+/* VIP 土豪金边框：粗实色金边 + 金色光晕 */
+.item-avatar--vip {
+  border: 8rpx solid var(--gold);
+  box-shadow: 0 0 20rpx rgba(var(--gold-rgb), 0.5), 0 0 40rpx rgba(var(--gold-rgb), 0.25);
 }
 
 /* 在线状态小绿点 */

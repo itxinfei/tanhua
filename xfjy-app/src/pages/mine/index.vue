@@ -25,15 +25,10 @@
           <smart-image
             lazy-load
             class="avatar"
+            :class="{ 'avatar--vip': userInfo?.vip }"
             :src="userInfo?.avatar"
             mode="aspectFill"
             :aria-hidden="true"
-          />
-          <!-- VIP 金色尊贵边框 -->
-          <view
-            v-if="userInfo?.vip"
-            class="avatar-vip-ring"
-            aria-hidden="true"
           />
         </view>
         <view class="user-info">
@@ -47,12 +42,11 @@
             >
               已认证
             </view>
-            <view
-              v-if="userInfo?.vip"
-              class="vip-badge"
-            >
-              VIP
-            </view>
+            <!-- VIP 身份徽章：统一走 components/vip-badge.vue，非 VIP 不渲染 -->
+            <vip-badge
+              :is-vip="userInfo?.vip"
+              variant="pill"
+            />
           </view>
           <text class="uid">
             ID: {{ userInfo?.id || '—' }}
@@ -148,10 +142,11 @@
         aria-hidden="true"
       />
       <view class="vip-left">
-        <!-- 金色徽章：深色皇冠压在金渐变圆角底上 -->
-        <view class="vip-badge" aria-hidden="true">
-          <view class="vip-badge-crown i-ph-crown" />
-        </view>
+        <!-- 金底方徽：统一走 components/vip-badge.vue（营销态，两态都显示，保持布局不变） -->
+        <vip-badge
+          promo
+          variant="emblem"
+        />
         <view class="vip-copy">
           <!-- 已开通：显示 VIP 标识 + 到期时间；未开通：显示「立即」标签 -->
           <view class="vip-title-row">
@@ -259,6 +254,7 @@ import MatchPopup from "@/components/match-popup.vue";
 import SmartImage from "@/components/smart-image.vue";
 import NetworkStatusBar from "@/components/network-status-bar.vue";
 import A11yButton from "@/components/a11y-button.vue";
+import VipBadge from "@/components/vip-badge.vue";
 import { useUserStore } from "@/store/user";
 import { getRelationCounts, FRIEND_TYPE, type RelationCounts } from "@/api/mine";
 
@@ -471,30 +467,10 @@ onShow(() => {
       border: 4rpx solid rgba(255, 255, 255, 0.6);
     }
 
-    /* VIP 金色尊贵边框：旋转渐变光环 */
-    .avatar-vip-ring {
-      position: absolute;
-      top: -10rpx;
-      left: -10rpx;
-      right: -10rpx;
-      bottom: -10rpx;
-      border-radius: 50%;
-      background: conic-gradient(
-        from 0deg,
-        var(--gold),
-        var(--gold-light),
-        var(--gold-soft),
-        var(--gold),
-        var(--gold-light),
-        var(--gold)
-      );
-      z-index: 1;
-      animation: vip-ring-rotate 3s linear infinite;
-    }
-
-    @keyframes vip-ring-rotate {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
+    /* VIP 土豪金边框：粗实色金边 + 金色光晕 */
+    .avatar--vip {
+      border: 8rpx solid var(--gold);
+      box-shadow: 0 0 24rpx rgba(var(--gold-rgb), 0.6), 0 0 48rpx rgba(var(--gold-rgb), 0.3);
     }
 
     .user-info {
@@ -516,14 +492,6 @@ onShow(() => {
           font-size: 20rpx;
           color: var(--text-inverse);
           background: rgba(255, 255, 255, 0.3);
-          padding: 2rpx 12rpx;
-          border-radius: 16rpx;
-        }
-
-        .vip-badge {
-          font-size: 20rpx;
-          color: var(--gold);
-          background: rgba(0, 0, 0, 0.25);
           padding: 2rpx 12rpx;
           border-radius: 16rpx;
         }
@@ -722,29 +690,6 @@ onShow(() => {
     /* flex 子项显式 min-width:0（AGENTS §7.1）：否则长文案会把徽章挤扁 */
     min-width: 0;
     flex: 1;
-
-    /* 金色徽章：金渐变圆角底 + 内侧顶部高光 + 暗投影，深色皇冠压在上面。
-       零 text-shadow、零光晕，靠底色与浮雕传达贵气，缩略后也不糊 */
-    .vip-badge {
-      width: 64rpx;
-      height: 64rpx;
-      border-radius: var(--radius-md);
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(145deg, var(--gold-light) 0%, var(--gold) 45%, var(--gold-deep) 100%);
-      box-shadow:
-        0 4rpx 12rpx rgba(0, 0, 0, 0.35),
-        inset 0 1rpx 0 rgba(255, 255, 255, 0.55);
-
-      .vip-badge-crown {
-        font-size: var(--fs-xl);
-        line-height: 1;
-        /* 深棕压印色（复用卡片渐变收尾 token，避免新增硬编码 hex） */
-        color: var(--vip-card-grad-2);
-      }
-    }
 
     .vip-copy {
       min-width: 0;
