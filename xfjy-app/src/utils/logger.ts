@@ -29,6 +29,17 @@ export const warn = (...args: unknown[]): void => {
   console.warn(TAG, ...args);
 };
 
+/**
+ * 不受 VITE_ENABLE_LOG 开关控制的告警：仅限「脱敏的关键生命周期诊断」。
+ *
+ * 生产构建关闭常规日志是为了避免请求体等敏感信息进入控制台；但 IM 长连接的连接/投递
+ * 失败（只含状态码、reasonCode、目标 uid，绝不携带 token 与消息正文）必须始终可观测，
+ * 否则线上会出现「消息发不出却无任何报错」的盲区。除这类脱敏诊断外禁止使用本函数。
+ */
+export const warnAlways = (...args: unknown[]): void => {
+  console.warn(TAG, ...args);
+};
+
 export const reportError = (...args: unknown[]): void => {
   if (!ENABLE_LOG) return;
   console.error(TAG, ...args);

@@ -21,7 +21,7 @@ import {
   type Conversation,
 } from "wukongimjssdk";
 import { BASE_URL, get } from "./request";
-import { warn } from "@/utils/logger";
+import { warn, warnAlways } from "@/utils/logger";
 
 /** 会话摘要（聊天列表展示用） */
 export interface ChatSession {
@@ -100,19 +100,44 @@ const systemHandlers: SystemHandler[] = [];
 /** 登录状态 */
 let isLoggedIn = false;
 
+/** IM WS 端口（WuKongIM 默认 WebSocket 端口） */
+const IM_WS_PORT = 5200;
+
 /**
- * WK ws 地址：优先用服务端下发的 wsUrl，缺省时从网关基地址推导（http://host:8090 -> ws://host:5200）
+ * IM WS 兜底地址：仅当 BASE_URL 与当前页面主机都无法推导时使用。
+ * 内网开发部署默认值，与后端 im.ws-url 默认值同源；公网发布应靠凭证下发 wsUrl 或同源反代，不依赖此常量。
+ */
+const IM_WS_FALLBACK = `ws://192.168.20.133:${IM_WS_PORT}`;
+
+/** 按页面/接口协议选择 ws/wss：https 页面必须 wss，否则浏览器按混合内容拦截 */
+function wsSchemeOf(httpProtocol: string): string {
+  return httpProtocol === "https:" ? "wss:" : "ws:";
+}
+
+/**
+ * WK ws 地址：优先用服务端下发的 wsUrl，缺省时按 BASE_URL / 当前页面主机推导。
+ *
+ * 关键约束：任何分支都不得回退 127.0.0.1。H5 生产 BASE_URL 是同源相对路径 "/api"，
+ * 手机/平板上的 127.0.0.1 指向设备自身（其上没有 IM 服务），落过去连接必败且无日志，
+ * 表现为消息永久红点。因此相对地址改由当前页面主机推导，极端情况用部署常量兜底。
  */
 function wsAddr(wsUrl?: string): string {
   if (wsUrl) {
     return wsUrl;
   }
+  // 1) 绝对 BASE_URL（dev / App / 小程序）：直接取其主机名推导
   try {
     const url = new URL(BASE_URL);
-    return `ws://${url.hostname}:5200`;
+    return `${wsSchemeOf(url.protocol)}//${url.hostname}:${IM_WS_PORT}`;
   } catch {
-    return "ws://127.0.0.1:5200";
+    // 相对路径（H5 生产 "/api"）无法被 new URL 解析，落入下方页面主机推导
   }
+  // 2) H5：用当前页面主机（nginx 与 IM 同宿主部署），协议随页面 http/https
+  if (typeof window !== "undefined" && window.location?.hostname) {
+    return `${wsSchemeOf(window.location.protocol)}//${window.location.hostname}:${IM_WS_PORT}`;
+  }
+  // 3) 非 H5 且 BASE_URL 异常的极端兜底：部署常量，保证永不落到 127.0.0.1
+  return IM_WS_FALLBACK;
 }
 
 /**
@@ -268,11 +293,17 @@ function connectAndWait(): Promise<boolean> {
       connectManager.removeConnectStatusListener(listener);
       resolve(ok);
     };
-    const timer = setTimeout(() => finish(connectManager.connected()), 5000);
-    const listener = (status: ConnectStatus): void => {
+    const timer = setTimeout(() => {
+      // 5s 无终态：多为网络不可达/WS 地址错误，输出脱敏诊断（仅连接状态与地址，不含 token/消息）
+      warnAlways(`[wukongim] 连接超时未就绪: connected=${connectManager.connected()}, addr=${sdk.config.addr}`);
+      finish(connectManager.connected());
+    }, 5000);
+    const listener = (status: ConnectStatus, reasonCode?: number): void => {
       if (status === ConnectStatus.Connected) {
         finish(true);
       } else if (status === ConnectStatus.ConnectFail) {
+        // reasonCode：1=success 2=authFail 3=subscriberNotExist 4=inBlacklist，0/缺省=unknown
+        warnAlways(`[wukongim] 连接失败: reasonCode=${reasonCode ?? 0}, addr=${sdk.config.addr}`);
         finish(false);
       }
     };
@@ -535,7 +566,8 @@ export async function ensureSelfIM(): Promise<boolean> {
  */
 export async function loginIMDirect(userId: string): Promise<boolean> {
   const token = `xfjy_${userId}_im_token`;
-  return loginIM(userId, token);
+  // 显式传入健壮推导的 WS 地址：凭证端点降级走直连时，也不能让 wsAddr 落到 127.0.0.1
+  return loginIM(userId, token, wsAddr());
 }
 
 /** 断开连接并重置状态 */
@@ -565,7 +597,7 @@ export function isIMConnected(): boolean {
   try {
     return WKSDK.shared().connectManager.connected();
   } catch (err) {
-    warn(`[wukongim] connected() 判活异常，按未连接处理: ${String(err)}`);
+    warnAlways(`[wukongim] connected() 判活异常，按未连接处理: ${String(err)}`);
     return false;
   }
 }
@@ -643,7 +675,7 @@ async function sendMessagePayload(to: string, text: string): Promise<boolean> {
   // 未连接直接返回 false，不进 SDK 队列，让气泡走现有 failed 红点 + 点击重发链路。
   // 文本内容可能含隐私，日志只记录投递目标 uid，不打印 text。
   if (!isIMConnected()) {
-    warn(`[wukongim] 发送中止：IM WebSocket 未连接，to=${to}`);
+    warnAlways(`[wukongim] 发送中止：IM WebSocket 未连接，to=${to}`);
     return false;
   }
   try {
@@ -653,7 +685,7 @@ async function sendMessagePayload(to: string, text: string): Promise<boolean> {
     return true;
   } catch (err) {
     // catch 不得空吞：记录投递目标与异常上下文，返回 false 由消费方置 failed
-    warn(`[wukongim] 消息发送异常，to=${to}, err=${String(err)}`);
+    warnAlways(`[wukongim] 消息发送异常，to=${to}, err=${String(err)}`);
     return false;
   }
 }
