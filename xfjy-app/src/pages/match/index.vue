@@ -124,7 +124,7 @@
             <text class="nickname">
               {{ card.nickname }}
             </text>
-            <text class="age">
+            <text class="age-badge">
               {{ card.age }}
             </text>
           </view>
@@ -1018,7 +1018,7 @@ onShareAppMessage(() => ({
     height: 60rpx;
     min-height: 60rpx;
     padding: 0 20rpx;
-    border-radius: 30rpx;
+    border-radius: var(--radius-pill);
     background: rgba(0, 0, 0, 0.28);
     border: 1rpx solid rgba(255, 255, 255, 0.45);
     font-size: 26rpx;
@@ -1114,26 +1114,29 @@ onShareAppMessage(() => ({
       display: flex;
       align-items: center;
       gap: 12rpx;
+      margin-bottom: 16rpx;
 
       .nickname {
         font-size: 40rpx;
         font-weight: bold;
         color: var(--text-inverse);
-        /* 长昵称不撑破卡片：单行省略，年龄胶囊保持可读 */
-        flex: 1;
+        /* 长昵称不撑破卡片：单行省略，年龄胶囊紧跟其后 */
+        flex: 0 1 auto;
         min-width: 0;
+        max-width: 60%;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
 
-      .age {
+      .age-badge {
+        flex-shrink: 0;
         font-size: 24rpx;
         font-weight: bold;
         color: var(--text-inverse);
         background: rgba(var(--color-primary-rgb), 0.85);
         padding: 2rpx 16rpx;
-        border-radius: 16rpx;
+        border-radius: var(--radius-pill);
       }
     }
 
@@ -1141,7 +1144,6 @@ onShareAppMessage(() => ({
       display: flex;
       align-items: center;
       gap: 12rpx;
-      margin-top: 12rpx;
 
       .fate-label {
         font-size: 22rpx;
@@ -1152,7 +1154,7 @@ onShareAppMessage(() => ({
         flex: 1;
         height: 12rpx;
         background: rgba(255, 255, 255, 0.25);
-        border-radius: 6rpx;
+        border-radius: var(--radius-pill);
         overflow: hidden;
       }
 
@@ -1162,7 +1164,7 @@ onShareAppMessage(() => ({
         width: 100%;
         height: 100%;
         background: var(--gradient-brand-h);
-        border-radius: 6rpx;
+        border-radius: var(--radius-pill);
         transform-origin: left center;
         transition: transform 0.4s ease-out;
       }
@@ -1204,7 +1206,7 @@ onShareAppMessage(() => ({
         background: rgba(255, 255, 255, 0.24);
         border: 1rpx solid rgba(255, 255, 255, 0.35);
         padding: 4rpx 16rpx;
-        border-radius: 20rpx;
+        border-radius: var(--radius-pill);
       }
     }
   }
@@ -1217,7 +1219,7 @@ onShareAppMessage(() => ({
     font-weight: 900;
     letter-spacing: 4rpx;
     padding: 8rpx 32rpx;
-    border-radius: 12rpx;
+    border-radius: var(--radius-md);
     border: 6rpx solid;
 
     &.like {
@@ -1246,7 +1248,7 @@ onShareAppMessage(() => ({
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 32rpx;
+  gap: 24rpx;
   padding: 24rpx 0;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.3), transparent);
 
@@ -1308,12 +1310,16 @@ onShareAppMessage(() => ({
     }
 
     &.like {
-      /* 主操作：实心主色，视觉权重高于其余四键 */
+      /* 主操作：实心主色 + 更大尺寸，视觉权重高于其余四键 */
+      width: 112rpx;
+      height: 112rpx;
       background: var(--color-primary);
       border: 4rpx solid var(--color-primary);
+      margin-top: -8rpx;
 
       .action-ico,
       .action-label { color: var(--text-inverse); }
+      .action-ico { font-size: 40rpx; }
     }
 
     &.boost {

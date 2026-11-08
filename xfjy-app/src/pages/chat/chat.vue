@@ -1286,6 +1286,8 @@ async function reconnectIM(): Promise<void> {
     const ok = await ensureSelfIM();
     if (!ok) {
       imLoginFailed.value = true;
+      // 撒掉骨架屏：连接已失败，不再是「加载中」，避免骨架 + 错误空态 + toast 三重叠加（P1-2）
+      historyLoading.value = false;
       warn(`[chat] IM 连接失败，userId=${userId.value}`);
       fail("消息服务连接失败，请重试");
       return;

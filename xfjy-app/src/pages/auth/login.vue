@@ -674,12 +674,13 @@ async function handleLogin() {
   }
 }
 
+/* 品牌区：压缩高度让表单首屏可见（原 80rpx 空白过多） */
 .brand {
   display: flex;
   flex-direction: column;
   align-items: center;
   /* padding-top 由 :style 动态设置（statusBarHeight + 90px），避让刘海/挖孔 */
-  padding-bottom: 80rpx;
+  padding-bottom: 48rpx;
 
   .logo {
     width: 160rpx;
@@ -692,7 +693,7 @@ async function handleLogin() {
     font-size: 48rpx;
     font-weight: bold;
     color: var(--text-inverse);
-    margin-top: 24rpx;
+    margin-top: 20rpx;
   }
 
   .slogan {
@@ -701,14 +702,14 @@ async function handleLogin() {
        再加极轻文字阴影，防止装饰心形/渐变局部偏亮时对比度波动 */
     color: var(--text-inverse);
     text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.18);
-    margin-top: 12rpx;
+    margin-top: 8rpx;
   }
 }
 
 .form {
   background: var(--bg-card);
   border-radius: var(--radius-xl);
-  padding: 48rpx 40rpx;
+  padding: 40rpx 32rpx;
   box-shadow: 0 8rpx 40rpx rgba(0, 0, 0, 0.06);
 }
 
@@ -744,7 +745,7 @@ async function handleLogin() {
   .input {
     height: 88rpx;
     border: 2rpx solid var(--border-light);
-    border-radius: 16rpx;
+    border-radius: var(--radius-md);
     padding: 0 24rpx;
     font-size: 32rpx;
     background: var(--bg-sub);
@@ -804,7 +805,7 @@ async function handleLogin() {
   /* 可点击区域比视觉区域大：min-height 88rpx 保证最小热区，padding 扩展点击范围 */
   min-height: 88rpx;
   padding: 16rpx 0;
-  margin: 32rpx 0;
+  margin: 24rpx 0;
   box-sizing: content-box;
 
   /* 48rpx 视觉尺寸（WCAG 2.5.5 建议 44px≈88rpx 热区由外层 a11y-button 的 min-height:88rpx 保证） */

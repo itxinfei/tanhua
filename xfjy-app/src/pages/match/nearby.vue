@@ -367,7 +367,10 @@ onPullDownRefresh(async () => {
 .filter-bar { display: flex; align-items: center; gap: 12rpx; padding: 20rpx 24rpx; background: var(--bg-card); position: sticky; top: var(--window-top, 0px); z-index: 10; box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
   /* 不写 min-height：a11y-button default 变体已内置 88rpx 保底（组件规则特异性更高，实际胜出），
      原 64rpx 是误导性违规字面量，删除后胶囊高度按 88rpx 达标 */
-  .filter-item { display: flex; align-items: center; justify-content: center; padding: 0 26rpx; border-radius: 32rpx; font-size: 24rpx; line-height: 1; color: var(--text-hint-strong); background: var(--bg-sub); transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  .filter-item { display: flex; align-items: center; justify-content: center; padding: 0 26rpx; border-radius: var(--radius-pill); font-size: 24rpx; line-height: 1; color: var(--text-hint-strong); background: var(--bg-sub); transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    /* 胶囊文字不换行 + 不收缩：避免「不限距离」被压成两行贴边（P1-3） */
+    white-space: nowrap;
+    flex-shrink: 0;
     &.active { background: var(--gradient-brand); color: var(--text-inverse); box-shadow: var(--shadow-primary); }
     &.gender.active { background: var(--gradient-brand); }
   }
@@ -384,7 +387,7 @@ onPullDownRefresh(async () => {
 }
 
 /* 距离标签 */
-.distance-tag { margin-top: 12rpx; display: inline-flex; align-items: center; gap: 6rpx; background: var(--bg-icon-soft); border-radius: 20rpx; padding: 6rpx 16rpx;
+.distance-tag { margin-top: 12rpx; display: inline-flex; align-items: center; gap: 6rpx; background: var(--bg-icon-soft); border-radius: var(--radius-pill); padding: 6rpx 16rpx;
   text { font-size: 22rpx; color: var(--color-primary-text); font-weight: 500; }
   .distance-tag__ico { width: 22rpx; height: 22rpx; color: var(--color-primary-text); }
 }
