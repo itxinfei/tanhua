@@ -14,6 +14,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * 网关 IP 限流全局过滤器（Redis 固定窗口计数器）
@@ -29,9 +30,17 @@ public class RateLimitGlobalFilter implements GlobalFilter, Ordered {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RateLimitGlobalFilter.class);
 
-    /** 需要限流的 POST 路径（发布类写操作） */
+    /** 需要限流的 POST 路径（发布类写操作，精确匹配） */
     private static final Set<String> LIMITED_PATHS = Set.of(
             "/movements", "/comments", "/small-videos", "/users/report");
+
+    /**
+     * 视频评论发布路径模式：/small-videos/{id}/comments。
+     * 与 {@code /comments} 同为发布类写操作，但挂在 /small-videos 前缀下，需单独匹配。
+     * 注意：仅匹配此模式，不匹配 /play、/like、/dislike、/userFocus 等高频互动子路径。
+     */
+    private static final Pattern VIDEO_COMMENT_PATTERN =
+            Pattern.compile("^/small-videos/[^/]+/comments$");
 
     private static final String KEY_PREFIX = "XFJY_GATEWAY_LIMIT_";
     private static final Duration WINDOW = Duration.ofSeconds(60);
@@ -79,15 +88,17 @@ public class RateLimitGlobalFilter implements GlobalFilter, Ordered {
     }
 
     /**
-     * 路径是否命中限流名单（精确匹配或一级子路径）
+     * 路径是否命中限流名单。
+     *
+     * <p>仅精确匹配发布类端点 + 视频评论发布模式，不做前缀模糊匹配——
+     * /small-videos/{id}/play、/like、/dislike、/userFocus 等高频互动子路径
+     * 不能被误限（曾因 startsWith 一级子路径匹配导致 App 刷视频 5 次即 429）。</p>
      */
     private boolean isLimitedPath(String path) {
-        for (String limited : LIMITED_PATHS) {
-            if (path.equals(limited) || path.startsWith(limited + "/")) {
-                return true;
-            }
+        if (LIMITED_PATHS.contains(path)) {
+            return true;
         }
-        return false;
+        return VIDEO_COMMENT_PATTERN.matcher(path).matches();
     }
 
     /**
