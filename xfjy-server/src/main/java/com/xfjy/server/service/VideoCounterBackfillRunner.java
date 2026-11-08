@@ -74,8 +74,18 @@ public class VideoCounterBackfillRunner implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         Stats stats = new Stats();
+        // 前缀下既有点赞计数值键，也有 QUANZI_COMMENT_LIKE_USER_{userId}_{videoId} 去重标记键；
+        // 只有后接 24 位 ObjectId 的键才是视频点赞数来源。
         Set<String> likeKeys = this.redisTemplate.keys(LIKE_KEY_PREFIX + "*");
-        stats.likeKeysInRedis = likeKeys == null ? 0 : likeKeys.size();
+        Set<String> likeCountKeys = new java.util.HashSet<>();
+        if (likeKeys != null) {
+            for (String key : likeKeys) {
+                if (key.matches("^" + LIKE_KEY_PREFIX + "[0-9a-fA-F]{24}$")) {
+                    likeCountKeys.add(key);
+                }
+            }
+        }
+        stats.likeKeysInRedis = likeCountKeys.size();
 
         Path audit = resolveAuditPath();
         LOGGER.info("[BACKFILL] 模式={} 审计文件={}", this.dryRun ? "DRY-RUN" : "APPLY", audit);
@@ -138,7 +148,7 @@ public class VideoCounterBackfillRunner implements ApplicationRunner {
                     }
 
                     String likeValue = likeValues == null ? null : likeValues.get(i);
-                    boolean hasLikeSource = likeKeys != null && likeKeys.contains(LIKE_KEY_PREFIX + videoId);
+                    boolean hasLikeSource = likeCountKeys.contains(LIKE_KEY_PREFIX + videoId);
                     boolean hasCommentSource = commentAvailable && commentCountMap.containsKey(videoId);
                     boolean skip = !hasLikeSource || !hasCommentSource;
                     if (skip) {
