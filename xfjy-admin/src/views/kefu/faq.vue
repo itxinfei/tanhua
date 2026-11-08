@@ -28,7 +28,7 @@
       </el-form-item>
     </SearchBar>
 
-    <TableCard>
+    <TableCard :skeleton="loading && !tableData.length">
       <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
         <el-table-column v-if="!isMobile" prop="id" label="ID" width="70" align="center" />
         <el-table-column prop="category" label="分类" width="110" align="center">
@@ -55,7 +55,7 @@
           </template>
         </el-table-column>
         <template #empty>
-          <TableEmpty description="暂无FAQ数据" />
+          <TableEmpty description="暂无FAQ数据" hint="点击右上角「新增FAQ」添加常见问题" />
         </template>
       </el-table>
       <template #pagination>

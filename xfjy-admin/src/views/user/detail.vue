@@ -25,21 +25,30 @@
                     {{ detail.status === 'NORMAL' ? '正常' : '已封禁' }}
                   </el-tag>
                 </div>
-                <div class="profile-meta">
-                  <span>ID: {{ detail.id }}</span>
-                  <span>手机: {{ detail.mobile }}</span>
-                  <span>年龄: {{ detail.age }}</span>
-                  <span>城市: {{ detail.city }}</span>
+                <div class="info-group">
+                  <div class="info-group__title">账号信息</div>
+                  <div class="profile-meta">
+                    <span>ID: {{ detail.id }}</span>
+                    <span>手机: {{ detail.mobile }}</span>
+                    <span>年龄: {{ detail.age }}</span>
+                    <span>城市: {{ detail.city }}</span>
+                  </div>
                 </div>
-                <div class="profile-meta">
-                  <span>学历: {{ detail.edu || '—' }}</span>
-                  <span>行业: {{ detail.industry || '—' }}</span>
-                  <span>收入: {{ detail.income || '—' }}</span>
-                  <span>婚姻: {{ detail.marriage || '—' }}</span>
+                <div class="info-group">
+                  <div class="info-group__title">个人资料</div>
+                  <div class="profile-meta">
+                    <span>学历: {{ detail.edu || '—' }}</span>
+                    <span>行业: {{ detail.industry || '—' }}</span>
+                    <span>收入: {{ detail.income || '—' }}</span>
+                    <span>婚姻: {{ detail.marriage || '—' }}</span>
+                  </div>
                 </div>
-                <div class="profile-meta">
-                  <span>注册: {{ detail.createdAt }}</span>
-                  <span>最后活跃: {{ detail.lastActiveAt }}</span>
+                <div class="info-group">
+                  <div class="info-group__title">活跃时间</div>
+                  <div class="profile-meta">
+                    <span>注册: {{ detail.createdAt }}</span>
+                    <span>最后活跃: {{ detail.lastActiveAt }}</span>
+                  </div>
                 </div>
                 <div v-if="detail.signature" class="profile-signature">签名: {{ detail.signature }}</div>
                 <div v-if="detail.freezeReason" class="freeze-reason">封禁原因: {{ detail.freezeReason }}</div>
@@ -1075,6 +1084,14 @@ watch(activeTab, async (tab) => {
   align-items: center;
   gap: var(--xfjy-space-2);
   margin-bottom: var(--xfjy-space-2);
+}
+
+.info-group__title {
+  font-size: var(--xfjy-font-size-xs);
+  color: var(--xfjy-text-secondary);
+  font-weight: 600;
+  margin-top: var(--xfjy-space-3);
+  margin-bottom: var(--xfjy-space-1);
 }
 
 .profile-meta {

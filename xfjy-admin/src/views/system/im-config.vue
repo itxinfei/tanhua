@@ -119,7 +119,7 @@
     </TableCard>
 
     <!-- 全部配置列表 -->
-    <TableCard title="全部系统配置">
+    <TableCard title="全部系统配置" :skeleton="loading && !configList.length">
       <el-table :data="configList" border stripe>
         <el-table-column label="配置键" prop="configKey" width="220" />
         <el-table-column label="配置值" prop="configValue" width="160">

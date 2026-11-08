@@ -23,7 +23,7 @@
       </el-form-item>
     </SearchBar>
 
-    <TableCard>
+    <TableCard :skeleton="loading && !tableData.length">
       <template #batch v-if="selectedRows.length > 0">
         <span class="batch-count">已选 {{ selectedRows.length }} 项</span>
         <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="danger" size="small" @click="handleBatchDelete">批量删除</el-button>
@@ -99,7 +99,7 @@
           </template>
         </el-table-column>
         <template #empty>
-          <TableEmpty description="暂无视频数据" />
+          <TableEmpty description="暂无视频数据" hint="视频由 App 端用户发布，暂无数据时无需操作" />
         </template>
       </el-table>
       <template #pagination>

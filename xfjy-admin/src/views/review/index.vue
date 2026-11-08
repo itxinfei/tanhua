@@ -29,7 +29,8 @@
     <div v-if="!isMobile" class="shortcut-bar">
       <el-icon class="shortcut-icon"><InfoFilled /></el-icon>
       <span><kbd>A</kbd> 通过当前项</span>
-      <span><kbd>R</kbd> 驳回当前项</span>
+      <span><kbd>R</kbd> 驳回（自定义原因）</span>
+      <span><kbd>1</kbd>~<kbd>5</kbd> 快速驳回（预设原因）</span>
       <span><kbd>←</kbd><kbd>→</kbd>（或 <kbd>J</kbd><kbd>K</kbd>）切换上一条 / 下一条</span>
       <span class="shortcut-tip">处理后自动跳转下一条待审内容</span>
     </div>
@@ -65,7 +66,21 @@
           </el-button>
         </div>
 
-        <div v-loading="loading" class="queue-list">
+        <div v-loading="loading && tableData.length > 0" class="queue-list">
+          <!-- 首屏骨架：首次加载（无数据）时用结构化骨架替代 spinner -->
+          <template v-if="loading && tableData.length === 0">
+            <div
+              v-for="i in 5"
+              :key="`sk-${i}`"
+              class="queue-item queue-item--skeleton"
+            >
+              <div class="sk-checkbox" />
+              <div class="queue-item-body">
+                <div class="sk-line sk-line--short" />
+                <div class="sk-line sk-line--long" />
+              </div>
+            </div>
+          </template>
           <div
             v-for="row in tableData"
             :key="row.id"
@@ -176,6 +191,16 @@
 
           <div class="detail-footer">
             <template v-if="currentItem.status === 'PENDING'">
+              <div class="reject-chips">
+                <span class="reject-chips__label">快速驳回：</span>
+                <el-tag
+                  v-for="(reason, idx) in rejectPresets"
+                  :key="reason"
+                  class="reject-chip"
+                  :class="{ 'is-disabled': submitting }"
+                  @click="quickReject(reason)"
+                >{{ idx + 1 }} {{ reason }}</el-tag>
+              </div>
               <el-button type="success" :loading="submitting" @click="handleApprove(currentItem)">
                 通过（A）
               </el-button>
@@ -231,6 +256,7 @@ import {
   batchRejectApi,
 } from '@/api/review'
 import type { ReviewItem, ReviewQuery } from '@/api/review'
+import { freezeUserApi } from '@/api/user'
 import { formatShortTime } from '@/utils/format'
 
 // 响应式：移动端纵向堆叠 + 禁用键盘快捷键
@@ -368,16 +394,19 @@ async function handleApprove(row: ReviewItem | null) {
 }
 
 // 驳回
+const rejectPresets = ['含违规图片', '含不当言论', '涉嫌广告推广', '内容低俗', '其他'] as const
 const rejectDialogVisible = ref(false)
 const rejectReason = ref('')
 const batchMode = ref(false)
 const rejectTarget = ref<ReviewItem | null>(null)
+const freezeAuthor = ref(false)
 
 function handleReject(row: ReviewItem | null) {
   if (!row || submitting.value || row.status !== 'PENDING') return
   batchMode.value = false
   rejectTarget.value = row
   rejectReason.value = ''
+  freezeAuthor.value = false
   rejectDialogVisible.value = true
 }
 
@@ -387,6 +416,22 @@ function handleBatchReject() {
   rejectTarget.value = null
   rejectReason.value = ''
   rejectDialogVisible.value = true
+}
+
+/** 快速驳回：以预设原因一步完成，不打断键盘流 */
+async function quickReject(reason: string) {
+  const item = currentItem.value
+  if (!item || submitting.value || item.status !== 'PENDING') return
+  submitting.value = true
+  try {
+    await rejectReviewApi(item.id, reason)
+    ElMessage.success('已驳回')
+    await advanceAfterProcess(item.id)
+  } catch {
+    // 错误已由拦截器统一提示，保留在当前项允许重试
+  } finally {
+    submitting.value = false
+  }
 }
 
 async function confirmReject() {
@@ -406,7 +451,17 @@ async function confirmReject() {
       const target = rejectTarget.value
       if (!target) return
       await rejectReviewApi(target.id, reason)
-      ElMessage.success('已驳回')
+      // 勾选"同时封禁发布者"时追加封禁（驳回已成功，封禁失败仅提示不回滚）
+      if (freezeAuthor.value && target.userId) {
+        try {
+          await freezeUserApi(target.userId, reason)
+          ElMessage.success('已驳回并封禁发布者')
+        } catch {
+          ElMessage.success('已驳回（封禁发布者失败，请到用户管理手动处理）')
+        }
+      } else {
+        ElMessage.success('已驳回')
+      }
       rejectDialogVisible.value = false
       await advanceAfterProcess(target.id)
     }
@@ -495,6 +550,9 @@ function onKeydown(event: KeyboardEvent) {
   } else if (item && (key === 'r' || key === 'R') && item.status === 'PENDING') {
     event.preventDefault()
     handleReject(item)
+  } else if (item && /^[1-5]$/.test(key) && item.status === 'PENDING') {
+    event.preventDefault()
+    quickReject(rejectPresets[Number(key) - 1])
   } else if (key === 'ArrowLeft' || key === 'j' || key === 'J') {
     event.preventDefault()
     stepSelect(-1)
@@ -793,10 +851,34 @@ kbd {
 
 .detail-footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--xfjy-space-3);
   padding: var(--xfjy-space-4) var(--xfjy-space-5);
   border-top: 1px solid var(--xfjy-border-light);
+}
+
+.reject-chips {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--xfjy-space-2);
+}
+
+.reject-chips__label {
+  font-size: var(--xfjy-font-size-xs);
+  color: var(--xfjy-text-secondary);
+}
+
+.reject-chip {
+  cursor: pointer;
+}
+
+.reject-chip.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .detail-footer .el-button {
@@ -828,6 +910,64 @@ kbd {
   .detail-pane {
     flex: 1;
     min-height: 0;
+  }
+}
+
+/* ==================== 首屏骨架 ==================== */
+.queue-item--skeleton {
+  pointer-events: none;
+}
+
+.sk-checkbox {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border-radius: 3px;
+  background: var(--xfjy-bg-hover);
+  position: relative;
+  overflow: hidden;
+}
+
+.sk-line {
+  height: 12px;
+  border-radius: var(--xfjy-radius-sm);
+  background: var(--xfjy-bg-hover);
+  position: relative;
+  overflow: hidden;
+}
+
+.sk-line--short {
+  width: 45%;
+  margin-bottom: var(--xfjy-space-2);
+}
+
+.sk-line--long {
+  width: 85%;
+}
+
+.sk-checkbox::after,
+.sk-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  animation: queue-sk-shimmer 1.8s ease-in-out infinite;
+}
+
+@keyframes queue-sk-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk-checkbox::after,
+  .sk-line::after {
+    animation: none;
   }
 }
 </style>

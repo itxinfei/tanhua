@@ -19,7 +19,7 @@
       </el-form-item>
     </SearchBar>
 
-    <TableCard>
+    <TableCard :skeleton="loading && !tableData.length">
       <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
         <el-table-column v-if="!isMobile" prop="id" label="ID" width="70" align="center" />
         <el-table-column v-if="!isMobile" prop="userId" label="用户ID" width="90" align="center" />
@@ -64,7 +64,7 @@
           </template>
         </el-table-column>
         <template #empty>
-          <TableEmpty description="暂无反馈数据" />
+          <TableEmpty description="暂无反馈数据" hint="反馈由 App 端用户提交，暂无数据时无需操作" />
         </template>
       </el-table>
       <template #pagination>

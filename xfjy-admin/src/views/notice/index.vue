@@ -34,7 +34,7 @@
       </el-form-item>
     </SearchBar>
 
-    <TableCard>
+    <TableCard :skeleton="loading && !tableData.length">
       <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
         <el-table-column v-if="!isMobile" prop="id" label="ID" width="70" align="center" />
         <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip />
@@ -66,7 +66,7 @@
           </template>
         </el-table-column>
         <template #empty>
-          <TableEmpty description="暂无公告数据" />
+          <TableEmpty description="暂无公告数据" hint="点击右上角「新增公告」发布第一条公告" />
         </template>
       </el-table>
       <template #pagination>
@@ -96,7 +96,27 @@
           </el-select>
         </el-form-item>
         <el-form-item label="内容" prop="content">
-          <el-input v-model="form.content" type="textarea" :rows="6" placeholder="请输入公告内容" maxlength="1000" show-word-limit />
+          <div class="rich-editor">
+            <div class="rich-editor__toolbar">
+              <el-button-group>
+                <el-button size="small" title="加粗" @click="execCmd('bold')"><b>B</b></el-button>
+                <el-button size="small" title="斜体" @click="execCmd('italic')"><i>I</i></el-button>
+              </el-button-group>
+              <el-button-group>
+                <el-button size="small" title="无序列表" @click="execCmd('insertUnorderedList')">• 列表</el-button>
+                <el-button size="small" title="有序列表" @click="execCmd('insertOrderedList')">1. 列表</el-button>
+              </el-button-group>
+              <el-button size="small" title="插入链接" @click="insertLink">链接</el-button>
+              <el-button size="small" title="清除格式" @click="execCmd('removeFormat')">清除</el-button>
+            </div>
+            <div
+              ref="editorRef"
+              class="rich-editor__body"
+              contenteditable="true"
+              data-placeholder="请输入公告内容"
+              @input="syncEditorToForm"
+            />
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -116,14 +136,14 @@
           <span class="preview-time">{{ formatDateTime(previewData.publishedAt || previewData.createdAt || previewData.created) }}</span>
         </div>
         <el-divider />
-        <div class="preview-body">{{ previewData.content }}</div>
+        <div class="preview-body" v-html="previewData.content" />
       </div>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
@@ -250,6 +270,40 @@ const formRules: FormRules = {
   content: [{ required: true, message: '请输入公告内容', trigger: 'blur' }],
 }
 
+// ---- 轻量富文本编辑器（contenteditable + execCommand，无第三方依赖） ----
+const editorRef = ref<HTMLDivElement | null>(null)
+
+function execCmd(cmd: string): void {
+  document.execCommand(cmd)
+  editorRef.value?.focus()
+  syncEditorToForm()
+}
+
+function insertLink(): void {
+  const url = window.prompt('请输入链接地址（含 https://）')
+  if (url) {
+  document.execCommand('createLink', false, url)
+  syncEditorToForm()
+  }
+}
+
+function syncEditorToForm(): void {
+  if (editorRef.value) {
+  form.content = editorRef.value.innerHTML
+  }
+}
+
+// 弹窗打开时将 form.content 回填到编辑区
+watch(formVisible, (visible) => {
+  if (visible) {
+  nextTick(() => {
+    if (editorRef.value) {
+    editorRef.value.innerHTML = form.content
+    }
+  })
+  }
+})
+
 function handleAdd() {
   editingId.value = null
   form.title = ''
@@ -362,8 +416,47 @@ onMounted(() => {
   font-size: var(--xfjy-font-size-base);
   line-height: 1.8;
   color: var(--xfjy-text-primary);
-  white-space: pre-wrap;
   word-break: break-all;
   min-height: 120px;
+}
+
+/* 轻量富文本编辑器 */
+.rich-editor {
+  width: 100%;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-border-radius-base);
+  overflow: hidden;
+}
+.rich-editor__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--xfjy-space-2);
+  padding: var(--xfjy-space-1) var(--xfjy-space-2);
+  border-bottom: 1px solid var(--el-border-color-light);
+  background: var(--xfjy-bg-hover);
+}
+.rich-editor__body {
+  min-height: 160px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: var(--xfjy-space-3);
+  font-size: var(--xfjy-font-size-base);
+  line-height: 1.6;
+  outline: none;
+  &:empty::before {
+    content: attr(data-placeholder);
+    color: var(--xfjy-text-disabled);
+    pointer-events: none;
+  }
+  &:focus {
+    border-color: var(--xfjy-primary);
+  }
+  /* 富文本内容排版 */
+  :deep(ul), :deep(ol) {
+    padding-left: 1.5em;
+  }
+  :deep(a) {
+    color: var(--xfjy-primary);
+  }
 }
 </style>

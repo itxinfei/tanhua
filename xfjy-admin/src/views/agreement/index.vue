@@ -33,7 +33,7 @@
       </el-form-item>
     </SearchBar>
 
-    <TableCard>
+    <TableCard :skeleton="loading && !tableData.length">
       <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
         <el-table-column v-if="!isMobile" prop="id" label="ID" width="70" align="center" />
         <el-table-column prop="title" label="标题" min-width="160" show-overflow-tooltip />
@@ -62,7 +62,7 @@
           </template>
         </el-table-column>
         <template #empty>
-          <TableEmpty description="暂无协议数据" />
+          <TableEmpty description="暂无协议数据" hint="点击右上角「新增协议」创建" />
         </template>
       </el-table>
       <template #pagination>

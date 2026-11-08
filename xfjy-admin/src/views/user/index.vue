@@ -2,6 +2,10 @@
   <div class="page-container">
     <PageHeader title="用户列表" :subtitle="`共 ${total} 条记录`">
       <template #actions>
+        <el-radio-group v-model="viewMode" size="small">
+          <el-radio-button value="table">表格</el-radio-button>
+          <el-radio-button value="card">卡片</el-radio-button>
+        </el-radio-group>
         <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="primary" :icon="Download" @click="handleExport">导出</el-button>
       </template>
     </PageHeader>
@@ -44,14 +48,14 @@
       </el-form-item>
     </SearchBar>
 
-    <TableCard>
+    <TableCard :skeleton="loading && !tableData.length">
       <template #batch v-if="selectedRows.length > 0">
         <span class="batch-count">已选 {{ selectedRows.length }} 项</span>
         <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="danger" @click="handleBatchFreeze">批量封禁</el-button>
         <el-button v-perm="['SUPER_ADMIN','ADMIN']" @click="handleBatchUnfreeze">批量解封</el-button>
         <el-button @click="selectedRows = []">取消选择</el-button>
       </template>
-      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%" @selection-change="handleSelectionChange">
+      <el-table v-if="viewMode === 'table'" :data="tableData" v-loading="loading" stripe border style="width: 100%" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="50" align="center" :selectable="() => true" />
         <el-table-column v-if="!isMobile" type="index" label="#" width="50" align="center" />
         <el-table-column label="头像" width="80" align="center">
@@ -92,9 +96,42 @@
           </template>
         </el-table-column>
         <template #empty>
-          <TableEmpty description="暂无用户数据" />
+          <TableEmpty description="暂无用户数据" hint="试试调整搜索条件或清除筛选" />
         </template>
       </el-table>
+      <!-- 卡片视图 -->
+      <div v-else v-loading="loading" class="user-card-grid">
+        <div
+          v-for="row in tableData"
+          :key="row.id"
+          class="user-card"
+        >
+          <div class="user-card__header">
+            <el-avatar :size="48" :src="row.avatar">
+              <el-icon><UserFilled /></el-icon>
+            </el-avatar>
+            <div class="user-card__info">
+              <div class="user-card__name">
+                {{ row.nickname }}
+                <el-tag :type="row.gender === '女' ? 'danger' : 'primary'" size="small">{{ row.gender }}</el-tag>
+                <el-tag v-if="row.vipLevel > 0" type="warning" size="small">V{{ row.vipLevel }}</el-tag>
+              </div>
+              <div class="user-card__meta">{{ row.mobile }}</div>
+            </div>
+            <StatusTag :status="row.status" :mapping="userStatusMapping" />
+          </div>
+          <div class="user-card__body">
+            <span>{{ row.age }}岁 · {{ row.city || '—' }}</span>
+            <span>注册: {{ row.createdAt }}</span>
+          </div>
+          <div class="user-card__actions">
+            <el-button link type="primary" size="small" @click="goDetail(row.id)">详情</el-button>
+            <el-button v-if="row.status === 'NORMAL'" v-perm="['SUPER_ADMIN','ADMIN']" link type="danger" size="small" @click="handleFreeze(row)">封禁</el-button>
+            <el-button v-else v-perm="['SUPER_ADMIN','ADMIN']" link type="success" size="small" @click="handleUnfreeze(row)">解封</el-button>
+          </div>
+        </div>
+        <TableEmpty v-if="!loading && tableData.length === 0" description="暂无用户数据" hint="试试调整搜索条件或清除筛选" />
+      </div>
       <template #pagination>
         <el-pagination
           v-model:current-page="query.page"
@@ -171,6 +208,7 @@ const route = useRoute()
 // 响应式列可见性：移动端隐藏次要列（序号/年龄/城市/VIP/注册时间/最后活跃）
 const { isMobile } = useResponsive()
 const loading = ref(false)
+const viewMode = ref<'table' | 'card'>('table')
 const tableData = ref<UserItem[]>([])
 const total = ref(0)
 const selectedRows = ref<UserItem[]>([])
@@ -378,6 +416,60 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 卡片视图 */
+.user-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--xfjy-space-3);
+  min-height: 200px;
+}
+.user-card {
+  border: 1px solid var(--xfjy-border-light);
+  border-radius: var(--xfjy-radius-lg);
+  padding: var(--xfjy-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--xfjy-space-3);
+  &:hover {
+  border-color: var(--xfjy-primary);
+  box-shadow: var(--xfjy-shadow-sm);
+  }
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: var(--xfjy-space-3);
+  }
+  &__info {
+    flex: 1;
+    min-width: 0;
+  }
+  &__name {
+    display: flex;
+    align-items: center;
+    gap: var(--xfjy-space-1);
+    font-weight: 600;
+    font-size: var(--xfjy-font-size-base);
+    color: var(--xfjy-text-primary);
+  }
+  &__meta {
+    font-size: var(--xfjy-font-size-xs);
+    color: var(--xfjy-text-secondary);
+    margin-top: var(--xfjy-space-1);
+  }
+  &__body {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--xfjy-font-size-xs);
+    color: var(--xfjy-text-regular);
+  }
+  &__actions {
+    display: flex;
+    gap: var(--xfjy-space-2);
+    border-top: 1px solid var(--xfjy-border-light);
+    padding-top: var(--xfjy-space-2);
+  }
+}
+
 .batch-count {
   font-size: var(--xfjy-font-size-sm);
   color: var(--xfjy-text-regular);

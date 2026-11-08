@@ -29,7 +29,7 @@
       </el-form-item>
     </SearchBar>
 
-    <TableCard>
+    <TableCard :skeleton="loading && !tableData.length">
       <template #batch v-if="selectedIds.length > 0">
         <span class="batch-count">已选 {{ selectedIds.length }} 项</span>
         <el-button type="danger" size="small" @click="openBatchHandle('RESOLVED')">批量处理</el-button>
@@ -45,6 +45,7 @@
         style="width: 100%"
         row-key="id"
         @selection-change="handleSelectionChange"
+        @row-click="onRowClick"
       >
         <el-table-column type="selection" width="44" align="center" :selectable="isSelectable" reserve-selection />
         <el-table-column v-if="!isMobile" prop="id" label="ID" width="70" align="center" />
@@ -88,7 +89,7 @@
           </template>
         </el-table-column>
         <template #empty>
-          <TableEmpty description="暂无举报数据" />
+          <TableEmpty description="暂无举报数据" hint="举报由 App 端用户提交，暂无数据时无需操作" />
         </template>
       </el-table>
       <template #pagination>
@@ -193,6 +194,13 @@
           </div>
         </template>
       </div>
+      <template #footer>
+        <template v-if="currentReport && (currentReport.status === 'PENDING' || currentReport.status === 'PROCESSING')">
+          <el-button type="danger" @click="detailHandle('RESOLVED')">确认违规</el-button>
+          <el-button type="warning" @click="detailHandle('DISMISSED')">驳回举报</el-button>
+        </template>
+        <el-button @click="detailVisible = false">关闭</el-button>
+      </template>
     </el-dialog>
 
     <!-- 处理弹窗：备注必填，RESOLVED 提示封禁目标用户 -->
@@ -432,6 +440,20 @@ function openHandle(row: ReportItem, result: 'RESOLVED' | 'DISMISSED') {
   handleDialogVisible.value = true
 }
 
+/** 详情弹窗内操作：先关详情再开处理弹窗 */
+function detailHandle(result: 'RESOLVED' | 'DISMISSED') {
+  if (!currentReport.value) return
+  const row = currentReport.value
+  detailVisible.value = false
+  openHandle(row, result)
+}
+
+/** 行点击直接打开详情（复选框列与操作列除外） */
+function onRowClick(row: ReportItem, column: { type?: string; label?: string }) {
+  if (column.type === 'selection' || column.label === '操作') return
+  showDetail(row)
+}
+
 // 批量处理入口
 function openBatchHandle(result: 'RESOLVED' | 'DISMISSED') {
   if (selectedIds.value.length === 0) {
@@ -476,6 +498,11 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 行可点击：整行打开详情 */
+:deep(.el-table__row) {
+  cursor: pointer;
+}
+
 .user-cell {
   display: flex;
   align-items: center;

@@ -73,7 +73,7 @@ export const routes: RouteRecordRaw[] = [
         path: 'review',
         name: 'ReviewWorkbench',
         component: () => import('@/views/review/index.vue'),
-        meta: { title: '内容审核', icon: 'Finished', roles: ['SUPER_ADMIN', 'ADMIN', 'OPERATOR'] },
+        meta: { title: '内容审核', icon: 'Finished', roles: ['SUPER_ADMIN', 'ADMIN'] },
       },
       {
         path: 'report',

@@ -463,3 +463,24 @@ export async function sendTextMessage(
     return null
   }
 }
+
+/**
+ * 发送单聊图片消息（JSON 结构化契约 {"type":"image","url":...}，与 C 端解析一致）
+ * @returns 发送成功返回 SDK Message（含 messageSeq）；失败返回 null
+ */
+export async function sendImageMessage(
+  to: string,
+  url: string
+): Promise<Message | null> {
+  if (!isLoggedIn) {
+    return null
+  }
+  try {
+    const sdk = WKSDK.shared()
+    const channel = sdk.newChannel(to, ChannelTypePerson)
+    const payload = JSON.stringify({ type: 'image', url })
+    return await sdk.chatManager.send(sdk.newMessageText(payload), channel)
+  } catch {
+    return null
+  }
+}

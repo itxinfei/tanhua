@@ -43,40 +43,42 @@
         </el-select>
       </el-form-item>
       <template #extra-actions>
+        <el-popover width="360" trigger="click">
+          <template #reference>
+            <el-button :icon="Promotion">命中测试</el-button>
+          </template>
+          <div class="test-box">
+            <el-input
+              v-model="testText"
+              type="textarea"
+              :rows="3"
+              placeholder="输入待检测文本进行敏感词命中测试"
+            />
+            <el-button type="primary" :icon="Promotion" style="margin-top: var(--xfjy-space-2); width: 100%" @click="handleTest">测试</el-button>
+          </div>
+          <div v-if="testResult" class="test-result">
+            <el-alert :type="testResult.hitWords.length > 0 ? 'warning' : 'success'" :closable="false">
+              <template #title>
+                <div v-if="testResult.hitWords.length > 0">
+                  <div>命中 {{ testResult.hitWords.length }} 个敏感词，最高级别：{{ levelLabel(testResult.maxLevel) }}</div>
+                  <div style="margin-top: var(--xfjy-space-1)">
+                    <el-tag v-for="word in testResult.hitWords" :key="word" size="small" class="hit-word">{{ word }}</el-tag>
+                  </div>
+                </div>
+                <div v-else>未命中敏感词</div>
+              </template>
+              <div v-if="testResult.filteredText !== testText" style="margin-top: var(--xfjy-space-2); color: var(--xfjy-text-secondary)">
+                过滤后文本：{{ testResult.filteredText || '(空)' }}
+              </div>
+            </el-alert>
+          </div>
+        </el-popover>
         <el-button v-perm="['SUPER_ADMIN','ADMIN']" :icon="Download" @click="handleExport">导出</el-button>
         <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="danger" :icon="RefreshRight" @click="handleRefresh">刷新词库</el-button>
       </template>
     </SearchBar>
 
-    <!-- 命中测试 -->
-    <div class="test-box">
-      <el-input
-        v-model="testText"
-        type="textarea"
-        :rows="3"
-        placeholder="输入待检测文本进行敏感词命中测试"
-        style="flex: 1"
-      />
-      <el-button type="primary" :icon="Promotion" @click="handleTest" style="margin-left: var(--xfjy-space-3)">测试</el-button>
-    </div>
-    <div v-if="testResult" class="test-result">
-      <el-alert :type="testResult.hitWords.length > 0 ? 'warning' : 'success'" :closable="false">
-        <template #title>
-          <div v-if="testResult.hitWords.length > 0">
-            <div>命中 {{ testResult.hitWords.length }} 个敏感词，最高级别：{{ levelLabel(testResult.maxLevel) }}</div>
-            <div style="margin-top: var(--xfjy-space-1)">
-              <el-tag v-for="word in testResult.hitWords" :key="word" size="small" class="hit-word">{{ word }}</el-tag>
-            </div>
-          </div>
-          <div v-else>未命中敏感词</div>
-        </template>
-        <div v-if="testResult.filteredText !== testText" style="margin-top: var(--xfjy-space-2); color: var(--xfjy-text-secondary)">
-          过滤后文本：{{ testResult.filteredText || '(空)' }}
-        </div>
-      </el-alert>
-    </div>
-
-    <TableCard>
+    <TableCard :skeleton="loading && !tableData.length">
       <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
         <el-table-column v-if="!isMobile" prop="id" label="ID" width="70" align="center" />
         <el-table-column prop="word" label="敏感词" min-width="160" show-overflow-tooltip />
@@ -105,7 +107,7 @@
           </template>
         </el-table-column>
         <template #empty>
-          <TableEmpty description="暂无敏感词数据" />
+          <TableEmpty description="暂无敏感词数据" hint="点击右上角「新增敏感词」添加规则" />
         </template>
       </el-table>
       <template #pagination>
@@ -452,11 +454,11 @@ onMounted(() => {
 <style scoped>
 .test-box {
   display: flex;
-  margin-bottom: var(--xfjy-space-3);
+  flex-direction: column;
 }
 
 .test-result {
-  margin-bottom: var(--xfjy-space-4);
+  margin-top: var(--xfjy-space-2);
 }
 
 .batch-import-tip {

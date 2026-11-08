@@ -1,6 +1,13 @@
 <template>
   <div class="page-container">
-    <PageHeader title="动态管理" :subtitle="`共 ${total} 条记录`" />
+    <PageHeader title="动态管理" :subtitle="`共 ${total} 条记录`">
+      <template #actions>
+        <el-radio-group v-model="viewMode" size="small">
+          <el-radio-button value="table">表格</el-radio-button>
+          <el-radio-button value="gallery">画廊</el-radio-button>
+        </el-radio-group>
+      </template>
+    </PageHeader>
 
     <SearchBar :model="query" @search="handleSearch" @reset="handleReset">
       <el-form-item label="关键词">
@@ -30,13 +37,14 @@
       </el-form-item>
     </SearchBar>
 
-    <TableCard>
+    <TableCard :skeleton="loading && !tableData.length">
       <template #batch v-if="selectedRows.length > 0">
         <span class="batch-count">已选 {{ selectedRows.length }} 项</span>
         <el-button v-perm="['SUPER_ADMIN','ADMIN']" type="danger" size="small" @click="handleBatchDelete">批量删除</el-button>
         <el-button size="small" @click="selectedRows = []">取消选择</el-button>
       </template>
       <el-table
+        v-if="viewMode === 'table'"
         v-loading="loading"
         :data="tableData"
         border
@@ -117,9 +125,38 @@
           </template>
         </el-table-column>
         <template #empty>
-          <TableEmpty description="暂无动态数据" />
+          <TableEmpty description="暂无动态数据" hint="动态由 App 端用户发布，暂无数据时无需操作" />
         </template>
       </el-table>
+      <!-- 画廊视图 -->
+      <div v-else v-loading="loading" class="gallery-grid">
+        <div
+          v-for="row in tableData"
+          :key="row.id"
+          class="gallery-card"
+        >
+          <div v-if="row.medias && row.medias.length" class="gallery-card__cover" @click="handleDetail(row)">
+            <el-image :src="row.medias[0]" fit="cover" class="gallery-card__img" preview-teleported :preview-src-list="row.medias" />
+            <span v-if="row.medias.length > 1" class="gallery-card__count">{{ row.medias.length }} 图</span>
+          </div>
+          <div v-else class="gallery-card__cover gallery-card__cover--empty" @click="handleDetail(row)">
+            <el-icon :size="24"><Picture /></el-icon>
+            <span>纯文字</span>
+          </div>
+          <div class="gallery-card__body">
+            <div class="gallery-card__author">
+              <el-avatar :size="20" :src="row.userAvatar" />
+              <span>{{ row.userNickname }}</span>
+            </div>
+            <div class="gallery-card__text">{{ row.text || '（无文字）' }}</div>
+            <div class="gallery-card__footer">
+              <span>赞 {{ row.likeCount }} · 评 {{ row.commentCount }}</span>
+              <el-button v-perm="['SUPER_ADMIN','ADMIN']" link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+            </div>
+          </div>
+        </div>
+        <TableEmpty v-if="!loading && tableData.length === 0" description="暂无动态数据" hint="动态由 App 端用户发布，暂无数据时无需操作" />
+      </div>
       <template #pagination>
         <el-pagination
           v-model:current-page="page"
@@ -180,6 +217,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Picture } from '@element-plus/icons-vue'
 import { PageHeader, SearchBar, TableCard, TableEmpty, StatusTag } from '@/components'
 import { useResponsive } from '@/composables/useResponsive'
 import { getMovementPageApi, deleteMovementApi } from '@/api/movement'
@@ -191,6 +229,7 @@ const route = useRoute()
 // 响应式列可见性：移动端隐藏次要列（位置/互动/举报/发布时间）
 const { isMobile } = useResponsive()
 const loading = ref(false)
+const viewMode = ref<'table' | 'gallery'>('table')
 const tableData = ref<MovementItem[]>([])
 const total = ref(0)
 const page = ref(1)
@@ -326,6 +365,84 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 画廊视图 */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--xfjy-space-3);
+  min-height: 200px;
+}
+.gallery-card {
+  border: 1px solid var(--xfjy-border-light);
+  border-radius: var(--xfjy-radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  &:hover {
+  border-color: var(--xfjy-primary);
+  box-shadow: var(--xfjy-shadow-sm);
+  }
+  &__cover {
+  position: relative;
+  height: 160px;
+  cursor: pointer;
+  &--empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: var(--xfjy-space-1);
+    color: var(--xfjy-text-disabled);
+    background: var(--xfjy-bg-hover);
+    font-size: var(--xfjy-font-size-xs);
+  }
+  }
+  &__img {
+  width: 100%;
+  height: 100%;
+  }
+  &__count {
+  position: absolute;
+  right: var(--xfjy-space-2);
+  bottom: var(--xfjy-space-2);
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: var(--xfjy-font-size-xs);
+  padding: 2px 6px;
+  border-radius: var(--xfjy-radius-sm);
+  }
+  &__body {
+  padding: var(--xfjy-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--xfjy-space-2);
+  }
+  &__author {
+  display: flex;
+  align-items: center;
+  gap: var(--xfjy-space-2);
+  font-size: var(--xfjy-font-size-sm);
+  font-weight: 600;
+  color: var(--xfjy-text-primary);
+  }
+  &__text {
+  font-size: var(--xfjy-font-size-xs);
+  color: var(--xfjy-text-regular);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  }
+  &__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--xfjy-font-size-xs);
+  color: var(--xfjy-text-secondary);
+  }
+}
+
 .batch-count {
   font-size: var(--xfjy-font-size-sm);
   color: var(--xfjy-text-regular);

@@ -12,7 +12,7 @@
       </el-form-item>
     </SearchBar>
 
-    <TableCard>
+    <TableCard :skeleton="loading && !tableData.length">
       <el-table v-loading="loading" :data="tableData" border stripe>
       <el-table-column v-if="!isMobile" label="ID" prop="id" width="70" align="center" />
       <el-table-column label="用户名" prop="username" width="140" />
@@ -57,7 +57,7 @@
         </template>
       </el-table-column>
         <template #empty>
-          <TableEmpty description="暂无管理员数据" />
+          <TableEmpty description="暂无管理员数据" hint="点击右上角「新增管理员」添加" />
         </template>
       </el-table>
       <template #pagination>

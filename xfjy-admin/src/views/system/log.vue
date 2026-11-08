@@ -37,7 +37,7 @@
       </template>
     </SearchBar>
 
-    <TableCard>
+    <TableCard :skeleton="loading && !tableData.length">
       <el-table v-loading="loading" :data="tableData" border stripe>
       <el-table-column v-if="!isMobile" label="ID" prop="id" width="70" align="center" />
       <el-table-column label="操作人" width="130">
@@ -82,7 +82,7 @@
         </template>
       </el-table-column>
         <template #empty>
-          <TableEmpty description="暂无操作日志" />
+          <TableEmpty description="暂无操作日志" hint="管理员执行操作后日志会出现在这里" />
         </template>
       </el-table>
       <template #pagination>

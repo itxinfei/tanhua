@@ -27,7 +27,7 @@
           </template>
         </SearchBar>
 
-        <TableCard>
+        <TableCard :skeleton="pkgLoading && !pkgData.length">
           <el-table :data="pkgData" v-loading="pkgLoading" stripe border style="width: 100%">
             <el-table-column v-if="!isMobile" prop="id" label="ID" width="60" align="center" />
             <el-table-column prop="name" label="套餐名称" width="120" />
@@ -55,7 +55,7 @@
               </template>
             </el-table-column>
             <template #empty>
-              <TableEmpty description="暂无套餐数据" />
+              <TableEmpty description="暂无套餐数据" hint="点击右上角「新增套餐」创建会员套餐" />
             </template>
           </el-table>
           <template #pagination>
@@ -93,7 +93,7 @@
           </el-form-item>
         </SearchBar>
 
-        <TableCard>
+        <TableCard :skeleton="benefitLoading && !benefitData.length">
           <el-table :data="benefitData" v-loading="benefitLoading" stripe border style="width: 100%">
             <el-table-column v-if="!isMobile" prop="id" label="ID" width="60" align="center" />
             <el-table-column v-if="!isMobile" prop="serviceCode" label="权益码" width="160" show-overflow-tooltip />
@@ -118,7 +118,7 @@
               </template>
             </el-table-column>
             <template #empty>
-              <TableEmpty description="暂无权益数据" />
+              <TableEmpty description="暂无权益数据" hint="点击右上角「新增权益」配置会员权益" />
             </template>
           </el-table>
           <template #pagination>

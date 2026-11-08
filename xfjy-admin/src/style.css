@@ -272,7 +272,7 @@ textarea {
   align-items: center;
   gap: var(--xfjy-space-3);
   box-shadow: var(--xfjy-shadow-card);
-  transition: box-shadow 0.3s;
+  transition: box-shadow 0.25s;
 }
 
 .stat-card:hover {

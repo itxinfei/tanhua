@@ -1,8 +1,8 @@
 <template>
   <div
-    v-loading="loading"
+    v-loading="loading && !!lastUpdated"
     class="page-container dashboard"
-    element-loading-text="看板数据加载中"
+    element-loading-text="看板数据刷新中"
   >
     <!-- ============ 1. 顶部控制条 ============ -->
     <div class="dash-toolbar">
@@ -58,6 +58,27 @@
       </div>
     </div>
 
+    <!-- ============ 首屏骨架：首次加载（无数据）时用结构化骨架替代 spinner ============ -->
+    <div
+      v-if="loading && !lastUpdated"
+      class="dash-skeleton"
+      aria-busy="true"
+      aria-label="看板数据加载中"
+    >
+      <div class="dash-skeleton__kpi-row">
+        <div
+          v-for="i in 4"
+          :key="i"
+          class="dash-skeleton__kpi"
+        />
+      </div>
+      <div class="dash-skeleton__panel-row">
+        <div class="dash-skeleton__panel" />
+        <div class="dash-skeleton__panel" />
+      </div>
+    </div>
+
+    <template v-else>
     <!-- ============ 2. 核心指标 KPI（首屏黄金区，4 卡一行） ============ -->
     <el-row
       :gutter="16"
@@ -251,7 +272,7 @@
       <!-- 留存 -->
       <el-col
         :xs="24"
-        :md="12"
+        :md="isOperator ? 24 : 12"
       >
         <DashPanel
           title="用户留存"
@@ -279,8 +300,9 @@
         </DashPanel>
       </el-col>
 
-      <!-- 付费概览 -->
+      <!-- 付费概览（OPERATOR 不可见） -->
       <el-col
+        v-if="!isOperator"
         :xs="24"
         :md="12"
       >
@@ -326,6 +348,7 @@
       class="dash-row"
     >
       <el-col
+        v-if="!isOperator"
         :xs="24"
         :md="12"
       >
@@ -334,13 +357,6 @@
           :sub="`近 ${days} 天送审与处理量`"
         >
           <div class="mod-stats">
-            <div class="mini-stat">
-              <span class="mini-stat__label">待审核</span>
-              <span
-                class="mini-stat__value"
-                :class="{ 'mini-stat__value--amber': (moderation?.review.pending ?? 0) > 0 }"
-              >{{ formatCount(moderation?.review.pending) }}</span>
-            </div>
             <div class="mini-stat">
               <span class="mini-stat__label">今日通过</span>
               <span class="mini-stat__value mini-stat__value--green">
@@ -413,7 +429,7 @@
 
       <el-col
         :xs="24"
-        :md="12"
+        :md="isOperator ? 24 : 12"
       >
         <DashPanel
           title="用户举报"
@@ -671,6 +687,7 @@
         </el-row>
       </el-collapse-item>
     </el-collapse>
+    </template>
   </div>
 </template>
 
@@ -703,8 +720,13 @@ import {
 import DashPanel from './components/DashPanel.vue'
 import KpiCard from './components/KpiCard.vue'
 import { useDashboardData } from './composables/useDashboardData'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+
+/** 角色裁剪：OPERATOR 不可见付费概览与内容审核（对应路由已限管理员） */
+const authStore = useAuthStore()
+const isOperator = computed(() => authStore.adminInfo?.role === 'OPERATOR')
 
 /** 折叠分析区展开项（默认全部收起，降低首屏信息噪音） */
 const analysisExpanded = ref<string[]>([])
@@ -949,7 +971,7 @@ const todoActions = computed<TodoAction[]>(() => {
   const pendingReview = moderation.value?.review.pending ?? 0
   const pendingReport = moderation.value?.report.pending ?? 0
   const processingReport = moderation.value?.report.processing ?? 0
-  return [
+  const actions: TodoAction[] = [
     {
       key: 'review',
       label: '待审核内容',
@@ -972,6 +994,8 @@ const todoActions = computed<TodoAction[]>(() => {
       level: processingReport > 0 ? 'warning' : 'ok',
     },
   ]
+  // OPERATOR 无内容审核路由权限，不展示审核待办
+  return isOperator.value ? actions.filter((a) => a.key !== 'review') : actions
 })
 
 const hasTodo = computed(() => todoActions.value.some((a) => a.count > 0))
@@ -1723,6 +1747,79 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
 
   .mod-stats {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ==================== 首屏骨架 ==================== */
+.dash-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--xfjy-space-4);
+}
+
+.dash-skeleton__kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--xfjy-space-4);
+}
+
+.dash-skeleton__kpi {
+  height: 108px;
+  border-radius: var(--xfjy-radius-lg);
+  background: var(--xfjy-bg-card);
+  border: 1px solid var(--xfjy-border);
+  position: relative;
+  overflow: hidden;
+}
+
+.dash-skeleton__kpi::after,
+.dash-skeleton__panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  animation: dash-sk-shimmer 1.8s ease-in-out infinite;
+}
+
+.dash-skeleton__panel-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--xfjy-space-4);
+}
+
+.dash-skeleton__panel {
+  height: 280px;
+  border-radius: var(--xfjy-radius-lg);
+  background: var(--xfjy-bg-card);
+  border: 1px solid var(--xfjy-border);
+  position: relative;
+  overflow: hidden;
+}
+
+@keyframes dash-sk-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-skeleton__kpi::after,
+  .dash-skeleton__panel::after {
+    animation: none;
+  }
+}
+
+@media (max-width: 991px) {
+  .dash-skeleton__kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dash-skeleton__panel-row {
+    grid-template-columns: 1fr;
   }
 }
 </style>

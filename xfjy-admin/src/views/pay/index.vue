@@ -57,7 +57,7 @@
       </template>
     </SearchBar>
 
-    <TableCard>
+    <TableCard :skeleton="loading && !tableData.length">
       <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
         <el-table-column v-if="!isMobile" prop="id" label="ID" width="70" align="center" />
         <el-table-column label="订单号" width="280">
@@ -91,7 +91,7 @@
           </template>
         </el-table-column>
         <template #empty>
-          <TableEmpty description="暂无订单数据" />
+          <TableEmpty description="暂无订单数据" hint="订单由用户支付行为产生，暂无数据时无需操作" />
         </template>
       </el-table>
       <template #pagination>

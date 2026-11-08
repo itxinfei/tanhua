@@ -10,9 +10,10 @@
       <slot name="batch" />
     </div>
     <div class="table-card__body">
-      <slot />
+      <TableSkeleton v-if="skeleton" />
+      <slot v-else />
     </div>
-    <div v-if="$slots.pagination" class="table-card__footer">
+    <div v-if="$slots.pagination && !skeleton" class="table-card__footer">
       <slot name="pagination" />
     </div>
   </div>
@@ -20,10 +21,13 @@
 
 <script setup lang="ts">
 import { provide, toRef, type Ref } from 'vue'
+import TableSkeleton from './TableSkeleton.vue'
 
 const props = defineProps<{
   title?: string
   emptyText?: string
+  /** 首屏骨架：true 时 body 渲染骨架屏替代 slot，footer 同步隐藏 */
+  skeleton?: boolean
 }>()
 
 provide('xfjyTableEmpty', {

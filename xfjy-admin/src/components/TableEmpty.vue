@@ -1,5 +1,6 @@
 <template>
-  <el-empty :description="resolvedDescription" :image-size="80">
+  <el-empty :description="resolvedDescription" :image-size="64">
+    <p v-if="resolvedHint" class="table-empty__hint">{{ resolvedHint }}</p>
     <slot />
   </el-empty>
 </template>
@@ -10,6 +11,8 @@ import { computed, inject, type Ref } from 'vue'
 const props = defineProps<{
   /** 空态描述文案；不传则自动继承最近 TableCard 的 empty-text，再退化为「暂无数据」 */
   description?: string
+  /** 教学提示：告诉用户如何让数据出现（次级文案，描述下方） */
+  hint?: string
 }>()
 
 // 自动继承最近 TableCard 的 emptyText 配置（若存在），实现「一页一处配置」
