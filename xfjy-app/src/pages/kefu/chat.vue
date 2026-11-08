@@ -157,17 +157,6 @@
         </view>
       </scroll-view>
       <view class="input-bar">
-        <!-- 语音/键盘切换：客服场景纯文本，语音按钮占位提示暂不支持 -->
-        <a11y-button
-          class="icon-btn"
-          :label="isVoiceMode ? '切换到键盘输入' : '切换到语音输入'"
-          @tap="switchInputMode"
-        >
-          <view
-            :class="isVoiceMode ? 'i-ph-keyboard-fill' : 'i-ph-microphone-fill'"
-            aria-hidden="true"
-          />
-        </a11y-button>
         <input
           v-model="inputText"
           class="text-input"
@@ -356,8 +345,6 @@ const messageList = ref<Message[]>([]);
 const isVip = ref(false);
 /** 底部面板类型（表情/更多/无） */
 const activePanel = ref<PanelType>("none");
-/** 语音/键盘切换：客服场景纯文本，语音模式仅占位提示暂不支持 */
-const isVoiceMode = ref(false);
 /** 历史消息是否已填充（填充前的实时消息进 pending 缓冲，填充后实时追加）。
  *  原 onLoad 局部变量提升为 ref：重试 loadHistory 与消息回调需共享同一状态 */
 const historyLoaded = ref(false);
@@ -429,18 +416,12 @@ function togglePanel(panel: "emoji" | "more"): void {
     isInputFocus.value = false;
   }
   activePanel.value = activePanel.value === panel ? "none" : panel;
-  isVoiceMode.value = false;
 }
 
 /** 输入框聚焦：收起底部面板，避免键盘与面板同屏 */
 function onInputFocus(): void {
   isInputFocus.value = true;
   activePanel.value = "none";
-}
-
-/** 语音/键盘切换：客服场景纯文本，暂不支持语音 */
-function switchInputMode(): void {
-  info("客服暂不支持语音");
 }
 
 /** 选择图片并直接发送（不实现上传，因为后端可能不支持） */
@@ -726,7 +707,9 @@ onUnmounted(() => {
 
 .input-area { background: var(--bg-card); border-top: 1rpx solid var(--border-light); }
 
-.quick-bar { background: var(--bg-sub); border-bottom: 1rpx solid var(--border-light); }
+.quick-bar { position: relative; background: var(--bg-sub); border-bottom: 1rpx solid var(--border-light); }
+/* 右侧渐变遮罩：提示快捷问题条可横向滑动（仅在有溢出时由 JS 控制显示，这里用 CSS 兜底） */
+.quick-bar::after { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 80rpx; background: linear-gradient(to right, transparent, var(--bg-sub)); pointer-events: none; }
 .quick-list { display: flex; gap: 16rpx; padding: 16rpx 20rpx; }
 /* 快捷问题 chip：#fe3c72 on #fff ≈3.4:1 → #c2185b */
 .quick-chip { flex-shrink: 0; background: var(--bg-card); border: 1rpx solid var(--color-primary-mist); border-radius: 32rpx; padding: 14rpx 28rpx; min-height: 48rpx;
