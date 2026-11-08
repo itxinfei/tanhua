@@ -14,16 +14,19 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 /**
  * 网关 IP 限流全局过滤器（Redis 固定窗口计数器）
  *
  * <p>针对发布类写操作（POST 动态/评论/视频/举报）做 IP 维度限流，
- * 60 秒窗口内同一 IP 最多 5 次，超限返回 429。
+ * 窗口内同一 IP 超过上限则返回 429。
+ * 限流次数与窗口大小由后台「系统管理 → 限流配置」运行时调整，
+ * 网关通过 Redis 专用 key 读取，本地缓存 30 秒，改配置约 30 秒生效，无需重启。
  * 用户维度限流由 {@code xfjy-server} 的 RiskControlService 负责，两层互补。</p>
  *
- * <p>Redis 不可用时降级放行，不阻断业务主流程。</p>
+ * <p>Redis 不可用时降级放行（计数降级放行 + 配置降级用默认值），不阻断业务主流程。</p>
  */
 @Component
 public class RateLimitGlobalFilter implements GlobalFilter, Ordered {
@@ -43,8 +46,22 @@ public class RateLimitGlobalFilter implements GlobalFilter, Ordered {
             Pattern.compile("^/small-videos/[^/]+/comments$");
 
     private static final String KEY_PREFIX = "XFJY_GATEWAY_LIMIT_";
-    private static final Duration WINDOW = Duration.ofSeconds(60);
-    private static final int LIMIT = 5;
+
+    /** 默认限流参数（Redis 中无配置或不可达时兜底） */
+    private static final int DEFAULT_LIMIT = 5;
+    private static final int DEFAULT_WINDOW_SECONDS = 60;
+
+    /** 限流参数的 Redis key（由后台 admin/sys-config 写入，网关只读） */
+    private static final String LIMIT_CONFIG_KEY = "xfjy:gateway:ratelimit:limit";
+    private static final String WINDOW_CONFIG_KEY = "xfjy:gateway:ratelimit:window-seconds";
+
+    /** 本地缓存有效期 30 秒：与 server 端 SysConfigService 缓存 TTL 对齐，后台改配置约 30 秒生效 */
+    private static final long CONFIG_CACHE_TTL_MS = 30_000;
+
+    /** 本地缓存的限流参数，避免每次请求都查 Redis */
+    private final AtomicReference<RateLimitConfig> configCache =
+            new AtomicReference<>(new RateLimitConfig(DEFAULT_LIMIT, DEFAULT_WINDOW_SECONDS));
+    private volatile long configCacheExpiresAt = 0;
 
     private final ReactiveStringRedisTemplate redisTemplate;
 
@@ -66,25 +83,77 @@ public class RateLimitGlobalFilter implements GlobalFilter, Ordered {
         String ip = resolveClientIp(exchange);
         String key = KEY_PREFIX + ip + "_" + path;
 
-        return this.redisTemplate.opsForValue().increment(key)
-                .flatMap(count -> {
-                    if (count != null && count == 1L) {
-                        return this.redisTemplate.expire(key, WINDOW).then(Mono.just(count));
-                    }
-                    return Mono.just(count == null ? 0L : count);
-                })
-                .flatMap(count -> {
-                    if (count > LIMIT) {
-                        LOGGER.warn("网关限流触发 ip={} path={} count={}", ip, path, count);
-                        exchange.getResponse().setStatusCode(HttpStatus.TOO_MANY_REQUESTS);
-                        return exchange.getResponse().setComplete();
-                    }
-                    return chain.filter(exchange);
-                })
+        return getConfig()
+                .flatMap(config -> this.redisTemplate.opsForValue().increment(key)
+                        .flatMap(count -> {
+                            if (count != null && count == 1L) {
+                                return this.redisTemplate.expire(key, Duration.ofSeconds(config.windowSeconds))
+                                        .then(Mono.just(count));
+                            }
+                            return Mono.just(count == null ? 0L : count);
+                        })
+                        .flatMap(count -> {
+                            if (count > config.limit) {
+                                LOGGER.warn("网关限流触发 ip={} path={} count={} limit={}", ip, path, count, config.limit);
+                                exchange.getResponse().setStatusCode(HttpStatus.TOO_MANY_REQUESTS);
+                                return exchange.getResponse().setComplete();
+                            }
+                            return chain.filter(exchange);
+                        }))
                 .onErrorResume(e -> {
                     LOGGER.error("网关限流计数失败，降级放行 ip={} path={}", ip, path, e);
                     return chain.filter(exchange);
                 });
+    }
+
+    /**
+     * 获取当前限流参数（本地缓存 30 秒 → Redis → 默认值兜底）。
+     *
+     * <p>后台修改配置后写入 Redis 专用 key，网关最多 30 秒感知新值，无需重启。</p>
+     */
+    private Mono<RateLimitConfig> getConfig() {
+        long now = System.currentTimeMillis();
+        if (now < configCacheExpiresAt) {
+            return Mono.just(configCache.get());
+        }
+        return this.redisTemplate.opsForValue().get(LIMIT_CONFIG_KEY)
+                .defaultIfEmpty(String.valueOf(DEFAULT_LIMIT))
+                .zipWith(this.redisTemplate.opsForValue().get(WINDOW_CONFIG_KEY)
+                        .defaultIfEmpty(String.valueOf(DEFAULT_WINDOW_SECONDS)))
+                .map(tuple -> {
+                    RateLimitConfig config = new RateLimitConfig(
+                            parseIntSafe(tuple.getT1(), DEFAULT_LIMIT),
+                            parseIntSafe(tuple.getT2(), DEFAULT_WINDOW_SECONDS));
+                    configCache.set(config);
+                    configCacheExpiresAt = now + CONFIG_CACHE_TTL_MS;
+                    return config;
+                })
+                .onErrorResume(e -> {
+                    LOGGER.warn("读取限流配置失败，使用默认值 limit={} window={}s", DEFAULT_LIMIT, DEFAULT_WINDOW_SECONDS, e);
+                    RateLimitConfig fallback = new RateLimitConfig(DEFAULT_LIMIT, DEFAULT_WINDOW_SECONDS);
+                    configCache.set(fallback);
+                    configCacheExpiresAt = now + CONFIG_CACHE_TTL_MS;
+                    return Mono.just(fallback);
+                });
+    }
+
+    private static int parseIntSafe(String value, int defaultValue) {
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
+
+    /** 限流参数快照 */
+    private static final class RateLimitConfig {
+        final int limit;
+        final int windowSeconds;
+
+        RateLimitConfig(int limit, int windowSeconds) {
+            this.limit = limit;
+            this.windowSeconds = windowSeconds;
+        }
     }
 
     /**

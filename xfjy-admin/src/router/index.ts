@@ -179,6 +179,12 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/views/system/im-config.vue'),
         meta: { title: 'IM配置', icon: 'Connection', roles: ['SUPER_ADMIN'] },
       },
+      {
+        path: 'rate-limit',
+        name: 'SystemRateLimit',
+        component: () => import('@/views/system/rate-limit.vue'),
+        meta: { title: '限流配置', icon: 'Odometer', roles: ['SUPER_ADMIN'] },
+      },
     ],
   },
   {
