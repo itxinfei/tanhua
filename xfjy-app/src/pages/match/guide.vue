@@ -139,7 +139,7 @@
       variant="primary"
       block
       :label="submitting ? '保存中' : '完成'"
-      :disabled="submitting"
+      :disabled="submitting || !form.nickname || !form.gender"
       @tap="handleSubmit"
     >
       {{ submitting ? '保存中…' : '完成' }}
@@ -309,14 +309,14 @@ function handleSkip(): void {
 .progress-bar {
   height: 8rpx;
   background: var(--border);
-  border-radius: 4rpx;
+  border-radius: var(--radius-pill);
   margin-bottom: 16rpx;
   position: relative;
 
   .progress-fill {
     height: 100%;
     background: var(--gradient-brand-h);
-    border-radius: 4rpx;
+    border-radius: var(--radius-pill);
     transition: width 0.3s ease;
   }
 
@@ -332,7 +332,7 @@ function handleSkip(): void {
 
 .section {
   background: var(--bg-card);
-  border-radius: 24rpx;
+  border-radius: var(--radius-lg);
   padding: 28rpx 32rpx;
   margin-bottom: 24rpx;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
@@ -393,7 +393,7 @@ function handleSkip(): void {
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 16rpx;
+    border-radius: var(--radius-md);
     background: var(--bg-sub);
     font-size: 30rpx;
     color: var(--text-secondary);

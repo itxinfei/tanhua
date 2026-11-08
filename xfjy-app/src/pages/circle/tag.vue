@@ -9,6 +9,13 @@
       </text>
     </view>
 
+    <!-- 首屏加载：feed 骨架屏替代空白，提前感知动态列表结构 -->
+    <skeleton
+      v-if="loading && list.length === 0"
+      variant="feed"
+      :count="3"
+    />
+
     <empty-state
       v-if="!loading && list.length === 0 && !loadFailed"
       title="暂无相关动态"
@@ -98,6 +105,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import EmptyState from "@/components/empty-state.vue";
+import Skeleton from "@/components/skeleton.vue";
 import { onLoad } from "@dcloudio/uni-app";
 import A11yButton from "@/components/a11y-button.vue";
 import SmartImage from "@/components/smart-image.vue";
@@ -183,7 +191,7 @@ onLoad((options: any) => {
 
 .post-card {
   background: var(--bg-card);
-  border-radius: 24rpx;
+  border-radius: var(--radius-lg);
   padding: 24rpx;
   margin-bottom: 16rpx;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
@@ -227,7 +235,7 @@ onLoad((options: any) => {
       flex: 1 1 calc(33.333% - 8rpx);
       max-width: calc(33.333% - 8rpx);
       aspect-ratio: 1 / 1;
-      border-radius: 12rpx;
+      border-radius: var(--radius-sm);
       overflow: hidden;
     }
     .grid-img-inner { width: 100%; height: 100%; display: block; }

@@ -60,6 +60,9 @@
           <text class="block-title">
             搜索历史
           </text>
+          <text class="block-note">
+            {{ history.length }}/{{ HISTORY_MAX }}
+          </text>
           <a11y-button
             class="block-action"
             label="清空搜索历史"
