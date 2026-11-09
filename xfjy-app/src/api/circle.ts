@@ -138,7 +138,7 @@ export function publishMovement(
  * 对接后端: GET /movements
  */
 export function getFriendMovements(params: PageParam): Promise<PageResult<Movement>> {
-  return get<PageResult<Movement>>("/movements", params as any);
+  return get<PageResult<Movement>>("/movements", params);
 }
 
 /**
@@ -146,7 +146,7 @@ export function getFriendMovements(params: PageParam): Promise<PageResult<Moveme
  * 对接后端: GET /movements/recommend
  */
 export function getRecommendMovements(params: PageParam): Promise<PageResult<Movement>> {
-  return get<PageResult<Movement>>("/movements/recommend", params as any);
+  return get<PageResult<Movement>>("/movements/recommend", params);
 }
 
 /**
@@ -245,7 +245,7 @@ export function getCommentReplies(
   commentId: string,
   params: PageParam
 ): Promise<PageResult<Comment>> {
-  return get<PageResult<Comment>>(`/comments/${commentId}/replies`, params as any);
+  return get<PageResult<Comment>>(`/comments/${commentId}/replies`, params);
 }
 
 /**

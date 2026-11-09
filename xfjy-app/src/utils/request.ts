@@ -83,7 +83,9 @@ export const BASE_URL: string =
 interface RequestOptions {
   url: string;
   method?: "GET" | "POST" | "PUT" | "DELETE";
-  data?: Record<string, any> | string;
+  // 用 object 而非 Record<string, any>：具体 interface（无索引签名）才能直接传入，
+  // 否则 api 层每个调用点都要 as any 绕过，类型约束形同虚设
+  data?: object | string;
   header?: Record<string, string>;
   loading?: boolean; // 是否显示 loading
   auth?: boolean; // 是否需要 Token（默认 true）
@@ -339,17 +341,17 @@ function request<T = any>(options: RequestOptions): Promise<T> {
   });
 }
 
-// 快捷方法
-export const get = <T = any>(url: string, data?: Record<string, any>) =>
+// 快捷方法：data 收窄为 object，接受任意具体 interface/type，调用方无需 as any
+export const get = <T = any>(url: string, data?: object) =>
   request<T>({ url, method: "GET", data });
 
 export const post = <T = any>(
   url: string,
-  data?: Record<string, any>,
+  data?: object,
   loading = false
 ) => request<T>({ url, method: "POST", data, loading });
 
-export const put = <T = any>(url: string, data?: Record<string, any>) =>
+export const put = <T = any>(url: string, data?: object) =>
   request<T>({ url, method: "PUT", data });
 
 export const del = <T = any>(url: string) =>
@@ -373,7 +375,7 @@ export function upload<T = any>(
   url: string,
   filePaths: string[],
   fileField: string,
-  formData?: Record<string, any>,
+  formData?: Record<string, unknown>,
   onProgress?: (percent: number) => void,
 ): UploadPromise<T> {
   const startAt = Date.now();

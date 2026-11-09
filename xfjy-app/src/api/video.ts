@@ -142,7 +142,7 @@ export function publishVideo(
  * 对接后端: GET /small-videos
  */
 export function getVideoList(params: VideoPageParam): Promise<PageResult<Video>> {
-  return get<PageResult<Video>>("/small-videos", params as any);
+  return get<PageResult<Video>>("/small-videos", params);
 }
 
 /**
@@ -150,7 +150,7 @@ export function getVideoList(params: VideoPageParam): Promise<PageResult<Video>>
  * 对接后端: GET /small-videos/focus
  */
 export function getFollowVideoList(params: VideoPageParam): Promise<PageResult<Video>> {
-  return get<PageResult<Video>>("/small-videos/focus", params as any);
+  return get<PageResult<Video>>("/small-videos/focus", params);
 }
 
 /**
@@ -158,7 +158,7 @@ export function getFollowVideoList(params: VideoPageParam): Promise<PageResult<V
  * 对接后端: GET /small-videos/hot
  */
 export function getHotVideoList(params: VideoPageParam): Promise<PageResult<Video>> {
-  return get<PageResult<Video>>("/small-videos/hot", params as any);
+  return get<PageResult<Video>>("/small-videos/hot", params);
 }
 
 /**
@@ -168,7 +168,7 @@ export function getHotVideoList(params: VideoPageParam): Promise<PageResult<Vide
 export function getLocationVideoList(
   params: VideoPageParam & { lat?: number; lng?: number }
 ): Promise<PageResult<Video>> {
-  return get<PageResult<Video>>("/small-videos/location", params as any);
+  return get<PageResult<Video>>("/small-videos/location", params);
 }
 
 /**
@@ -207,7 +207,7 @@ export function getVideoComments(
   videoId: string,
   params: VideoPageParam
 ): Promise<PageResult<Comment>> {
-  return get<PageResult<Comment>>(`/small-videos/${videoId}/comments`, params as any);
+  return get<PageResult<Comment>>(`/small-videos/${videoId}/comments`, params);
 }
 
 /** 发表评论参数：文字评论传 comment；语音评论传 type=2 + audioUrl + duration */

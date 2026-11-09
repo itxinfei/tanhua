@@ -60,7 +60,7 @@ export function getContacts(
  * 对接后端: GET /messages/likes
  */
 export function getLikeMessages(params: PageParam): Promise<PageResult<MessageLike>> {
-  return get<PageResult<MessageLike>>("/messages/likes", params as any);
+  return get<PageResult<MessageLike>>("/messages/likes", params);
 }
 
 /**
@@ -68,7 +68,7 @@ export function getLikeMessages(params: PageParam): Promise<PageResult<MessageLi
  * 对接后端: GET /messages/comments
  */
 export function getCommentMessages(params: PageParam): Promise<PageResult<MessageLike>> {
-  return get<PageResult<MessageLike>>("/messages/comments", params as any);
+  return get<PageResult<MessageLike>>("/messages/comments", params);
 }
 
 /**
@@ -76,7 +76,7 @@ export function getCommentMessages(params: PageParam): Promise<PageResult<Messag
  * 对接后端: GET /messages/loves
  */
 export function getLoveMessages(params: PageParam): Promise<PageResult<MessageLike>> {
-  return get<PageResult<MessageLike>>("/messages/loves", params as any);
+  return get<PageResult<MessageLike>>("/messages/loves", params);
 }
 
 /**
@@ -86,7 +86,7 @@ export function getLoveMessages(params: PageParam): Promise<PageResult<MessageLi
 export function getAnnouncementMessages(
   params: PageParam
 ): Promise<PageResult<MessageAnnouncement>> {
-  return get<PageResult<MessageAnnouncement>>("/messages/announcements", params as any);
+  return get<PageResult<MessageAnnouncement>>("/messages/announcements", params);
 }
 
 /** 上传接口返回体（PicUploadResult，status=done 时 name 为 MinIO 访问 URL） */

@@ -71,7 +71,7 @@
       <view class="album-grid">
         <view
           v-for="(img, i) in form.photoAlbum"
-          :key="i"
+          :key="img"
           class="album-item"
         >
           <smart-image
@@ -473,6 +473,8 @@ const userStore = useUserStore();
 const form = ref({
   avatar: "", nickname: "", signature: "", gender: "man",
   city: "", height: "", education: "", industry: "",
+  // 照片墙支持增删，模板以 URL 自身作 v-for key：MinIO 对象名按 uid 唯一，
+  // 同相册内 URL 不会重复；禁止改回 index key（中间删除会错配 DOM）
   photoAlbum: [] as string[],
 });
 

@@ -86,7 +86,7 @@ export function getUserProfile(
  * 对接后端: PUT /users
  */
 export function updateUserProfile(profile: Partial<UserProfile>): Promise<void> {
-  return put<void>("/users", profile as any);
+  return put<void>("/users", profile);
 }
 
 /** 图片上传结果（后端 PicUploadResult 结构） */
@@ -238,7 +238,7 @@ export function saveStrangerQuestion(content: string): Promise<void> {
  * 对接后端: GET /users/blacklist
  */
 export function getBlacklist(params: PageParam): Promise<PageResult<UserProfile>> {
-  return get<PageResult<UserProfile>>("/users/blacklist", params as any);
+  return get<PageResult<UserProfile>>("/users/blacklist", params);
 }
 
 /**
@@ -254,7 +254,7 @@ export function removeFromBlacklist(userId: string): Promise<void> {
  * 对接后端: POST /users/notifications/setting
  */
 export function updateNotificationSetting(param: NotificationSettingParam): Promise<void> {
-  return post<void>("/users/notifications/setting", param as any);
+  return post<void>("/users/notifications/setting", param);
 }
 
 /**
@@ -262,7 +262,7 @@ export function updateNotificationSetting(param: NotificationSettingParam): Prom
  * 对接后端: POST /baidu/location
  */
 export function reportLocation(param: LocationParam): Promise<void> {
-  return post<void>("/baidu/location", param as any);
+  return post<void>("/baidu/location", param);
 }
 
 /** 举报对象类型 */
@@ -288,7 +288,7 @@ export interface ReportParam {
  * 对接后端: POST /users/report
  */
 export function submitReport(param: ReportParam): Promise<void> {
-  return post<void>("/users/report", param as any);
+  return post<void>("/users/report", param);
 }
 
 /**

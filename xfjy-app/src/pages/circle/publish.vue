@@ -141,13 +141,13 @@
       <template v-else>
         <view
           v-for="(img, i) in images"
-          :key="i"
+          :key="img.id"
           class="media-item"
         >
           <image
             lazy-load
             class="media-img"
-            :src="img"
+            :src="img.url"
             mode="aspectFill"
             :aria-label="`已选图片 ${i + 1}`"
           />
@@ -350,7 +350,14 @@ const MAX_TOPIC_COUNT = 3;
 const HOT_TOPICS = ["交友日常", "心动瞬间", "周末去哪儿", "美食探店", "运动打卡", "宠物萌照"];
 
 const content = ref("");
-const images = ref<string[]>([]);
+/** 已选图片项：本地路径 + 单调 id。列表支持中间删除，用 index 当 key 会让 Vue 复用错 DOM */
+interface PickedImage {
+  id: number;
+  url: string;
+}
+const images = ref<PickedImage[]>([]);
+/** 图片项稳定 id 生成器（模块级单调递增，不随删除回收，避免 id 复用） */
+let imageSeq = 0;
 /** 已选小视频（本地路径 + 自动生成封面），与图片互斥 */
 const videoFile = ref("");
 const videoCover = ref("");
@@ -457,8 +464,12 @@ function chooseImage(): void {
     count: MAX_IMAGE_COUNT - images.value.length,
     sizeType: ["compressed"],
     success: (res) => {
-      // 图片由 publishMovement 内部 upload() 直传后端，此处仅暂存本地路径
-      images.value.push(...res.tempFilePaths);
+      // 图片由 publishMovement 内部 upload() 直传后端，此处仅暂存本地路径；
+      // 每项分配稳定 id 供 v-for key 使用。uni 类型声明为 string | string[]，先归一数组
+      const paths = Array.isArray(res.tempFilePaths)
+        ? res.tempFilePaths
+        : [res.tempFilePaths];
+      images.value.push(...paths.map((url) => ({ id: ++imageSeq, url })));
     },
     fail: handleMediaFail,
   });
@@ -591,7 +602,7 @@ async function handlePublish(): Promise<void> {
           location: location.value,
           longitude: longitude.value,
           latitude: latitude.value,
-          imagePaths: images.value,
+          imagePaths: images.value.map((img) => img.url),
           tags: selectedTopics.value,
         },
         (p) => { uploadProgress.value = p; },
