@@ -604,16 +604,22 @@ const MIN_VOICE_DURATION_MS = 1000;
 
 /**
  * 录音管理器（单例）。
- * H5 下 uni.getRecorderManager 不受支持：调用会告警并返回 undefined，
- * 因此必须先做能力检测，缺失能力时保持 null，所有调用点统一用可选链保护。
+ * H5 下 uni.getRecorderManager 不受支持：一旦调用就会打印
+ * “method 'uni.getRecorderManager' not supported” 告警并返回 undefined。
+ * 因此 H5 走条件编译直接跳过能力获取（编译后这段调用不存在），保持 null；
+ * 小程序 / App 仍走原有的 uni.getRecorderManager，逻辑不变。
+ * 所有调用点统一用可选链保护，能力缺失时走「当前环境不支持录音」提示。
  */
 function createRecorderManager(): UniApp.RecorderManager | null {
+  let manager: UniApp.RecorderManager | null = null;
+  // #ifndef H5
   try {
-    const manager = typeof uni.getRecorderManager === "function" ? uni.getRecorderManager() : null;
-    return manager && typeof manager.onStop === "function" ? manager : null;
+    manager = typeof uni.getRecorderManager === "function" ? uni.getRecorderManager() : null;
   } catch {
-    return null;
+    manager = null;
   }
+  // #endif
+  return manager && typeof manager.onStop === "function" ? manager : null;
 }
 const recorderManager = createRecorderManager();
 /** 正在播放的语音消息 id（空=无） */
