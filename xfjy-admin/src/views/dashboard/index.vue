@@ -194,10 +194,7 @@
               v-else
               class="chart-empty"
             >
-              <el-empty
-                description="数据积累中"
-                :image-size="72"
-              />
+              <ChartEmpty description="数据积累中" />
             </div>
           </DashPanel>
         </el-col>
@@ -251,10 +248,7 @@
               v-else
               class="chart-empty"
             >
-              <el-empty
-                description="今日暂无滑动数据"
-                :image-size="72"
-              />
+              <ChartEmpty description="今日暂无滑动数据" />
             </div>
           </DashPanel>
         </el-col>
@@ -316,9 +310,9 @@
               v-else
               class="chart-empty chart-empty--compact"
             >
-              <el-empty
+              <ChartEmpty
                 description="暂无支付数据"
-                :image-size="60"
+                compact
               />
             </div>
             <div class="pay-stats">
@@ -382,9 +376,9 @@
                   v-else
                   class="chart-empty chart-empty--compact"
                 >
-                  <el-empty
+                  <ChartEmpty
                     description="暂无审核数据"
-                    :image-size="60"
+                    compact
                   />
                 </div>
               </div>
@@ -467,9 +461,9 @@
                   v-else
                   class="chart-empty chart-empty--compact"
                 >
-                  <el-empty
+                  <ChartEmpty
                     description="暂无举报数据"
-                    :image-size="60"
+                    compact
                   />
                 </div>
               </div>
@@ -541,10 +535,7 @@
                   v-else
                   class="chart-empty"
                 >
-                  <el-empty
-                    description="暂无用户数据"
-                    :image-size="72"
-                  />
+                  <ChartEmpty description="暂无用户数据" />
                 </div>
               </DashPanel>
             </el-col>
@@ -565,10 +556,7 @@
                   v-else
                   class="chart-empty"
                 >
-                  <el-empty
-                    description="暂无年龄数据"
-                    :image-size="72"
-                  />
+                  <ChartEmpty description="暂无年龄数据" />
                 </div>
               </DashPanel>
             </el-col>
@@ -589,10 +577,7 @@
                   v-else
                   class="chart-empty"
                 >
-                  <el-empty
-                    description="暂无城市数据"
-                    :image-size="72"
-                  />
+                  <ChartEmpty description="暂无城市数据" />
                 </div>
               </DashPanel>
             </el-col>
@@ -639,9 +624,9 @@
                   v-else
                   class="chart-empty chart-empty--compact"
                 >
-                  <el-empty
+                  <ChartEmpty
                     description="暂无热门动态"
-                    :image-size="60"
+                    compact
                   />
                 </div>
               </DashPanel>
@@ -674,9 +659,9 @@
                   v-else
                   class="chart-empty chart-empty--compact"
                 >
-                  <el-empty
+                  <ChartEmpty
                     description="暂无热门视频"
-                    :image-size="60"
+                    compact
                   />
                 </div>
               </DashPanel>
@@ -716,6 +701,7 @@ import {
 } from './chartOptions'
 import DashPanel from './components/DashPanel.vue'
 import KpiCard from './components/KpiCard.vue'
+import ChartEmpty from './components/ChartEmpty.vue'
 import { useDashboardData } from './composables/useDashboardData'
 import { useAuthStore } from '@/stores/auth'
 
@@ -1209,11 +1195,6 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
   background: var(--xfjy-success-deep);
 }
 
-.live-badge__dot--sm {
-  width: 6px;
-  height: 6px;
-}
-
 /* 波纹用子元素缩放+淡出，避免 rgba 字面量（§7.2） */
 .live-badge__wave {
   position: absolute;
@@ -1278,33 +1259,23 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
   gap: var(--xfjy-space-2);
 }
 
+/* 白底细边框卡片，紧急度语义只落在图标块，避免整块彩底的噪音 */
 .todo-item {
   display: flex;
   align-items: center;
   gap: var(--xfjy-space-2);
   padding: var(--xfjy-space-2) var(--xfjy-space-3);
-  background: var(--xfjy-bg-hover);
+  background: var(--xfjy-bg-card);
+  border: 1px solid var(--xfjy-border);
   border-radius: var(--xfjy-radius-md);
   cursor: pointer;
-  transition: filter 0.2s ease;
+  transition: border-color 0.2s ease;
 }
 
 .todo-item:hover,
 .todo-item:focus-visible {
-  filter: brightness(0.96);
+  border-color: var(--xfjy-primary-mist);
   outline: none;
-}
-
-.todo-item--warning {
-  background: var(--xfjy-warning-50);
-}
-
-.todo-item--danger {
-  background: var(--xfjy-danger-50);
-}
-
-.todo-item--ok {
-  background: var(--xfjy-success-50);
 }
 
 .todo-item__icon {
@@ -1315,19 +1286,23 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
   width: 32px;
   height: 32px;
   border-radius: var(--xfjy-radius-md);
-  background: var(--xfjy-bg-card);
+  color: var(--xfjy-text-regular);
+  background: var(--xfjy-bg-hover);
 }
 
 .todo-item--warning .todo-item__icon {
   color: var(--xfjy-warning-deep);
+  background: var(--xfjy-warning-50);
 }
 
 .todo-item--danger .todo-item__icon {
   color: var(--xfjy-danger-deep);
+  background: var(--xfjy-danger-50);
 }
 
 .todo-item--ok .todo-item__icon {
   color: var(--xfjy-success-deep);
+  background: var(--xfjy-success-50);
 }
 
 .todo-item__body {
@@ -1716,7 +1691,6 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
   border: 1px solid var(--xfjy-border);
   border-radius: var(--xfjy-radius-lg);
   background: var(--xfjy-bg-card);
-  box-shadow: var(--xfjy-shadow-card);
 }
 
 .analysis-collapse :deep(.el-collapse-item__header) {
@@ -1828,7 +1802,8 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
 
 @media (prefers-reduced-motion: reduce) {
   .dash-skeleton__kpi::after,
-  .dash-skeleton__panel::after {
+  .dash-skeleton__panel::after,
+  .live-badge__wave {
     animation: none;
   }
 }

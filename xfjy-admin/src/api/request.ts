@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { ElMessage } from 'element-plus'
+import { limitedMessage } from '@/utils/limitedMessage'
 import router from '@/router'
 import { log, error } from '@/utils/logger'
 
@@ -31,7 +31,7 @@ request.interceptors.response.use(
     log(`${response.config?.method?.toUpperCase() || 'GET'} ${response.config?.url} → ${response.status} (${startAt ? Date.now() - startAt : 0}ms)`)
     const res = response.data
     if (res.code !== undefined && res.code !== 200) {
-      ElMessage.error(res.message || '请求失败')
+      limitedMessage.error(res.message || '请求失败')
       // 401: Token 过期或未授权
       if (res.code === 401) {
         localStorage.removeItem('xfjy_admin_token')
@@ -50,7 +50,7 @@ request.interceptors.response.use(
       if (status === 401) {
         // 优先展示后端返回的具体原因（如登录接口的"账号或密码错误"）
         const backendMsg = err.response.data?.message
-        ElMessage.error(backendMsg || '登录已过期，请重新登录')
+        limitedMessage.error(backendMsg || '登录已过期，请重新登录')
         // 登录接口本身返回 401 时不跳转（用户已在登录页），其余 401 清 token 跳登录
         const isLoginRequest = err.config?.url?.includes('/login')
         if (!isLoginRequest) {
@@ -59,16 +59,16 @@ request.interceptors.response.use(
           router.push('/login')
         }
       } else if (status === 403) {
-        ElMessage.error('没有权限执行此操作')
+        limitedMessage.error('没有权限执行此操作')
       } else if (status === 500) {
-        ElMessage.error('服务器内部错误')
+        limitedMessage.error('服务器内部错误')
       } else {
-        ElMessage.error(err.response.data?.message || '请求失败')
+        limitedMessage.error(err.response.data?.message || '请求失败')
       }
     } else if (err.message.includes('timeout')) {
-      ElMessage.error('请求超时，请稍后重试')
+      limitedMessage.error('请求超时，请稍后重试')
     } else {
-      ElMessage.error('网络异常，请检查网络连接')
+      limitedMessage.error('网络异常，请检查网络连接')
     }
     return Promise.reject(err)
   }
