@@ -69,13 +69,15 @@
               v-if="!isMobile"
               prop="id"
               label="ID"
-              width="60"
+              width="70"
               align="center"
             />
+            <!-- 套餐名称为弹性列：min-width 吸收容器剩余宽度撑满表格，窄屏收缩到下限后触发横向滚动 -->
             <el-table-column
               prop="name"
               label="套餐名称"
-              width="120"
+              min-width="140"
+              show-overflow-tooltip
             />
             <el-table-column
               label="等级"
@@ -88,7 +90,7 @@
             </el-table-column>
             <el-table-column
               label="售价"
-              width="90"
+              width="100"
               align="right"
             >
               <template #default="{ row }">
@@ -98,7 +100,7 @@
             <el-table-column
               v-if="!isMobile"
               label="原价"
-              width="90"
+              width="100"
               align="right"
             >
               <template #default="{ row }">
@@ -108,7 +110,7 @@
             <el-table-column
               prop="durationDays"
               label="有效天数"
-              width="90"
+              width="110"
               align="center"
             />
             <el-table-column
@@ -127,7 +129,7 @@
               v-if="!isMobile"
               prop="sort"
               label="排序"
-              width="70"
+              width="80"
               align="center"
             />
             <el-table-column

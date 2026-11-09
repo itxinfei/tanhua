@@ -159,9 +159,13 @@
         <el-table-column
           v-if="!isMobile"
           label="操作时间"
-          prop="created"
           width="170"
-        />
+        >
+          <!-- 后端返回 ISO 8601（带 T/Z），统一经 formatDateTime 格式化为 YYYY-MM-DD HH:mm（admin 全站口径，分钟精度），避免长串折行 -->
+          <template #default="{ row }">
+            <span>{{ formatDateTime(row.created) }}</span>
+          </template>
+        </el-table-column>
         <el-table-column
           label="操作"
           width="80"
@@ -254,6 +258,7 @@ import { ElMessage } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
 import { PageHeader, SearchBar, TableCard, TableEmpty } from '@/components'
 import { useResponsive } from '@/composables/useResponsive'
+import { formatDateTime } from '@/utils/format'
 import { getLogPageApi, getLogDetailApi, exportLogsApi } from '@/api/log'
 import type { OperationLogItem } from '@/api/log'
 

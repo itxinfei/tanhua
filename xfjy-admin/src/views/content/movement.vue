@@ -183,7 +183,7 @@
         </el-table-column>
         <el-table-column
           label="可见范围"
-          width="90"
+          width="110"
           align="center"
         >
           <template #default="{ row }">

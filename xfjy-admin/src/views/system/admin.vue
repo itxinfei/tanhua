@@ -46,10 +46,12 @@
           width="70"
           align="center"
         />
+        <!-- 用户名为弹性列：min-width 吸收剩余宽度撑满表格，宽屏不再右侧留白 -->
         <el-table-column
           label="用户名"
           prop="username"
-          width="140"
+          min-width="140"
+          show-overflow-tooltip
         />
         <el-table-column
           v-if="!isMobile"

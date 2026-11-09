@@ -125,7 +125,7 @@
           v-if="!isMobile"
           prop="version"
           label="版本"
-          width="70"
+          width="80"
           align="center"
         />
         <el-table-column

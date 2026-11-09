@@ -22,7 +22,7 @@
     <TableCard :skeleton="loading && !tableData.length">
       <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
         <el-table-column v-if="!isMobile" prop="id" label="ID" width="70" align="center" />
-        <el-table-column v-if="!isMobile" prop="userId" label="用户ID" width="90" align="center" />
+        <el-table-column v-if="!isMobile" prop="userId" label="用户ID" width="100" align="center" />
         <el-table-column prop="content" label="反馈内容" min-width="220" show-overflow-tooltip />
         <el-table-column v-if="!isMobile" label="联系方式" width="150" show-overflow-tooltip>
           <template #default="{ row }">

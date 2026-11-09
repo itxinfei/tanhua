@@ -142,9 +142,10 @@
           width="70"
           align="center"
         />
+        <!-- 订单号为弹性列：宽屏吸收剩余宽度不留白，窄屏收缩到 200 下限后随表横向滚动 -->
         <el-table-column
           label="订单号"
-          width="280"
+          min-width="200"
         >
           <template #default="{ row }">
             <div class="order-no-cell">
@@ -162,7 +163,7 @@
           v-if="!isMobile"
           prop="userId"
           label="用户ID"
-          width="90"
+          width="100"
           align="center"
         />
         <el-table-column
@@ -194,7 +195,7 @@
         <el-table-column
           v-if="!isMobile"
           label="支付方式"
-          width="100"
+          width="110"
           align="center"
         >
           <template #default="{ row }">
