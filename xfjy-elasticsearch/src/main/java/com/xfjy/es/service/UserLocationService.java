@@ -17,15 +17,10 @@ import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.IndexOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
-import org.springframework.data.elasticsearch.core.document.Document;
 import org.springframework.data.elasticsearch.core.geo.GeoPoint;
-import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
-import org.springframework.data.elasticsearch.core.query.UpdateQuery;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class UserLocationService {
@@ -55,40 +50,30 @@ public class UserLocationService {
     }
 
     /**
-     * 更新用户地理位置（不存在则新增，存在则更新）
+     * 更新用户地理位置（不存在则新增，存在则覆盖）
+     *
+     * <p>这里刻意用整文档覆盖（save 走 _index API）而不是「先 get 再 update」：
+     * _update API 内部是读-改-写，并发上报同一用户时 ES 会用内部版本做乐观锁，
+     * 后到的请求会抛 version_conflict_engine_exception，导致接口 500。
+     * _index 不带版本前置条件，也不存在读-改-写窗口，并发请求按到达顺序覆盖，
+     * 最终留下最新一次上报的位置，正好是位置上报想要的语义。
+     * get 只用于继承 created / 旧 address，读操作不会产生版本冲突。</p>
      */
     public boolean updateUserLocation(Long userId, Double longitude, Double latitude, String address) {
         try {
-            UserLocationES ul = elasticsearchOperations.get(userId.toString(), UserLocationES.class);
-            if (null == ul) {
-                // 新增位置数据
-                UserLocationES userLocationES = new UserLocationES();
-                userLocationES.setAddress(address);
-                userLocationES.setCreated(System.currentTimeMillis());
-                userLocationES.setLastUpdated(userLocationES.getCreated());
-                userLocationES.setUpdated(userLocationES.getCreated());
-                userLocationES.setUserId(userId);
-                userLocationES.setLocation(new GeoPoint(latitude, longitude));
-                elasticsearchOperations.save(userLocationES);
-            } else {
-                // 更新操作
-                Map<String, Object> map = new HashMap<>();
-                map.put("lastUpdated", ul.getUpdated());
-                map.put("updated", System.currentTimeMillis());
-                // address 为 null 时跳过，避免清空 ES 中已存储的地址
-                if (address != null) {
-                    map.put("address", address);
-                }
-                Map<String, Object> geoMap = new HashMap<>();
-                geoMap.put("lat", latitude);
-                geoMap.put("lon", longitude);
-                map.put("location", geoMap);
+            long now = System.currentTimeMillis();
+            UserLocationES existing = elasticsearchOperations.get(userId.toString(), UserLocationES.class);
 
-                UpdateQuery updateQuery = UpdateQuery.builder(userId.toString())
-                        .withDocument(Document.from(map))
-                        .build();
-                elasticsearchOperations.update(updateQuery, IndexCoordinates.of("xfjy_user_location"));
-            }
+            UserLocationES ul = new UserLocationES();
+            ul.setUserId(userId);
+            ul.setLocation(new GeoPoint(latitude, longitude));
+            // address 为 null 时沿用旧值，避免清空 ES 中已存储的地址
+            ul.setAddress(address != null ? address : (existing != null ? existing.getAddress() : null));
+            ul.setCreated(existing != null && existing.getCreated() != null ? existing.getCreated() : now);
+            ul.setLastUpdated(existing != null && existing.getUpdated() != null ? existing.getUpdated() : now);
+            ul.setUpdated(now);
+
+            elasticsearchOperations.save(ul);
             return true;
         } catch (Exception e) {
             LOGGER.error("ES地理位置服务异常", e);
