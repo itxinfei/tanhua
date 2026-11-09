@@ -120,9 +120,10 @@ public interface WuKongImApi {
      *
      * @param fromUserId 登录视角用户ID
      * @param toUserId   对方用户ID（即个人频道 channel_id）
-     * @param limit      返回条数上限
-     * @param cursor     翻页游标（首次传 null 或空字符串）
-     * @return {messages: [{from, content, time, type}], cursor: "..."}
+     * @param limit      返回条数上限（null/<=0 兜底 20，上限 100）
+     * @param cursor     翻页游标（首次传 null 或空字符串；内部作为闭区间上界 start_message_seq）
+     * @return {messages: [{from, content, time, type, seq, extra?}], cursor: "...", more: bool}；
+     *         messages 按 seq 正序（旧→新），more=true 表示还有更早消息，cursor 为空串表示无更早页
      */
     @PostExchange("/chat-messages")
     @PostMapping("/chat-messages")

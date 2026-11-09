@@ -88,6 +88,10 @@ export interface ChatMessage {
   content: string
   time: number
   type: string
+  /** 消息序列号（WuKongIM message_seq），用于排序/去重；历史数据可能缺省 */
+  seq?: number
+  /** 结构化消息附加字段：语音 {duration}、位置 {latitude,longitude}、名片 {userId,avatar} */
+  extra?: Record<string, unknown>
 }
 
 /** 分页查询用户 */
@@ -122,7 +126,7 @@ export function getUserChatSessionsApi(id: number) {
 
 /** 获取与某用户的聊天记录 */
 export function getUserChatMessagesApi(id: number, contactId: string, pageSize?: number) {
-  return request.get<unknown, { messages: ChatMessage[]; cursor: string }>(
+  return request.get<unknown, { messages: ChatMessage[]; cursor: string; more: boolean }>(
     `/admin/users/${id}/chat-messages`,
     { params: { contactId, pageSize } }
   )

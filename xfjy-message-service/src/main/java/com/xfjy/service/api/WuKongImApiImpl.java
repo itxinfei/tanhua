@@ -293,6 +293,9 @@ public class WuKongImApiImpl implements WuKongImApi {
                                                 @RequestParam("toUserId") String toUserId,
                                                 @RequestParam("limit") Integer limit,
                                                 @RequestParam(value = "cursor", required = false) String cursor) {
+        // 入参兜底：null/<=0 用默认 20，上限 100（对齐 AGENTS §5 分页上限）。
+        // 实测负值（如 -5）会被 WuKongIM 直接判 500、0 会触发 more 误报，故不允许透传非法值。
+        int safeLimit = (limit == null || limit <= 0) ? 20 : Math.min(limit, 100);
         Map<String, Object> result = new HashMap<>();
         try {
             // 个人频道模型：channel_id = 对方(toUserId) 的 uid；
@@ -301,7 +304,7 @@ public class WuKongImApiImpl implements WuKongImApi {
             body.put("login_uid", fromUserId);
             body.put("channel_id", toUserId);
             body.put("channel_type", CHANNEL_TYPE_PERSONAL);
-            body.put("limit", limit);
+            body.put("limit", safeLimit);
             body.put("pull_mode", 0);
             if (cursor != null && !cursor.isEmpty()) {
                 body.put("start_message_seq", Long.parseLong(cursor));
@@ -385,6 +388,12 @@ public class WuKongImApiImpl implements WuKongImApi {
             // 统一按 seq 正序（旧→新），与 SDK 直连 messagesync 的顺序一致；seq 缺失时保持服务端原序
             messages.sort(Comparator.<Map<String, Object>>comparingLong(m -> ((Number) m.get("seq")).longValue()));
 
+            // 异常数据形态暴露：有消息却全部缺失 message_seq 时，oldestSeq 保持 0，下面的游标守卫会终止翻页。
+            // WuKongIM 持久化消息实际必带正 seq，命中即说明下游返回异常，需留痕否则更早历史将静默拉不到。
+            if (!messages.isEmpty() && oldestSeq == 0) {
+                log.warn("[WuKongIM] 本页消息全部缺失 message_seq，翻页将终止: {} -> {}, 本页条数={}",
+                        fromUserId, toUserId, messages.size());
+            }
             // 游标是「更早一页」的出入口：start_message_seq 为闭区间上界，故取本页最小 seq-1，避免重发本页首条；
             // more=false 或已到 seq=1 时返回空游标（不能返回 "0"，否则会被当成「不带起点」又拉回最新一页）
             String nextCursor = (more && oldestSeq > 1) ? String.valueOf(oldestSeq - 1) : "";

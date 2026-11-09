@@ -126,8 +126,9 @@ public class IMService {
      *
      * @param peerUid 对方用户ID（字符串）
      * @param cursor  翻页游标（首次传 null 或空串）
-     * @param limit   返回条数上限
-     * @return {messages:[{from,content,time,type,extra}], cursor:"..."}
+     * @param limit   返回条数上限（message-service 侧兜底 20、上限 100）
+     * @return {messages:[{from,content,time,type,seq,extra?}], cursor:"...", more:bool}，
+     *         messages 按 seq 正序，more=true 表示还有更早消息
      */
     public Map<String, Object> getChatHistory(String peerUid, String cursor, Integer limit) {
         User user = UserThreadLocal.get();

@@ -43,7 +43,8 @@ public class IMController {
      * 查询当前用户与某用户的单聊历史消息（IM 漫游）
      *
      * <p>FR-IM-03：token 不出服务端，由服务端用 IM 凭证拉取。返回
-     * {messages:[{from,content,time,type,extra}], cursor:"..."}。</p>
+     * {messages:[{from,content,time,type,seq,extra?}], cursor:"...", more:bool}，
+     * messages 按 seq 正序，more=true 表示还有更早消息。</p>
      */
     @GetMapping("history")
     public ResponseEntity<Map<String, Object>> getChatHistory(
