@@ -158,22 +158,10 @@ const activeMenu = computed(() => {
   color: var(--xfjy-text-primary) !important;
 }
 
-/* 顶级菜单项激活 - 玫红左边框 + 淡玫红底 + 字重强调 */
+/* 顶级菜单项激活 - 仅淡玫红底 + 深玫红字，去掉左竖条与加粗（三重强调减法） */
 :deep(.el-menu-item.is-active) {
   background-color: var(--xfjy-sidebar-active-bg) !important;
   color: var(--xfjy-sidebar-active-text) !important;
-  font-weight: 500 !important;
-  position: relative;
-}
-:deep(.el-menu-item.is-active)::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--xfjy-sidebar-active-border);
-  border-radius: 0 var(--xfjy-radius-sm) var(--xfjy-radius-sm) 0;
 }
 
 /* sub-menu 标题 hover */
@@ -196,7 +184,6 @@ const activeMenu = computed(() => {
 :deep(.el-sub-menu .el-menu-item.is-active) {
   background-color: var(--xfjy-sidebar-active-bg) !important;
   color: var(--xfjy-sidebar-active-text) !important;
-  font-weight: 500 !important;
 }
 
 /* 折叠 popup 弹层 */
@@ -212,7 +199,6 @@ const activeMenu = computed(() => {
 :deep(.el-menu--popup .el-menu-item.is-active) {
   background-color: var(--xfjy-sidebar-active-bg) !important;
   color: var(--xfjy-sidebar-active-text) !important;
-  font-weight: 500 !important;
 }
 
 /* 折叠态下 sub-menu 标题居中 */

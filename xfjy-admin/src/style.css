@@ -73,8 +73,6 @@
   --xfjy-sidebar-active-bg: rgba(254, 60, 114, 0.08);
   /* 激活文字走深档（6.82:1 达标）；主色 #fe3c72 on white 仅 3.44:1 不满足正文 4.5:1 */
   --xfjy-sidebar-active-text: #a8284d;
-  /* 3px 左边条是非文字图形，3:1 门槛下主色 3.44:1 已达标，保留品牌色 */
-  --xfjy-sidebar-active-border: #fe3c72;
   --xfjy-sidebar-sub-bg: #fafafa;
   --xfjy-sidebar-font-size: 15px;
 
