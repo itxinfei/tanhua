@@ -97,13 +97,56 @@ function handleMaskTap(): void {
   close();
 }
 
-/** Esc 关闭（H5 / App-webview 端生效） */
+/** 弹窗内可聚焦元素选择器：含 a11y-button 渲染的 view[tabindex] */
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/** 收集弹窗内当前可见的可聚焦元素；无 DOM 环境（小程序）返回空数组静默降级 */
+function getFocusableEls(): any[] {
+  const root = resolveEl();
+  if (!root?.querySelectorAll) return [];
+  try {
+    return Array.from(root.querySelectorAll(FOCUSABLE_SELECTOR)).filter(
+      (el: any) => el.getClientRects?.().length > 0,
+    );
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * 键盘交互（H5 / App-webview 端生效，小程序不派发 keydown 自动降级）：
+ * Esc 关闭；Tab / Shift+Tab 焦点圈定在弹窗内循环（WAI-ARIA dialog focus trap）
+ */
 function handleKeydown(e: any): void {
   const key: string = e?.key || "";
   const keyCode: number = e?.keyCode || 0;
   if (key === "Escape" || key === "Esc" || keyCode === 27) {
     e?.stopPropagation?.();
     close();
+    return;
+  }
+  if (key !== "Tab" && keyCode !== 9) return;
+  const root = resolveEl();
+  const items = getFocusableEls();
+  if (items.length === 0) {
+    // 弹窗内无可聚焦控件时，焦点钉在弹窗容器本身，避免 Tab 跑到背景页
+    e?.preventDefault?.();
+    safeFocus(root);
+    return;
+  }
+  const first = items[0];
+  const last = items[items.length - 1];
+  const active = typeof document !== "undefined" ? document.activeElement : null;
+  const inside = !!root?.contains?.(active);
+  if (e?.shiftKey) {
+    if (!inside || active === first) {
+      e?.preventDefault?.();
+      safeFocus(last);
+    }
+  } else if (!inside || active === last) {
+    e?.preventDefault?.();
+    safeFocus(first);
   }
 }
 </script>

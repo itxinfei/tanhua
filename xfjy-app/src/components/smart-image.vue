@@ -41,6 +41,7 @@ interface Props {
   fallback?: string;
   /** 裁剪模式，默认 aspectFill */
   mode?: string;
+  /** 图片懒加载，默认开启（H5 映射 loading=lazy，视口内图片仍立即加载；首屏关键图可显式 :lazy-load="false"） */
   lazyLoad?: boolean;
   /** 无障碍标签；为空时不输出该属性（避免读屏读空） */
   ariaLabel?: string;
@@ -57,7 +58,7 @@ const props = withDefaults(defineProps<Props>(), {
   src: "",
   fallback: DEFAULT_AVATAR,
   mode: "aspectFill",
-  lazyLoad: false,
+  lazyLoad: true,
   ariaLabel: "",
   ariaHidden: false,
   clickable: false,

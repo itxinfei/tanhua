@@ -5,6 +5,7 @@
     class="app-tabbar"
     role="tablist"
     aria-label="主导航"
+    @keydown="handleTablistKeydown"
   >
     <view class="app-tabbar__inner">
       <!-- 固定 5 项（4 tab + 发布键），显式写死。
@@ -245,7 +246,9 @@ function applyActiveClass(i: number): void {
     const isActive = isPublish ? i === -1 : tabIdx === i;
     const hit = item.querySelector<HTMLElement>(".app-tabbar__hit");
     const label = item.querySelector<HTMLElement>(".app-tabbar__label");
-    hit?.setAttribute("aria-checked", isActive ? "true" : "false");
+    // ARIA tabs 规范：role=tab 选中态用 aria-selected（a11y-button 已按角色输出该属性，
+    // 此处 DOM 直操沿用同一属性名，避免 Vue 绑定值与游离实例状态脱节）
+    hit?.setAttribute("aria-selected", isActive ? "true" : "false");
     label?.classList.toggle("app-tabbar__label--active", isActive);
     // 发布键使用独立的 --active class（app-tabbar__mid-label--active），需同步切换
     if (idx === 2) {
@@ -273,6 +276,33 @@ function go(tab: (typeof TABS)[number]): void {
 
 function goPublish(): void {
   uni.navigateTo({ url: `/${PUBLISH_PAGE}` });
+}
+
+/**
+ * tablist 方向键导航（WAI-ARIA tabs 模式，H5 / App-webview 生效；小程序不派发 keydown 自动降级）：
+ * 焦点在底栏入口上时，←/→ 循环、Home/End 跳首尾，移动焦点并立即激活（selection follows focus）。
+ * 激活走 hit.click()，复用 a11y-button 既有路径，与手指点按行为完全一致。
+ */
+function handleTablistKeydown(e: any): void {
+  if (typeof document === "undefined") return;
+  const root = localRoot ?? document.getElementById("xfjy-global-tabbar");
+  if (!root) return;
+  const hits = Array.from(root.querySelectorAll<HTMLElement>(".app-tabbar__hit"));
+  if (hits.length === 0) return;
+  const current = document.activeElement as HTMLElement | null;
+  const idx = current ? hits.indexOf(current) : -1;
+  // 焦点不在底栏入口上时不拦截，避免吞掉页面其他键盘交互
+  if (idx === -1) return;
+  const key: string = e?.key ?? "";
+  let next = -1;
+  if (key === "ArrowLeft") next = (idx - 1 + hits.length) % hits.length;
+  else if (key === "ArrowRight") next = (idx + 1) % hits.length;
+  else if (key === "Home") next = 0;
+  else if (key === "End") next = hits.length - 1;
+  if (next === -1) return;
+  e.preventDefault();
+  hits[next].focus();
+  hits[next].click();
 }
 </script>
 

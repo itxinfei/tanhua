@@ -94,6 +94,9 @@ function goChat(): void {
     .match-title {
       font-size: 64rpx;
       font-weight: 900;
+      /* 粉橙渐变（--gradient-brand-h）有意区别于全局 .gradient-text 的紫粉品牌渐变；
+         模板同时挂全局类以复用其 forced-colors 兜底，但 scoped 特异性更高，
+         故高对比度兜底必须在本文件底部同媒体查询再覆盖一次 */
       background: var(--gradient-brand-h);
       -webkit-background-clip: text;
       background-clip: text;
@@ -137,6 +140,16 @@ function goChat(): void {
         border-color: rgba(255, 255, 255, 0.5);
       }
     }
+  }
+}
+
+/* 强制颜色模式（高对比度）：scoped .match-title 特异性高于全局 .gradient-text 兜底，
+   不在本组件覆盖则透明文字 + 残留背景会让标题不可见（WCAG 1.4.8） */
+@media (forced-colors: active) {
+  .match-title {
+    -webkit-text-fill-color: CanvasText;
+    color: CanvasText;
+    background: none;
   }
 }
 </style>

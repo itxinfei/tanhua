@@ -11,6 +11,7 @@
     :role="role"
     :aria-label="label || null"
     :aria-checked="ariaChecked"
+    :aria-selected="ariaSelected"
     :aria-disabled="disabled || loading ? 'true' : null"
     :aria-busy="loading ? 'true' : null"
     :tabindex="disabled ? -1 : 0"
@@ -78,9 +79,16 @@ const emit = defineEmits<{ (e: "tap" | "click"): void }>();
 /** 需要上报选中态的角色（对应 WCAG 4.1.2 Name, Role, Value） */
 const CHECKABLE_ROLES = ["checkbox", "radio", "tab", "switch", "menuitemcheckbox"];
 const isCheckable = computed(() => CHECKABLE_ROLES.includes(props.role));
+/** ARIA tabs 规范：role=tab 的选中态走 aria-selected，不输出 aria-checked */
+const isTab = computed(() => props.role === "tab");
 
-/** aria-checked 属性值（computed 确保响应式更新） */
-const ariaChecked = computed(() => (isCheckable.value ? (props.checked ? "true" : "false") : null));
+/** aria-checked 属性值（computed 确保响应式更新；tab 角色除外） */
+const ariaChecked = computed(() =>
+  isCheckable.value && !isTab.value ? (props.checked ? "true" : "false") : null,
+);
+
+/** aria-selected 属性值：仅 role=tab 输出 */
+const ariaSelected = computed(() => (isTab.value ? (props.checked ? "true" : "false") : null));
 
 /** 统一的激活动作（点击与键盘共用），disabled/loading 时静默 */
 function activate(): void {
@@ -159,8 +167,8 @@ function handleKeydown(e: any): void {
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  /* 最小点击热区 88rpx（≈44px，WCAG 2.5.5） */
-  min-height: 88rpx;
+  /* 最小点击热区：88rpx 与 44px 取大值，窄屏（320px 下 88rpx≈37.5px）仍满足 WCAG 2.5.5 */
+  min-height: max(88rpx, 44px);
 }
 
 /* ===== 视觉变体（variant !== default 时生效）：全站按钮单一真源，页面不再各写一套 ===== */
@@ -173,8 +181,8 @@ function handleKeydown(e: any): void {
   justify-content: center;
   gap: var(--space-xs);
   box-sizing: border-box;
-  /* 最小点击热区 88rpx（≈44px，WCAG 2.5.5） */
-  min-height: 88rpx;
+  /* 最小点击热区：88rpx 与 44px 取大值，窄屏（320px 下 88rpx≈37.5px）仍满足 WCAG 2.5.5 */
+  min-height: max(88rpx, 44px);
   padding: 0 var(--space-lg);
   font-size: var(--fs-base);
   font-weight: 600;
@@ -187,9 +195,9 @@ function handleKeydown(e: any): void {
   --press-scale: 0.94;
 }
 
-/* 紧凑尺寸：输入框内嵌按钮等 */
+/* 紧凑尺寸：输入框内嵌按钮等；28px 物理下限保证窄屏仍可点（AGENTS §7.1 sm 例外仅限行内紧凑操作） */
 .a11y-btn--sm {
-  min-height: 56rpx;
+  min-height: max(56rpx, 28px);
   padding: 0 var(--space-md);
   font-size: var(--fs-sm);
   font-weight: 500;
