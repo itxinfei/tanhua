@@ -130,79 +130,91 @@
     <!-- VIP 入口：已开通显示尊贵标识 + 描边流光；未开通显示特权列表（呼吸光晕两态都在）。
          核心思路：让用户感受到「开通后有多尊贵」，从而感兴趣开通。 -->
     <view class="vip-card-wrap">
-    <a11y-button
-      class="vip-card anim-fade-up anim-delay-2"
-      :class="{ 'is-vip': userInfo?.vip }"
-      :label="userInfo?.vip ? '会员中心' : '开通会员'"
-      @tap="goVip"
-    >
-      <!-- 呼吸光晕独立图层：只动 opacity，避免逐帧重绘 box-shadow -->
-      <view
-        class="vip-glow"
-        aria-hidden="true"
-      />
-      <view class="vip-left">
-        <!-- 金底方徽：统一走 components/vip-badge.vue（营销态，两态都显示，保持布局不变） -->
-        <vip-badge
-          promo
-          variant="emblem"
+      <a11y-button
+        class="vip-card anim-fade-up anim-delay-2"
+        :class="{ 'is-vip': userInfo?.vip }"
+        :label="userInfo?.vip ? '会员中心' : '开通会员'"
+        @tap="goVip"
+      >
+        <!-- 呼吸光晕独立图层：只动 opacity，避免逐帧重绘 box-shadow -->
+        <view
+          class="vip-glow"
+          aria-hidden="true"
         />
-        <view class="vip-copy">
-          <!-- 已开通：显示 VIP 标识 + 到期时间；未开通：显示「立即」标签 -->
-          <view class="vip-title-row">
-            <text class="vip-title">
-              {{ userInfo?.vip ? 'VIP 会员' : '开通会员' }}
-            </text>
+        <view class="vip-left">
+          <!-- 金底方徽：统一走 components/vip-badge.vue（营销态，两态都显示，保持布局不变） -->
+          <vip-badge
+            promo
+            variant="emblem"
+          />
+          <view class="vip-copy">
+            <!-- 已开通：显示 VIP 标识 + 到期时间；未开通：显示「立即」标签 -->
+            <view class="vip-title-row">
+              <text class="vip-title">
+                {{ userInfo?.vip ? 'VIP 会员' : '开通会员' }}
+              </text>
+              <view
+                v-if="!userInfo?.vip"
+                class="vip-cta-tag"
+              >
+                立即开通
+              </view>
+            </view>
+            <!-- 未开通：特权列表（图标 + 文字）；已开通：已享特权 + 引导 -->
             <view
               v-if="!userInfo?.vip"
-              class="vip-cta-tag"
+              class="vip-perks"
             >
-              立即开通
+              <view class="vip-perk">
+                <view class="vip-perk-icon i-ph-infinity" />
+                <text class="vip-perk-text">
+                  无限滑动
+                </text>
+              </view>
+              <view class="vip-perk">
+                <view class="vip-perk-icon i-ph-eye" />
+                <text class="vip-perk-text">
+                  查看谁喜欢我
+                </text>
+              </view>
+              <view class="vip-perk">
+                <view class="vip-perk-icon i-ph-crown-simple" />
+                <text class="vip-perk-text">
+                  专属标识
+                </text>
+              </view>
+              <view class="vip-perk">
+                <view class="vip-perk-icon i-ph-star" />
+                <text class="vip-perk-text">
+                  超级喜欢×5
+                </text>
+              </view>
             </view>
-          </view>
-          <!-- 未开通：特权列表（图标 + 文字）；已开通：已享特权 + 引导 -->
-          <view
-            v-if="!userInfo?.vip"
-            class="vip-perks"
-          >
-            <view class="vip-perk">
-              <view class="vip-perk-icon i-ph-infinity" />
-              <text class="vip-perk-text">无限滑动</text>
-            </view>
-            <view class="vip-perk">
-              <view class="vip-perk-icon i-ph-eye" />
-              <text class="vip-perk-text">查看谁喜欢我</text>
-            </view>
-            <view class="vip-perk">
-              <view class="vip-perk-icon i-ph-crown-simple" />
-              <text class="vip-perk-text">专属标识</text>
-            </view>
-            <view class="vip-perk">
-              <view class="vip-perk-icon i-ph-star" />
-              <text class="vip-perk-text">超级喜欢×5</text>
-            </view>
-          </view>
-          <view
-            v-else
-            class="vip-perks vip-perks--active"
-          >
-            <view class="vip-perk">
-              <view class="vip-perk-icon i-ph-check-circle" />
-              <text class="vip-perk-text">无限滑动已解锁</text>
-            </view>
-            <view class="vip-perk">
-              <view class="vip-perk-icon i-ph-check-circle" />
-              <text class="vip-perk-text">查看谁喜欢我</text>
+            <view
+              v-else
+              class="vip-perks vip-perks--active"
+            >
+              <view class="vip-perk">
+                <view class="vip-perk-icon i-ph-check-circle" />
+                <text class="vip-perk-text">
+                  无限滑动已解锁
+                </text>
+              </view>
+              <view class="vip-perk">
+                <view class="vip-perk-icon i-ph-check-circle" />
+                <text class="vip-perk-text">
+                  查看谁喜欢我
+                </text>
+              </view>
             </view>
           </view>
         </view>
-      </view>
-      <!-- 箭头用 Phosphor 图标 -->
-      <view
-        class="vip-chevron i-ph-caret-right"
-        aria-hidden="true"
-      />
-    </a11y-button>
+        <!-- 箭头用 Phosphor 图标 -->
+        <view
+          class="vip-chevron i-ph-caret-right"
+          aria-hidden="true"
+        />
+      </a11y-button>
     </view>
 
     <!-- 功能列表（表驱动渲染）：行高固定，不随组内项数与视口宽度变化 -->

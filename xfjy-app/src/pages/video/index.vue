@@ -52,264 +52,264 @@
 
     <!-- S6：错误边界捕获视频流渲染异常，@retry 重新拉取视频列表 -->
     <error-boundary @retry="loadVideos">
-    <swiper
-      class="video-swiper"
-      vertical
-      :current="swiperIndex"
-      @change="onSwiperChange"
-    >
-      <swiper-item
-        v-for="(video, idx) in displayList"
-        :key="video.id"
+      <swiper
+        class="video-swiper"
+        vertical
+        :current="swiperIndex"
+        @change="onSwiperChange"
       >
-        <view
-          class="video-item"
-          :class="{ 'is-active': idx === swiperIndex }"
+        <swiper-item
+          v-for="(video, idx) in displayList"
+          :key="video.id"
         >
-          <!-- 相邻三条挂载：上一条保留实例，回退时无需重建（重建会重新拉流、回退后要等几秒才出声）；
+          <view
+            class="video-item"
+            :class="{ 'is-active': idx === swiperIndex }"
+          >
+            <!-- 相邻三条挂载：上一条保留实例，回退时无需重建（重建会重新拉流、回退后要等几秒才出声）；
               但只有当前条 auto 预载，相邻条仅取元数据，避免三条同时下载视频体。 -->
-          <template v-if="Math.abs(idx - swiperIndex) <= 1">
-            <video
-              :id="'vid-' + video.id"
-              :key="video.id + '-' + (videoRetryTick[video.id] || 0)"
-              class="video-player"
-              :src="video.videoUrl"
-              :poster="video.cover"
-              :autoplay="idx === swiperIndex"
-              loop
-              :muted="isMuted"
-              :preload="idx === swiperIndex ? 'auto' : 'metadata'"
-              :controls="false"
-              :aria-label="`视频：${video.nickname} 的作品`"
-              :show-center-play-btn="false"
-              :enable-progress-gesture="false"
-              object-fit="cover"
-              @timeupdate="idx === swiperIndex ? onTimeUpdate($event) : null"
-              @play="onVideoPlay(idx)"
-              @pause="onVideoPause(idx)"
-              @error="onVideoError(video, $event)"
-            />
+            <template v-if="Math.abs(idx - swiperIndex) <= 1">
+              <video
+                :id="'vid-' + video.id"
+                :key="video.id + '-' + (videoRetryTick[video.id] || 0)"
+                class="video-player"
+                :src="video.videoUrl"
+                :poster="video.cover"
+                :autoplay="idx === swiperIndex"
+                loop
+                :muted="isMuted"
+                :preload="idx === swiperIndex ? 'auto' : 'metadata'"
+                :controls="false"
+                :aria-label="`视频：${video.nickname} 的作品`"
+                :show-center-play-btn="false"
+                :enable-progress-gesture="false"
+                object-fit="cover"
+                @timeupdate="idx === swiperIndex ? onTimeUpdate($event) : null"
+                @play="onVideoPlay(idx)"
+                @pause="onVideoPause(idx)"
+                @error="onVideoError(video, $event)"
+              />
+              <smart-image
+                v-if="idx !== swiperIndex"
+                class="cover-residue"
+                :src="video.cover"
+                :fallback="''"
+                mode="aspectFill"
+                :aria-hidden="true"
+              />
+            </template>
             <smart-image
-              v-if="idx !== swiperIndex"
-              class="cover-residue"
+              v-else
+              class="cover"
               :src="video.cover"
               :fallback="''"
               mode="aspectFill"
-              :aria-hidden="true"
+              lazy-load
+              :aria-label="`${video.nickname} 的视频封面`"
             />
-          </template>
-          <smart-image
-            v-else
-            class="cover"
-            :src="video.cover"
-            :fallback="''"
-            mode="aspectFill"
-            lazy-load
-            :aria-label="`${video.nickname} 的视频封面`"
-          />
 
-          <!-- 透明点击层：单击暂停/播放，双击点赞 -->
-          <view
-            class="tap-layer"
-            aria-hidden="true"
-            @tap="onVideoTap(video, $event)"
-          />
+            <!-- 透明点击层：单击暂停/播放，双击点赞 -->
+            <view
+              class="tap-layer"
+              aria-hidden="true"
+              @tap="onVideoTap(video, $event)"
+            />
 
-          <!-- 中央播放/暂停指示 -->
-          <view
-            v-if="currentId === video.id && !isPlaying && !erroredVideoIds.has(video.id)"
-            class="center-state"
-            aria-hidden="true"
-          >
-            <view class="play-icon i-ph-play-fill" />
-          </view>
-
-          <!-- 播放失败浮层 -->
-          <a11y-button
-            v-if="video.id === currentId && erroredVideoIds.has(video.id)"
-            class="video-error"
-            label="视频加载失败，点击重试"
-            @tap="retryVideo(video)"
-          >
-            <text class="video-error-title">
-              视频加载失败
-            </text>
-            <text
-              class="video-error-retry"
+            <!-- 中央播放/暂停指示 -->
+            <view
+              v-if="currentId === video.id && !isPlaying && !erroredVideoIds.has(video.id)"
+              class="center-state"
               aria-hidden="true"
             >
-              点此重试
-            </text>
-          </a11y-button>
-
-          <!-- 双击飞出的爱心（抖音式大爱心跳弹） -->
-          <view
-            v-for="h in floatHearts"
-            :key="h.id"
-            class="float-heart"
-            :style="{ left: h.x + 'px', top: h.y + 'px' }"
-            aria-hidden="true"
-          >
-            <view class="float-heart__ico i-ph-heart-fill" />
-          </view>
-
-          <!-- 右侧操作栏（抖音原版布局） -->
-          <view class="side-bar">
-            <view class="side-stack">
-              <!-- 作者头像 + 关注 -->
-              <a11y-button
-                class="side-btn follow-btn"
-                :label="video.hasFocus ? `取消关注 ${video.nickname}` : `关注 ${video.nickname}`"
-                @tap="handleFocus(video)"
-              >
-                <smart-image
-                  class="side-avatar"
-                  :src="video.avatar"
-                  mode="aspectFill"
-                  lazy-load
-                  :aria-hidden="true"
-                />
-                <view
-                  v-if="!video.hasFocus"
-                  class="follow-plus"
-                  aria-hidden="true"
-                >
-                  <view class="follow-plus__ico i-ph-plus-bold" />
-                </view>
-              </a11y-button>
-
-              <a11y-button
-                class="side-btn"
-                :label="video.hasLiked === 1 ? `取消点赞，当前 ${video.likeCount} 赞` : `点赞，当前 ${video.likeCount} 赞`"
-                @tap="handleLike(video)"
-              >
-                <view
-                  class="side-ico"
-                  :class="{ 'like-pop': video.hasLiked === 1 }"
-                >
-                  <view
-                    class="side-ico__ph"
-                    :class="video.hasLiked === 1 ? 'i-ph-heart-fill side-ico__ph--liked' : 'i-ph-heart'"
-                    aria-hidden="true"
-                  />
-                </view>
-                <!-- 0 赞时给明确引导，避免"恒为 0、不知能否互动" -->
-                <text class="side-count">
-                  {{ video.likeCount > 0 ? formatCount(video.likeCount) : "抢首赞" }}
-                </text>
-              </a11y-button>
-
-              <a11y-button
-                class="side-btn"
-                :label="`查看评论，共 ${video.commentCount} 条`"
-                @tap="showComments(video)"
-              >
-                <view class="side-ico">
-                  <view
-                    class="side-ico__ph i-ph-chat-circle-dots-bold"
-                    aria-hidden="true"
-                  />
-                </view>
-                <text class="side-count">
-                  {{ video.commentCount > 0 ? formatCount(video.commentCount) : "抢首评" }}
-                </text>
-              </a11y-button>
-
-              <a11y-button
-                class="side-btn"
-                :label="`分享 ${video.nickname} 的视频`"
-                @tap="openShare(video)"
-              >
-                <view class="side-ico">
-                  <view
-                    class="side-ico__ph i-ph-arrow-bend-up-right-bold"
-                    aria-hidden="true"
-                  />
-                </view>
-              </a11y-button>
+              <view class="play-icon i-ph-play-fill" />
             </view>
-          </view>
 
-          <!-- 底部信息 + 滚动音乐条 -->
-          <view class="video-info">
-            <text class="author">
-              @{{ video.nickname }}
-            </text>
-            <!-- 位置：城市名可空（H5 不支持逆地理），空时用距离标签，绝不展示坐标串 -->
-            <text
-              v-if="activeChannel === 'location' && (video.locationName || video.distance)"
-              class="location-label"
+            <!-- 播放失败浮层 -->
+            <a11y-button
+              v-if="video.id === currentId && erroredVideoIds.has(video.id)"
+              class="video-error"
+              label="视频加载失败，点击重试"
+              @tap="retryVideo(video)"
             >
-              {{ video.locationName || formatDistance(video.distance) }}
-            </text>
-            <text class="desc ellipsis-2">
-              {{ video.signature }}
-            </text>
-            <view class="music-row">
-              <view
-                class="music-disc"
-                :class="{ 'disc-paused': !isPlaying && currentId === video.id }"
+              <text class="video-error-title">
+                视频加载失败
+              </text>
+              <text
+                class="video-error-retry"
                 aria-hidden="true"
               >
-                <smart-image
-                  lazy-load
-                  class="disc-img"
-                  :src="video.cover"
-                  :fallback="''"
-                  mode="aspectFill"
-                />
-              </view>
-              <view class="music-track">
-                <text
-                  class="music-text"
-                  :class="{ 'text-paused': !isPlaying && currentId === video.id }"
-                >
-                  {{ video.nickname }} 创作的原声 · {{ video.signature || '小视频' }}
-                </text>
-              </view>
-            </view>
-          </view>
+                点此重试
+              </text>
+            </a11y-button>
 
-          <!-- 进度条 + 拖动定位（抖音式）：88rpx 热区保证可触摸；拖动只更新预览，松手才 seek，
-               避免拖动过程中连续 seek 造成卡顿。横拖被 .stop.prevent 吃掉，不会带动竖向 swiper。 -->
-          <view
-            v-if="currentId === video.id"
-            class="progress-hit"
-            :class="{ 'is-scrubbing': scrubbing }"
-            @touchstart="onScrubStart"
-            @touchmove.stop.prevent="onScrubMove"
-            @touchend="onScrubEnd"
-            @touchcancel="onScrubEnd"
-          >
+            <!-- 双击飞出的爱心（抖音式大爱心跳弹） -->
             <view
-              class="progress-bar"
-              role="progressbar"
-              aria-label="播放进度"
-              :aria-valuenow="Math.round(scrubbing ? scrubPercent : progress)"
-              aria-valuemin="0"
-              aria-valuemax="100"
-            >
-              <view
-                class="progress-inner"
-                :style="{ transform: 'scaleX(' + (scrubbing ? scrubPercent : progress) / 100 + ')' }"
-              />
-              <view
-                v-if="scrubbing"
-                class="progress-thumb"
-                :style="{ left: scrubPercent + '%' }"
-              />
-            </view>
-            <view
-              v-if="scrubbing"
-              class="scrub-time"
+              v-for="h in floatHearts"
+              :key="h.id"
+              class="float-heart"
+              :style="{ left: h.x + 'px', top: h.y + 'px' }"
               aria-hidden="true"
             >
-              {{ scrubLabel }}
+              <view class="float-heart__ico i-ph-heart-fill" />
+            </view>
+
+            <!-- 右侧操作栏（抖音原版布局） -->
+            <view class="side-bar">
+              <view class="side-stack">
+                <!-- 作者头像 + 关注 -->
+                <a11y-button
+                  class="side-btn follow-btn"
+                  :label="video.hasFocus ? `取消关注 ${video.nickname}` : `关注 ${video.nickname}`"
+                  @tap="handleFocus(video)"
+                >
+                  <smart-image
+                    class="side-avatar"
+                    :src="video.avatar"
+                    mode="aspectFill"
+                    lazy-load
+                    :aria-hidden="true"
+                  />
+                  <view
+                    v-if="!video.hasFocus"
+                    class="follow-plus"
+                    aria-hidden="true"
+                  >
+                    <view class="follow-plus__ico i-ph-plus-bold" />
+                  </view>
+                </a11y-button>
+
+                <a11y-button
+                  class="side-btn"
+                  :label="video.hasLiked === 1 ? `取消点赞，当前 ${video.likeCount} 赞` : `点赞，当前 ${video.likeCount} 赞`"
+                  @tap="handleLike(video)"
+                >
+                  <view
+                    class="side-ico"
+                    :class="{ 'like-pop': video.hasLiked === 1 }"
+                  >
+                    <view
+                      class="side-ico__ph"
+                      :class="video.hasLiked === 1 ? 'i-ph-heart-fill side-ico__ph--liked' : 'i-ph-heart'"
+                      aria-hidden="true"
+                    />
+                  </view>
+                  <!-- 0 赞时给明确引导，避免"恒为 0、不知能否互动" -->
+                  <text class="side-count">
+                    {{ video.likeCount > 0 ? formatCount(video.likeCount) : "抢首赞" }}
+                  </text>
+                </a11y-button>
+
+                <a11y-button
+                  class="side-btn"
+                  :label="`查看评论，共 ${video.commentCount} 条`"
+                  @tap="showComments(video)"
+                >
+                  <view class="side-ico">
+                    <view
+                      class="side-ico__ph i-ph-chat-circle-dots-bold"
+                      aria-hidden="true"
+                    />
+                  </view>
+                  <text class="side-count">
+                    {{ video.commentCount > 0 ? formatCount(video.commentCount) : "抢首评" }}
+                  </text>
+                </a11y-button>
+
+                <a11y-button
+                  class="side-btn"
+                  :label="`分享 ${video.nickname} 的视频`"
+                  @tap="openShare(video)"
+                >
+                  <view class="side-ico">
+                    <view
+                      class="side-ico__ph i-ph-arrow-bend-up-right-bold"
+                      aria-hidden="true"
+                    />
+                  </view>
+                </a11y-button>
+              </view>
+            </view>
+
+            <!-- 底部信息 + 滚动音乐条 -->
+            <view class="video-info">
+              <text class="author">
+                @{{ video.nickname }}
+              </text>
+              <!-- 位置：城市名可空（H5 不支持逆地理），空时用距离标签，绝不展示坐标串 -->
+              <text
+                v-if="activeChannel === 'location' && (video.locationName || video.distance)"
+                class="location-label"
+              >
+                {{ video.locationName || formatDistance(video.distance) }}
+              </text>
+              <text class="desc ellipsis-2">
+                {{ video.signature }}
+              </text>
+              <view class="music-row">
+                <view
+                  class="music-disc"
+                  :class="{ 'disc-paused': !isPlaying && currentId === video.id }"
+                  aria-hidden="true"
+                >
+                  <smart-image
+                    lazy-load
+                    class="disc-img"
+                    :src="video.cover"
+                    :fallback="''"
+                    mode="aspectFill"
+                  />
+                </view>
+                <view class="music-track">
+                  <text
+                    class="music-text"
+                    :class="{ 'text-paused': !isPlaying && currentId === video.id }"
+                  >
+                    {{ video.nickname }} 创作的原声 · {{ video.signature || '小视频' }}
+                  </text>
+                </view>
+              </view>
+            </view>
+
+            <!-- 进度条 + 拖动定位（抖音式）：88rpx 热区保证可触摸；拖动只更新预览，松手才 seek，
+               避免拖动过程中连续 seek 造成卡顿。横拖被 .stop.prevent 吃掉，不会带动竖向 swiper。 -->
+            <view
+              v-if="currentId === video.id"
+              class="progress-hit"
+              :class="{ 'is-scrubbing': scrubbing }"
+              @touchstart="onScrubStart"
+              @touchmove.stop.prevent="onScrubMove"
+              @touchend="onScrubEnd"
+              @touchcancel="onScrubEnd"
+            >
+              <view
+                class="progress-bar"
+                role="progressbar"
+                aria-label="播放进度"
+                :aria-valuenow="Math.round(scrubbing ? scrubPercent : progress)"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >
+                <view
+                  class="progress-inner"
+                  :style="{ transform: 'scaleX(' + (scrubbing ? scrubPercent : progress) / 100 + ')' }"
+                />
+                <view
+                  v-if="scrubbing"
+                  class="progress-thumb"
+                  :style="{ left: scrubPercent + '%' }"
+                />
+              </view>
+              <view
+                v-if="scrubbing"
+                class="scrub-time"
+                aria-hidden="true"
+              >
+                {{ scrubLabel }}
+              </view>
             </view>
           </view>
-        </view>
-      </swiper-item>
-    </swiper>
+        </swiper-item>
+      </swiper>
     </error-boundary>
 
     <!-- 顶部/底部暗角渐变 -->

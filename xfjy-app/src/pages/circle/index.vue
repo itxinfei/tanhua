@@ -48,162 +48,162 @@
 
     <!-- S6：错误边界捕获动态列表渲染异常，@retry 重新拉取 feed -->
     <error-boundary @retry="loadFeed">
-    <scroll-view
-      scroll-y
-      class="feed-list"
-      refresher-enabled
-      :refresher-triggered="refreshing"
-      @refresherrefresh="onRefresh"
-      @scrolltolower="loadMore"
-    >
-      <skeleton
-        v-if="feedList.length === 0 && loading"
-        variant="feed"
-        :count="SKELETON_CARD_COUNT"
-        :grid-cols="GRID_COLUMN_COUNT"
-      />
-      <!-- 空状态：确实没有动态 -->
-      <empty-state
-        v-if="feedList.length === 0 && !loading && !loadFailed"
-        icon="camera"
-        title="暂无动态"
-        desc="快来发布第一条，分享你的生活"
-      />
-      <!-- 加载失败：与「真的没动态」严格区分，给明确原因 + 可重试入口。
+      <scroll-view
+        scroll-y
+        class="feed-list"
+        refresher-enabled
+        :refresher-triggered="refreshing"
+        @refresherrefresh="onRefresh"
+        @scrolltolower="loadMore"
+      >
+        <skeleton
+          v-if="feedList.length === 0 && loading"
+          variant="feed"
+          :count="SKELETON_CARD_COUNT"
+          :grid-cols="GRID_COLUMN_COUNT"
+        />
+        <!-- 空状态：确实没有动态 -->
+        <empty-state
+          v-if="feedList.length === 0 && !loading && !loadFailed"
+          icon="camera"
+          title="暂无动态"
+          desc="快来发布第一条，分享你的生活"
+        />
+        <!-- 加载失败：与「真的没动态」严格区分，给明确原因 + 可重试入口。
            后端异常时旧版把故障误报成「暂无动态」，用户无从判断也无法恢复。 -->
-      <empty-state
-        v-if="feedList.length === 0 && !loading && loadFailed"
-        role="alert"
-        icon="info"
-        title="暂时没能获取动态"
-        desc="服务可能开小差了，检查网络后重试"
-      >
-        <a11y-button
-          class="feed-retry"
-          label="重新加载动态"
-          @tap="loadFeed()"
+        <empty-state
+          v-if="feedList.length === 0 && !loading && loadFailed"
+          role="alert"
+          icon="info"
+          title="暂时没能获取动态"
+          desc="服务可能开小差了，检查网络后重试"
         >
-          重新加载
-        </a11y-button>
-      </empty-state>
-      <view
-        v-for="item in feedList"
-        :key="item.id"
-        class="post-card"
-      >
-        <view class="post-header">
-          <smart-image
-            class="avatar"
-            :src="item.avatar"
-            mode="aspectFill"
-            lazy-load
-            :aria-label="item.nickname + ' 的头像'"
-          />
-          <view class="user-info">
-            <text class="nickname">
-              {{ item.nickname }}
-            </text>
-            <text class="meta">
-              {{ item.createDate }} · {{ item.location || '未知位置' }}
-            </text>
+          <a11y-button
+            class="feed-retry"
+            label="重新加载动态"
+            @tap="loadFeed()"
+          >
+            重新加载
+          </a11y-button>
+        </empty-state>
+        <view
+          v-for="item in feedList"
+          :key="item.id"
+          class="post-card"
+        >
+          <view class="post-header">
+            <smart-image
+              class="avatar"
+              :src="item.avatar"
+              mode="aspectFill"
+              lazy-load
+              :aria-label="item.nickname + ' 的头像'"
+            />
+            <view class="user-info">
+              <text class="nickname">
+                {{ item.nickname }}
+              </text>
+              <text class="meta">
+                {{ item.createDate }} · {{ item.location || '未知位置' }}
+              </text>
+            </view>
+          </view>
+          <view
+            v-if="item.textContent"
+            class="post-content ellipsis-2"
+          >
+            {{ item.textContent }}
+          </view>
+          <view
+            v-if="item.tags && item.tags.length"
+            class="tag-row"
+          >
+            <a11y-button
+              v-for="(tag, i) in item.tags"
+              :key="i"
+              class="tag-chip"
+              :label="`查看话题 ${tag}`"
+              @tap="goTag(tag)"
+            >
+              <text># {{ tag }}</text>
+            </a11y-button>
+          </view>
+          <!-- filter(Boolean)：后端可能返回含空字符串的 imageContent（如 [""]），
+             空串渲染为占位块但点击预览会因 uni.previewImage 收到空 URL 报错 -->
+          <view
+            v-if="item.imageContent?.filter(Boolean).length"
+            class="image-grid"
+            :class="'grid-' + Math.min(item.imageContent.filter(Boolean).length, GRID_COLUMN_COUNT)"
+          >
+            <smart-image
+              v-for="(img, i) in item.imageContent.filter(Boolean).slice(0, MAX_GRID_IMAGE_COUNT)"
+              :key="i"
+              class="grid-image"
+              :src="img"
+              :fallback="''"
+              mode="aspectFill"
+              lazy-load
+              :aria-label="'动态图片 ' + (i + 1) + '，点击查看大图'"
+              clickable
+              @click="previewImage(item.imageContent.filter(Boolean), i)"
+            />
+          </view>
+          <view class="action-row">
+            <!-- 计数为 0 时给"抢首赞/抢首评"引导，而非空白让人以为功能缺失 -->
+            <a11y-button
+              class="action"
+              :label="item.hasLiked ? '取消点赞，当前 ' + (item.likeCount || 0) + ' 赞' : '点赞，当前 ' + (item.likeCount || 0) + ' 赞'"
+              @tap="handleLike(item)"
+            >
+              <view
+                class="action-icon"
+                :class="{ liked: item.hasLiked, 'heart-beat': item.hasLiked, 'i-ph-heart-fill': item.hasLiked, 'i-ph-heart': !item.hasLiked }"
+                aria-hidden="true"
+              />
+              <text class="count">
+                {{ item.likeCount > 0 ? item.likeCount : '抢首赞' }}
+              </text>
+            </a11y-button>
+            <a11y-button
+              class="action"
+              :label="'查看评论，共 ' + (item.commentCount || 0) + ' 条'"
+              @tap="goDetail(item)"
+            >
+              <view
+                class="action-icon i-ph-chat-circle-dots"
+                aria-hidden="true"
+              />
+              <text class="count">
+                {{ item.commentCount > 0 ? item.commentCount : '抢首评' }}
+              </text>
+            </a11y-button>
+            <a11y-button
+              class="action"
+              :label="item.hasLoved ? '取消心动' : '心动'"
+              @tap="handleLove(item)"
+            >
+              <view
+                class="action-icon"
+                :class="{ loved: item.hasLoved, 'i-ph-star-fill': item.hasLoved, 'i-ph-star': !item.hasLoved }"
+                aria-hidden="true"
+              />
+            </a11y-button>
           </view>
         </view>
         <view
-          v-if="item.textContent"
-          class="post-content ellipsis-2"
+          v-if="loading"
+          class="loading"
         >
-          {{ item.textContent }}
+          加载中…
         </view>
+        <!-- P2-4：全部加载完给明确终点，避免用户反复上拉以为卡了 -->
         <view
-          v-if="item.tags && item.tags.length"
-          class="tag-row"
+          v-else-if="!hasMore && feedList.length > 0"
+          class="loading"
         >
-          <a11y-button
-            v-for="(tag, i) in item.tags"
-            :key="i"
-            class="tag-chip"
-            :label="`查看话题 ${tag}`"
-            @tap="goTag(tag)"
-          >
-            <text># {{ tag }}</text>
-          </a11y-button>
+          没有更多了
         </view>
-        <!-- filter(Boolean)：后端可能返回含空字符串的 imageContent（如 [""]），
-             空串渲染为占位块但点击预览会因 uni.previewImage 收到空 URL 报错 -->
-        <view
-          v-if="item.imageContent?.filter(Boolean).length"
-          class="image-grid"
-          :class="'grid-' + Math.min(item.imageContent.filter(Boolean).length, GRID_COLUMN_COUNT)"
-        >
-          <smart-image
-            v-for="(img, i) in item.imageContent.filter(Boolean).slice(0, MAX_GRID_IMAGE_COUNT)"
-            :key="i"
-            class="grid-image"
-            :src="img"
-            :fallback="''"
-            mode="aspectFill"
-            lazy-load
-            :aria-label="'动态图片 ' + (i + 1) + '，点击查看大图'"
-            clickable
-            @click="previewImage(item.imageContent.filter(Boolean), i)"
-          />
-        </view>
-        <view class="action-row">
-          <!-- 计数为 0 时给"抢首赞/抢首评"引导，而非空白让人以为功能缺失 -->
-          <a11y-button
-            class="action"
-            :label="item.hasLiked ? '取消点赞，当前 ' + (item.likeCount || 0) + ' 赞' : '点赞，当前 ' + (item.likeCount || 0) + ' 赞'"
-            @tap="handleLike(item)"
-          >
-            <view
-              class="action-icon"
-              :class="{ liked: item.hasLiked, 'heart-beat': item.hasLiked, 'i-ph-heart-fill': item.hasLiked, 'i-ph-heart': !item.hasLiked }"
-              aria-hidden="true"
-            />
-            <text class="count">
-              {{ item.likeCount > 0 ? item.likeCount : '抢首赞' }}
-            </text>
-          </a11y-button>
-          <a11y-button
-            class="action"
-            :label="'查看评论，共 ' + (item.commentCount || 0) + ' 条'"
-            @tap="goDetail(item)"
-          >
-            <view
-              class="action-icon i-ph-chat-circle-dots"
-              aria-hidden="true"
-            />
-            <text class="count">
-              {{ item.commentCount > 0 ? item.commentCount : '抢首评' }}
-            </text>
-          </a11y-button>
-          <a11y-button
-            class="action"
-            :label="item.hasLoved ? '取消心动' : '心动'"
-            @tap="handleLove(item)"
-          >
-            <view
-              class="action-icon"
-              :class="{ loved: item.hasLoved, 'i-ph-star-fill': item.hasLoved, 'i-ph-star': !item.hasLoved }"
-              aria-hidden="true"
-            />
-          </a11y-button>
-        </view>
-      </view>
-      <view
-        v-if="loading"
-        class="loading"
-      >
-        加载中…
-      </view>
-      <!-- P2-4：全部加载完给明确终点，避免用户反复上拉以为卡了 -->
-      <view
-        v-else-if="!hasMore && feedList.length > 0"
-        class="loading"
-      >
-        没有更多了
-      </view>
-    </scroll-view>
+      </scroll-view>
     </error-boundary>
 
     <MatchPopup />

@@ -178,74 +178,74 @@
       <!-- 通知面板打开时隐藏消息列表：同屏只保留一个列表滚动区，避免双滚动层 -->
       <!-- S6：错误边界捕获会话列表渲染异常，@retry 重新拉取会话 -->
       <error-boundary @retry="loadMessages">
-      <scroll-view
-        v-show="!noticePanelType"
-        scroll-y
-        class="msg-list"
-      >
-        <!-- 空状态：确实没有会话；失败态严格区分，给重试入口，避免把故障误报成「没聊天」 -->
-        <empty-state
-          v-if="chatList.length === 0 && !chatLoadFailed"
-          title="还没有聊天"
-          desc="去匹配页滑动，遇见新朋友吧"
-        />
-        <empty-state
-          v-else-if="chatList.length === 0 && chatLoadFailed"
-          role="alert"
-          icon="info"
-          title="暂时没能获取聊天列表"
-          desc="服务可能开小差了，检查网络后重试"
+        <scroll-view
+          v-show="!noticePanelType"
+          scroll-y
+          class="msg-list"
         >
-          <a11y-button
-            class="feed-retry"
-            label="重新加载聊天列表"
-            @tap="loadMessages()"
+          <!-- 空状态：确实没有会话；失败态严格区分，给重试入口，避免把故障误报成「没聊天」 -->
+          <empty-state
+            v-if="chatList.length === 0 && !chatLoadFailed"
+            title="还没有聊天"
+            desc="去匹配页滑动，遇见新朋友吧"
+          />
+          <empty-state
+            v-else-if="chatList.length === 0 && chatLoadFailed"
+            role="alert"
+            icon="info"
+            title="暂时没能获取聊天列表"
+            desc="服务可能开小差了，检查网络后重试"
           >
-            重新加载
-          </a11y-button>
-        </empty-state>
-        <a11y-button
-          v-for="item in chatList"
-          :key="item.userId"
-          class="chat-item"
-          :label="chatItemLabel(item)"
-          @tap="goChatDetail(item)"
-        >
-          <view class="avatar-wrap">
-            <smart-image
-              class="avatar"
-              :src="item.avatar"
-              mode="aspectFill"
-              lazy-load
-              :aria-label="item.nickname + ' 的头像'"
-            />
-            <view
-              v-if="item.online"
-              class="online-dot"
-              aria-hidden="true"
-            />
-          </view>
-          <view class="chat-info">
-            <view class="top-row">
-              <text class="nickname">
-                {{ item.nickname }}
-              </text>
-            </view>
-            <view class="bottom-row">
-              <text class="last-msg">
-                {{ item.lastMessage || item.city || '暂无消息' }}
-              </text>
+            <a11y-button
+              class="feed-retry"
+              label="重新加载聊天列表"
+              @tap="loadMessages()"
+            >
+              重新加载
+            </a11y-button>
+          </empty-state>
+          <a11y-button
+            v-for="item in chatList"
+            :key="item.userId"
+            class="chat-item"
+            :label="chatItemLabel(item)"
+            @tap="goChatDetail(item)"
+          >
+            <view class="avatar-wrap">
+              <smart-image
+                class="avatar"
+                :src="item.avatar"
+                mode="aspectFill"
+                lazy-load
+                :aria-label="item.nickname + ' 的头像'"
+              />
               <view
-                v-if="item.unreadCount > 0"
-                class="unread-badge"
+                v-if="item.online"
+                class="online-dot"
                 aria-hidden="true"
-              >
-                {{ item.unreadCount > 99 ? '99+' : item.unreadCount }}
+              />
+            </view>
+            <view class="chat-info">
+              <view class="top-row">
+                <text class="nickname">
+                  {{ item.nickname }}
+                </text>
+              </view>
+              <view class="bottom-row">
+                <text class="last-msg">
+                  {{ item.lastMessage || item.city || '暂无消息' }}
+                </text>
+                <view
+                  v-if="item.unreadCount > 0"
+                  class="unread-badge"
+                  aria-hidden="true"
+                >
+                  {{ item.unreadCount > 99 ? '99+' : item.unreadCount }}
+                </view>
               </view>
             </view>
-          </view>
-        </a11y-button>
-      </scroll-view>
+          </a11y-button>
+        </scroll-view>
       </error-boundary>
     </view>
 

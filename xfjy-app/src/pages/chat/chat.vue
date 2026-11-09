@@ -3,278 +3,280 @@
     <!-- 消息列表 -->
     <!-- S6：错误边界捕获消息列表渲染异常，@retry 走带 try/catch 的安全重试，避免裸 async 重抛 -->
     <error-boundary @retry="retryLoadHistory">
-    <scroll-view
-      scroll-y
-      class="msg-list"
-      :scroll-into-view="scrollToId"
-      :scroll-with-animation="false"
-      @scrolltoupper="loadMoreHistory"
-    >
-      <!-- 首屏加载：list 骨架屏替代空白，提前感知消息结构 -->
-      <skeleton
-        v-if="historyLoading && messageList.length === 0"
-        class="msg-skeleton"
-        variant="list"
-        :count="6"
-      />
-      <!-- 续拉更旧历史指示（M-K4） -->
-      <view
-        v-if="loadingMore || noMoreHistory"
-        class="load-more-history"
-        role="status"
+      <scroll-view
+        scroll-y
+        class="msg-list"
+        :scroll-into-view="scrollToId"
+        :scroll-with-animation="false"
+        @scrolltoupper="loadMoreHistory"
       >
-        <text>{{ loadingMore ? '加载中…' : '没有更多了' }}</text>
-      </view>
-      <!-- 对方正在输入提示（点击可打开对方资料页） -->
-      <view
-        v-if="peerTyping"
-        class="typing-indicator"
-      >
-        <a11y-button
-          class="typing-btn"
-          :label="`${nickname} 正在输入，点击查看资料`"
-          @tap="openPeerProfile"
-        >
-          <smart-image
-            lazy-load
-            class="typing-avatar"
-            :src="peerAvatar"
-            mode="aspectFill"
-            :aria-hidden="true"
-          />
-          <view class="typing-bubble">
-            <view
-              class="typing-dots"
-              aria-hidden="true"
-            >
-              <text class="dot" /><text class="dot" /><text class="dot" />
-            </view>
-          </view>
-          <text class="typing-text">
-            {{ nickname }} 正在输入…
-          </text>
-        </a11y-button>
-      </view>
-      <template
-        v-for="(msg, i) in messageList"
-        :key="msg.id"
-      >
-        <!-- 时间分隔线：首条或间隔超过阈值时显示 -->
+        <!-- 首屏加载：list 骨架屏替代空白，提前感知消息结构 -->
+        <skeleton
+          v-if="historyLoading && messageList.length === 0"
+          class="msg-skeleton"
+          variant="list"
+          :count="6"
+        />
+        <!-- 续拉更旧历史指示（M-K4） -->
         <view
-          v-if="showTimeDivider(i)"
-          class="time-divider"
+          v-if="loadingMore || noMoreHistory"
+          class="load-more-history"
+          role="status"
         >
-          <text class="time-text">
-            {{ formatChatTime(msg.timestamp) }}
-          </text>
+          <text>{{ loadingMore ? '加载中…' : '没有更多了' }}</text>
         </view>
-        <!-- 单条消息 -->
+        <!-- 对方正在输入提示（点击可打开对方资料页） -->
         <view
-          :id="'msg-' + msg.id"
-          class="msg-item"
-          :class="{ mine: msg.isMine }"
+          v-if="peerTyping"
+          class="typing-indicator"
         >
-          <!-- 对方头像：点击打开对方资料页（用户想查看对方资料） -->
           <a11y-button
-            v-if="!msg.isMine"
-            class="avatar-btn"
-            :label="`查看 ${nickname} 的资料`"
+            class="typing-btn"
+            :label="`${nickname} 正在输入，点击查看资料`"
             @tap="openPeerProfile"
           >
             <smart-image
               lazy-load
-              class="avatar"
-              :src="msg.avatar"
+              class="typing-avatar"
+              :src="peerAvatar"
               mode="aspectFill"
               :aria-hidden="true"
             />
-          </a11y-button>
-          <view
-            class="bubble-wrap"
-            :class="{ mine: msg.isMine }"
-          >
-            <!-- 发送中转圈：纯状态动画，对读屏隐藏 -->
-            <view
-              v-if="msg.isMine && msg.status === 'sending'"
-              class="status-loading"
-              aria-hidden="true"
-            />
-            <!-- 发送失败：点击重发 -->
-            <a11y-button
-              v-else-if="msg.isMine && msg.status === 'failed'"
-              class="status-failed"
-              :label="`发送失败，重新发送：${msg.content || '消息'}`"
-              @tap="resendMessage(msg)"
-            >
-              <text
-                class="failed-icon"
+            <view class="typing-bubble">
+              <view
+                class="typing-dots"
                 aria-hidden="true"
               >
-                !
-              </text>
-            </a11y-button>
-            <view
-              class="bubble"
-              :class="{ mine: msg.isMine }"
-            >
-              <text v-if="msg.type === 'text'">
-                {{ msg.content }}
-              </text>
-              <a11y-button
-                v-else-if="msg.type === 'image'"
-                class="msg-image-wrap"
-                :label="msg.status === 'sending' ? '图片上传中' : '查看图片'"
-                @tap="previewImg(msg.content)"
-              >
-                <smart-image
-                  lazy-load
-                  class="msg-image"
-                  :src="msg.content"
-                  mode="widthFix"
-                  :aria-hidden="true"
-                />
-                <!-- 上传中遮罩：图片本地预览期间显示半透明遮罩 + 提示，避免误以为已发送成功 -->
-                <view
-                  v-if="msg.status === 'sending'"
-                  class="image-uploading-mask"
-                  aria-hidden="true"
-                >
-                  <text class="image-uploading-text">上传中…</text>
-                </view>
-              </a11y-button>
-              <!-- 语音：点击播放，播放中显示波动态 -->
-              <a11y-button
-                v-else-if="msg.type === 'voice'"
-                class="msg-voice"
-                :label="playingVoiceId === msg.id ? '暂停语音' : `播放语音，${msg.extra?.duration || 0} 秒`"
-                @tap="toggleVoicePlay(msg)"
-              >
-                <!-- Phosphor 单色图标替代 emoji 字形（§7.1：图标只用 i-ph-*），尺寸由 .voice-icon 的 font-size 经 1em 机制控制 -->
-                <view
-                  class="voice-icon"
-                  :class="playingVoiceId === msg.id ? 'i-ph-pause-fill' : 'i-ph-play-fill'"
-                  aria-hidden="true"
-                />
-                <view
-                  class="voice-wave"
-                  :class="{ playing: playingVoiceId === msg.id }"
-                  aria-hidden="true"
-                >
-                  <text
-                    v-for="n in 4"
-                    :key="n"
-                    class="wave-bar"
-                  />
-                </view>
-                <text class="voice-duration">
-                  {{ msg.extra?.duration || 0 }}秒
-                </text>
-                <!-- 播放进度条：仅播放中显示，宽度按进度百分比 -->
-                <view
-                  v-if="playingVoiceId === msg.id"
-                  class="voice-progress"
-                  aria-hidden="true"
-                >
-                  <view
-                    class="voice-progress-bar"
-                    :style="{ transform: 'scaleX(' + (voicePlayDuration > 0 ? voicePlayProgress / voicePlayDuration : 0) + ')' }"
-                  />
-                </view>
-              </a11y-button>
-              <!-- 位置：点击打开地图查看 -->
-              <a11y-button
-                v-else-if="msg.type === 'location'"
-                class="msg-location"
-                :label="`查看位置：${msg.content}`"
-                @tap="openLocation(msg)"
-              >
-                <uni-icons
-                  class="location-icon"
-                  type="location"
-                  size="16"
-                />
-                <text class="location-address">
-                  {{ msg.content }}
-                </text>
-              </a11y-button>
-              <!-- 名片：点击跳转对方主页 -->
-              <a11y-button
-                v-else-if="msg.type === 'card'"
-                class="msg-card"
-                :label="`查看 ${msg.content} 的个人名片`"
-                @tap="openCard(msg)"
-              >
-                <smart-image
-                  lazy-load
-                  class="card-avatar"
-                  :src="msg.extra?.avatar"
-                  mode="aspectFill"
-                  :aria-hidden="true"
-                />
-                <view class="card-info">
-                  <text class="card-name">
-                    {{ msg.content }}
-                  </text>
-                  <text class="card-hint">
-                    个人名片
-                  </text>
-                </view>
-              </a11y-button>
+                <text class="dot" /><text class="dot" /><text class="dot" />
+              </view>
             </view>
-          </view>
-          <!-- 我的头像：点击打开自己的资料页 -->
-          <a11y-button
-            v-if="msg.isMine"
-            class="avatar-btn"
-            label="查看我的资料"
-            @tap="openMyProfile"
-          >
-            <smart-image
-              lazy-load
-              class="avatar"
-              :src="msg.avatar"
-              mode="aspectFill"
-              :aria-hidden="true"
-            />
+            <text class="typing-text">
+              {{ nickname }} 正在输入…
+            </text>
           </a11y-button>
         </view>
-      </template>
+        <template
+          v-for="(msg, i) in messageList"
+          :key="msg.id"
+        >
+          <!-- 时间分隔线：首条或间隔超过阈值时显示 -->
+          <view
+            v-if="showTimeDivider(i)"
+            class="time-divider"
+          >
+            <text class="time-text">
+              {{ formatChatTime(msg.timestamp) }}
+            </text>
+          </view>
+          <!-- 单条消息 -->
+          <view
+            :id="'msg-' + msg.id"
+            class="msg-item"
+            :class="{ mine: msg.isMine }"
+          >
+            <!-- 对方头像：点击打开对方资料页（用户想查看对方资料） -->
+            <a11y-button
+              v-if="!msg.isMine"
+              class="avatar-btn"
+              :label="`查看 ${nickname} 的资料`"
+              @tap="openPeerProfile"
+            >
+              <smart-image
+                lazy-load
+                class="avatar"
+                :src="msg.avatar"
+                mode="aspectFill"
+                :aria-hidden="true"
+              />
+            </a11y-button>
+            <view
+              class="bubble-wrap"
+              :class="{ mine: msg.isMine }"
+            >
+              <!-- 发送中转圈：纯状态动画，对读屏隐藏 -->
+              <view
+                v-if="msg.isMine && msg.status === 'sending'"
+                class="status-loading"
+                aria-hidden="true"
+              />
+              <!-- 发送失败：点击重发 -->
+              <a11y-button
+                v-else-if="msg.isMine && msg.status === 'failed'"
+                class="status-failed"
+                :label="`发送失败，重新发送：${msg.content || '消息'}`"
+                @tap="resendMessage(msg)"
+              >
+                <text
+                  class="failed-icon"
+                  aria-hidden="true"
+                >
+                  !
+                </text>
+              </a11y-button>
+              <view
+                class="bubble"
+                :class="{ mine: msg.isMine }"
+              >
+                <text v-if="msg.type === 'text'">
+                  {{ msg.content }}
+                </text>
+                <a11y-button
+                  v-else-if="msg.type === 'image'"
+                  class="msg-image-wrap"
+                  :label="msg.status === 'sending' ? '图片上传中' : '查看图片'"
+                  @tap="previewImg(msg.content)"
+                >
+                  <smart-image
+                    lazy-load
+                    class="msg-image"
+                    :src="msg.content"
+                    mode="widthFix"
+                    :aria-hidden="true"
+                  />
+                  <!-- 上传中遮罩：图片本地预览期间显示半透明遮罩 + 提示，避免误以为已发送成功 -->
+                  <view
+                    v-if="msg.status === 'sending'"
+                    class="image-uploading-mask"
+                    aria-hidden="true"
+                  >
+                    <text class="image-uploading-text">
+                      上传中…
+                    </text>
+                  </view>
+                </a11y-button>
+                <!-- 语音：点击播放，播放中显示波动态 -->
+                <a11y-button
+                  v-else-if="msg.type === 'voice'"
+                  class="msg-voice"
+                  :label="playingVoiceId === msg.id ? '暂停语音' : `播放语音，${msg.extra?.duration || 0} 秒`"
+                  @tap="toggleVoicePlay(msg)"
+                >
+                  <!-- Phosphor 单色图标替代 emoji 字形（§7.1：图标只用 i-ph-*），尺寸由 .voice-icon 的 font-size 经 1em 机制控制 -->
+                  <view
+                    class="voice-icon"
+                    :class="playingVoiceId === msg.id ? 'i-ph-pause-fill' : 'i-ph-play-fill'"
+                    aria-hidden="true"
+                  />
+                  <view
+                    class="voice-wave"
+                    :class="{ playing: playingVoiceId === msg.id }"
+                    aria-hidden="true"
+                  >
+                    <text
+                      v-for="n in 4"
+                      :key="n"
+                      class="wave-bar"
+                    />
+                  </view>
+                  <text class="voice-duration">
+                    {{ msg.extra?.duration || 0 }}秒
+                  </text>
+                  <!-- 播放进度条：仅播放中显示，宽度按进度百分比 -->
+                  <view
+                    v-if="playingVoiceId === msg.id"
+                    class="voice-progress"
+                    aria-hidden="true"
+                  >
+                    <view
+                      class="voice-progress-bar"
+                      :style="{ transform: 'scaleX(' + (voicePlayDuration > 0 ? voicePlayProgress / voicePlayDuration : 0) + ')' }"
+                    />
+                  </view>
+                </a11y-button>
+                <!-- 位置：点击打开地图查看 -->
+                <a11y-button
+                  v-else-if="msg.type === 'location'"
+                  class="msg-location"
+                  :label="`查看位置：${msg.content}`"
+                  @tap="openLocation(msg)"
+                >
+                  <uni-icons
+                    class="location-icon"
+                    type="location"
+                    size="16"
+                  />
+                  <text class="location-address">
+                    {{ msg.content }}
+                  </text>
+                </a11y-button>
+                <!-- 名片：点击跳转对方主页 -->
+                <a11y-button
+                  v-else-if="msg.type === 'card'"
+                  class="msg-card"
+                  :label="`查看 ${msg.content} 的个人名片`"
+                  @tap="openCard(msg)"
+                >
+                  <smart-image
+                    lazy-load
+                    class="card-avatar"
+                    :src="msg.extra?.avatar"
+                    mode="aspectFill"
+                    :aria-hidden="true"
+                  />
+                  <view class="card-info">
+                    <text class="card-name">
+                      {{ msg.content }}
+                    </text>
+                    <text class="card-hint">
+                      个人名片
+                    </text>
+                  </view>
+                </a11y-button>
+              </view>
+            </view>
+            <!-- 我的头像：点击打开自己的资料页 -->
+            <a11y-button
+              v-if="msg.isMine"
+              class="avatar-btn"
+              label="查看我的资料"
+              @tap="openMyProfile"
+            >
+              <smart-image
+                lazy-load
+                class="avatar"
+                :src="msg.avatar"
+                mode="aspectFill"
+                :aria-hidden="true"
+              />
+            </a11y-button>
+          </view>
+        </template>
 
-      <!-- 历史拉取失败：与「真的没有历史消息」的空白态区分；重试只重拉历史，不重跑 IM 登录。
+        <!-- 历史拉取失败：与「真的没有历史消息」的空白态区分；重试只重拉历史，不重跑 IM 登录。
            消息列表非空（如失败后仍发出消息）即按门控自然隐藏，无需额外清理逻辑 -->
-      <empty-state
-        v-if="messageList.length === 0 && historyLoadFailed"
-        role="alert"
-        icon="info"
-        title="暂时没能获取历史消息"
-        desc="服务可能开小差了，检查网络后重试"
-      >
-        <a11y-button
-          class="history-retry"
-          label="重新加载历史消息"
-          @tap="retryLoadHistory"
+        <empty-state
+          v-if="messageList.length === 0 && historyLoadFailed"
+          role="alert"
+          icon="info"
+          title="暂时没能获取历史消息"
+          desc="服务可能开小差了，检查网络后重试"
         >
-          重新加载
-        </a11y-button>
-      </empty-state>
+          <a11y-button
+            class="history-retry"
+            label="重新加载历史消息"
+            @tap="retryLoadHistory"
+          >
+            重新加载
+          </a11y-button>
+        </empty-state>
 
-      <!-- IM 连接失败：消息无法收发，显式提示 + 重连入口（对齐客服页，禁止静默降级） -->
-      <empty-state
-        v-if="imLoginFailed"
-        role="alert"
-        icon="info"
-        title="消息服务连接失败"
-        desc="暂时无法收发消息，请检查网络后重试"
-      >
-        <a11y-button
-          class="history-retry"
-          label="重新连接消息服务"
-          @tap="retryIMLogin"
+        <!-- IM 连接失败：消息无法收发，显式提示 + 重连入口（对齐客服页，禁止静默降级） -->
+        <empty-state
+          v-if="imLoginFailed"
+          role="alert"
+          icon="info"
+          title="消息服务连接失败"
+          desc="暂时无法收发消息，请检查网络后重试"
         >
-          重新连接
-        </a11y-button>
-      </empty-state>
-    </scroll-view>
+          <a11y-button
+            class="history-retry"
+            label="重新连接消息服务"
+            @tap="retryIMLogin"
+          >
+            重新连接
+          </a11y-button>
+        </empty-state>
+      </scroll-view>
     </error-boundary>
 
     <!-- 输入区 -->
@@ -296,12 +298,16 @@
           v-if="isVoiceMode"
           class="voice-btn"
           :class="{ recording: isVoicePressing }"
-        :label="isVoicePressing ? '停止录音' : '点击说话'"
-        @tap="onVoiceClick"
-      >
-        <text v-if="!isVoicePressing">点击说话</text>
-        <text v-else>{{ voiceSeconds }}s{{ voiceSeconds >= VOICE_WARN_SECONDS ? '（即将自动结束）' : '' }}</text>
-      </a11y-button>
+          :label="isVoicePressing ? '停止录音' : '点击说话'"
+          @tap="onVoiceClick"
+        >
+          <text v-if="!isVoicePressing">
+            点击说话
+          </text>
+          <text v-else>
+            {{ voiceSeconds }}s{{ voiceSeconds >= VOICE_WARN_SECONDS ? '（即将自动结束）' : '' }}
+          </text>
+        </a11y-button>
         <!-- 文字模式：输入框 + 表情 -->
         <template v-else>
           <input
@@ -373,7 +379,9 @@
             v-if="recentEmojis.length > 0"
             class="emoji-recent-row"
           >
-            <text class="emoji-recent-label">最近使用</text>
+            <text class="emoji-recent-label">
+              最近使用
+            </text>
             <view class="emoji-recent-list">
               <a11y-button
                 v-for="emoji in recentEmojis"
@@ -455,7 +463,9 @@
             mode="aspectFill"
             :aria-hidden="true"
           />
-          <text class="card-contact-name">{{ c.nickname || c.userId }}</text>
+          <text class="card-contact-name">
+            {{ c.nickname || c.userId }}
+          </text>
         </a11y-button>
         <view
           v-if="cardContacts.length === 0"

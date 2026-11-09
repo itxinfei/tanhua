@@ -2,138 +2,141 @@
   <view class="chat-room">
     <!-- 消息列表：错误边界兜底渲染异常，重试重拉历史（与好友聊天页一致） -->
     <error-boundary @retry="retryLoadHistory">
-    <scroll-view
-      scroll-y
-      class="msg-list"
-      :scroll-into-view="scrollToId"
-      :scroll-with-animation="false"
-    >
-      <!-- VIP 专属客服通道标识（exclusive_service 权益） -->
-      <view
-        v-if="isVip"
-        class="vip-banner"
+      <scroll-view
+        scroll-y
+        class="msg-list"
+        :scroll-into-view="scrollToId"
+        :scroll-with-animation="false"
       >
-        <!-- 身份徽章：统一走 components/vip-badge.vue（仅已开通渲染，banner 本身也只在 isVip 时出现） -->
-        <vip-badge
-          :is-vip="isVip"
-          variant="pill"
-        />
-        <text class="vip-text">
-          VIP 专属客服通道 · 优先服务
-        </text>
-      </view>
-      <!-- 客服欢迎语 -->
-      <view class="welcome-tip">
-        <text class="i-ph-headphones welcome-icon" aria-hidden="true" />
-        <text>您好，我是心飞交友在线客服，很高兴为您服务</text>
-      </view>
-      <template
-        v-for="(msg, index) in messageList"
-        :key="msg.id"
-      >
+        <!-- VIP 专属客服通道标识（exclusive_service 权益） -->
         <view
-          v-if="showTimeDivider(index)"
-          class="time-divider"
+          v-if="isVip"
+          class="vip-banner"
         >
-          <text class="time-text">
-            {{ formatChatTime(msg.timestamp) }}
+          <!-- 身份徽章：统一走 components/vip-badge.vue（仅已开通渲染，banner 本身也只在 isVip 时出现） -->
+          <vip-badge
+            :is-vip="isVip"
+            variant="pill"
+          />
+          <text class="vip-text">
+            VIP 专属客服通道 · 优先服务
           </text>
         </view>
-        <view
-          :id="'msg-' + msg.id"
-          class="msg-item"
-          :class="{ mine: msg.isMine }"
-        >
-          <!-- 装饰性 emoji 头像，语义由上下文承载 -->
-          <view
-            v-if="!msg.isMine"
-            class="agent-avatar"
+        <!-- 客服欢迎语 -->
+        <view class="welcome-tip">
+          <text
+            class="i-ph-headphones welcome-icon"
             aria-hidden="true"
+          />
+          <text>您好，我是心飞交友在线客服，很高兴为您服务</text>
+        </view>
+        <template
+          v-for="(msg, index) in messageList"
+          :key="msg.id"
+        >
+          <view
+            v-if="showTimeDivider(index)"
+            class="time-divider"
           >
-            <uni-icons
-              type="headphones"
-              size="40"
-              color="var(--color-primary)"
-            />
+            <text class="time-text">
+              {{ formatChatTime(msg.timestamp) }}
+            </text>
           </view>
           <view
-            class="bubble-wrap"
+            :id="'msg-' + msg.id"
+            class="msg-item"
             :class="{ mine: msg.isMine }"
           >
+            <!-- 装饰性 emoji 头像，语义由上下文承载 -->
             <view
-              v-if="msg.isMine && msg.status === 'sending'"
-              class="status-loading"
+              v-if="!msg.isMine"
+              class="agent-avatar"
               aria-hidden="true"
-            />
-            <!-- 失败：红点提示 + 点击重发 -->
-            <a11y-button
-              v-else-if="msg.isMine && msg.status === 'failed'"
-              class="status-failed"
-              :label="`发送失败，重新发送：${msg.content}`"
-              @tap="retrySend(msg)"
             >
-              <text>!</text>
-            </a11y-button>
+              <uni-icons
+                type="headphones"
+                size="40"
+                color="var(--color-primary)"
+              />
+            </view>
             <view
-              class="bubble"
+              class="bubble-wrap"
               :class="{ mine: msg.isMine }"
             >
-              <text>{{ msg.content }}</text>
+              <view
+                v-if="msg.isMine && msg.status === 'sending'"
+                class="status-loading"
+                aria-hidden="true"
+              />
+              <!-- 失败：红点提示 + 点击重发 -->
+              <a11y-button
+                v-else-if="msg.isMine && msg.status === 'failed'"
+                class="status-failed"
+                :label="`发送失败，重新发送：${msg.content}`"
+                @tap="retrySend(msg)"
+              >
+                <text>!</text>
+              </a11y-button>
+              <view
+                class="bubble"
+                :class="{ mine: msg.isMine }"
+              >
+                <text>{{ msg.content }}</text>
+              </view>
             </view>
+            <!-- 我的头像：点击打开自己的资料页 -->
+            <a11y-button
+              v-if="msg.isMine"
+              class="avatar-btn"
+              label="查看我的资料"
+              @tap="openMyProfile"
+            >
+              <smart-image
+                lazy-load
+                class="avatar"
+                :src="myAvatar"
+                mode="aspectFill"
+                :aria-hidden="true"
+              />
+            </a11y-button>
           </view>
-          <!-- 我的头像：点击打开自己的资料页 -->
+        </template>
+
+        <!-- IM 登录失败：消息无法收发，必须显式提示而非静默降级 -->
+        <empty-state
+          v-if="imLoginFailed"
+          role="alert"
+          icon="info"
+          title="客服连接失败"
+          desc="消息服务暂时不可用，请检查网络后重试"
+        >
           <a11y-button
-            v-if="msg.isMine"
-            class="avatar-btn"
-            label="查看我的资料"
-            @tap="openMyProfile"
+            class="history-retry"
+            label="重新连接客服"
+            @tap="retryIMLogin"
           >
-            <smart-image
-              lazy-load
-              class="avatar"
-              :src="myAvatar"
-              mode="aspectFill"
-              :aria-hidden="true"
-            />
+            重新连接
           </a11y-button>
-        </view>
-      </template>
+        </empty-state>
 
-      <!-- IM 登录失败：消息无法收发，必须显式提示而非静默降级 -->
-      <empty-state
-        v-if="imLoginFailed"
-        role="alert"
-        icon="info"
-        title="客服连接失败"
-        desc="消息服务暂时不可用，请检查网络后重试"
-      >
-        <a11y-button
-          class="history-retry"
-          label="重新连接客服"
-          @tap="retryIMLogin"
-        >
-          重新连接
-        </a11y-button>
-      </empty-state>
-
-      <!-- 历史拉取失败：与「真的没有历史消息」的欢迎语/快捷问题空态区分；重试只重拉历史，不重跑 IM 登录。
+        <!-- 历史拉取失败：与「真的没有历史消息」的欢迎语/快捷问题空态区分；重试只重拉历史，不重跑 IM 登录。
            消息列表非空（如失败后仍发出消息）即按门控自然隐藏，无需额外清理逻辑 -->
-      <empty-state
-        v-if="messageList.length === 0 && historyLoadFailed"
-        role="alert"
-        icon="info"
-        title="暂时没能获取历史消息"
-        desc="服务可能开小差了，检查网络后重试"
-      >
-        <a11y-button
-          class="history-retry"
-          label="重新加载历史消息"
-          @tap="retryLoadHistory"
+        <empty-state
+          v-if="messageList.length === 0 && historyLoadFailed"
+          role="alert"
+          icon="info"
+          title="暂时没能获取历史消息"
+          desc="服务可能开小差了，检查网络后重试"
         >
-          重新加载
-        </a11y-button>
-      </empty-state>
-    </scroll-view>
+          <a11y-button
+            class="history-retry"
+            label="重新加载历史消息"
+            @tap="retryLoadHistory"
+          >
+            重新加载
+          </a11y-button>
+        </empty-state>
+      </scroll-view>
     </error-boundary>
 
     <!-- 输入区 -->
@@ -221,7 +224,6 @@
           </view>
         </scroll-view>
       </view>
-
     </view>
   </view>
 </template>

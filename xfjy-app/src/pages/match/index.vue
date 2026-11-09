@@ -50,153 +50,153 @@
     <view class="card-area">
       <!-- S6：错误边界捕获卡片渲染异常，@retry 走 handleReload 重置重拉 -->
       <error-boundary @retry="handleReload">
-      <!-- 骨架卡片：门控基于实际可见窗口而非 cardList.length——
+        <!-- 骨架卡片：门控基于实际可见窗口而非 cardList.length——
            历史卡滑完后数组不清空，reload/补拉期间 visibleCards 为空，仍需骨架兜底防闪空白 -->
-      <skeleton
-        v-if="loading && visibleCards.length === 0"
-        variant="match"
-      />
+        <skeleton
+          v-if="loading && visibleCards.length === 0"
+          variant="match"
+        />
 
-      <!-- 加载失败错误态：与「候选耗尽/暂无推荐」严格区分，给明确原因 + 重试入口，
+        <!-- 加载失败错误态：与「候选耗尽/暂无推荐」严格区分，给明确原因 + 重试入口，
            范式同 pages/match/nearby.vue，role=alert 透传到 empty-state 根节点供读屏播报 -->
-      <empty-state
-        v-if="!loading && visibleCards.length === 0 && loadFailed"
-        role="alert"
-        icon="info"
-        title="暂时没能获取推荐"
-        desc="服务可能开小差了，检查网络后重试"
-      >
-        <a11y-button
-          label="重新加载"
-          variant="primary"
-          @click="handleReload"
+        <empty-state
+          v-if="!loading && visibleCards.length === 0 && loadFailed"
+          role="alert"
+          icon="info"
+          title="暂时没能获取推荐"
+          desc="服务可能开小差了，检查网络后重试"
         >
-          <text>重新加载</text>
-        </a11y-button>
-      </empty-state>
+          <a11y-button
+            label="重新加载"
+            variant="primary"
+            @click="handleReload"
+          >
+            <text>重新加载</text>
+          </a11y-button>
+        </empty-state>
 
-      <!-- 空状态：门控基于实际可见窗口（历史卡滑完后 cardList 不清空，length 判断永不成立）。
+        <!-- 空状态：门控基于实际可见窗口（历史卡滑完后 cardList 不清空，length 判断永不成立）。
            仅加载完成、无可见卡片且非失败时显示，避免与骨架/卡片叠显 -->
-      <empty-state
-        v-else-if="!loading && visibleCards.length === 0"
-        :title="exhausted ? '推荐已看完' : '暂无推荐'"
-        :desc="exhausted ? '今日候选都已滑过，点击重新加载看看有没有新面孔' : '稍后再来看看，缘分不期而至'"
-      >
-        <a11y-button
-          v-if="exhausted"
-          label="重新加载"
-          variant="primary"
-          @click="handleReload"
+        <empty-state
+          v-else-if="!loading && visibleCards.length === 0"
+          :title="exhausted ? '推荐已看完' : '暂无推荐'"
+          :desc="exhausted ? '今日候选都已滑过，点击重新加载看看有没有新面孔' : '稍后再来看看，缘分不期而至'"
         >
-          <text>重新加载</text>
-        </a11y-button>
-      </empty-state>
+          <a11y-button
+            v-if="exhausted"
+            label="重新加载"
+            variant="primary"
+            @click="handleReload"
+          >
+            <text>重新加载</text>
+          </a11y-button>
+        </empty-state>
 
-      <!-- 卡片堆叠（从后往前渲染） -->
-      <view
-        v-for="(card, index) in visibleCards"
-        :key="card.id"
-        class="card-wrapper"
-        :class="{ 'is-dragging': isDragging && index === 0 }"
-        :style="getCardStyle(index)"
-        :aria-label="`推荐卡片：${card.nickname}，${card.age}岁，轻点查看完整资料`"
-        @touchstart="onTouchStart($event, index)"
-        @touchmove="onTouchMove($event, index)"
-        @touchend="onTouchEnd($event, index)"
-        @touchcancel="onTouchCancel($event, index)"
-        @tap="onCardTap(index)"
-      >
-        <!-- 主图 -->
-        <smart-image
-          lazy-load
-          class="card-image"
-          :src="card.avatar"
-          :fallback="''"
-          mode="aspectFill"
-          :aria-label="`${card.nickname} 的照片`"
-        />
-        <!-- 底部渐变遮罩（纯装饰） -->
+        <!-- 卡片堆叠（从后往前渲染） -->
         <view
-          class="card-mask"
-          aria-hidden="true"
-        />
-        <!-- 用户信息 -->
-        <view class="card-info">
-          <view class="name-row">
-            <text class="nickname">
-              {{ card.nickname }}
-            </text>
-            <text class="age-badge">
-              {{ card.age }}
-            </text>
-          </view>
-          <!-- 缘分值进度条：告知读屏当前值而非仅视觉呈现 -->
+          v-for="(card, index) in visibleCards"
+          :key="card.id"
+          class="card-wrapper"
+          :class="{ 'is-dragging': isDragging && index === 0 }"
+          :style="getCardStyle(index)"
+          :aria-label="`推荐卡片：${card.nickname}，${card.age}岁，轻点查看完整资料`"
+          @touchstart="onTouchStart($event, index)"
+          @touchmove="onTouchMove($event, index)"
+          @touchend="onTouchEnd($event, index)"
+          @touchcancel="onTouchCancel($event, index)"
+          @tap="onCardTap(index)"
+        >
+          <!-- 主图 -->
+          <smart-image
+            lazy-load
+            class="card-image"
+            :src="card.avatar"
+            :fallback="''"
+            mode="aspectFill"
+            :aria-label="`${card.nickname} 的照片`"
+          />
+          <!-- 底部渐变遮罩（纯装饰） -->
           <view
-            v-if="card.fateValue"
-            class="fate-row"
-          >
-            <text class="fate-label">
-              缘分值
-            </text>
-            <view
-              class="fate-bar"
-              role="progressbar"
-              aria-label="缘分值"
-              :aria-valuenow="Math.min(card.fateValue, 100)"
-              aria-valuemin="0"
-              aria-valuemax="100"
-            >
-              <view
-                class="fate-fill"
-                :style="{ transform: 'scaleX(' + Math.min(card.fateValue, 100) / 100 + ')' }"
-              />
+            class="card-mask"
+            aria-hidden="true"
+          />
+          <!-- 用户信息 -->
+          <view class="card-info">
+            <view class="name-row">
+              <text class="nickname">
+                {{ card.nickname }}
+              </text>
+              <text class="age-badge">
+                {{ card.age }}
+              </text>
             </view>
-            <text class="fate-value">
-              {{ card.fateValue }}
-            </text>
-          </view>
-          <!-- 决策信息：城市 / 学历 / 行业（有则显示，避免用户在缺少判断依据时做决定） -->
-          <view
-            v-if="cardMeta(card)"
-            class="meta-row"
-          >
-            <text class="meta-text">
-              {{ cardMeta(card) }}
-            </text>
-          </view>
-          <!-- 标签 -->
-          <view
-            v-if="card.tags && card.tags.length"
-            class="tags"
-          >
-            <text
-              v-for="tag in card.tags.slice(0, MAX_TAG_COUNT)"
-              :key="tag"
-              class="tag glass"
+            <!-- 缘分值进度条：告知读屏当前值而非仅视觉呈现 -->
+            <view
+              v-if="card.fateValue"
+              class="fate-row"
             >
-              {{ tag }}
-            </text>
-          </view>
+              <text class="fate-label">
+                缘分值
+              </text>
+              <view
+                class="fate-bar"
+                role="progressbar"
+                aria-label="缘分值"
+                :aria-valuenow="Math.min(card.fateValue, 100)"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >
+                <view
+                  class="fate-fill"
+                  :style="{ transform: 'scaleX(' + Math.min(card.fateValue, 100) / 100 + ')' }"
+                />
+              </view>
+              <text class="fate-value">
+                {{ card.fateValue }}
+              </text>
+            </view>
+            <!-- 决策信息：城市 / 学历 / 行业（有则显示，避免用户在缺少判断依据时做决定） -->
+            <view
+              v-if="cardMeta(card)"
+              class="meta-row"
+            >
+              <text class="meta-text">
+                {{ cardMeta(card) }}
+              </text>
+            </view>
+            <!-- 标签 -->
+            <view
+              v-if="card.tags && card.tags.length"
+              class="tags"
+            >
+              <text
+                v-for="tag in card.tags.slice(0, MAX_TAG_COUNT)"
+                :key="tag"
+                class="tag glass"
+              >
+                {{ tag }}
+              </text>
+            </view>
           <!-- 轻点卡片任意处查看完整资料（onCardTap），不再放独立入口按钮 -->
+          </view>
+          <!-- 滑动提示（喜欢 / 不喜欢）：随手势显示的视觉反馈，对读屏隐藏 -->
+          <view
+            v-if="index === 0"
+            class="swipe-hint like"
+            :style="{ opacity: likeOpacity }"
+            aria-hidden="true"
+          >
+            喜欢
+          </view>
+          <view
+            v-if="index === 0"
+            class="swipe-hint nope"
+            :style="{ opacity: nopeOpacity }"
+            aria-hidden="true"
+          >
+            不喜欢
+          </view>
         </view>
-        <!-- 滑动提示（喜欢 / 不喜欢）：随手势显示的视觉反馈，对读屏隐藏 -->
-        <view
-          v-if="index === 0"
-          class="swipe-hint like"
-          :style="{ opacity: likeOpacity }"
-          aria-hidden="true"
-        >
-          喜欢
-        </view>
-        <view
-          v-if="index === 0"
-          class="swipe-hint nope"
-          :style="{ opacity: nopeOpacity }"
-          aria-hidden="true"
-        >
-          不喜欢
-        </view>
-      </view>
       </error-boundary>
     </view>
 

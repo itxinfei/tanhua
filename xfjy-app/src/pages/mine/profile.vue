@@ -292,7 +292,10 @@
       @close="editDialogVisible = false"
     >
       <view class="edit-panel">
-        <view class="sheet-grabber" aria-hidden="true" />
+        <view
+          class="sheet-grabber"
+          aria-hidden="true"
+        />
         <view class="edit-field-head">
           <text class="edit-field-title">
             {{ editDialogTitle }}
@@ -337,13 +340,19 @@
       @close="avatarSourceSheetVisible = false"
     >
       <view class="source-panel">
-        <view class="sheet-grabber" aria-hidden="true" />
+        <view
+          class="sheet-grabber"
+          aria-hidden="true"
+        />
         <a11y-button
           class="source-item"
           label="从相册选择"
           @tap="pickAvatarFrom('album')"
         >
-          <view class="source-icon i-ph-image" aria-hidden="true" />
+          <view
+            class="source-icon i-ph-image"
+            aria-hidden="true"
+          />
           <text>从相册选择</text>
         </a11y-button>
         <a11y-button
@@ -351,7 +360,10 @@
           label="拍照"
           @tap="pickAvatarFrom('camera')"
         >
-          <view class="source-icon i-ph-camera" aria-hidden="true" />
+          <view
+            class="source-icon i-ph-camera"
+            aria-hidden="true"
+          />
           <text>拍照</text>
         </a11y-button>
       </view>

@@ -2,230 +2,236 @@
   <view class="post-detail">
     <!-- S6：错误边界捕获详情渲染异常，@retry 重新拉取动态详情 -->
     <error-boundary @retry="loadDetail">
-    <scroll-view
-      scroll-y
-      class="detail-scroll"
-    >
-      <!-- 动态内容 -->
-      <!-- 加载中骨架 -->
-      <skeleton
-        v-if="postLoading && !post"
-        variant="feed"
-      />
-      <!-- 加载失败：与「动态不存在」区分，给明确原因 + 可重试入口。
+      <scroll-view
+        scroll-y
+        class="detail-scroll"
+      >
+        <!-- 动态内容 -->
+        <!-- 加载中骨架 -->
+        <skeleton
+          v-if="postLoading && !post"
+          variant="feed"
+        />
+        <!-- 加载失败：与「动态不存在」区分，给明确原因 + 可重试入口。
          接口失败时旧版 post=null 直接留白，用户只看到评论区无从恢复。 -->
-      <empty-state
-        v-if="!post && !postLoading && postLoadFailed"
-        role="alert"
-        icon="info"
-        title="暂时没能获取动态详情"
-        desc="服务可能开小差了，检查网络后重试"
-      >
-        <a11y-button
-          class="detail-retry"
-          label="重新加载动态详情"
-          @tap="loadDetail()"
-        >
-          重新加载
-        </a11y-button>
-      </empty-state>
-      <!-- 动态主体：接口失败 post=null 时不渲染，避免读 null 属性崩溃（评论区仍可用） -->
-      <view
-        v-if="post"
-        class="post-card"
-      >
-        <view class="post-header">
-          <smart-image
-            lazy-load
-            class="avatar"
-            :src="post.avatar"
-            mode="aspectFill"
-            :aria-label="`${post.nickname} 的头像`"
-          />
-          <view class="user-info">
-            <text class="nickname">
-              {{ post.nickname }}
-            </text>
-            <text class="time">
-              {{ post.createDate }}
-            </text>
-          </view>
-        </view>
-        <view class="post-content">
-          {{ post.textContent }}
-        </view>
-        <!-- 话题标签（点击进入话题筛选） -->
-        <view
-          v-if="post?.tags && post.tags.length"
-          class="tag-row"
-        >
-          <a11y-button
-            v-for="(tag, i) in post.tags"
-            :key="i"
-            class="tag-chip"
-            :label="`查看话题 ${tag}`"
-            @tap="goTag(tag)"
-          >
-            <text># {{ tag }}</text>
-          </a11y-button>
-        </view>
-        <!-- filter(Boolean)：后端可能返回含空字符串的 imageContent，空串点击预览会报错 -->
-        <view
-          v-if="post.imageContent?.filter(Boolean).length"
-          class="image-grid"
-        >
-          <a11y-button
-            v-for="(img, i) in post.imageContent.filter(Boolean)"
-            :key="i"
-            class="grid-img"
-            :label="`查看第 ${i + 1} 张配图`"
-            @tap="previewImg(i)"
-          >
-            <smart-image
-              lazy-load
-              class="grid-img-inner"
-            :src="img"
-            :fallback="''"
-            mode="aspectFill"
-            :aria-hidden="true"
-            />
-          </a11y-button>
-        </view>
-      </view>
-
-      <!-- 评论区（楼中楼：顶层评论 + 楼下回复，点任意评论即可回复） -->
-      <view class="comment-section">
-        <text class="section-title">
-          评论 ({{ commentTotal }})
-        </text>
-        <view
-          v-for="c in comments"
-          :key="c.id"
-          class="comment-item"
-          :class="{ 'is-replying': replyTarget && replyTarget.id === c.id }"
-        >
-          <smart-image
-            lazy-load
-            class="avatar"
-            :src="c.avatar"
-            mode="aspectFill"
-            :aria-label="`${c.nickname} 的头像`"
-          />
-          <view class="comment-info">
-            <view class="comment-main">
-              <!-- 整条评论即「回复这条评论」主热区（视觉零样式，热区由组件保证） -->
-              <a11y-button
-                class="comment-body"
-                :label="`回复 ${c.nickname || '这条评论'}`"
-                @tap="startReply(c)"
-              >
-                <text class="nickname">
-                  {{ c.nickname }}
-                </text>
-                <text class="content">
-                  {{ c.content }}
-                </text>
-                <text class="time">
-                  {{ c.createDate }}
-                </text>
-              </a11y-button>
-              <a11y-button
-                class="comment-like"
-                :class="{ liked: c.hasLiked }"
-                :label="c.hasLiked ? '取消点赞，当前 ' + (c.likeCount || 0) + ' 赞' : '点赞，当前 ' + (c.likeCount || 0) + ' 赞'"
-                @tap="toggleCommentLike(c)"
-              >
-                <view
-                  class="comment-like-icon"
-                  :class="{ 'i-ph-heart-fill': c.hasLiked, 'i-ph-heart': !c.hasLiked }"
-                  aria-hidden="true"
-                />
-                <text class="comment-like-count">
-                  {{ c.likeCount > 0 ? c.likeCount : '' }}
-                </text>
-              </a11y-button>
-            </view>
-
-            <!-- 楼下回复：默认给最新几条预览，超出点「查看全部」 -->
-            <view
-              v-if="(c.replies && c.replies.length) || (c.replyCount || 0) > 0"
-              class="reply-list"
-            >
-              <a11y-button
-                v-for="r in c.replies"
-                :key="r.id"
-                class="reply-item"
-                :class="{ 'is-replying': replyTarget && replyTarget.id === r.id }"
-                :label="`回复 ${r.nickname || '这条回复'}`"
-                @tap="startReply(r, c)"
-              >
-                <!-- 整行放进一个 text：多段文字拼成同一行内文本流，
-                     否则 <text> 会各自成为 flex item，长内容换行时冒号被甩到下一行开头 -->
-                <text class="reply-text">
-                  <text class="reply-nick">{{ r.nickname }}</text>
-                  <text
-                    v-if="r.replyNickname"
-                    class="reply-to"
-                  > 回复 @{{ r.replyNickname }}</text>
-                  <text class="reply-content">：{{ r.content }}</text>
-                </text>
-              </a11y-button>
-              <a11y-button
-                v-if="!c.replyExpanded && (c.replyCount || 0) > (c.replies ? c.replies.length : 0)"
-                class="reply-more"
-                variant="text"
-                size="sm"
-                :label="`查看全部 ${c.replyCount} 条回复`"
-                @tap="expandReplies(c)"
-              >
-                <text>查看全部 {{ c.replyCount }} 条回复</text>
-              </a11y-button>
-              <a11y-button
-                v-else-if="c.replyHasMore"
-                class="reply-more"
-                variant="text"
-                size="sm"
-                :label="'加载更多回复'"
-                :loading="c.replyLoading"
-                @tap="loadMoreReplies(c)"
-              >
-                <text>加载更多回复</text>
-              </a11y-button>
-            </view>
-          </view>
-        </view>
-        <!-- 评论首屏失败：显式错误态 + 重试，与「暂无评论」真空态区分 -->
         <empty-state
-          v-if="commentLoadFailed && comments.length === 0"
+          v-if="!post && !postLoading && postLoadFailed"
           role="alert"
           icon="info"
-          title="评论加载失败"
+          title="暂时没能获取动态详情"
           desc="服务可能开小差了，检查网络后重试"
         >
           <a11y-button
             class="detail-retry"
-            label="重新加载评论"
-            @tap="loadComments"
+            label="重新加载动态详情"
+            @tap="loadDetail()"
           >
             重新加载
           </a11y-button>
         </empty-state>
+        <!-- 动态主体：接口失败 post=null 时不渲染，避免读 null 属性崩溃（评论区仍可用） -->
         <view
-          v-else-if="comments.length === 0"
-          class="comment-empty"
+          v-if="post"
+          class="post-card"
         >
-          暂无评论，快来抢沙发
+          <view class="post-header">
+            <smart-image
+              lazy-load
+              class="avatar"
+              :src="post.avatar"
+              mode="aspectFill"
+              :aria-label="`${post.nickname} 的头像`"
+            />
+            <view class="user-info">
+              <text class="nickname">
+                {{ post.nickname }}
+              </text>
+              <text class="time">
+                {{ post.createDate }}
+              </text>
+            </view>
+          </view>
+          <view class="post-content">
+            {{ post.textContent }}
+          </view>
+          <!-- 话题标签（点击进入话题筛选） -->
+          <view
+            v-if="post?.tags && post.tags.length"
+            class="tag-row"
+          >
+            <a11y-button
+              v-for="(tag, i) in post.tags"
+              :key="i"
+              class="tag-chip"
+              :label="`查看话题 ${tag}`"
+              @tap="goTag(tag)"
+            >
+              <text># {{ tag }}</text>
+            </a11y-button>
+          </view>
+          <!-- filter(Boolean)：后端可能返回含空字符串的 imageContent，空串点击预览会报错 -->
+          <view
+            v-if="post.imageContent?.filter(Boolean).length"
+            class="image-grid"
+          >
+            <a11y-button
+              v-for="(img, i) in post.imageContent.filter(Boolean)"
+              :key="i"
+              class="grid-img"
+              :label="`查看第 ${i + 1} 张配图`"
+              @tap="previewImg(i)"
+            >
+              <smart-image
+                lazy-load
+                class="grid-img-inner"
+                :src="img"
+                :fallback="''"
+                mode="aspectFill"
+                :aria-hidden="true"
+              />
+            </a11y-button>
+          </view>
         </view>
-        <a11y-button
-          v-if="commentHasMore"
-          class="load-more"
-          label="加载更多评论"
-          @tap="loadMoreComments"
-        >
-          <text>加载更多评论</text>
-        </a11y-button>
-      </view>
-    </scroll-view>
+
+        <!-- 评论区（楼中楼：顶层评论 + 楼下回复，点任意评论即可回复） -->
+        <view class="comment-section">
+          <text class="section-title">
+            评论 ({{ commentTotal }})
+          </text>
+          <view
+            v-for="c in comments"
+            :key="c.id"
+            class="comment-item"
+            :class="{ 'is-replying': replyTarget && replyTarget.id === c.id }"
+          >
+            <smart-image
+              lazy-load
+              class="avatar"
+              :src="c.avatar"
+              mode="aspectFill"
+              :aria-label="`${c.nickname} 的头像`"
+            />
+            <view class="comment-info">
+              <view class="comment-main">
+                <!-- 整条评论即「回复这条评论」主热区（视觉零样式，热区由组件保证） -->
+                <a11y-button
+                  class="comment-body"
+                  :label="`回复 ${c.nickname || '这条评论'}`"
+                  @tap="startReply(c)"
+                >
+                  <text class="nickname">
+                    {{ c.nickname }}
+                  </text>
+                  <text class="content">
+                    {{ c.content }}
+                  </text>
+                  <text class="time">
+                    {{ c.createDate }}
+                  </text>
+                </a11y-button>
+                <a11y-button
+                  class="comment-like"
+                  :class="{ liked: c.hasLiked }"
+                  :label="c.hasLiked ? '取消点赞，当前 ' + (c.likeCount || 0) + ' 赞' : '点赞，当前 ' + (c.likeCount || 0) + ' 赞'"
+                  @tap="toggleCommentLike(c)"
+                >
+                  <view
+                    class="comment-like-icon"
+                    :class="{ 'i-ph-heart-fill': c.hasLiked, 'i-ph-heart': !c.hasLiked }"
+                    aria-hidden="true"
+                  />
+                  <text class="comment-like-count">
+                    {{ c.likeCount > 0 ? c.likeCount : '' }}
+                  </text>
+                </a11y-button>
+              </view>
+
+              <!-- 楼下回复：默认给最新几条预览，超出点「查看全部」 -->
+              <view
+                v-if="(c.replies && c.replies.length) || (c.replyCount || 0) > 0"
+                class="reply-list"
+              >
+                <a11y-button
+                  v-for="r in c.replies"
+                  :key="r.id"
+                  class="reply-item"
+                  :class="{ 'is-replying': replyTarget && replyTarget.id === r.id }"
+                  :label="`回复 ${r.nickname || '这条回复'}`"
+                  @tap="startReply(r, c)"
+                >
+                  <!-- 整行放进一个 text：多段文字拼成同一行内文本流，
+                     否则 <text> 会各自成为 flex item，长内容换行时冒号被甩到下一行开头 -->
+                  <text class="reply-text">
+                    <text class="reply-nick">
+                      {{ r.nickname }}
+                    </text>
+                    <text
+                      v-if="r.replyNickname"
+                      class="reply-to"
+                    >
+                      回复 @{{ r.replyNickname }}
+                    </text>
+                    <text class="reply-content">
+                      ：{{ r.content }}
+                    </text>
+                  </text>
+                </a11y-button>
+                <a11y-button
+                  v-if="!c.replyExpanded && (c.replyCount || 0) > (c.replies ? c.replies.length : 0)"
+                  class="reply-more"
+                  variant="text"
+                  size="sm"
+                  :label="`查看全部 ${c.replyCount} 条回复`"
+                  @tap="expandReplies(c)"
+                >
+                  <text>查看全部 {{ c.replyCount }} 条回复</text>
+                </a11y-button>
+                <a11y-button
+                  v-else-if="c.replyHasMore"
+                  class="reply-more"
+                  variant="text"
+                  size="sm"
+                  :label="'加载更多回复'"
+                  :loading="c.replyLoading"
+                  @tap="loadMoreReplies(c)"
+                >
+                  <text>加载更多回复</text>
+                </a11y-button>
+              </view>
+            </view>
+          </view>
+          <!-- 评论首屏失败：显式错误态 + 重试，与「暂无评论」真空态区分 -->
+          <empty-state
+            v-if="commentLoadFailed && comments.length === 0"
+            role="alert"
+            icon="info"
+            title="评论加载失败"
+            desc="服务可能开小差了，检查网络后重试"
+          >
+            <a11y-button
+              class="detail-retry"
+              label="重新加载评论"
+              @tap="loadComments"
+            >
+              重新加载
+            </a11y-button>
+          </empty-state>
+          <view
+            v-else-if="comments.length === 0"
+            class="comment-empty"
+          >
+            暂无评论，快来抢沙发
+          </view>
+          <a11y-button
+            v-if="commentHasMore"
+            class="load-more"
+            label="加载更多评论"
+            @tap="loadMoreComments"
+          >
+            <text>加载更多评论</text>
+          </a11y-button>
+        </view>
+      </scroll-view>
     </error-boundary>
 
     <!-- 评论输入：发送按钮 + 回车双通道（H5 浏览器/部分输入法 confirm 不可靠，仅回车会让用户以为"评论发不出去"） -->

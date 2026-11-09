@@ -48,7 +48,9 @@
           class="app-tabbar__badge"
           aria-hidden="true"
         >
-          <text class="app-tabbar__badge-text">{{ unreadCount > 99 ? '99+' : unreadCount }}</text>
+          <text class="app-tabbar__badge-text">
+            {{ unreadCount > 99 ? '99+' : unreadCount }}
+          </text>
         </view>
       </view>
       <view class="app-tabbar__item">
