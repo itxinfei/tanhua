@@ -104,6 +104,27 @@ function rawToSdkMessage(raw: Record<string, any>, channel: Channel): Message {
 }
 
 /**
+ * 后端 WuKongIM 下发的数字 type 到业务 type 的映射（与 C 端 xfjy-app wukongim.ts 同一份契约）。
+ * 后端消息体形如 {"type":1,"content":"..."}（type 为数字），业务层契约用字符串 type，
+ * 此处统一归一化，避免数字 type 消息被当作原始 JSON 字符串透传显示。
+ */
+const NUMERIC_TYPE_MAP: Record<number, string> = {
+  1: 'text',
+  2: 'image',
+  3: 'voice',
+  4: 'location',
+  5: 'card',
+  6: 'match',
+  7: 'system',
+}
+
+/** 归一化消息 type：字符串原样返回；数字走映射表；其余返回空串（调用方按文本兜底） */
+function normalizeMessageType(rawType: unknown): string {
+  if (typeof rawType === 'number') return NUMERIC_TYPE_MAP[rawType] ?? ''
+  return typeof rawType === 'string' ? rawType : ''
+}
+
+/**
  * 将 WK 原始消息转为业务消息（文本与 JSON 结构化契约），非业务消息返回 null
  * 与 C 端 xfjy-app wukongim.ts 的解析规则保持一致
  */
@@ -118,8 +139,10 @@ function toReceivedMessage(message: Message): ReceivedMessage | null {
   const messageSeq = message.messageSeq || 0
   try {
     const parsed = JSON.parse(text)
-    if (parsed && typeof parsed.type === 'string') {
-      switch (parsed.type) {
+    if (parsed && typeof parsed === 'object') {
+      // 归一化 type：后端数字 type（1=文本 等）与字符串 type 契约统一
+      const type = normalizeMessageType(parsed.type)
+      switch (type) {
         case 'image':
           if (parsed.url) {
             return { from, content: String(parsed.url), type: 'image', messageSeq, time }
@@ -161,7 +184,15 @@ function toReceivedMessage(message: Message): ReceivedMessage | null {
             }
           }
           break
+        case 'text':
+          // 数字 type=1 或字符串 type="text"：取 content 字段作为纯文本
+          return { from, content: String(parsed.content ?? text), type: 'text', messageSeq, time }
         default:
+          // match/system 等 admin 无专门分发通道的类型：提取 content 字段，
+          // 避免把整段 JSON 字符串当文本透出
+          if (parsed.content !== undefined) {
+            return { from, content: String(parsed.content), type: 'text', messageSeq, time }
+          }
           break
       }
     }
@@ -175,8 +206,9 @@ function toReceivedMessage(message: Message): ReceivedMessage | null {
 function digestOfText(text: string): string {
   try {
     const parsed = JSON.parse(text)
-    if (parsed && typeof parsed.type === 'string') {
-      switch (parsed.type) {
+    if (parsed && typeof parsed === 'object') {
+      // 与 toReceivedMessage 同一套数字/字符串 type 归一化
+      switch (normalizeMessageType(parsed.type)) {
         case 'image':
           return '[图片]'
         case 'voice':
@@ -188,7 +220,8 @@ function digestOfText(text: string): string {
         case 'match':
           return ''
         default:
-          return String(parsed.content ?? '')
+          // text/system/未知类型：提取 content 字段，避免原始 JSON 透传到会话列表
+          return parsed.content !== undefined ? String(parsed.content) : text
       }
     }
   } catch {
