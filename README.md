@@ -21,7 +21,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
 ![Pinia](https://img.shields.io/badge/Pinia-4-F7D336?logo=vue.js&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-8.0-47A248?logo=mongodb&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-7.0-47A248?logo=mongodb&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis-7.x-DC382D?logo=redis&logoColor=white)
 ![ES](https://img.shields.io/badge/Elasticsearch-9.x-005571?logo=elasticsearch&logoColor=white)
 ![RocketMQ](https://img.shields.io/badge/RocketMQ-5.x-D773A2?logo=apache-rocketmq&logoColor=white)
@@ -58,6 +58,7 @@
 - [路线图](#路线图)
 - [文档](#文档)
 - [贡献指南](#贡献指南)
+- [商业支持](#商业支持)
 
 ---
 
@@ -69,13 +70,13 @@
 <table>
   <tr>
     <td align="center" width="33%"><b>探花匹配</b><br/><span>左滑跳过 · 右滑喜欢 · 超级喜欢<br/>互喜即弹「It's a Match!」全屏庆祝层</span></td>
-    <td align="center" width="33%"><b>即时通讯</b><br/><span>WuKongIM 自托管长连接 + LiveKit 1v1 音视频<br/>零商业授权费 · 连接数无上限</span></td>
+    <td align="center" width="33%"><b>即时通讯</b><br/><span>WuKongIM 自托管长连接 + LiveKit SFU 基础设施<br/>零商业授权费 · 1v1 通话链路 P3 接入</span></td>
     <td align="center" width="33%"><b>AI 智能推荐</b><br/><span>5 层召回漏斗 + 双塔向量召回<br/>+ Neo4j 二度好友关系</span></td>
   </tr>
   <tr>
     <td align="center" width="33%"><b>内容安全</b><br/><span>文本 DFA 敏感词 + 图视先发后审<br/>三级定级 · 词库热刷新</span></td>
     <td align="center" width="33%"><b>附近的人</b><br/><span>Elasticsearch Geo 500km 精准召回<br/>响应 &lt;50ms</span></td>
-    <td align="center" width="33%"><b>一套代码 12 端</b><br/><span>H5 / App / 微信·抖音·支付宝等小程序<br/>/ 鸿蒙 / 快应用</span></td>
+    <td align="center" width="33%"><b>一套代码 13 端</b><br/><span>H5 / App / 各平台小程序<br/>/ 鸿蒙 / 快应用</span></td>
   </tr>
   <tr>
     <td align="center" width="33%"><b>VIP 权益闭环</b><br/><span>会员套餐 + 支付订单<br/>+ 收入统计一体化</span></td>
@@ -92,9 +93,9 @@
 <table>
   <tr>
     <td align="center"><h2>12</h2>微服务模块</td>
-    <td align="center"><h2>12</h2>端统一输出</td>
+    <td align="center"><h2>13</h2>端统一输出</td>
     <td align="center"><h2>12</h2>中间件技术栈</td>
-    <td align="center"><h2>6</h2>核心域服务<br/><sub><code>recommend</code> / <code>elasticsearch</code> 按能力组件另计，早期文档曾以 8 计</sub></td>
+    <td align="center"><h2>6</h2>核心域服务</td>
   </tr>
   <tr>
     <td align="center"><h2>5 层</h2>推荐召回漏斗</td>
@@ -199,7 +200,7 @@
 
 | 项目 | 框架栈 | 核心优势 |
 |------|--------|----------|
-| **xfjy-app** | uni-app + Vue 3.5 + Pinia + Sass | 一套代码输出 12 端（H5 + App + 微信/支付宝/抖音/QQ/百度/快手/飞书/小红书/京东/微信小程序 + 鸿蒙 + 快应用） |
+| **xfjy-app** | uni-app + Vue 3.5 + Pinia + Sass | 一套代码输出 13 端（H5 + App + 微信/支付宝/抖音/QQ/百度/快手/飞书/小红书/京东 小程序 + 鸿蒙 + 快应用） |
 | **xfjy-admin** | Vue 3.5 + TypeScript + Element Plus 2.14 + ECharts 6 + Vite 8 + Pinia | 热更新 50ms，Element Plus 开箱即用，TS 全类型安全 |
 | **WuKongIM SDK** | 独立 JS SDK（uni-app 集成） | 前后端 IM 共用同一 SDK，离线消息 / 历史 / 漫游全支持 |
 
@@ -368,7 +369,7 @@ xfjy/
 ├── xfjy-api/                   # @HttpExchange 契约模块（POJO + 接口）
 │
 ├── xfjy-admin/                 # Vue3 + Element Plus + ECharts（管理后台）
-├── xfjy-app/                   # uni-app + Vue 3.5（12 端）
+├── xfjy-app/                   # uni-app + Vue 3.5（13 端）
 │
 ├── deploy/
 │   ├── docker-compose.app.yml  # 11 个 Java 容器编排（仅 :8090 对外）
@@ -406,7 +407,7 @@ xfjy/
 | `NACOS_SERVER_ADDR / USERNAME / PASSWORD` | 服务注册 | Nacos 3.x |
 | `MYSQL_*` | 关系数据库 | MySQL 8.0 |
 | `REDIS_*` | 缓存 + 会话 + 限流 | Redis 7.x |
-| `MONGODB_URI` | 文档数据库 | MongoDB 8.0 |
+| `MONGODB_URI` | 文档数据库 | MongoDB 7 |
 | `ELASTICSEARCH_URIS` | 地理检索 | Elasticsearch 9.x |
 | `ROCKETMQ_NAME_SERVER` | 消息队列 | RocketMQ 5.x |
 | `MINIO_*` | 对象存储 | MinIO |
@@ -439,12 +440,12 @@ xfjy/
 ## 快速启动
 
 ```bash
-# 1. MySQL 初始化（脚本在 deploy/mysql/init/，容器首次启动会自动执行；手动导入按文件名顺序）
+# 1. 克隆公开仓库
+git clone https://gitee.com/itxinfei/xfjy.git && cd xfjy
+
+# 2. MySQL 初始化（脚本在 deploy/mysql/init/，容器首次启动会自动执行；手动导入按文件名顺序）
 mysql -u root -p --default-character-set=utf8mb4 -e "CREATE DATABASE IF NOT EXISTS xfjy DEFAULT CHARSET utf8mb4;"
 for f in deploy/mysql/init/*.sql; do mysql -u root -p --default-character-set=utf8mb4 xfjy < "$f"; done
-
-# 2. 克隆公开仓库
-git clone https://gitee.com/itxinfei/mytanhua.git && cd mytanhua
 
 # 3. 后端一键部署（自动解析 git tag）
 bash deploy/manage.sh deploy all
@@ -524,6 +525,21 @@ curl http://127.0.0.1:18081/actuator/health
 | **P2 智能推荐增强** | 🟡 进行中 | Qdrant 向量召回 + Neo4j 二度好友（开关可控，不可用时自动降级） |
 | **P3 实时音视频** | ⏳ 规划中 | LiveKit SFU 基础设施已就位，1v1 通话接口链路待实现 |
 | **P4 运营增长** | ⏳ 规划中 | 活动中心 · 裂变拉新 · 数据看板增强 · 多端小程序上架 |
+
+---
+
+<a id="商业支持"></a>
+## 商业支持与服务
+
+项目以 Apache-2.0 发布，代码可自由使用与商用。若需要落地与交付支持，可通过 Issue 或邮件联系维护者：
+
+| 服务 | 覆盖内容 |
+|------|----------|
+| **部署协助** | 12 个中间件容器 + 11 个后端服务的编排启动；短信 / 人脸实名 / WuKongIM / LiveKit 等第三方能力打通；容器与宿主机网络（hairpin、防火墙）排障 |
+| **二次开发** | 匹配评分策略、推荐召回链路、审核规则与词库、VIP 权益与支付流程等模块定制 |
+| **私有化交付** | 内网或离线环境部署、中间件国产化替代评估、个人信息保护与内容审核的合规改造建议 |
+
+> 邮件：747011882@qq.com　·　Issue 请标注 `support` 标签。
 
 ---
 
