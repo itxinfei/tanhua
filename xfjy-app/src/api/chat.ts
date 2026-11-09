@@ -31,6 +31,19 @@ export interface MessageAnnouncement {
 }
 
 /**
+ * 查询是否可与某用户单聊（互相喜欢或已有会话放行，只拦新建会话）
+ * 对接后端: GET /messages/chat-permission
+ */
+export interface ChatPermission {
+  allowed: boolean;
+  reason?: string;
+}
+
+export function getChatPermission(userId: string): Promise<ChatPermission> {
+  return get<ChatPermission>("/messages/chat-permission", { userId });
+}
+
+/**
  * 添加联系人（互相喜欢后调用，注册 IM 好友关系）
  * 对接后端: POST /messages/contacts
  */

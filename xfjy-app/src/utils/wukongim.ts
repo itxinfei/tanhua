@@ -19,8 +19,9 @@ import {
   PullMode,
   ConnectStatus,
   type Conversation,
+  type SendackPacket,
 } from "wukongimjssdk";
-import { BASE_URL, get } from "./request";
+import { BASE_URL, get, getToken } from "./request";
 import { warn, warnAlways } from "@/utils/logger";
 import {
   emitMatch,
@@ -76,6 +77,9 @@ export async function getImCredential(): Promise<ImCredential | null> {
 
 /** 登录状态 */
 let isLoggedIn = false;
+
+/** ensureSelfIM 在途任务：并发调用合并为一次连接，避免重复 connect 顶号 */
+let selfImTask: Promise<boolean> | null = null;
 
 /** IM WS 端口（WuKongIM 默认 WebSocket 端口） */
 const IM_WS_PORT = 5200;
@@ -181,8 +185,26 @@ function rawToSdkMessage(raw: Record<string, unknown>, channel: Channel): Messag
   msg.clientMsgNo = String(raw.client_msg_no ?? "");
   msg.fromUID = String(raw.from_uid ?? "");
   msg.timestamp = Number(raw.timestamp ?? 0); // WuKongIM 时间戳为秒
-  msg.content = new MessageText(decodePayloadText(String(raw.payload ?? "")));
+  msg.content = new MessageText(unwrapBusinessText(decodePayloadText(String(raw.payload ?? ""))));
   return msg;
+}
+
+/**
+ * 历史消息 payload 有两种形态：
+ * 1) SDK 发送：{"content":"<业务 JSON>","type":1}（type 为数字，业务 JSON 被 content 包了一层）
+ * 2) 直连 API：{"type":"image","url":...}（业务 JSON 即 payload 本身）
+ * 这里统一取出业务 JSON 文本，否则第 1 种会被当成文本消息、原样显示成 JSON 字符串。
+ */
+function unwrapBusinessText(payloadText: string): string {
+  try {
+    const parsed = JSON.parse(payloadText);
+    if (parsed && typeof parsed.type === "number" && typeof parsed.content === "string") {
+      return parsed.content;
+    }
+  } catch {
+    // 普通文本，非 JSON
+  }
+  return payloadText;
 }
 
 /** 以 Promise 封装 uni.request */
@@ -460,6 +482,8 @@ function registerMessageListener(): void {
     }
     const biz = toReceivedMessage(message);
     if (biz) {
+      // clientMsgNo 是发送端乐观气泡与回包合并的唯一键，必须在转发前带上
+      biz.clientMsgNo = String(message.clientMsgNo || "");
       emitMessage(biz);
     }
   });
@@ -515,18 +539,40 @@ export async function ensureSelfIM(): Promise<boolean> {
   if (isLoggedIn && isIMConnected()) {
     return true;
   }
+  // 并发合并：App onShow、会话列表、聊天页可能同时触发，重复 connect 会互相顶号
+  if (selfImTask) {
+    return selfImTask;
+  }
+  selfImTask = connectSelfIM().finally(() => {
+    selfImTask = null;
+  });
+  return selfImTask;
+}
+
+/**
+ * ensureSelfIM 实现体：解析本人 uid 并完成登录。
+ *
+ * 冷启动/刷新时 pinia 里的 userInfo 必为空（只有 token 落盘），因此 uid 不能只从 store 取：
+ * 优先用凭证端点下发的 username（服务端权威 uid，与 IM uid 同源），store 的 id 仅作兜底。
+ * 这样任何入口（直接进消息页、刷新停在聊天页）都不必先访问「我的」预热用户信息。
+ */
+async function connectSelfIM(): Promise<boolean> {
   // isLoggedIn 仍为 true 但 WS 已断（弱网/被踢后自动重连失败）：必须重置后重走登录流程。
   // 否则 loginIM 的 isLoggedIn 短路会返回「就绪」假结果，消息在 sendMessagePayload 的
   // connected 判活处被永久拦下（SDK 断连期入队消息静默 shift 丢弃且不补发）。
   if (isLoggedIn) {
     isLoggedIn = false;
   }
-  const { useUserStore } = await import("@/store/user");
-  const uid = String(useUserStore().userInfo?.id || "");
-  if (!uid) {
+  // 未登录快速失败：不轮询/不等待用户信息，交由路由守卫跳登录，避免页面卡在 loading
+  if (!getToken()) {
     return false;
   }
   const credential = await getImCredential();
+  const { useUserStore } = await import("@/store/user");
+  const uid = String(credential?.username || useUserStore().userInfo?.id || "");
+  if (!uid) {
+    return false;
+  }
   if (credential?.token) {
     const ok = await loginIM(uid, credential.token, credential.wsUrl);
     if (ok) {
@@ -560,6 +606,18 @@ export async function logoutIM(): Promise<void> {
 /** 是否已登录（模块级登录态：仅登录成功/被踢下线时翻转，不随弱网断连翻转） */
 export function isIMLoggedIn(): boolean {
   return isLoggedIn;
+}
+
+/**
+ * 当前 IM 登录身份（uid）：未连接时返回空串。
+ * 供冷启动场景判断消息归属——此路径不依赖 pinia userInfo，刷新后同样可用。
+ */
+export function getSelfIMUid(): string {
+  try {
+    return String(WKSDK.shared().config.uid || "");
+  } catch {
+    return "";
+  }
 }
 
 /**
@@ -616,8 +674,48 @@ export async function getConversations(): Promise<ChatSession[]> {
   }
 }
 
-/** 发送单聊文本消息（含 JSON 结构化契约） */
-async function sendMessagePayload(to: string, text: string): Promise<boolean> {
+/** 发送回执等待上限：超时即判失败，避免气泡永久停在「发送中」 */
+const SEND_ACK_TIMEOUT = 10000;
+
+/** 发送回执成功码：WuKongIM 用 reasonCode=1 表示成功（0 为旧版/默认值，一并视为成功） */
+const SEND_ACK_SUCCESS = new Set([0, 1]);
+
+/** 等待指定 clientSeq 的发送回执（SendackPacket），reasonCode 为成功码才算服务端已接收 */
+function waitSendAck(clientSeq: number, clientMsgNo?: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      WKSDK.shared().chatManager.removeMessageStatusListener(listener);
+      resolve(ok);
+    };
+    const listener = (ack: SendackPacket) => {
+      if (ack.clientSeq !== clientSeq) return;
+      const ok = SEND_ACK_SUCCESS.has(ack.reasonCode);
+      if (!ok) {
+        warnAlways(
+          `[wukongim] 发送回执失败: clientMsgNo=${clientMsgNo ?? ""}, clientSeq=${clientSeq}, reasonCode=${ack.reasonCode}`
+        );
+      }
+      finish(ok);
+    };
+    const timer = setTimeout(() => {
+      warnAlways(`[wukongim] 发送回执超时: clientMsgNo=${clientMsgNo ?? ""}, clientSeq=${clientSeq}`);
+      // 移出发送队列：避免重连时 SDK 自动补发，造成「界面显示失败但实际已投递」
+      WKSDK.shared().chatManager.sendingQueues.delete(clientSeq);
+      finish(false);
+    }, SEND_ACK_TIMEOUT);
+    WKSDK.shared().chatManager.addMessageStatusListener(listener);
+  });
+}
+
+/**
+ * 发送单聊文本消息（含 JSON 结构化契约）
+ * @param clientMsgNo 调用方生成的客户端消息号：本地乐观气泡与回包/历史按它合并去重，重发复用同一个
+ */
+async function sendMessagePayload(to: string, text: string, clientMsgNo?: string): Promise<boolean> {
   if (!isLoggedIn) {
     return false;
   }
@@ -630,9 +728,22 @@ async function sendMessagePayload(to: string, text: string): Promise<boolean> {
   }
   try {
     const sdk = WKSDK.shared();
+    const chatManager = sdk.chatManager;
     const channel = sdk.newChannel(to, ChannelTypePerson);
-    await sdk.chatManager.send(sdk.newMessageText(text), channel);
-    return true;
+    const content = sdk.newMessageText(text);
+    // 走 getSendPacket 而非 send()：SDK 的 send() 自造 clientMsgNo 且立即 resolve，
+    // 外部无从关联回执；这里自持 clientMsgNo + 等 SendackPacket 才算发送成功
+    const packet = chatManager.getSendPacket(content, channel);
+    if (clientMsgNo) {
+      packet.clientMsgNo = clientMsgNo;
+    }
+    const acked = waitSendAck(packet.clientSeq, clientMsgNo);
+    // 入发送队列：断线重连时 SDK flushSendingQueue 会补发未回执的消息
+    chatManager.sendingQueues.set(packet.clientSeq, packet);
+    chatManager.sendSendPacket(packet);
+    // 保留 SDK 原有的「本地已入队」通知（会话列表/未读等既有订阅方依赖）
+    chatManager.notifyMessageListeners(Message.fromSendPacket(packet, content));
+    return await acked;
   } catch (err) {
     // catch 不得空吞：记录投递目标与异常上下文，返回 false 由消费方置 failed
     warnAlways(`[wukongim] 消息发送异常，to=${to}, err=${String(err)}`);
@@ -641,16 +752,21 @@ async function sendMessagePayload(to: string, text: string): Promise<boolean> {
 }
 
 /** 发送文本消息（单聊） */
-export async function sendTextMessage(to: string, content: string): Promise<boolean> {
-  return sendMessagePayload(to, content);
+export async function sendTextMessage(
+  to: string,
+  content: string,
+  clientMsgNo?: string
+): Promise<boolean> {
+  return sendMessagePayload(to, content, clientMsgNo);
 }
 
 /** 发送结构化消息（单聊，JSON 文本承载：image/voice/location/card 等） */
 export async function sendStructuredMessage(
   to: string,
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
+  clientMsgNo?: string
 ): Promise<boolean> {
-  return sendMessagePayload(to, JSON.stringify(payload));
+  return sendMessagePayload(to, JSON.stringify(payload), clientMsgNo);
 }
 
 /** 发送图片消息（单聊，MinIO URL 以 JSON 文本承载） */
@@ -682,7 +798,10 @@ export async function getChatHistory(
     return (messages || [])
       .map((raw) => {
         const m = toReceivedMessage(raw);
-        if (m) m.seq = raw.messageSeq || 0;
+        if (m) {
+          m.seq = raw.messageSeq || 0;
+          m.clientMsgNo = String(raw.clientMsgNo || "");
+        }
         return m;
       })
       .filter((m): m is ReceivedMessage => m !== null)
@@ -720,7 +839,10 @@ export async function getChatHistoryBefore(
     return (messages || [])
       .map((raw) => {
         const m = toReceivedMessage(raw);
-        if (m) m.seq = raw.messageSeq || 0;
+        if (m) {
+          m.seq = raw.messageSeq || 0;
+          m.clientMsgNo = String(raw.clientMsgNo || "");
+        }
         return m;
       })
       .filter((m): m is ReceivedMessage => m !== null)

@@ -281,6 +281,12 @@
 
     <!-- 输入区 -->
     <view class="input-area safe-area-bottom">
+      <view
+        v-if="chatBlockedReason"
+        class="chat-blocked-tip"
+      >
+        <text>{{ chatBlockedReason }}</text>
+      </view>
       <view class="input-bar">
         <!-- 语音/键盘切换 -->
         <a11y-button
@@ -314,6 +320,7 @@
             v-model="inputText"
             class="text-input"
             :class="{ focus: isInputFocus }"
+            :disabled="!!chatBlockedReason"
             placeholder="说点什么…"
             placeholder-class="ph"
             maxlength="500"
@@ -490,11 +497,12 @@ import Skeleton from "@/components/skeleton.vue";
 import { useUserStore } from "@/store/user";
 import { useUnreadStore } from "@/store/unread";
 import { showNotification } from "@/utils/notification";
-import { uploadChatImage, uploadChatAudio, getContacts } from "@/api/chat";
+import { uploadChatImage, uploadChatAudio, getContacts, getChatPermission } from "@/api/chat";
 import { getUserProfile } from "@/api/mine";
 import {
   ensureSelfIM,
   isIMConnected,
+  getSelfIMUid,
   sendTextMessage,
   sendStructuredMessage,
   getChatHistory,
@@ -545,6 +553,8 @@ interface Message {
   avatar: string;
   timestamp: number;
   status: MsgStatus;
+  /** 客户端消息号：乐观气泡、IM 回包、历史快照三者的唯一合并键 */
+  clientMsgNo?: string;
 }
 
 /** 底部面板类型 */
@@ -562,6 +572,14 @@ const activePanel = ref<PanelType>("none");
 const isVoiceMode = ref(false);
 const isVoicePressing = ref(false);
 const isInputFocus = ref(false);
+
+/**
+ * 本人 uid：优先 pinia（已拉过资料），冷启动/刷新时回退 IM 登录身份。
+ * 刷新后 userInfo 为空但 IM 已连接，若只看 store 会把历史里自己发的消息渲染成对方气泡。
+ */
+function selfUid(): string {
+  return String(userStore.userInfo?.id || getSelfIMUid() || "");
+}
 
 /** 对方正在输入提示：本地模拟（WuKongIM SDK 不支持 typing 信令） */
 const peerTyping = ref(false);
@@ -749,15 +767,49 @@ function scrollToBottom(): void {
 /** 单条文本消息最大长度：与输入框 maxlength 统一为 500，避免输入框截断但校验仍报 2000 的矛盾 */
 const MAX_MESSAGE_LENGTH = 500;
 
+/**
+ * 不可聊原因（空串=可聊）。
+ * 口径：互相喜欢或该单聊会话已存在 → 可聊；从未聊过且未互相喜欢 → 拦截（只拦新建）。
+ * 消息由客户端直连 IM，服务端拦不到发送动作，所以进入页面先查 /messages/chat-permission，
+ * 发送前再兜底校验一次。
+ */
+const chatBlockedReason = ref("");
+
+/** 查询与当前会话对象的聊天权限；接口异常时放行，避免网络抖动导致整页不能发消息 */
+async function loadChatPermission(): Promise<void> {
+  if (!userId.value) return;
+  try {
+    const res = await getChatPermission(String(userId.value));
+    chatBlockedReason.value = res?.allowed ? "" : res?.reason || "需要先互相喜欢才能开始聊天";
+  } catch {
+    chatBlockedReason.value = "";
+  }
+}
+
+
+/** 最近一次文本发送（同文本 + 500ms 内视为同一次触发，避免 confirm 与按钮 tap 各发一条） */
+let lastSentText = "";
+let lastSentAt = 0;
+
 /** 发送文字消息 */
 async function sendText(): Promise<void> {
   const text = inputText.value.trim();
   if (!text) return;
+  // 不可聊时不吞输入内容，直接提示原因
+  if (chatBlockedReason.value) {
+    info(chatBlockedReason.value);
+    return;
+  }
   if (text.length > MAX_MESSAGE_LENGTH) {
     fail(`单条消息最多 ${MAX_MESSAGE_LENGTH} 字`);
     return;
   }
-  pushMessage("text", text);
+  // 去抖：回车 confirm 与发送按钮 tap 可能先后触发，同一份输入只发一条
+  const now = Date.now();
+  if (text === lastSentText && now - lastSentAt < 500) return;
+  lastSentText = text;
+  lastSentAt = now;
+  void pushMessage("text", text);
   inputText.value = "";
   activePanel.value = "none";
 }
@@ -809,12 +861,21 @@ let localMsgSeq = 0;
 let recvMsgSeq = 0;
 
 /**
- * 消息业务指纹：跨「历史快照」与「实时/在途缓冲」两个来源的稳定去重键。
- * 两来源本地 id 前缀不同（hist-/recv-/local-），按 id 去重会失效；同一条服务端消息的
- * 归属/时间戳/类型/内容必然一致（历史与实时都经 wukongim.toReceivedMessage 解析，字段同源），故以此为指纹。
+ * 消息业务指纹：仅在缺少 clientMsgNo 时兜底（如部分历史消息未带该字段）。
+ * 两来源本地 id 前缀不同（hist-/recv-/local-），按 id 去重会失效，故用业务字段组合。
  */
 function messageFingerprint(m: Message): string {
   return `${m.isMine ? "me" : "peer"}|${m.timestamp}|${m.type}|${m.content}`;
+}
+
+/** 合并键：优先 clientMsgNo（跨来源唯一），无该字段时退回业务指纹 */
+function mergeKey(m: Message): string {
+  return m.clientMsgNo ? `c:${m.clientMsgNo}` : messageFingerprint(m);
+}
+
+/** 生成客户端消息号（≤40 字符，客户端生成、重发复用，服务端据此幂等去重） */
+function makeClientMsgNo(): string {
+  return `l${Date.now().toString(36)}${(++localMsgSeq).toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
 
 /**
@@ -827,8 +888,15 @@ async function pushMessage(
   content: string,
   extra?: Record<string, any>
 ): Promise<void> {
+  // 发送前兜底：建会话与发消息必须同一口径，不可聊时不产生本地气泡
+  if (chatBlockedReason.value) {
+    info(chatBlockedReason.value);
+    return;
+  }
+  const clientMsgNo = makeClientMsgNo();
   const msg: Message = {
     id: `local-${Date.now()}-${++localMsgSeq}`,
+    clientMsgNo,
     type,
     content,
     extra,
@@ -838,8 +906,25 @@ async function pushMessage(
     status: "sending",
   };
   messageList.value.push(msg);
+  // 必须取数组里的响应式代理再改状态：直接改 push 进去的原始对象不会触发渲染，
+  // 会出现「回执已到但气泡一直转圈」的假发送中
+  const item = messageList.value[messageList.value.length - 1];
   scrollToBottom();
-  await deliverMessage(msg);
+  await deliverMessage(item);
+}
+
+/** 投递中的消息 id：同一气泡并发投递（回车 confirm + 按钮 tap）只允许一次，避免双发双气泡 */
+const deliveringIds = new Set<string>();
+
+/** 重发前对账：服务端最新一段历史里是否已有该 clientMsgNo */
+async function existsOnServer(clientMsgNo: string): Promise<boolean> {
+  try {
+    const history = await getChatHistory(userId.value);
+    return history.some((m) => m.clientMsgNo === clientMsgNo);
+  } catch {
+    // 对账失败不阻断重发：按未送达处理
+    return false;
+  }
 }
 
 /**
@@ -847,8 +932,17 @@ async function pushMessage(
  * @param msg 待发送消息（发送中/失败均可重入）
  */
 async function deliverMessage(msg: Message): Promise<void> {
-  msg.status = "sending";
+  if (deliveringIds.has(msg.id)) return;
+  deliveringIds.add(msg.id);
+  const isResend = msg.status === "failed";
   try {
+    // 重发前先对账：回执丢失/断线补发场景下服务端可能已存有该消息，
+    // 直接落定为已发送，避免同一条再投递一次（服务端不保证按 clientMsgNo 幂等）
+    if (isResend && msg.clientMsgNo && (await existsOnServer(msg.clientMsgNo))) {
+      msg.status = "sent";
+      return;
+    }
+    msg.status = "sending";
     let ok = false;
     if (msg.type === "image" || msg.type === "voice") {
       // 媒体消息：本地路径先上传 OSS（已是 http 链接则跳过，重发场景）
@@ -867,16 +961,16 @@ async function deliverMessage(msg: Message): Promise<void> {
         msg.type === "voice"
           ? { type: "voice", url: msg.content, duration: msg.extra?.duration || 0 }
           : { type: "image", url: msg.content };
-      ok = await sendStructuredMessage(userId.value, payload);
+      ok = await sendStructuredMessage(userId.value, payload, msg.clientMsgNo);
     } else if (msg.type === "location" || msg.type === "card") {
       // 位置/名片：结构化 JSON 承载（与接收端解析契约一致）
       const payload =
         msg.type === "location"
           ? { type: "location", latitude: msg.extra?.latitude, longitude: msg.extra?.longitude, address: msg.content }
           : { type: "card", userId: msg.extra?.userId, nickname: msg.content, avatar: msg.extra?.avatar || "" };
-      ok = await sendStructuredMessage(userId.value, payload);
+      ok = await sendStructuredMessage(userId.value, payload, msg.clientMsgNo);
     } else {
-      ok = await sendTextMessage(userId.value, msg.content);
+      ok = await sendTextMessage(userId.value, msg.content, msg.clientMsgNo);
     }
     msg.status = ok ? "sent" : "failed";
     if (!ok) {
@@ -886,12 +980,19 @@ async function deliverMessage(msg: Message): Promise<void> {
     // 上传/网络异常（upload reject 等）不能让气泡永远停在 sending
     msg.status = "failed";
     fail("发送失败，点击气泡重试");
+  } finally {
+    deliveringIds.delete(msg.id);
   }
 }
 
 /** 点击失败气泡：重发（底层连接已断时先重连，避免红点永久卡死） */
 async function resendMessage(msg: Message): Promise<void> {
   if (msg.status !== "failed") return;
+  // 权限被收回（如取消喜欢）后不允许再重发，与首次发送同一口径
+  if (chatBlockedReason.value) {
+    info(chatBlockedReason.value);
+    return;
+  }
   // 连接不在时先确保 IM 就绪：ensureSelfIM 会重建断连；仍失败则引导用页面顶部「重新连接」，
   // 不进 SDK 队列（断连期入队消息会被静默丢弃且不补发）
   if (!isIMConnected()) {
@@ -1032,7 +1133,7 @@ function openPeerProfile(): void {
 
 /** 点击我的头像：打开自己的资料页 */
 function openMyProfile(): void {
-  const myId = String(userStore.userInfo?.id || "");
+  const myId = selfUid();
   if (!myId) return;
   uni.navigateTo({ url: `/pages/match/detail?id=${myId}` });
 }
@@ -1102,16 +1203,41 @@ let pendingMessages: ReceivedMessage[] = [];
 
 /** IM 实时消息 → 本地消息结构 */
 function toReceivedItem(msg: ReceivedMessage): Message {
+  const mine = !!msg.from && msg.from === selfUid();
   return {
     id: `recv-${msg.time}-${++recvMsgSeq}`,
+    clientMsgNo: msg.clientMsgNo || undefined,
     type: msg.type,
     content: msg.content,
     extra: msg.extra,
-    isMine: false,
-    avatar: peerAvatar.value,
+    isMine: mine,
+    avatar: mine ? myAvatar.value : peerAvatar.value,
     timestamp: msg.time,
-    status: "read",
+    status: mine ? "sent" : "read",
   };
+}
+
+/**
+ * 自己消息的 IM 回包（本地入队通知 / 多端同步 / 服务端回显）：
+ * 按 clientMsgNo 合并进已存在的乐观气泡，绝不再追加一条；没有本地气泡（另一端发的）才补一条。
+ * 注意：这里不改 status——发送态由发送回执（SendackPacket）驱动，本地通知不代表服务端已接收。
+ */
+function mergeSelfEcho(msg: ReceivedMessage): void {
+  const key = msg.clientMsgNo || "";
+  if (key) {
+    const exist = messageList.value.find((m) => m.clientMsgNo === key);
+    if (exist) {
+      // 服务端时间更权威，仅更新展示用时间戳，不新增条目
+      if (msg.time) exist.timestamp = msg.time;
+      return;
+    }
+  }
+  const item = toReceivedItem(msg);
+  // 历史快照已包含同一条（缺 clientMsgNo 时按业务指纹兜底）：不再追加
+  const fp = messageFingerprint(item);
+  if (messageList.value.some((m) => messageFingerprint(m) === fp)) return;
+  messageList.value.push(item);
+  scrollToBottom();
 }
 
 /** 追加一条实时到达消息并滚到底 */
@@ -1137,9 +1263,10 @@ async function loadHistory(): Promise<void> {
   historyLoading.value = true;
   const history = await getChatHistory(userId.value);
   // WuKongIM 直连登录后无凭证对象，我的 uid 即当前登录用户 ID（消息归属判断用）
-  const myId = String(userStore.userInfo?.id ?? "");
+  const myId = selfUid();
   const historyItems: Message[] = history.map((msg, i) => ({
     id: `hist-${i}-${msg.time}`,
+    clientMsgNo: msg.clientMsgNo || undefined,
     type: msg.type,
     content: msg.content,
     extra: msg.extra,
@@ -1151,13 +1278,12 @@ async function loadHistory(): Promise<void> {
   // 合并缓冲：按时间排序
   const buffered = pendingMessages.map(toReceivedItem);
   const merged = [...historyItems, ...buffered].sort((a, b) => a.timestamp - b.timestamp);
-  // 按业务指纹去重：历史(hist-)与在途(recv-)本地 id 前缀不同，按 id 无法识别同一条消息，
-  // 用 归属+时间戳+类型+内容 指纹识别历史快照已包含的在途消息，避免重复显示
+  // 按 clientMsgNo 去重（同一消息的不同来源必然同键）；缺键时才用业务指纹兜底
   const seen = new Set<string>();
   messageList.value = merged.filter((item) => {
-    const fp = messageFingerprint(item);
-    if (seen.has(fp)) return false;
-    seen.add(fp);
+    const key = mergeKey(item);
+    if (seen.has(key)) return false;
+    seen.add(key);
     return true;
   });
   // 合并完成后清空缓冲并切到实时通道：后续到达消息直接追加，重试也不会重复合并
@@ -1196,9 +1322,10 @@ async function loadMoreHistory(): Promise<void> {
       noMoreHistory.value = true;
       return;
     }
-    const myId = String(userStore.userInfo?.id ?? "");
+    const myId = selfUid();
     const olderItems: Message[] = older.map((msg, i) => ({
       id: `hist-more-${oldestSeq.value}-${i}-${msg.time}`,
+      clientMsgNo: msg.clientMsgNo || undefined,
       type: msg.type,
       content: msg.content,
       extra: msg.extra,
@@ -1207,10 +1334,9 @@ async function loadMoreHistory(): Promise<void> {
       timestamp: msg.time,
       status: "read" as MsgStatus,
     }));
-    // 指纹去重：续拉(hist-more-)与已加载消息(hist-/recv-)id 前缀不同，按 id 无法识别重叠，
-    // 改用业务指纹，避免同一条消息在续拉后重复显示
-    const existingFp = new Set(messageList.value.map(messageFingerprint));
-    const deduped = olderItems.filter((m) => !existingFp.has(messageFingerprint(m)));
+    // 续拉(hist-more-)与已加载消息(hist-/recv-)id 前缀不同，按 clientMsgNo 去重（缺键退回业务指纹）
+    const existingKeys = new Set(messageList.value.map(mergeKey));
+    const deduped = olderItems.filter((m) => !existingKeys.has(mergeKey(m)));
     if (deduped.length === 0) {
       noMoreHistory.value = true;
       return;
@@ -1260,6 +1386,9 @@ onLoad(async (options: any) => {
   // 当前用户头像
   myAvatar.value = resolveAvatar(userStore.userInfo?.avatar);
 
+  // 发送侧权限：与添加联系人口径一致（需互相喜欢），不可聊则禁用输入并展示原因
+  void loadChatPermission();
+
   // 拉对方资料补头像
   if (userId.value) {
     getUserProfile(userId.value)
@@ -1306,6 +1435,16 @@ async function reconnectIM(): Promise<void> {
     // 在途实时消息先进 pending 缓冲，避免注册晚于拉取导致消息丢失。
     // 监听全程只注册这一次，重试历史拉取不会重复注册。
     unregisterMessage = onMessageReceived((msg) => {
+      // 自己发出的消息：SDK 本地入队通知 / 多端同步 / 服务端回显 —— 按 clientMsgNo 合并进乐观气泡，
+      // 绝不追加第二条（此前直接丢弃，导致「回包到了但气泡一直发送中」）
+      if (msg.from && msg.from === selfUid()) {
+        if (historyLoaded.value) {
+          mergeSelfEcho(msg);
+        } else {
+          pendingMessages.push(msg);
+        }
+        return;
+      }
       if (msg.from !== userId.value) return;
       if (historyLoaded.value) {
         appendReceivedWithTyping(msg);
@@ -1497,6 +1636,8 @@ onUnmounted(() => {
 
 /* ===== 输入区 ===== */
 .input-area { background: var(--bg-card); border-top: 1rpx solid var(--border-light); }
+/* 不可聊提示：与输入框同区域常驻，说明原因而不是让用户点了才知道 */
+.chat-blocked-tip { padding: 14rpx 24rpx; font-size: 24rpx; line-height: 1.5; text-align: center; color: #b26a00; background: rgba(255, 153, 0, 0.12); }
 .input-bar { display: flex; align-items: center; gap: 12rpx; padding: 14rpx 16rpx; }
 /* 88rpx 热区（§7.1 WCAG 2.5.5），原 64rpx≈32px 不达标 */
 .icon-btn { width: 88rpx; height: 88rpx; display: flex; align-items: center; justify-content: center; font-size: 40rpx; border-radius: 50%; flex-shrink: 0;

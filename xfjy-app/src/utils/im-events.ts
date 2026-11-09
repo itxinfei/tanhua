@@ -18,6 +18,8 @@ export interface ReceivedMessage {
   time?: number;
   /** 消息序号（WuKongIM messageSeq）：续拉更旧历史用（M-K4） */
   seq?: number;
+  /** 客户端消息号（WuKongIM clientMsgNo）：乐观气泡与回包/历史合并的唯一键 */
+  clientMsgNo?: string;
 }
 
 /** 匹配事件（互喜时后端经 IM 透传触发） */

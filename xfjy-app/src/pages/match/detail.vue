@@ -275,20 +275,6 @@
           </text>
         </a11y-button>
         <a11y-button
-          v-if="!isSelf"
-          class="action-btn chat"
-          label="打招呼"
-          @tap="handleChat"
-        >
-          <view
-            class="action-ico i-ph-chat-circle-dots"
-            aria-hidden="true"
-          />
-          <text class="action-label">
-            打招呼
-          </text>
-        </a11y-button>
-        <a11y-button
           class="action-btn super-like"
           label="超级喜欢"
           @tap="handleSuperLike"
@@ -516,12 +502,12 @@ async function handleLike(): Promise<void> {
   }
 }
 
-/** 打招呼：注册 IM 联系人关系后进入聊天页（无需互相喜欢） */
+/** 打招呼：先按后端规则建立联系人关系（需互相喜欢），成功后再进聊天页 */
 async function handleSayHi(): Promise<void> {
   if (!userId.value || acting.value) return;
   acting.value = true;
   try {
-    // 注册 IM 联系人关系（让双方可以开始聊天）
+    // 未互相喜欢时后端返回 403，request 层已 toast「需要先互相喜欢才能发起会话」，不跳转
     await addContact(userId.value);
     success("已添加联系人，去聊天吧");
     // 跳转到聊天页
@@ -575,12 +561,6 @@ async function handleSuperLike(): Promise<void> {
   } finally {
     acting.value = false;
   }
-}
-
-/** 打招呼，跳转聊天页 */
-function handleChat(): void {
-  const name = user.value?.nickname || "";
-  uni.navigateTo({ url: `/pages/chat/chat?userId=${userId.value}&nickname=${encodeURIComponent(name)}` });
 }
 
 /**

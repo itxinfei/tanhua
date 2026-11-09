@@ -97,6 +97,22 @@ public interface WuKongImApi {
                                                @RequestParam("limit") Integer limit);
 
     /**
+     * 判断当前用户与某人是否已经存在单聊会话（「老会话放行」的可信判定来源）
+     *
+     * 会话由历史消息产生，存在即说明双方此前聊过（含历史规则漏洞期间建立的会话）。
+     * 与 {@link #getChatSessions} 不同，本方法在 WuKongIM 不可用或返回异常时向上抛错，
+     * 避免把「查询失败」误判为「没有会话」而错误拦截。
+     *
+     * @param userId  当前用户ID
+     * @param peerUid 对方用户ID
+     * @return true=已存在单聊会话
+     */
+    @PostExchange("/conversation-exists")
+    @PostMapping("/conversation-exists")
+    boolean conversationExists(@RequestParam("userId") String userId,
+                               @RequestParam("peerUid") String peerUid);
+
+    /**
      * 获取与某用户的聊天记录（后台用户详情弹窗「聊天记录」tab 使用）
      *
      * 通过 WuKongIM /channel/messagesync 拉取：login_uid=fromUserId，

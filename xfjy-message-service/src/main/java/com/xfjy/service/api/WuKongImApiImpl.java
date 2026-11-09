@@ -47,6 +47,7 @@ import java.util.Map;
  * - registerUser    → POST /user/token（uid+token 注册，幂等）
  * - getUserToken    → POST /user/token（注册后返回 token）
  * - getChatSessions → POST /conversation/sync（msg_count=1 组装摘要）
+ * - conversationExists → POST /conversation/sync（msg_count=0，仅判定会话是否存在，失败抛错）
  * - getChatMessages → POST /channel/messagesync（channel_id=对方 uid，按 seq 拉取双向历史）
  */
 @Slf4j
@@ -236,6 +237,45 @@ public class WuKongImApiImpl implements WuKongImApi {
             log.error("[WuKongIM] 会话列表查询异常: {}", userId, e);
             return Collections.emptyList();
         }
+    }
+
+    /**
+     * 判断用户与某人是否已经存在单聊会话（「老会话放行」的可信判定来源）
+     *
+     * POST /conversation/sync（msg_count=0，只需要会话是否存在，不需要消息体）。
+     * 与 {@link #getChatSessions} 不同：本方法在依赖失败时抛错而不是返回空列表，
+     * 避免把「查询失败」伪装成「没有会话」，导致调用方错误拦截老会话。
+     */
+    @Override
+    @PostMapping("/conversation-exists")
+    public boolean conversationExists(@RequestParam("userId") String userId,
+                                      @RequestParam("peerUid") String peerUid) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("uid", userId);
+        body.put("msg_count", 0);
+
+        ResponseEntity<String> resp = post("/conversation/sync", body);
+        if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
+            log.warn("[WuKongIM] 会话存在性查询失败: {} <-> {}, status={}", userId, peerUid, resp.getStatusCode());
+            throw new IllegalStateException("[WuKongIM] 会话同步失败，无法判定会话是否存在: uid=" + userId
+                    + ", status=" + resp.getStatusCode());
+        }
+
+        JsonNode conversations = MAPPER.readTree(resp.getBody());
+        if (!conversations.isArray()) {
+            throw new IllegalStateException("[WuKongIM] 会话同步返回非数组，无法判定会话是否存在: uid=" + userId);
+        }
+
+        for (JsonNode conv : conversations) {
+            int channelType = conv.path("channel_type").asInt(0);
+            String channelId = conv.path("channel_id").asString("");
+            if (channelType == CHANNEL_TYPE_PERSONAL && peerUid.equals(channelId)) {
+                log.info("[WuKongIM] 会话已存在: {} <-> {}", userId, peerUid);
+                return true;
+            }
+        }
+        log.info("[WuKongIM] 会话不存在: {} <-> {}", userId, peerUid);
+        return false;
     }
 
     /**

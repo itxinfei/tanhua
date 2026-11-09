@@ -58,6 +58,17 @@ public class IMController {
     }
 
     /**
+     * 查询是否可与某用户单聊（互相喜欢，或该单聊会话已存在 → 允许；从未聊过且未互相喜欢 → 拒绝）
+     *
+     * <p>消息由客户端直连 WuKongIM，服务端无法拦截发送动作，故由聊天页进入时先查本接口；
+     * 不可聊时返回 {allowed:false, reason:"..."}，前端据此禁用输入并展示可读文案。</p>
+     */
+    @GetMapping("chat-permission")
+    public ResponseEntity<Map<String, Object>> chatPermission(@RequestParam("userId") Long userId) {
+        return ResponseEntity.ok(this.imService.chatPermission(userId));
+    }
+
+    /**
      * 添加联系人
      *
      * @param param

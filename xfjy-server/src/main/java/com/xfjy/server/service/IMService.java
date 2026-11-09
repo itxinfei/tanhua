@@ -166,6 +166,46 @@ public class IMService {
         return true;
     }
 
+    /**
+     * 当前用户能否与某用户单聊。
+     *
+     * <p>判定口径（「老会话放行，只拦新建」）：</p>
+     * <ol>
+     *   <li>双方互相喜欢 → 允许（与「添加联系人」同一口径）；</li>
+     *   <li>否则查 WuKongIM 会话数据：该单聊会话已存在（历史聊过，含规则漏洞期间建立的会话）→ 允许；</li>
+     *   <li>会话不存在（从未聊过）→ 拒绝。</li>
+     * </ol>
+     *
+     * <p>会话存在性由服务端用当前登录 uid 向 WuKongIM 查询，不信任前端传参。
+     * 查询失败时（依赖不可用）保持前端既有放行行为，但后端必须留痕，
+     * 便于事后定位「规则失效」的时间段。</p>
+     *
+     * @param peerId 对方用户ID
+     * @return {allowed:boolean, reason:string}
+     */
+    public Map<String, Object> chatPermission(Long peerId) {
+        User user = UserThreadLocal.get();
+        if (Boolean.TRUE.equals(this.userLikeApi.isMutualLike(user.getId(), peerId))) {
+            return Map.of("allowed", true, "reason", "");
+        }
+
+        boolean conversationExists;
+        try {
+            conversationExists = this.wuKongImApi.conversationExists(
+                    String.valueOf(user.getId()), String.valueOf(peerId));
+        } catch (Exception e) {
+            // fail-open：接口返回异常，前端 catch 后按放行处理；这里留 ERROR 日志，事后可据此定位规则失效时段
+            LOGGER.error("[chat-permission] 会话存在性查询失败，本次接口将返回异常、前端按放行处理（规则失效）: self={}, peer={}",
+                    user.getId(), peerId, e);
+            throw e;
+        }
+
+        return Map.of(
+                "allowed", conversationExists,
+                "reason", conversationExists ? "" : "需要先互相喜欢才能开始聊天"
+        );
+    }
+
     public PageResult queryContactsList(Integer page, Integer pageSize, String keyword) {
 
         User user = UserThreadLocal.get();
