@@ -99,7 +99,17 @@
               <el-button :icon="Collection" title="FAQ 快捷回复" />
             </template>
             <div v-loading="faqLoading" class="faq-list">
-              <div v-for="faq in faqList" :key="faq.id" class="faq-item" @click="applyFaq(faq)">
+              <!-- role=button + tabindex 让纯 div 列表项键盘可达，Enter/Space 触发；焦点环走全局 :focus-visible -->
+              <div
+                v-for="faq in faqList"
+                :key="faq.id"
+                class="faq-item"
+                role="button"
+                tabindex="0"
+                @click="applyFaq(faq)"
+                @keydown.enter.prevent="applyFaq(faq)"
+                @keydown.space.prevent="applyFaq(faq)"
+              >
                 <div class="faq-item__q">{{ faq.question }}</div>
                 <div class="faq-item__a">{{ faq.answer }}</div>
               </div>

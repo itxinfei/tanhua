@@ -1,7 +1,7 @@
 <template>
   <div class="sidebar-wrapper">
-    <!-- Logo -->
-    <div class="sidebar-logo" @click="router.push('/dashboard')">
+    <!-- Logo：用 router-link 渲染为真链接，键盘可聚焦回车跳转，替代 div@click 的不可达语义 -->
+    <router-link to="/dashboard" class="sidebar-logo" aria-label="返回数据看板">
       <img
         v-if="collapsed"
         class="logo-icon"
@@ -14,7 +14,7 @@
         src="/logo/logo-horizontal-transparent.png"
         alt="心飞交友后台"
       />
-    </div>
+    </router-link>
 
     <!-- 菜单（清新卡片式：白色背景，玫红激活态） -->
     <el-scrollbar>
@@ -65,13 +65,12 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { routes } from '@/router'
 
 const route = useRoute()
-const router = useRouter()
 const appStore = useAppStore()
 const authStore = useAuthStore()
 
