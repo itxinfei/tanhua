@@ -86,16 +86,16 @@
 
 <table>
   <tr>
-    <td align="center"><h2>12</h2>微服务模块</td>
-    <td align="center"><h2>13</h2>端统一输出</td>
-    <td align="center"><h2>12</h2>中间件容器</td>
-    <td align="center"><h2>6</h2>核心域服务</td>
+    <td align="center"><span style="font-size:28px;font-weight:700;line-height:1.5">12</span><br/>微服务模块</td>
+    <td align="center"><span style="font-size:28px;font-weight:700;line-height:1.5">13</span><br/>端统一输出</td>
+    <td align="center"><span style="font-size:28px;font-weight:700;line-height:1.5">12</span><br/>中间件容器</td>
+    <td align="center"><span style="font-size:28px;font-weight:700;line-height:1.5">6</span><br/>核心域服务</td>
   </tr>
   <tr>
-    <td align="center"><h2>5 层</h2>推荐召回漏斗</td>
-    <td align="center"><h2>64 维</h2>用户 Embedding</td>
-    <td align="center"><h2>&lt;50ms</h2>地理召回延迟</td>
-    <td align="center"><h2>¥0</h2>IM / 音视频授权费</td>
+    <td align="center"><span style="font-size:28px;font-weight:700;line-height:1.5">5 层</span><br/>推荐召回漏斗</td>
+    <td align="center"><span style="font-size:28px;font-weight:700;line-height:1.5">64 维</span><br/>用户 Embedding</td>
+    <td align="center"><span style="font-size:28px;font-weight:700;line-height:1.5">&lt;50ms</span><br/>地理召回延迟</td>
+    <td align="center"><span style="font-size:28px;font-weight:700;line-height:1.5">¥0</span><br/>IM / 音视频授权费</td>
   </tr>
 </table>
 
