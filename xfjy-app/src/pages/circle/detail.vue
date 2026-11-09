@@ -526,8 +526,9 @@ onLoad((options: any) => {
         &.is-replying { box-shadow: inset 4rpx 0 0 var(--color-primary); padding-left: 12rpx; border-radius: var(--radius-sm); }
         /* 行间细分隔：把 88rpx 触控热区形成的空隙读成「行」，而非段落空档 */
         & + & { border-top: 1rpx solid var(--border-faint); }
-        /* 整行文本流：昵称 + 回复@ + 内容，长文按字符换行且不在标点前断行 */
-        .reply-text { font-size: 26rpx; line-height: 1.6; color: var(--text-primary); word-break: break-word; }
+        /* 整行文本流：昵称 + 回复@ + 内容，长文按字符换行且不在标点前断行；
+           word-break:break-word 已废弃，overflow-wrap:anywhere 为规范替代 */
+        .reply-text { font-size: 26rpx; line-height: 1.6; color: var(--text-primary); overflow-wrap: anywhere; }
         .reply-nick { font-size: 26rpx; font-weight: 600; color: var(--color-primary-text); }
         .reply-to { font-size: 26rpx; color: var(--text-hint); }
         .reply-content { font-size: 26rpx; color: var(--text-primary); }

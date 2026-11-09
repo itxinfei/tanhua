@@ -10,6 +10,7 @@
  *  1. App 启动时调用 requestPermission() 请求权限
  *  2. 收到新消息时调用 showNotification(title, body)
  */
+import { log } from "@/utils/logger";
 
 /** 通知权限状态 */
 let h5Permission: NotificationPermission = "default";
@@ -95,7 +96,7 @@ export function showNotification(title: string, body: string, icon?: string): vo
   // #ifndef H5
   // MP 端：使用 uni.showModal 模拟系统通知（或依赖后端订阅消息推送）
   // 这里仅记录，实际推送由后端通过微信服务通知完成
-  console.log(`[push] ${title}: ${body}`);
+  log(`[push] ${title}: ${body}`);
   // #endif
 }
 

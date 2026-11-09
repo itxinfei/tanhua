@@ -260,7 +260,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import { ref, computed } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import MatchPopup from "@/components/match-popup.vue";
 import SmartImage from "@/components/smart-image.vue";
@@ -268,7 +268,7 @@ import NetworkStatusBar from "@/components/network-status-bar.vue";
 import A11yButton from "@/components/a11y-button.vue";
 import VipBadge from "@/components/vip-badge.vue";
 import { useUserStore } from "@/store/user";
-import { getRelationCounts, FRIEND_TYPE, type RelationCounts } from "@/api/mine";
+import { getRelationCounts, FRIEND_TYPE } from "@/api/mine";
 
 const userStore = useUserStore();
 const userInfo = computed(() => userStore.userInfo);
@@ -630,6 +630,7 @@ onShow(() => {
     inset 0 0 0 1rpx rgba(var(--gold-rgb), 0.12);
   position: relative;
   z-index: 2;
+
   --vip-glow-color: rgba(var(--gold-rgb), 0.16);
   /* 未开通：描边为静态金色，流光层全透明（不出光） */
   --vip-ring-base: rgba(var(--gold-rgb), 0.8);

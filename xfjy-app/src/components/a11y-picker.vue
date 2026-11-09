@@ -379,6 +379,7 @@ defineExpose({ syncFromProp });
   font-size: 28rpx;
   /* 热区扩到 88rpx（44px）：与注释一致，原实现只有 48×88rpx */
   &::before { content: ""; position: absolute; inset: -20rpx; }
+
   color: var(--text-inverse);
   /* 扩大热区：88rpx - 48rpx = 40rpx，上下左右各 10rpx */
   padding: 10rpx;

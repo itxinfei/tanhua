@@ -1,7 +1,6 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import { getConversations } from "@/utils/wukongim";
-import { getContacts } from "@/api/chat";
 import { warn } from "@/utils/logger";
 
 /** 未读消息总数（所有会话聚合） */

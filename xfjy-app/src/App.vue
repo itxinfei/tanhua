@@ -90,7 +90,8 @@ onShow(() => {
 </script>
 
 <style lang="scss">
-/* ===== CSS 变量（品牌色：暖玫红 + 珊瑚系，与后台管理 xfjy-admin 对齐；紫色保留为辅助色；深色模式 WIP：变量层已就绪，页面硬编码色待逐步迁移到变量引用） ===== */
+/* ===== CSS 变量（品牌色：暖玫红 + 珊瑚系，与后台管理 xfjy-admin 对齐；紫色保留为辅助色；
+   深色模式：亮/暗双套变量已就绪，页面级硬编码色已收口（残留项为 body 挂载等结构性约束，见 AGENTS §11）） ===== */
 page {
   --color-primary: #fe3c72;
   --color-coral: #ff655b;
@@ -317,9 +318,12 @@ scroll-view {
 }
 
 /* 响应系统「减弱动态效果」（WCAG 2.3.3，Reduced Motion 高优先级）：
-   H5/APP-webview 识别后把动画/过渡压到近无；微信小程序 WXSS 不支持该媒体查询，静默忽略。
+   H5/APP-webview 识别后把动画压到近无；微信小程序 WXSS 不支持该媒体查询，静默忽略。
    显式列举标签而非 * 通配（小程序 WXSS 不支持通配选择器）；
-   !important 是 reduced-motion 全局兜底的标准范式，用于压过页面级 animation 简写。 */
+   !important 是 reduced-motion 全局兜底的标准范式，用于压过页面级 animation 简写。
+   只停 animation（自动/循环/入场动效是前庭不适主因），不全局压制 transition：
+   按钮按压、焦点、进度条等交互状态反馈需要保留（WCAG 2.3.3 AA 不强制交互短过渡），
+   装饰性过渡由文件尾部类级 reduced-motion 清单显式关停。 */
 @media (prefers-reduced-motion: reduce) {
   view,
   text,
@@ -330,7 +334,6 @@ scroll-view {
   navigator {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
   }
 }
 

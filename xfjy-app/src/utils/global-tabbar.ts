@@ -82,16 +82,14 @@ function applyWindowBottom(value: string): void {
   });
 }
 
-/** 未读数刷新定时器（30s 轮询，与 store 内部节流一致） */
-let unreadTimer: ReturnType<typeof setInterval> | null = null;
-
-/** 启动未读数刷新：立即拉一次，之后每 30s 轮询 */
+/** 启动未读数刷新：立即拉一次，之后每 30s 轮询。
+ *  H5 单例与页面生命周期同级，无卸载时机，不保留定时器句柄 */
 function startUnreadRefresh(): void {
   const unreadStore = useUnreadStore();
   unreadStore.refreshUnread().then(() => {
     vm?.setUnreadCount?.(unreadStore.unreadCount);
   });
-  unreadTimer = setInterval(() => {
+  setInterval(() => {
     unreadStore.refreshUnread().then(() => {
       vm?.setUnreadCount?.(unreadStore.unreadCount);
     });
