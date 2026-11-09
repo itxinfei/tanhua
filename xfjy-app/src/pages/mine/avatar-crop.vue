@@ -759,7 +759,8 @@ $crop-badge-text: rgba(255, 255, 255, .95);
 
 .crop-stage { position: relative; flex: none; overflow: hidden; background: var(--bg-sub); }
 
-.crop-canvas { display: block; }
+/* touch-action:none：裁剪平移双向都由 JS 接管，阻止浏览器滚动/缩放手势介入 */
+.crop-canvas { display: block; touch-action: none; }
 
 /* 框外压暗：固定黑 55%，框内保持原图亮度 */
 .crop-mask { position: absolute; pointer-events: none; background: $crop-mask-color; }

@@ -41,7 +41,7 @@
       <view class="upload-progress-track">
         <view
           class="upload-progress-fill"
-          :style="{ width: uploadProgress + '%' }"
+          :style="{ transform: 'scaleX(' + uploadProgress / 100 + ')' }"
         />
       </view>
       <text class="upload-progress-text">
@@ -738,10 +738,13 @@ onUnload(() => {
   overflow: hidden;
 }
 .upload-progress-fill {
+  /* scaleX 模拟填充：transform 只走合成层，width 动画会每帧触发布局 */
+  width: 100%;
   height: 100%;
   border-radius: 3rpx;
   background: var(--color-primary);
-  transition: width 0.2s ease;
+  transform-origin: left center;
+  transition: transform 0.2s ease;
 }
 .upload-progress-text {
   font-size: var(--fs-sm);

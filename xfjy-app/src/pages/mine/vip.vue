@@ -108,7 +108,6 @@
           class="plans-empty-btn"
           label="刷新套餐列表"
           variant="ghost"
-          size="sm"
           @tap="loadVipData"
         >
           刷新
@@ -714,7 +713,7 @@ onLoad(() => {
   height: 100%;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
   transform: translateX(-100%);
-  will-change: transform;
+  /* shimmer 为常驻 infinite 动画，transform 合成层浏览器自动提升，不写 will-change */
   animation: shimmer 3s linear infinite;
   pointer-events: none;
 }

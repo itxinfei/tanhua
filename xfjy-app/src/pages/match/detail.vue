@@ -133,7 +133,7 @@
           >
             <view
               class="fate-fill"
-              :style="{ width: fatePercent }"
+              :style="{ transform: 'scaleX(' + fateRatio + ')' }"
             />
           </view>
           <text class="fate-score">
@@ -373,8 +373,8 @@ const loading = ref(true);
 /** 核心资料加载失败标记：与「资料字段为空」严格区分，失败展示 role=alert 错误态 + 重试 */
 const loadFailed = ref(false);
 
-/** 缘分值百分比（用于进度条宽度） */
-const fatePercent = computed(() => `${Math.min(fateScore.value / FATE_SCORE_MAX, 1) * 100}%`);
+/** 缘分值填充比例（0~1，用于 scaleX 进度条，避免 width 动画触发布局） */
+const fateRatio = computed(() => Math.min(fateScore.value / FATE_SCORE_MAX, 1));
 
 /** 当前查看的用户是否是当前登录用户（自己看自己时隐藏「打招呼」等互动按钮） */
 const isSelf = computed(() => {
@@ -713,7 +713,7 @@ onLoad(async (options: any) => {
 .fate-row { display: flex; align-items: center; gap: 16rpx; margin-top: 24rpx;
   .fate-label { font-size: 24rpx; color: var(--text-hint); flex-shrink: 0; }
   .fate-bar { flex: 1; height: 12rpx; background: var(--bg-sub); border-radius: var(--radius-pill); overflow: hidden; }
-  .fate-fill { height: 100%; background: var(--gradient-brand-h); border-radius: var(--radius-pill); transition: width 0.6s ease-out; }
+  .fate-fill { width: 100%; height: 100%; background: var(--gradient-brand-h); border-radius: var(--radius-pill); transform-origin: left center; transition: transform 0.6s ease-out; }
   .fate-score { font-size: 30rpx; font-weight: bold; color: var(--color-primary); flex-shrink: 0; min-width: 48rpx; text-align: right; }
 }
 

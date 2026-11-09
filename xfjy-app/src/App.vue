@@ -104,6 +104,9 @@ page {
   --color-primary-soft: #ff8fb1;
   --color-primary-mist: #ffd1e8;
   --color-primary-text: #c2185b;
+  /* 品牌实底 + 反白文字专用强色：亮色与主色同值；暗色下沉为深玫红，
+     保证登录页品牌区白字对比度 ≥4.5:1（暗色主色 #ff8eb9 上白字仅 2.14:1） */
+  --color-primary-strong: #fe3c72;
   --bg-sub: #f5f5f5;
   --border-light: #f0f0f0;
   --border: #e0e0e0;
@@ -256,6 +259,8 @@ page {
     --color-primary-soft: #ff8fb1;
     --color-primary-mist: #7a5a70;
     --color-primary-text: #ff8eb9;
+    /* 深玫红实底托反白文字：白字对比度约 5.9:1，满足 WCAG 1.4.3 小字 4.5:1 */
+    --color-primary-strong: #c2185b;
     --bg-sub: #262626;
     --border-light: #3a3a3a;
     --border: #3f3f3f;

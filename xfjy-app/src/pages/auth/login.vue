@@ -207,7 +207,7 @@
           <view class="sheet-progress">
             <view
               class="sheet-progress-fill"
-              :style="{ width: readProgress + '%' }"
+              :style="{ transform: 'scaleX(' + readProgress / 100 + ')' }"
             />
           </view>
           <text class="sheet-progress-text">
@@ -579,6 +579,14 @@ async function handleLogin() {
   overflow: hidden;
 }
 
+/* 暗色模式：暗色主色 #ff8eb9 上白字对比度仅 2.14:1（P1），
+   品牌区改用 --color-primary-strong 深玫红实底（白字约 5.9:1），过渡结构与亮色完全一致 */
+@media (prefers-color-scheme: dark) {
+  .login-page {
+    background: linear-gradient(180deg, var(--color-primary-strong) 0%, var(--color-primary-strong) 45%, var(--bg-page) 72%);
+  }
+}
+
 /* 漂浮装饰心形：每颗独立轨迹（浮动 + 摆动 + 缩放 + 呼吸），节奏错开避免同步 */
 .deco-heart {
   position: absolute;
@@ -588,7 +596,8 @@ async function handleLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  will-change: transform, opacity;
+  /* 不写 will-change：heartFloat* 是常驻 infinite 动画，浏览器对运行中的
+     transform/opacity 动画自动提升合成层，常驻提示只会空占图层内存 */
 
   &::after {
     content: '\2665';
@@ -908,10 +917,13 @@ async function handleLogin() {
   overflow: hidden;
 
   .sheet-progress-fill {
+    /* scaleX 走合成层，避免 width 动画每帧触发布局；父级 .sheet-progress 有 overflow:hidden 裁切 */
+    width: 100%;
     height: 100%;
     border-radius: var(--radius-pill);
     background: var(--color-primary);
-    transition: width 0.15s ease-out;
+    transform-origin: left center;
+    transition: transform 0.15s ease-out;
   }
 }
 

@@ -11,7 +11,7 @@
     >
       <view
         class="progress-fill"
-        :style="{ width: completeness + '%' }"
+        :style="{ transform: 'scaleX(' + completeness / 100 + ')' }"
       />
       <text class="progress-text">
         资料完整度 {{ completeness }}%
@@ -314,10 +314,13 @@ function handleSkip(): void {
   position: relative;
 
   .progress-fill {
+    /* 满宽 + scaleX 模拟填充，避免 width 过渡触发布局；父级 overflow:hidden 保证视觉等价 */
+    width: 100%;
     height: 100%;
     background: var(--gradient-brand-h);
     border-radius: var(--radius-pill);
-    transition: width 0.3s ease;
+    transform-origin: left center;
+    transition: transform 0.3s ease;
   }
 
   .progress-text {

@@ -2261,6 +2261,8 @@ onShareAppMessage(() => ({
   bottom: 0;
   height: 88rpx;
   z-index: 8;
+  /* 横向 scrub 由 JS 接管（与 @touchmove.prevent 声明式对齐），垂直手势留给竖向 swiper */
+  touch-action: pan-y;
 
   /* 拖动中实时跟手，去掉 0.2s 平滑（否则手感发飘） */
   &.is-scrubbing .progress-inner {

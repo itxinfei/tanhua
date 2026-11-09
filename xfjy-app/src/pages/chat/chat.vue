@@ -177,7 +177,7 @@
                 >
                   <view
                     class="voice-progress-bar"
-                    :style="{ width: voicePlayDuration > 0 ? (voicePlayProgress / voicePlayDuration * 100) + '%' : '0%' }"
+                    :style="{ transform: 'scaleX(' + (voicePlayDuration > 0 ? voicePlayProgress / voicePlayDuration : 0) + ')' }"
                   />
                 </view>
               </a11y-button>
@@ -1457,7 +1457,7 @@ onUnmounted(() => {
       .voice-duration { font-size: 24rpx; opacity: 0.85; }
       /* 播放进度条：底部细条，播放中显示 */
       .voice-progress { position: absolute; bottom: 8rpx; left: 20rpx; right: 20rpx; height: 4rpx; background: rgba(128, 128, 128, 0.3); border-radius: 2rpx; overflow: hidden;
-        .voice-progress-bar { height: 100%; background: currentColor; border-radius: 2rpx; transition: width 0.3s linear; }
+        .voice-progress-bar { width: 100%; height: 100%; background: currentColor; border-radius: 2rpx; transform-origin: left center; transition: transform 0.3s linear; }
       }
     }
 

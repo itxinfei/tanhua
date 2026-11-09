@@ -97,11 +97,13 @@
         v-for="(card, index) in visibleCards"
         :key="card.id"
         class="card-wrapper"
+        :class="{ 'is-dragging': isDragging && index === 0 }"
         :style="getCardStyle(index)"
         :aria-label="`推荐卡片：${card.nickname}，${card.age}岁，轻点查看完整资料`"
         @touchstart="onTouchStart($event, index)"
         @touchmove="onTouchMove($event, index)"
         @touchend="onTouchEnd($event, index)"
+        @touchcancel="onTouchCancel($event, index)"
         @tap="onCardTap(index)"
       >
         <!-- 主图 -->
@@ -687,6 +689,21 @@ function onTouchEnd(_e: TouchEvent, index: number) {
   }
 }
 
+/** 触摸被系统打断（来电、系统手势抢占等）：只回弹复位，绝不触发滑出上报 */
+function onTouchCancel(_e: TouchEvent, index: number) {
+  if (index !== 0) return;
+  isDragging.value = false;
+  gestureMoved = false;
+  if (dragRafId) {
+    cancelAnimationFrame(dragRafId);
+    dragRafId = 0;
+  }
+  pendingDragX = 0;
+  pendingDragY = 0;
+  dragX.value = 0;
+  dragY.value = 0;
+}
+
 // ===== 滑动出栈 =====
 /** 滑出动画/上报进行中（防连点重复上报同一张卡片） */
 const swiping = ref(false);
@@ -1077,8 +1094,13 @@ onShareAppMessage(() => ({
   inset: 0;
   overflow: hidden;
   background: var(--bg-card);
-  /* 拖拽期间浏览器需逐帧合成 transform，提升为独立图层避免整卡重绘 */
-  will-change: transform;
+  /* 水平滑动由 JS 接管，垂直手势交还浏览器（页面滚动/系统下拉），避免拖拽与滚动手势冲突 */
+  touch-action: pan-y;
+
+  /* will-change 仅拖拽期挂载：常驻会让堆叠的每张卡都占一个合成层，空耗内存 */
+  &.is-dragging {
+    will-change: transform;
+  }
 
   .card-image {
     position: absolute;

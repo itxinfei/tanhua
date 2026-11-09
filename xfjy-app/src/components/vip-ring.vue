@@ -54,6 +54,6 @@ withDefaults(defineProps<{
     rgba(var(--gold-rgb), 0.2) 100%
   );
   animation: spin 6s linear infinite;
-  will-change: transform;
+  /* 常驻 infinite 旋转，合成层由浏览器自动提升，will-change 仅冗余占内存 */
 }
 </style>

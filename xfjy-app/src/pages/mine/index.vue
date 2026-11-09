@@ -431,7 +431,7 @@ onShow(() => {
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.1);
     pointer-events: none;
-    will-change: transform, opacity;
+    /* circleFloat* 为常驻 infinite 动画，合成层由浏览器自动提升，无需 will-change 常驻占位 */
 
     &.deco-1 {
       width: 240rpx;
