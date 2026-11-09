@@ -108,8 +108,8 @@ const hasDelta = computed(() => props.delta !== null && props.delta !== undefine
   display: flex;
   flex-direction: column;
   height: 100%;
-  gap: var(--xfjy-space-3);
-  padding: var(--xfjy-space-5);
+  gap: var(--xfjy-space-2);
+  padding: var(--xfjy-space-4);
   background: var(--xfjy-bg-card);
   border: 1px solid var(--xfjy-border);
   border-radius: var(--xfjy-radius-lg);
@@ -141,8 +141,8 @@ const hasDelta = computed(() => props.delta !== null && props.delta !== undefine
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--xfjy-radius-md);
   /* 默认中性灰图标，消除四色图标带来的色相噪音 */
   color: var(--xfjy-text-regular);

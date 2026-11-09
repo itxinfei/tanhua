@@ -104,15 +104,19 @@
         </el-col>
       </el-row>
 
-      <!-- ============ 3. 待办与异常（行动入口） ============ -->
-      <DashPanel
-        title="待办与异常"
-        sub="点击数字直达处理页面"
-        class="todo-panel"
+      <!-- ============ 3. 待办与异常（紧凑行动条，点击直达处理页） ============ -->
+      <div
+        class="todo-strip"
+        role="group"
+        aria-label="待办与异常"
       >
+        <div class="todo-strip__head">
+          <span class="todo-strip__title">待办</span>
+          <span class="todo-strip__sub">点击直达处理页</span>
+        </div>
         <div
           v-if="hasTodo"
-          class="todo-grid"
+          class="todo-strip__items"
         >
           <div
             v-for="action in todoActions"
@@ -126,28 +130,22 @@
             @keydown.enter="router.push(action.to)"
           >
             <span class="todo-item__icon">
-              <el-icon :size="18"><Document v-if="action.key === 'review'" /><Warning v-else /></el-icon>
+              <el-icon :size="16"><Document v-if="action.key === 'review'" /><Warning v-else /></el-icon>
             </span>
-            <div class="todo-item__body">
-              <span class="todo-item__count">{{ formatCount(action.count) }}</span>
-              <span class="todo-item__label">{{ action.label }}</span>
-            </div>
-            <span class="todo-item__cta">
-              去处理
-              <el-icon :size="12"><ArrowRight /></el-icon>
-            </span>
+            <span class="todo-item__count">{{ formatCount(action.count) }}</span>
+            <span class="todo-item__label">{{ action.label }}</span>
           </div>
         </div>
         <div
           v-else
           class="todo-all-clear"
         >
-          <el-icon :size="16">
+          <el-icon :size="15">
             <CircleCheck />
           </el-icon>
           暂无积压，审核与举报均已处理完毕
         </div>
-      </DashPanel>
+      </div>
 
       <!-- ============ 4. 主趋势 + 今日匹配漏斗 ============ -->
       <el-row
@@ -188,7 +186,7 @@
             <BaseChart
               v-if="mainTrendOption"
               :option="mainTrendOption"
-              height="220px"
+              height="200px"
             />
             <div
               v-else
@@ -304,7 +302,7 @@
             <BaseChart
               v-if="payTypeOption"
               :option="payTypeOption"
-              height="180px"
+              height="160px"
             />
             <div
               v-else
@@ -370,7 +368,7 @@
                 <BaseChart
                   v-if="reviewOption"
                   :option="reviewOption"
-                  height="220px"
+                  height="200px"
                 />
                 <div
                   v-else
@@ -455,7 +453,7 @@
                 <BaseChart
                   v-if="reportOption"
                   :option="reportOption"
-                  height="220px"
+                  height="200px"
                 />
                 <div
                   v-else
@@ -529,7 +527,7 @@
                 <BaseChart
                   v-if="genderOption"
                   :option="genderOption"
-                  height="240px"
+                  height="220px"
                 />
                 <div
                   v-else
@@ -550,7 +548,7 @@
                 <BaseChart
                   v-if="ageOption"
                   :option="ageOption"
-                  height="240px"
+                  height="220px"
                 />
                 <div
                   v-else
@@ -571,7 +569,7 @@
                 <BaseChart
                   v-if="cityOption"
                   :option="cityOption"
-                  height="240px"
+                  height="220px"
                 />
                 <div
                   v-else
@@ -684,7 +682,6 @@ import {
   Refresh,
   Document,
   Warning,
-  ArrowRight,
   CircleCheck,
 } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
@@ -1121,15 +1118,15 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
 <style scoped>
 .dashboard {
   /* page-container 已提供 24px 内边距，这里只约束纵向节奏；
-     区块间距 16px 必须大于卡内间距，避免视觉倒挂 */
+     区块间距 12px 仍大于紧凑条/卡内最小间距，避免视觉倒挂 */
   display: flex;
   flex-direction: column;
-  gap: var(--xfjy-space-4);
+  gap: var(--xfjy-space-3);
 }
 
 .dash-row {
   margin-bottom: 0;
-  row-gap: var(--xfjy-space-4);
+  row-gap: var(--xfjy-space-3);
 }
 
 /* ==================== 顶部控制条 ==================== */
@@ -1238,11 +1235,11 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 200px;
+  min-height: 160px;
 }
 
 .chart-empty--compact {
-  min-height: 120px;
+  min-height: 100px;
 }
 
 .panel-note {
@@ -1252,19 +1249,51 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
   color: var(--xfjy-text-secondary);
 }
 
-/* ==================== 待办与异常（行动入口） ==================== */
-.todo-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--xfjy-space-2);
+/* ==================== 待办与异常（单行紧凑行动条） ==================== */
+.todo-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--xfjy-space-4);
+  padding: var(--xfjy-space-2) var(--xfjy-space-4);
+  background: var(--xfjy-bg-card);
+  border: 1px solid var(--xfjy-border);
+  border-radius: var(--xfjy-radius-lg);
 }
 
-/* 白底细边框卡片，紧急度语义只落在图标块，避免整块彩底的噪音 */
+.todo-strip__head {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 2px;
+}
+
+.todo-strip__title {
+  font-size: var(--xfjy-font-size-md);
+  font-weight: 600;
+  color: var(--xfjy-text-primary);
+}
+
+.todo-strip__sub {
+  font-size: var(--xfjy-font-size-xs);
+  color: var(--xfjy-text-secondary);
+  white-space: nowrap;
+}
+
+.todo-strip__items {
+  flex: 1;
+  display: flex;
+  gap: var(--xfjy-space-2);
+  min-width: 0;
+}
+
+/* 白底细边框条目，紧急度语义只落在图标块，避免整块彩底的噪音 */
 .todo-item {
+  flex: 1;
   display: flex;
   align-items: center;
   gap: var(--xfjy-space-2);
-  padding: var(--xfjy-space-2) var(--xfjy-space-3);
+  min-width: 0;
+  padding: var(--xfjy-space-1) var(--xfjy-space-3);
   background: var(--xfjy-bg-card);
   border: 1px solid var(--xfjy-border);
   border-radius: var(--xfjy-radius-md);
@@ -1283,8 +1312,8 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--xfjy-radius-md);
   color: var(--xfjy-text-regular);
   background: var(--xfjy-bg-hover);
@@ -1305,15 +1334,8 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
   background: var(--xfjy-success-50);
 }
 
-.todo-item__body {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-}
-
 .todo-item__count {
-  font-size: var(--xfjy-font-size-lg);
+  font-size: var(--xfjy-font-size-md);
   font-weight: 700;
   line-height: 1.1;
   color: var(--xfjy-text-primary);
@@ -1321,38 +1343,24 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
 }
 
 .todo-item__label {
-  margin-top: 2px;
   font-size: var(--xfjy-font-size-xs);
   color: var(--xfjy-text-secondary);
-}
-
-.todo-item__cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  flex-shrink: 0;
-  font-size: var(--xfjy-font-size-xs);
-  font-weight: 500;
-  color: var(--xfjy-primary-dark);
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.todo-item:hover .todo-item__cta,
-.todo-item:focus-visible .todo-item__cta {
-  opacity: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .todo-all-clear {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--xfjy-space-2);
-  padding: var(--xfjy-space-2) var(--xfjy-space-3);
+  padding: var(--xfjy-space-1) var(--xfjy-space-3);
   font-size: var(--xfjy-font-size-sm);
   color: var(--xfjy-success-deep);
   background: var(--xfjy-success-50);
-  border-radius: var(--xfjy-radius-lg);
+  border-radius: var(--xfjy-radius-md);
 }
 
 
@@ -1376,7 +1384,7 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
 }
 
 .funnel-level__bar {
-  height: 34px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1443,8 +1451,8 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
 .rate-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--xfjy-space-3);
-  margin-top: var(--xfjy-space-4);
+  gap: var(--xfjy-space-2);
+  margin-top: var(--xfjy-space-3);
 }
 
 .rate-item {
@@ -1573,18 +1581,18 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
 
 .mod-body__types {
   flex-shrink: 0;
-  width: 180px;
+  width: 160px;
 }
 
 .type-title {
   font-size: var(--xfjy-font-size-xs);
   font-weight: 600;
   color: var(--xfjy-text-secondary);
-  margin-bottom: var(--xfjy-space-3);
+  margin-bottom: var(--xfjy-space-2);
 }
 
 .type-row {
-  margin-bottom: var(--xfjy-space-3);
+  margin-bottom: var(--xfjy-space-2);
 }
 
 .type-row__head {
@@ -1694,8 +1702,8 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
 }
 
 .analysis-collapse :deep(.el-collapse-item__header) {
-  padding: 0 var(--xfjy-space-4);
-  height: 48px;
+  padding: 0 var(--xfjy-space-3);
+  height: 44px;
   border-bottom-color: var(--xfjy-border);
 }
 
@@ -1704,7 +1712,7 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
 }
 
 .analysis-collapse :deep(.el-collapse-item__content) {
-  padding: var(--xfjy-space-4);
+  padding: var(--xfjy-space-3);
 }
 
 .analysis-collapse__title {
@@ -1726,8 +1734,24 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
     justify-content: flex-start;
   }
 
-  .todo-grid {
-    grid-template-columns: 1fr;
+  .todo-strip {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--xfjy-space-2);
+  }
+
+  .todo-strip__head {
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--xfjy-space-2);
+  }
+
+  .todo-strip__items {
+    flex-wrap: wrap;
+  }
+
+  .todo-item {
+    flex: 1 1 100%;
   }
 
   .mod-body {
@@ -1747,18 +1771,18 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
 .dash-skeleton {
   display: flex;
   flex-direction: column;
-  gap: var(--xfjy-space-4);
+  gap: var(--xfjy-space-3);
 }
 
 .dash-skeleton__kpi-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: var(--xfjy-space-4);
+  gap: var(--xfjy-space-3);
 }
 
 .dash-skeleton__kpi {
-  /* 与重构后 KpiCard 实际高度对齐：padding 40 + 图标 32 + 数字 33 + 脚注 20 + 间距 24 */
-  height: 150px;
+  /* 与紧凑化后 KpiCard 实际高度对齐：padding 32 + 图标 28 + 数字 33 + 脚注 20 + 间距 16 */
+  height: 129px;
   border-radius: var(--xfjy-radius-lg);
   background: var(--xfjy-bg-card);
   border: 1px solid var(--xfjy-border);
@@ -1778,11 +1802,11 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
 .dash-skeleton__panel-row {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--xfjy-space-4);
+  gap: var(--xfjy-space-3);
 }
 
 .dash-skeleton__panel {
-  height: 280px;
+  height: 250px;
   border-radius: var(--xfjy-radius-lg);
   background: var(--xfjy-bg-card);
   border: 1px solid var(--xfjy-border);

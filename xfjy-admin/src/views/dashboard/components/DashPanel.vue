@@ -33,7 +33,7 @@ defineProps<{
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: var(--xfjy-space-5);
+  padding: var(--xfjy-space-4);
   background: var(--xfjy-bg-card);
   border: 1px solid var(--xfjy-border);
   border-radius: var(--xfjy-radius-lg);
@@ -44,7 +44,7 @@ defineProps<{
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--xfjy-space-3);
-  margin-bottom: var(--xfjy-space-4);
+  margin-bottom: var(--xfjy-space-3);
 }
 
 .dash-panel__heading {
