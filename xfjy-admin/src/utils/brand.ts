@@ -20,7 +20,6 @@ export function hexToRgba(hex: string, alpha: number): string {
 
 export interface BrandColors {
   primary: string
-  primaryDeep: string
   primarySoft: string
   primaryLight7: string
   primaryLight9: string
@@ -45,7 +44,6 @@ export function getBrandColors(): BrandColors {
   const fallback = ['#fe3c72', '#ff8fb1', '#00b894', '#ffc8de', '#86909c', '#f53f3f', '#a9aeb8', '#4e5969']
   return {
     primary: readCssVar('--xfjy-primary', '#fe3c72'),
-    primaryDeep: readCssVar('--xfjy-primary-deep', '#b13bff'),
     primarySoft: readCssVar('--xfjy-primary-soft', '#ff8fb1'),
     primaryLight7: readCssVar('--el-color-primary-light-7', '#ffc9d5'),
     primaryLight9: readCssVar('--el-color-primary-light-9', '#ffe7ed'),

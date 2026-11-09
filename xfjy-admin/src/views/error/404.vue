@@ -7,7 +7,7 @@
           <!-- 大星球 -->
           <g class="planet-main">
             <circle cx="160" cy="100" r="52" fill="url(#planetGrad)" />
-            <ellipse cx="160" cy="100" rx="78" ry="14" fill="none" stroke-width="3" style="stroke: var(--xfjy-primary-deep); stroke-opacity: 0.35;" />
+            <ellipse cx="160" cy="100" rx="78" ry="14" fill="none" stroke-width="3" style="stroke: var(--xfjy-primary-dark); stroke-opacity: 0.35;" />
             <!-- 星球表面纹理 -->
             <circle cx="142" cy="86" r="9" fill="rgba(255,255,255,0.18)" />
             <circle cx="176" cy="112" r="13" fill="rgba(255,255,255,0.12)" />
@@ -20,9 +20,9 @@
           </g>
           <!-- 漂浮的搜索图标（表达"找不到页面"） -->
           <g class="float-search">
-            <circle cx="62" cy="60" r="16" fill="none" stroke-width="4" style="stroke: var(--xfjy-primary-deep)" />
-            <line x1="74" y1="72" x2="86" y2="84" stroke-width="4" stroke-linecap="round" style="stroke: var(--xfjy-primary-deep)" />
-            <text x="56" y="66" font-size="14" font-weight="bold" style="fill: var(--xfjy-primary-deep)">?</text>
+            <circle cx="62" cy="60" r="16" fill="none" stroke-width="4" style="stroke: var(--xfjy-primary-dark)" />
+            <line x1="74" y1="72" x2="86" y2="84" stroke-width="4" stroke-linecap="round" style="stroke: var(--xfjy-primary-dark)" />
+            <text x="56" y="66" font-size="14" font-weight="bold" style="fill: var(--xfjy-primary-dark)">?</text>
           </g>
           <!-- 漂浮的小圆点 -->
           <circle class="dot dot-1" cx="48" cy="140" r="5" style="fill: var(--xfjy-chart-6)" />
@@ -30,7 +30,7 @@
           <circle class="dot dot-3" cx="290" cy="100" r="3" style="fill: var(--xfjy-chart-1)" />
           <defs>
             <linearGradient id="planetGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style="stop-color: var(--xfjy-primary-deep)" />
+              <stop offset="0%" style="stop-color: var(--xfjy-primary-dark)" />
               <stop offset="100%" style="stop-color: var(--xfjy-primary)" />
             </linearGradient>
             <linearGradient id="moonGrad" x1="0%" y1="0%" x2="100%" y2="100%">

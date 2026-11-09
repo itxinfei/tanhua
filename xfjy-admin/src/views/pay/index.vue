@@ -15,7 +15,7 @@
           label="总订单数"
           :value="summary.total"
           icon="Document"
-          icon-bg="linear-gradient(135deg, var(--xfjy-primary-deep), var(--xfjy-primary))"
+          icon-bg="linear-gradient(135deg, var(--xfjy-primary-dark), var(--xfjy-primary))"
         />
       </el-col>
       <el-col

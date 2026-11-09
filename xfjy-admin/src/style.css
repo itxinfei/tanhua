@@ -1,9 +1,8 @@
 /* ==================== 品牌主题（心飞交友） ==================== */
 :root {
-  /* ===== 品牌主色：暖玫红 #fe3c72，珊瑚 #ff655b，辅助紫 #b13bff ===== */
+  /* ===== 品牌主色：暖玫红 #fe3c72，珊瑚 #ff655b（单色体系，深色阶见 primary-dark/darker） ===== */
   --xfjy-primary: #fe3c72;
   --xfjy-coral: #ff655b;
-  --xfjy-primary-deep: #b13bff;
   --xfjy-primary-soft: #ff8fb1;
   --xfjy-primary-mist: #ffd1e8;
 
