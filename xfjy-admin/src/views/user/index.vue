@@ -512,6 +512,7 @@ import { useResponsive } from '@/composables/useResponsive'
 import { getUserPageApi, freezeUserApi, unfreezeUserApi, resetUserPasswordApi, exportUsersApi } from '@/api/user'
 import type { UserItem, UserQuery } from '@/api/user'
 import request from '@/api/request'
+import type { BatchOperateResult } from '@/api/common'
 import UserDetailDrawer from './detail.vue'
 
 const route = useRoute()
@@ -693,7 +694,7 @@ async function confirmBatchFreeze() {
   if (freezeSubmitting.value) return
   freezeSubmitting.value = true
   try {
-    const res: any = await request.put('/admin/users/batch-freeze', { userIds: ids, reason: batchFreezeReason.value })
+    const res = await request.put<unknown, BatchOperateResult>('/admin/users/batch-freeze', { userIds: ids, reason: batchFreezeReason.value })
     const { success, failed } = res
     ElMessage.success(`批量封禁完成：成功 ${success}，失败 ${failed}`)
     batchFreezeDialogVisible.value = false
@@ -710,7 +711,7 @@ async function handleBatchUnfreeze() {
   const ids = selectedRows.value.map(r => r.id)
   try {
     await ElMessageBox.confirm(`确定解封选中的 ${ids.length} 个用户吗？`, '提示', { type: 'warning' })
-    const res: any = await request.put('/admin/users/batch-unfreeze', { userIds: ids })
+    const res = await request.put<unknown, BatchOperateResult>('/admin/users/batch-unfreeze', { userIds: ids })
     const { success, failed } = res
     ElMessage.success(`批量解封完成：成功 ${success}，失败 ${failed}`)
     selectedRows.value = []

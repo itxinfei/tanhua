@@ -221,8 +221,9 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { PageHeader, SearchBar, TableCard, TableEmpty } from '@/components'
 import { useResponsive } from '@/composables/useResponsive'
 import { getCommentPageApi, deleteCommentApi } from '@/api/comment'
-import type { CommentItem } from '@/api/comment'
+import type { CommentItem, CommentQuery } from '@/api/comment'
 import request from '@/api/request'
+import type { BatchOperateResult } from '@/api/common'
 import { formatDateTime } from '@/utils/format'
 
 const route = useRoute()
@@ -252,7 +253,7 @@ const query = {
 async function loadData() {
   loading.value = true
   try {
-    const params: any = { page: page.value, pageSize: pageSize.value }
+    const params: CommentQuery = { page: page.value, pageSize: pageSize.value }
     if (searchKeyword.value.trim()) params.keyword = searchKeyword.value.trim()
     const uid = Number(searchUserId.value.trim())
     if (searchUserId.value.trim() && !Number.isNaN(uid)) params.userId = uid
@@ -287,7 +288,7 @@ async function handleBatchDelete() {
       '批量删除确认',
       { confirmButtonText: '确定删除', cancelButtonText: '取消', type: 'warning' }
     )
-    const res: any = await request.delete('/admin/comments/batch', { data: ids })
+    const res = await request.delete<unknown, BatchOperateResult>('/admin/comments/batch', { data: ids })
     const { success, failed } = res
     ElMessage.success(`批量删除完成：成功 ${success}，失败 ${failed}`)
     selectedRows.value = []

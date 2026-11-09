@@ -22,14 +22,19 @@ export interface MovementPageResult {
   list: MovementItem[]
 }
 
-/** 分页查询动态列表 */
-export function getMovementPageApi(params: {
+/** 动态分页查询参数（字段对齐后端 AdminMovementController 的 @RequestParam） */
+export interface MovementQuery {
   page: number
   pageSize: number
   keyword?: string
   userId?: number
   seeType?: number
-}) {
+  startDate?: string
+  endDate?: string
+}
+
+/** 分页查询动态列表 */
+export function getMovementPageApi(params: MovementQuery) {
   return request.get<unknown, MovementPageResult>('/admin/movements', { params })
 }
 

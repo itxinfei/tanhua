@@ -296,7 +296,7 @@ import {
   toggleAdminStatusApi,
   resetAdminPasswordApi
 } from '@/api/admin'
-import type { AdminAccount } from '@/api/admin'
+import type { AdminAccount, AdminQuery } from '@/api/admin'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
@@ -337,7 +337,7 @@ const editRules: FormRules = {
 async function loadData() {
   loading.value = true
   try {
-    const params: any = { page: query.page, pageSize: query.pageSize }
+    const params: AdminQuery = { page: query.page, pageSize: query.pageSize }
     if (query.keyword.trim()) params.keyword = query.keyword.trim()
     const res = await getAdminPageApi(params)
     tableData.value = res.list || []

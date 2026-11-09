@@ -419,8 +419,9 @@ import { Picture } from '@element-plus/icons-vue'
 import { PageHeader, SearchBar, TableCard, TableEmpty, StatusTag } from '@/components'
 import { useResponsive } from '@/composables/useResponsive'
 import { getMovementPageApi, deleteMovementApi } from '@/api/movement'
-import type { MovementItem } from '@/api/movement'
+import type { MovementItem, MovementQuery } from '@/api/movement'
 import request from '@/api/request'
+import type { BatchOperateResult } from '@/api/common'
 import { formatDateTime } from '@/utils/format'
 
 const route = useRoute()
@@ -460,7 +461,7 @@ const seeTypeMapping = {
 async function loadData() {
   loading.value = true
   try {
-    const params: any = { page: page.value, pageSize: pageSize.value }
+    const params: MovementQuery = { page: page.value, pageSize: pageSize.value }
     if (searchKeyword.value.trim()) params.keyword = searchKeyword.value.trim()
     const uid = Number(searchUserId.value.trim())
     if (searchUserId.value.trim() && !Number.isNaN(uid)) params.userId = uid
@@ -496,7 +497,7 @@ async function handleBatchDelete() {
       '批量删除确认',
       { confirmButtonText: '确定删除', cancelButtonText: '取消', type: 'warning' }
     )
-    const res: any = await request.delete('/admin/movements/batch', { data: ids })
+    const res = await request.delete<unknown, BatchOperateResult>('/admin/movements/batch', { data: ids })
     const { success, failed } = res
     ElMessage.success(`批量删除完成：成功 ${success}，失败 ${failed}`)
     selectedRows.value = []

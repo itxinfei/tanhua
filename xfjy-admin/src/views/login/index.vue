@@ -122,9 +122,11 @@ async function handleLogin() {
       await authStore.login(loginForm.username, loginForm.password)
       ElMessage.success('登录成功')
       router.push('/dashboard')
-    } catch (err: any) {
+    } catch (err) {
       // 后端不可用时使用模拟登录（仅开发环境；生产环境禁止降级放行，避免任意密码绕过认证）
-      const isNetworkError = err?.message?.includes('Network Error') || err?.code === 'ERR_NETWORK'
+      // strict 模式下 catch 变量为 unknown，按 axios 错误结构（message/code）收窄后再读字段
+      const error = err as { message?: string; code?: string }
+      const isNetworkError = error.message?.includes('Network Error') || error.code === 'ERR_NETWORK'
       if (isNetworkError && import.meta.env.DEV) {
         const mockToken = 'mock-admin-token-' + Date.now()
         authStore.token = mockToken

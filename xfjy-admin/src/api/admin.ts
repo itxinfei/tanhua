@@ -12,12 +12,15 @@ export interface AdminPageResult {
   list: AdminAccount[]
 }
 
-/** 分页查询管理员列表 */
-export function getAdminPageApi(params: {
+/** 管理员分页查询参数（字段对齐后端 AdminAccountController 的 @RequestParam） */
+export interface AdminQuery {
   page: number
   pageSize: number
   keyword?: string
-}) {
+}
+
+/** 分页查询管理员列表 */
+export function getAdminPageApi(params: AdminQuery) {
   return request.get<unknown, AdminPageResult>('/admin/accounts', { params })
 }
 

@@ -36,7 +36,7 @@ export interface FilterMetaItem {
 }
 
 const props = defineProps<{
-  model: Record<string, any>
+  model: Record<string, unknown>
   /** 可选：声明需要生成 chip 摘要的字段，未声明的字段不生成 chip */
   filterMeta?: Record<string, FilterMetaItem>
 }>()

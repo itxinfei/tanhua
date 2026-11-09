@@ -16,13 +16,18 @@ export interface CommentPageResult {
   list: CommentItem[]
 }
 
-/** 分页查询评论列表 */
-export function getCommentPageApi(params: {
+/** 评论分页查询参数（字段对齐后端 AdminCommentController 的 @RequestParam） */
+export interface CommentQuery {
   page: number
   pageSize: number
   keyword?: string
   userId?: number
-}) {
+  startDate?: string
+  endDate?: string
+}
+
+/** 分页查询评论列表 */
+export function getCommentPageApi(params: CommentQuery) {
   return request.get<unknown, CommentPageResult>('/admin/comments', { params })
 }
 

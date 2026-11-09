@@ -21,13 +21,18 @@ export interface VideoPageResult {
   list: VideoItem[]
 }
 
-/** 分页查询视频列表 */
-export function getVideoPageApi(params: {
+/** 视频分页查询参数（字段对齐后端 AdminVideoController 的 @RequestParam） */
+export interface VideoQuery {
   page: number
   pageSize: number
   keyword?: string
   userId?: number
-}) {
+  startDate?: string
+  endDate?: string
+}
+
+/** 分页查询视频列表 */
+export function getVideoPageApi(params: VideoQuery) {
   return request.get<unknown, VideoPageResult>('/admin/videos', { params })
 }
 

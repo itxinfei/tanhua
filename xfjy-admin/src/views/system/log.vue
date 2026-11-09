@@ -260,7 +260,7 @@ import { PageHeader, SearchBar, TableCard, TableEmpty } from '@/components'
 import { useResponsive } from '@/composables/useResponsive'
 import { formatDateTime } from '@/utils/format'
 import { getLogPageApi, getLogDetailApi, exportLogsApi } from '@/api/log'
-import type { OperationLogItem } from '@/api/log'
+import type { OperationLogItem, OperationLogQuery } from '@/api/log'
 
 const loading = ref(false)
 const tableData = ref<OperationLogItem[]>([])
@@ -293,7 +293,7 @@ const moduleOptions = [
 async function loadData() {
   loading.value = true
   try {
-    const params: any = { page: query.page, pageSize: query.pageSize }
+    const params: OperationLogQuery = { page: query.page, pageSize: query.pageSize }
     if (query.module) params.module = query.module
     if (query.adminUsername.trim()) params.adminUsername = query.adminUsername.trim()
     if (dateRange.value && dateRange.value.length === 2) {
