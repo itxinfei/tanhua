@@ -1,7 +1,14 @@
-import axios from 'axios'
+import axios, { type InternalAxiosRequestConfig } from 'axios'
 import { limitedMessage } from '@/utils/limitedMessage'
 import router from '@/router'
 import { log, error } from '@/utils/logger'
+
+/**
+ * 挂在请求 config 上的耗时计时字段。
+ * axios 原生 InternalAxiosRequestConfig 不含该属性，用局部交叉类型扩展，
+ * 替代用 any 断言绕过类型检查的写法。
+ */
+type TimedAxiosConfig = InternalAxiosRequestConfig & { __startAt?: number }
 
 // 生产默认同源 /api（由 nginx 反代到网关），开发走 vite proxy
 const request = axios.create({
@@ -17,7 +24,7 @@ request.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`
     }
     // 记录请求起始时间（挂在 config 上，响应拦截器读取算耗时）
-    ;(config as any).__startAt = Date.now()
+    ;(config as TimedAxiosConfig).__startAt = Date.now()
     log(`${config.method?.toUpperCase() || 'GET'} ${config.url}`, config.params || config.data || '')
     return config
   },
@@ -27,7 +34,7 @@ request.interceptors.request.use(
 // 响应拦截器
 request.interceptors.response.use(
   (response) => {
-    const startAt = (response.config as any).__startAt as number | undefined
+    const startAt = (response.config as TimedAxiosConfig).__startAt
     log(`${response.config?.method?.toUpperCase() || 'GET'} ${response.config?.url} → ${response.status} (${startAt ? Date.now() - startAt : 0}ms)`)
     const res = response.data
     if (res.code !== undefined && res.code !== 200) {
@@ -43,7 +50,7 @@ request.interceptors.response.use(
     return res
   },
   (err) => {
-    const startAt = (err.config as any).__startAt as number | undefined
+    const startAt = (err.config as TimedAxiosConfig | undefined)?.__startAt
     error(`${err.config?.method?.toUpperCase() || 'GET'} ${err.config?.url} ✗ (${startAt ? Date.now() - startAt : 0}ms)`, err.message)
     if (err.response) {
       const { status } = err.response
