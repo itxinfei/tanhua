@@ -1,83 +1,87 @@
 <template>
-  <div class="login-container">
-    <!-- 左侧品牌展示区 -->
-    <div class="brand-panel">
-      <div class="brand-content">
-        <div class="brand-logo-wrap">
-          <img class="brand-logo" src="/logo/logo-icon-transparent.png" alt="心飞交友" />
-        </div>
-        <h1 class="brand-title">心飞交友</h1>
-        <p class="brand-slogan">让每一次相遇都心动的社交平台</p>
+  <div class="login-page">
+    <!-- 同色相极淡光晕：品牌浓度的唯一来源，与 dashboard 暖灰底同源 -->
+    <div
+      aria-hidden="true"
+      class="login-page__glow login-page__glow--1"
+    />
+    <div
+      aria-hidden="true"
+      class="login-page__glow login-page__glow--2"
+    />
 
-        <ul class="feature-list">
-          <li v-for="f in features" :key="f.title">
-            <span class="feature-icon">
-              <el-icon :size="18"><component :is="f.icon" /></el-icon>
-            </span>
-            <div>
-              <div class="feature-title">{{ f.title }}</div>
-              <div class="feature-desc">{{ f.desc }}</div>
-            </div>
-          </li>
-        </ul>
+    <!-- 左上角轻品牌标识 -->
+    <div class="login-page__brand">
+      <img
+        class="login-page__brand-logo"
+        src="/logo/logo-icon-transparent.png"
+        alt="心飞交友"
+      >
+      <span class="login-page__brand-name">心飞交友</span>
+    </div>
+
+    <!-- 居中登录卡：白卡 + 细边框，与 dashboard 卡片语言一致 -->
+    <div class="login-card">
+      <div class="login-card__brand">
+        <img
+          class="login-card__logo"
+          src="/logo/logo-icon-transparent.png"
+          alt="心飞交友"
+        >
+        <h1 class="login-card__title">
+          心飞交友运营后台
+        </h1>
+        <p class="login-card__slogan">
+          让每一次相遇都心动的社交平台
+        </p>
       </div>
 
-      <div class="brand-footer">
-        <span>© 2026 心飞交友 · 运营管理系统</span>
+      <el-form
+        ref="loginFormRef"
+        :model="loginForm"
+        :rules="loginRules"
+        size="large"
+        @keyup.enter="handleLogin"
+      >
+        <el-form-item prop="username">
+          <el-input
+            v-model="loginForm.username"
+            placeholder="请输入管理员账号"
+            :prefix-icon="User"
+            clearable
+          />
+        </el-form-item>
+
+        <el-form-item prop="password">
+          <el-input
+            v-model="loginForm.password"
+            type="password"
+            placeholder="请输入密码"
+            :prefix-icon="Lock"
+            show-password
+            clearable
+          />
+        </el-form-item>
+
+        <el-form-item>
+          <el-button
+            type="primary"
+            class="login-btn"
+            :loading="loading"
+            @click="handleLogin"
+          >
+            {{ loading ? '登录中...' : '登 录' }}
+          </el-button>
+        </el-form-item>
+      </el-form>
+
+      <div class="login-card__version">
+        心飞交友运营管理系统 v1.0
       </div>
     </div>
 
-    <!-- 右侧登录表单 -->
-    <div class="form-panel">
-      <div class="login-card">
-        <div class="login-header">
-          <h2>欢迎回来</h2>
-          <p>请登录运营管理后台</p>
-        </div>
-
-        <el-form
-          ref="loginFormRef"
-          :model="loginForm"
-          :rules="loginRules"
-          size="large"
-          @keyup.enter="handleLogin"
-        >
-          <el-form-item prop="username">
-            <el-input
-              v-model="loginForm.username"
-              placeholder="请输入管理员账号"
-              :prefix-icon="User"
-              clearable
-            />
-          </el-form-item>
-
-          <el-form-item prop="password">
-            <el-input
-              v-model="loginForm.password"
-              type="password"
-              placeholder="请输入密码"
-              :prefix-icon="Lock"
-              show-password
-              clearable
-            />
-          </el-form-item>
-
-          <el-form-item>
-            <el-button
-              type="primary"
-              class="login-btn"
-              :loading="loading"
-              @click="handleLogin"
-            >
-              {{ loading ? '登录中...' : '登 录' }}
-            </el-button>
-          </el-form-item>
-        </el-form>
-
-        <div class="login-footer">
-          <span>心飞交友运营管理系统 v1.0</span>
-        </div>
-      </div>
+    <div class="login-page__copy">
+      © 2026 心飞交友 · 运营管理系统
     </div>
   </div>
 </template>
@@ -108,14 +112,6 @@ const loginRules: FormRules = {
     { min: 6, message: '密码长度不能少于6位', trigger: 'blur' },
   ],
 }
-
-// 品牌特性列表
-const features = [
-  { icon: 'DataAnalysis', title: '实时数据看板', desc: 'DAU、留存、转化率一目了然' },
-  { icon: 'CircleCheck', title: '智能内容审核', desc: 'AI 辅助 + 人工复核双重保障' },
-  { icon: 'Service', title: '一站式客服工作台', desc: 'IM 会话、反馈、FAQ 统一管理' },
-  { icon: 'Lock', title: '权限与安全管控', desc: '角色隔离、操作日志全程可溯' },
-]
 
 async function handleLogin() {
   if (!loginFormRef.value) return
@@ -156,175 +152,103 @@ async function handleLogin() {
 </script>
 
 <style scoped>
-.login-container {
-  height: 100vh;
-  display: flex;
-  overflow: hidden;
-}
-
-/* ==================== 左侧品牌区 ==================== */
-.brand-panel {
-  /* 品牌区叠加层：深色渐变背景上，卡片用深色玻璃底保证内文 4.5:1+，边框/图标用白色保持可见 */
-  /* stylelint-disable function-disallowed-list */
-  --brand-overlay-strong: rgba(255, 255, 255, 0.18);
-  --brand-overlay: rgba(255, 255, 255, 0.3);
-  /* feature 卡底：深色玻璃（白字 5.4:1+ AA；原 0.08 白底仅 2.1:1） */
-  --brand-overlay-soft: rgba(0, 0, 0, 0.4);
-  --brand-overlay-faint: rgba(255, 255, 255, 0.2);
-  --brand-overlay-hover: rgba(0, 0, 0, 0.5);
-  --brand-overlay-icon: rgba(255, 255, 255, 0.2);
-  --brand-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  /* stylelint-enable function-disallowed-list */
-  flex: 1.5;
+.login-page {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  padding: 60px;
-  background:
-    radial-gradient(120% 120% at 0% 0%, var(--xfjy-primary-soft) 0%, transparent 55%),
-    radial-gradient(120% 120% at 100% 0%, var(--xfjy-primary-deep) 0%, transparent 50%),
-    radial-gradient(140% 140% at 50% 120%, var(--xfjy-primary-soft) 0%, transparent 55%),
-    linear-gradient(135deg, var(--xfjy-primary-deep) 0%, var(--xfjy-primary) 100%);
-  isolation: isolate;
-}
-
-/* 内容直接落在渐变背景上 */
-.brand-content {
-  position: relative;
-  z-index: 2;
-  width: 100%;
-  max-width: 460px;
-  margin: 0 auto;
-  color: var(--xfjy-text-inverse);
-}
-
-.brand-logo-wrap {
-  width: 96px;
-  height: 96px;
-  margin: 0 auto;
-  border-radius: var(--xfjy-radius-3xl);
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--brand-overlay-strong);
-  border: 1px solid var(--brand-overlay);
-  box-shadow: var(--brand-shadow);
+  padding: var(--xfjy-space-6);
+  overflow: hidden;
+  background: var(--xfjy-bg-page);
 }
 
-.brand-logo {
-  width: 64px;
-  height: 64px;
+/* 光晕只切到圆边缘过渡带，中心实色落在视口外，无需 rgba 即可得到柔和晕染 */
+.login-page__glow {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.login-page__glow--1 {
+  width: 560px;
+  height: 560px;
+  top: -220px;
+  right: -160px;
+  background: radial-gradient(circle, var(--xfjy-primary-200) 0%, transparent 68%);
+}
+
+.login-page__glow--2 {
+  width: 480px;
+  height: 480px;
+  bottom: -200px;
+  left: -140px;
+  background: radial-gradient(circle, var(--xfjy-primary-100) 0%, transparent 68%);
+}
+
+/* 左上角品牌标识 */
+.login-page__brand {
+  position: absolute;
+  top: var(--xfjy-space-6);
+  left: var(--xfjy-space-8);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--xfjy-space-2);
+}
+
+.login-page__brand-logo {
+  width: 30px;
+  height: 30px;
   object-fit: contain;
 }
 
-.brand-title {
-  margin-top: var(--xfjy-space-6);
-  text-align: center;
-  font-size: 40px;
-  font-weight: 800;
-  letter-spacing: 4px;
-  color: var(--xfjy-text-inverse);
-}
-
-.brand-slogan {
-  margin-top: var(--xfjy-space-2);
-  text-align: center;
-  font-size: 15px;
-  opacity: 1;
-  letter-spacing: 1px;
-  /* 渐变浅区辅助，保证 15px 白字全区域可读 */
-  text-shadow: 0 1px 2px var(--xfjy-overlay-soft);
-}
-
-/* 特性列表（半透明卡片） */
-.feature-list {
-  list-style: none;
-  margin-top: var(--xfjy-space-8);
-  display: flex;
-  flex-direction: column;
-  gap: var(--xfjy-space-3);
-}
-.feature-list li {
-  display: flex;
-  align-items: center;
-  gap: var(--xfjy-space-3);
-  padding: var(--xfjy-space-3) var(--xfjy-space-4);
-  border-radius: var(--xfjy-radius-xl);
-  background: var(--brand-overlay-soft);
-  border: 1px solid var(--brand-overlay-faint);
-  transition: background 0.25s ease, border-color 0.25s ease;
-}
-.feature-list li:hover {
-  background: var(--brand-overlay-hover);
-  border-color: var(--brand-overlay);
-}
-.feature-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: var(--xfjy-radius-lg);
-  background: var(--brand-overlay-icon);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.feature-title {
-  font-size: 15px;
-  font-weight: 600;
-}
-.feature-desc {
-  margin-top: 2px;
-  font-size: var(--xfjy-font-size-sm);
-  /* 深色玻璃卡上 0.92 白 ≈ 4.6:1 AA 达标（原 0.75 仅 2.1:1） */
-  opacity: 0.92;
-}
-.brand-footer {
-  position: absolute;
-  bottom: var(--xfjy-space-6);
-  left: 0;
-  right: 0;
-  text-align: center;
-  font-size: var(--xfjy-font-size-xs);
-  color: var(--xfjy-text-inverse);
-  z-index: 2;
-  /* 深色底条：12px 小字在渐变最浅区也达 4.8:1 AA（原 0.5 白直落背景仅 1.6:1） */
-  background: var(--xfjy-overlay-medium);
-  padding: var(--xfjy-space-2) var(--xfjy-space-3);
-}
-
-/* ==================== 右侧表单区 ==================== */
-.form-panel {
-  width: 520px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--xfjy-text-inverse);
-  flex-shrink: 0;
-}
-
-.login-card {
-  width: 360px;
-  padding: var(--xfjy-space-5);
-}
-
-.login-header {
-  margin-bottom: 36px;
-}
-
-.login-header h2 {
-  font-size: 26px;
+.login-page__brand-name {
+  font-size: var(--xfjy-font-size-md);
   font-weight: 700;
   color: var(--xfjy-text-primary);
 }
 
-.login-header p {
-  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 贴合标题基线的副文案间距 6px，见 AGENTS.md §11 存量豁免 */
-  margin-top: 6px;
-  font-size: var(--xfjy-font-size-base);
+/* 居中卡片 */
+.login-card {
+  position: relative;
+  z-index: 1;
+  width: 420px;
+  max-width: 100%;
+  padding: var(--xfjy-space-8) var(--xfjy-space-8) var(--xfjy-space-6);
+  background: var(--xfjy-bg-card);
+  border: 1px solid var(--xfjy-border);
+  border-radius: var(--xfjy-radius-xl);
+}
+
+.login-card__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.login-card__logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.login-card__title {
+  margin-top: var(--xfjy-space-4);
+  font-size: var(--xfjy-font-size-lg);
+  font-weight: 700;
+  color: var(--xfjy-text-primary);
+}
+
+.login-card__slogan {
+  margin-top: var(--xfjy-space-2);
+  font-size: var(--xfjy-font-size-sm);
   color: var(--xfjy-text-secondary);
+}
+
+.login-card :deep(.el-form) {
+  margin-top: var(--xfjy-space-8);
 }
 
 .login-btn {
@@ -341,22 +265,38 @@ async function handleLogin() {
   --el-button-active-border-color: var(--xfjy-primary-darker);
 }
 
-.login-footer {
+.login-card__version {
+  margin-top: var(--xfjy-space-6);
   text-align: center;
-  margin-top: 28px;
   font-size: var(--xfjy-font-size-xs);
-  /* 版本号/版权是真实信息，disabled 灰 1.59:1 不可读，改 secondary（4.6:1） */
+  /* 版本号是真实信息，disabled 灰不可读，走 secondary（4.6:1 AA） */
   color: var(--xfjy-text-secondary);
 }
 
-/* ==================== 响应式 ==================== */
-@media (max-width: 900px) {
-  .brand-panel {
-    display: none;
+.login-page__copy {
+  position: absolute;
+  bottom: var(--xfjy-space-6);
+  left: 0;
+  right: 0;
+  z-index: 1;
+  text-align: center;
+  font-size: var(--xfjy-font-size-xs);
+  color: var(--xfjy-text-disabled);
+}
+
+/* 窄屏：单卡方案只收卡宽与页边距，不存在整块品牌栏的显隐跳变 */
+@media (max-width: 480px) {
+  .login-page {
+    padding: var(--xfjy-space-4);
   }
 
-  .form-panel {
-    width: 100%;
+  .login-card {
+    padding: var(--xfjy-space-6) var(--xfjy-space-5) var(--xfjy-space-5);
+  }
+
+  .login-page__brand {
+    top: var(--xfjy-space-4);
+    left: var(--xfjy-space-4);
   }
 }
 </style>

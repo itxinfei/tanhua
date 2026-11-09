@@ -80,9 +80,7 @@
   --xfjy-text-inverse: #ffffff;
   --xfjy-media-bg: #000;
 
-  /* ===== 遮罩层（媒体徽标 / 深色底条 / 文字阴影） ===== */
-  --xfjy-overlay-soft: rgba(0, 0, 0, 0.25);
-  --xfjy-overlay-medium: rgba(0, 0, 0, 0.35);
+  /* ===== 遮罩层（媒体徽标遮罩，content/movement 使用） ===== */
   --xfjy-overlay-strong: rgba(0, 0, 0, 0.6);
 
   /* ===== 骨架屏 shimmer 高光 ===== */
