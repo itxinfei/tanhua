@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xfjy.server.mapper.NoticeMapper;
 import com.xfjy.server.pojo.Notice;
 import com.xfjy.server.utils.AdminThreadLocal;
+import com.xfjy.server.utils.HtmlSanitizer;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -62,7 +63,8 @@ public class AdminNoticeService {
     public Notice createNotice(String title, String content, String type) {
         Notice notice = new Notice();
         notice.setTitle(title);
-        notice.setContent(content);
+        // 富文本入库前白名单净化，剥离脚本/事件属性，防存储型 XSS
+        notice.setContent(HtmlSanitizer.clean(content));
         notice.setType(type);
         notice.setStatus("DRAFT");
         notice.setPublisher(AdminThreadLocal.get() != null ? AdminThreadLocal.get().getNickname() : "admin");
@@ -82,7 +84,8 @@ public class AdminNoticeService {
             notice.setTitle(title);
         }
         if (content != null) {
-            notice.setContent(content);
+            // 富文本入库前白名单净化，剥离脚本/事件属性，防存储型 XSS
+            notice.setContent(HtmlSanitizer.clean(content));
         }
         if (StringUtils.isNotBlank(type)) {
             notice.setType(type);

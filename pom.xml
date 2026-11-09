@@ -47,6 +47,8 @@
         <minio.version>8.5.17</minio.version>
         <commons-collections4.version>4.4</commons-collections4.version>
         <sensitive-word.version>0.29.5</sensitive-word.version>
+        <!-- HTML 富文本净化（公告 content 入库前白名单清洗防存储型 XSS） -->
+        <jsoup.version>1.24.1</jsoup.version>
     </properties>
 
     <dependencyManagement>
@@ -140,6 +142,12 @@
                 <groupId>com.github.houbb</groupId>
                 <artifactId>sensitive-word</artifactId>
                 <version>${sensitive-word.version}</version>
+            </dependency>
+            <!-- HTML 富文本净化（jsoup，xfjy-server 公告入库 XSS 防护） -->
+            <dependency>
+                <groupId>org.jsoup</groupId>
+                <artifactId>jsoup</artifactId>
+                <version>${jsoup.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
