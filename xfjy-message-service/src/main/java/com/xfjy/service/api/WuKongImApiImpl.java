@@ -23,6 +23,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -282,8 +283,9 @@ public class WuKongImApiImpl implements WuKongImApi {
      * 获取两用户之间的聊天记录
      *
      * POST /channel/messagesync：login_uid=fromUserId，channel_id=toUserId（对方个人频道）。
-     * cursor 作为 start_message_seq（数字字符串），返回最后一条 message_seq+1 作为下次游标；
-     * 服务端按 seq 正序返回该会话双方的完整消息，无需 reverse、无需双拼频道。
+     * 首屏（cursor 为空）返回最新 limit 条；cursor 表示「继续向更早翻」的起点，
+     * 内部作为 start_message_seq（闭区间上界）传参，下一页取本页最小 seq-1，保证不重不漏。
+     * 返回 messages 按 seq 正序（旧→新，与 SDK 直连一致），并携带 more 表示是否还有更早消息。
      */
     @Override
     @PostMapping("/chat-messages")
@@ -311,12 +313,19 @@ public class WuKongImApiImpl implements WuKongImApi {
                         fromUserId, toUserId, resp.getStatusCode());
                 result.put("messages", Collections.emptyList());
                 result.put("cursor", "");
+                result.put("more", false);
                 return result;
             }
 
-            JsonNode messagesNode = MAPPER.readTree(resp.getBody());
+            JsonNode root = MAPPER.readTree(resp.getBody());
+            // WuKongIM v2 的 /channel/messagesync 返回对象 {messages:[...], more:bool, start_message_seq, end_message_seq}；
+            // 旧版本/兼容网关直接返回裸数组。两种形态都兼容，避免只认对象把老格式当成「没有消息」。
+            JsonNode messagesNode = root.isArray() ? root : root.path("messages");
+            // more：按 pull_mode=0（向更早翻）语义，表示本页之外是否还有更早的消息
+            boolean more = root.isObject() && root.path("more").asBoolean(false);
+
             List<Map<String, Object>> messages = new ArrayList<>();
-            long lastSeq = 0;
+            long oldestSeq = 0;
             if (messagesNode.isArray()) {
                 for (JsonNode msg : messagesNode) {
                     // 解码 payload（业务侧结构化消息均封装为 JSON 文本，WuKongIM 以 text 类型存储）
@@ -324,6 +333,9 @@ public class WuKongImApiImpl implements WuKongImApi {
                     Map<String, Object> m = new HashMap<>();
                     m.put("from", msg.path("from_uid").asString(""));
                     m.put("time", msg.path("timestamp").asLong(0L) * 1000L);
+                    long seq = msg.path("message_seq").asLong(0L);
+                    // seq 对外返回：调用方据此排序/去重，并与 SDK 直连看到的历史对齐
+                    m.put("seq", seq);
                     if (payload != null) {
                         String customType = payload.path("type").asString("");
                         switch (customType) {
@@ -364,19 +376,31 @@ public class WuKongImApiImpl implements WuKongImApi {
                         m.put("content", "");
                     }
                     messages.add(m);
-                    lastSeq = msg.path("message_seq").asLong(lastSeq);
+                    if (seq > 0 && (oldestSeq == 0 || seq < oldestSeq)) {
+                        oldestSeq = seq;
+                    }
                 }
             }
 
-            String nextCursor = messages.isEmpty() ? "" : String.valueOf(lastSeq + 1);
-            log.info("[WuKongIM] 聊天记录查询成功: {} -> {}, 共{}条", fromUserId, toUserId, messages.size());
+            // 统一按 seq 正序（旧→新），与 SDK 直连 messagesync 的顺序一致；seq 缺失时保持服务端原序
+            messages.sort(Comparator.<Map<String, Object>>comparingLong(m -> ((Number) m.get("seq")).longValue()));
+
+            // 游标是「更早一页」的出入口：start_message_seq 为闭区间上界，故取本页最小 seq-1，避免重发本页首条；
+            // more=false 或已到 seq=1 时返回空游标（不能返回 "0"，否则会被当成「不带起点」又拉回最新一页）
+            String nextCursor = (more && oldestSeq > 1) ? String.valueOf(oldestSeq - 1) : "";
+            // WuKongIM 的 more 在「刚好取满 limit 且已到最早一条」时会误报 true，这里以「是否还有更早」为准
+            boolean hasMore = !nextCursor.isEmpty();
+            log.info("[WuKongIM] 聊天记录查询成功: {} -> {}, 共{}条, more={}, 本页seq={}..{}",
+                    fromUserId, toUserId, messages.size(), hasMore, messages.isEmpty() ? 0 : oldestSeq, messages.isEmpty() ? 0 : messages.get(messages.size() - 1).get("seq"));
             result.put("messages", messages);
             result.put("cursor", nextCursor);
+            result.put("more", hasMore);
             return result;
         } catch (Exception e) {
             log.error("[WuKongIM] 聊天记录查询异常: {} -> {}", fromUserId, toUserId, e);
             result.put("messages", Collections.emptyList());
             result.put("cursor", "");
+            result.put("more", false);
             return result;
         }
     }
