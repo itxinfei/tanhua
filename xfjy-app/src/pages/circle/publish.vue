@@ -18,7 +18,11 @@
           color="var(--text-primary)"
         />
       </a11y-button>
-      <text class="top-title">
+      <text
+        class="top-title"
+        role="heading"
+        aria-level="1"
+      >
         发布动态
       </text>
       <a11y-button

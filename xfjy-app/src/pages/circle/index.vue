@@ -5,7 +5,12 @@
     <!-- 顶栏：标题 + 消息入口（custom 导航后直接贴状态栏，需自行避让）。
          消息为独立页 pages/chat/index（原内嵌消息视图已拆出），红点 = 各类通知未读之和 -->
     <view class="nav-bar">
-      <text class="nav-title">
+      <!-- P2-7：页面主标题 heading 语义，读屏可按标题跳转；小程序端静默降级 -->
+      <text
+        class="nav-title"
+        role="heading"
+        aria-level="1"
+      >
         圈子
       </text>
       <a11y-button

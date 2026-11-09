@@ -109,7 +109,12 @@
         :class="{ 'info-card--no-photo': photos.length === 0 }"
       >
         <view class="name-row">
-          <text class="nickname">
+          <!-- 本页无独立文字标题，用户昵称即页面主标识，承担 heading 语义 -->
+          <text
+            class="nickname"
+            role="heading"
+            aria-level="1"
+          >
             {{ user?.nickname || '—' }}
           </text>
           <view class="age-badge">

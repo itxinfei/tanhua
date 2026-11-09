@@ -10,7 +10,12 @@
       >
         <view class="i-ph-caret-left" />
       </a11y-button>
-      <text class="nav-title">
+      <!-- P2-7：页面主标题 heading 语义，读屏可按标题跳转；小程序端静默降级 -->
+      <text
+        class="nav-title"
+        role="heading"
+        aria-level="1"
+      >
         消息
       </text>
       <view class="nav-placeholder" />

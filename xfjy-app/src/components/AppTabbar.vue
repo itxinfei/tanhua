@@ -1,13 +1,19 @@
 <template>
   <!-- 统一底部导航组件：替代原 custom-tabbar.vue（发布页）与 global-tabbar.ts 手写 DOM（H5 全局注入）
        单一数据源：config/tab-config.ts；视觉规格：BEM + CSS 语义变量（见 style） -->
+  <!-- P2-7：外层 navigation 地标（读屏可按地标跳转），内层保留 tablist tabs 模式；
+       小程序端不识别 role 静默降级，H5 生效 -->
   <view
     class="app-tabbar"
-    role="tablist"
+    role="navigation"
     aria-label="主导航"
     @keydown="handleTablistKeydown"
   >
-    <view class="app-tabbar__inner">
+    <view
+      class="app-tabbar__inner"
+      role="tablist"
+      aria-label="主导航"
+    >
       <!-- 固定 5 项（4 tab + 发布键），显式写死。
            高亮走 Vue 响应式，但 icon/label 放在 a11y-button 之外（作为兄弟节点）：
            uni-h5 Vue 3.5 的 updateSlots 只处理子组件 slot，普通 DOM 变化走 patchElement

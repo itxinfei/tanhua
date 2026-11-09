@@ -16,7 +16,11 @@
           aria-hidden="true"
         />
       </a11y-button>
-      <text class="page-title">
+      <text
+        class="page-title"
+        role="heading"
+        aria-level="1"
+      >
         {{ pageTitle }}
       </text>
     </view>

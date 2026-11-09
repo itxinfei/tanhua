@@ -22,7 +22,11 @@
         class="crown float i-ph-crown"
         aria-hidden="true"
       />
-      <text class="title vip-gradient-text">
+      <text
+        class="title vip-gradient-text"
+        role="heading"
+        aria-level="1"
+      >
         心飞 VIP
       </text>
       <text class="subtitle">

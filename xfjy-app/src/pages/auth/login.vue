@@ -31,7 +31,11 @@
         mode="aspectFit"
         aria-hidden="true"
       />
-      <text class="app-name">
+      <text
+        class="app-name"
+        role="heading"
+        aria-level="1"
+      >
         心飞交友
       </text>
       <text class="slogan">
