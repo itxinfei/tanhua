@@ -476,6 +476,8 @@ function showDetail(row: PayOrderItem) {
 
 onMounted(() => {
   loadData()
+  // 汇总卡与列表并行首屏加载，否则进页面四卡显 0，需手动点查询才有数
+  loadSummary()
 })
 </script>
 
