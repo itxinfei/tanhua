@@ -71,4 +71,24 @@ test.describe('业务页（需 E2E_ADMIN_TOKEN）', () => {
       await assertNoHorizontalScroll(page)
     })
   }
+
+  test('业务页 dashboard 数据看板（动态时间元素 mask）', async ({ page }) => {
+    await seedAuth(page)
+    await page.goto('/dashboard', { waitUntil: 'networkidle' })
+    await page.addStyleTag({ content: FREEZE_CSS })
+    // ECharts canvas 入场动画与 useCountUp 数字滚动走 requestAnimationFrame，等待播完后再截图
+    await page.waitForTimeout(1500)
+    // 倒计时每秒递减、「更新于」随轮询变化、顶栏铃铛角标取后端待审数，均属预期内动态内容，
+    // 用 mask 排除出像素比对；不用 page.clock 冻结：setFixedTime 会让 rAF 时间戳恒定，
+    // 图表/数字滚动卡在初始帧。30s 快刷新轮询在截图窗口（约 2s）内不会触发，数据本身保持稳定
+    await expect(page).toHaveScreenshot('dashboard.png', {
+      fullPage: true,
+      mask: [
+        page.locator('.dash-toolbar__meta', { hasText: '后刷新' }),
+        page.locator('.dash-toolbar__meta', { hasText: '更新于' }),
+        page.locator('.todo-badge'),
+      ],
+    })
+    await assertNoHorizontalScroll(page)
+  })
 })

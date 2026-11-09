@@ -49,8 +49,17 @@ Windows 默认使用本机 Chrome（`channel: 'chrome'`），无需 `npx playwri
 | 用户列表 | `/user/list` | 是 | 校验 `PageHeader + SearchBar + TableCard` 骨架 |
 | 公告管理 | `/operation/notice` | 是 | 校验列表 + 表单混合页 |
 | 内容审核 | `/audit/review` | 是 | 校验工作台/详情分栏 |
+| 数据看板 | `/dashboard` | 是 | 校验 KPI/漏斗/图表/空态；动态时间元素 mask 后比对 |
 
 已覆盖视口：1440×900、1280×800。每个用例额外断言「无横向滚动条」。
+
+### 数据看板用例的动态内容处理
+看板页 `useDashboardData` 有每秒递减的「N s 后刷新」倒计时、30s 快刷新与 5min 慢刷新轮询，
+直接截图会因时间文本每秒变化而持续 diff。用例对三个动态元素使用 `toHaveScreenshot` 的 `mask` 选项排除出像素比对：
+两个 `.dash-toolbar__meta`（倒计时、更新于时间）与顶栏铃铛角标 `.todo-badge`（取后端待审数），
+而**不用 `page.clock` 冻结**：实测 `setFixedTime` 会让 `requestAnimationFrame` 时间戳恒定，
+ECharts 入场动画与 useCountUp 数字滚动卡在初始帧。截图在导航后约 2s 内完成，
+30s 轮询不会触发，数据本身保持稳定；截图前等待 1.5s 让 canvas 动画播完。
 
 ## 登录态（不写任何真实账号）
 需登录的用例仅在设置了 `E2E_ADMIN_TOKEN` 时执行，否则 skip。token 通过环境变量注入，
