@@ -805,6 +805,7 @@ kbd {
 .queue-toolbar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--xfjy-space-2);
   padding: var(--xfjy-space-2) var(--xfjy-space-3);
   border-bottom: 1px solid var(--xfjy-border-light);

@@ -463,6 +463,13 @@ textarea {
   .page-container {
     padding: var(--xfjy-space-4);
   }
+
+  /* 弹窗固定 px 宽度（420~720）在窄屏会溢出视口、裁掉底部操作按钮，
+     统一限制最大宽为视口减两侧留白；宽屏因视口足够大而不受影响 */
+  .el-dialog,
+  .el-message-box {
+    max-width: calc(100vw - var(--xfjy-space-4) * 2);
+  }
 }
 
 /* 大屏优化：超宽屏限制最大宽度并居中，避免单行过长难读 */

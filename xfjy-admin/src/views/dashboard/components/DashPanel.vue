@@ -73,4 +73,19 @@ defineProps<{
   flex: 1;
   min-height: 0;
 }
+
+/* 窄屏：标题与右侧操作区纵向堆叠，操作区限宽后内部控件（如趋势切换 radio 组）
+   才能获得可折行宽度，避免 flex-shrink:0 把内容撑出卡片右缘 */
+@media (max-width: 767px) {
+  .dash-panel__head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dash-panel__extra {
+    width: 100%;
+    min-width: 0;
+    flex-shrink: 1;
+  }
+}
 </style>
