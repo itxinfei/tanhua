@@ -382,10 +382,13 @@
           <span class="preview-time">{{ formatDateTime(previewData.publishedAt || previewData.createdAt || previewData.created) }}</span>
         </div>
         <el-divider />
+        <!-- 受控 v-html：公告富文本仅在此预览点渲染，入库前经后端 HtmlSanitizer jsoup 白名单净化（见 0de6933），剥离脚本/事件属性 -->
+        <!-- eslint-disable vue/no-v-html -->
         <div
           class="preview-body"
           v-html="previewData.content"
         />
+        <!-- eslint-enable vue/no-v-html -->
       </div>
     </el-dialog>
   </div>
