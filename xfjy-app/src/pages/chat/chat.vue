@@ -495,13 +495,13 @@ import { getUserProfile } from "@/api/mine";
 import {
   ensureSelfIM,
   isIMConnected,
-  onMessageReceived,
   sendTextMessage,
   sendStructuredMessage,
   getChatHistory,
   getChatHistoryBefore,
   type ReceivedMessage,
 } from "@/utils/wukongim";
+import { onMessageReceived } from "@/utils/im-events";
 import { info, fail } from "@/utils/ux";
 import {
   resolveAddressName,

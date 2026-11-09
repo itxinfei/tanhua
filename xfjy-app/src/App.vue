@@ -13,7 +13,7 @@ import {
   showNetworkBar,
   hideNetworkBar,
 } from "@/utils/network-monitor";
-import { ensureSelfIM, isIMLoggedIn, onMatchReceived } from "@/utils/wukongim";
+import { onMatchReceived } from "@/utils/im-events";
 import { initPush } from "@/utils/push";
 import { requestPermission } from "@/utils/notification";
 import { useMatchStore } from "@/store/match";
@@ -72,13 +72,16 @@ onLaunch(() => {
   }, 2200);
 });
 
-onShow(() => {
+onShow(async () => {
   if (!getToken()) return;
   // 上报设备推送标识（APP-PLUS 端；未集成极光原生插件时静默跳过，幂等）
   initPush();
   // 请求本地通知权限（H5 Web Notification / MP 订阅消息）
   // 仅首次或权限未定时请求，已授权/已拒绝不再弹
   requestPermission().catch(() => {});
+  // 动态 import：wukongimjssdk 全家桶（构建产物 utils-wukongim chunk 约 191K）不进首屏 chunk，
+  // 首次 onShow 且有 token 时才加载
+  const { ensureSelfIM, isIMLoggedIn } = await import("@/utils/wukongim");
   // WuKongIM 登录（幂等）：凭证优先由服务端签发（GET /messages/im/credential），
   // 不再在前端按 userId 派生可预测 token，避免顶号/冒充风险
   if (isIMLoggedIn()) return;

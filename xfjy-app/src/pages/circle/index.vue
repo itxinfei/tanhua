@@ -223,7 +223,7 @@ import ErrorBoundary from "@/components/error-boundary.vue";
 import { useCircleStore, CIRCLE_NEED_REFRESH_KEY } from "@/store/circle";
 import type { Movement } from "@/api/circle";
 import { useChatStore } from "@/store/chat";
-import { onSystemNoticeReceived } from "@/utils/wukongim";
+import { onSystemNoticeReceived } from "@/utils/im-events";
 
 const circleStore = useCircleStore();
 const chatStore = useChatStore();

@@ -28,13 +28,32 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(appVersion),
   },
   build: {
-    // 分包优化：node_modules 第三方依赖单独 chunk，加速首屏加载（H5 端）
+    // 分包优化（H5 端）：只把首屏框架包钉成 vendor-vue，IM SDK 不做 manual 钉桩。
+    // 历史教训：曾把 wukongimjssdk 钉成 manual chunk（vendor-im），Rollup 归组时会把
+    // @dcloudio/uni-h5-vue、uni-h5 等全站公共运行时 hoist 进该 manual chunk，导致 48 个
+    // chunk（含入口、基础组件、vendor-vue 自身）对 IM 包产生静态依赖，动态 import 拆链失效。
+    // 现状：wukongim 仅被 pages/chat、pages/kefu 三个路由级异步页面与 App/store 的动态
+    // import() 引用，不钉桩时 Rollup 按动态导入边界自动切出异步 chunk，首屏四个 tab
+    // （match/circle/video/mine）的静态依赖图中零 IM 代码。
     rollupOptions: {
       output: {
         manualChunks: isH5
-          ? {
-              "vendor-vue": ["vue", "vue-i18n", "pinia"],
-              "vendor-im": ["wukongimjssdk"],
+          ? (id: string) => {
+              if (!id.includes("node_modules")) return undefined;
+              const normalized = id.replace(/\\/g, "/");
+              // Vue 生态 + uni-app H5 的 Vue 运行时（裸 "vue" 的别名目标，全部 SFC 公共
+              // 依赖）统一钉入首屏框架 chunk，避免运行时被 Rollup 吸进其它 manual chunk。
+              if (
+                normalized.includes("node_modules/vue/") ||
+                normalized.includes("node_modules/@vue/") ||
+                normalized.includes("node_modules/@dcloudio/uni-h5-vue/") ||
+                normalized.includes("node_modules/pinia/") ||
+                normalized.includes("node_modules/vue-i18n/") ||
+                normalized.includes("node_modules/@intlify/")
+              ) {
+                return "vendor-vue";
+              }
+              return undefined;
             }
           : undefined,
       },

@@ -242,11 +242,11 @@ import { getVipStatus } from "@/api/mine";
 import {
   ensureSelfIM,
   isIMConnected,
-  onMessageReceived,
   sendTextMessage,
   getChatHistory,
   type ReceivedMessage,
 } from "@/utils/wukongim";
+import { onMessageReceived } from "@/utils/im-events";
 import { fail } from "@/utils/ux";
 import { warn } from "@/utils/logger";
 import { resolveAvatar, DEFAULT_AVATAR } from "@/utils/avatar";

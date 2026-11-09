@@ -113,6 +113,15 @@ function refresh(): void {
   }
 }
 
+/** 兜底轮询句柄：页面切后台时暂停，避免不可见标签页空转 */
+let fallbackTimer: ReturnType<typeof setInterval> | null = null;
+
+/** 启动兜底轮询（1.5s）：主路径 hashchange 即时响应，轮询只纠正漏网场景 */
+function startFallbackPolling(): void {
+  if (fallbackTimer) return;
+  fallbackTimer = setInterval(refresh, 1500);
+}
+
 /** 在 App.vue onLaunch（H5 条件编译内）调用一次 */
 export function installGlobalTabbar(): void {
   if (document.getElementById(BAR_ID)) return;
@@ -137,12 +146,24 @@ export function installGlobalTabbar(): void {
   // 启动未读数刷新：每 30s 拉一次 IM 会话未读数，更新 tabbar badge
   startUnreadRefresh();
 
-  // 路由变化（hash 路由）与兜底轮询刷新显示/高亮/占位
+  // 路由变化（hash 路由）即时刷新显示/高亮/占位
   window.addEventListener("hashchange", refresh);
   // 兜底轮询：极少数情况下 hashchange 未触发（直接改 location、框架内部 pushState、
   // 或冷启动首帧页面栈尚未就绪），用轻量轮询保证底栏始终与实际页面一致，
-  // 根除“tabbar 莫名消失/不刷新”的问题。refresh 仅切换 display/调用 setActive，开销极小。
-  setInterval(refresh, 400);
+  // 根除“tabbar 莫名消失/不刷新”的问题。间隔由 400ms 放宽到 1.5s：主路径仍是
+  // hashchange 即时响应，轮询只做纠正；页面切后台时暂停，消除不可见标签页的空转唤醒。
+  startFallbackPolling();
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      if (fallbackTimer) {
+        clearInterval(fallbackTimer);
+        fallbackTimer = null;
+      }
+    } else {
+      refresh();
+      startFallbackPolling();
+    }
+  });
 
   refresh();
 }

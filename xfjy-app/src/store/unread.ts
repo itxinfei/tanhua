@@ -1,6 +1,5 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { getConversations } from "@/utils/wukongim";
 import { warn } from "@/utils/logger";
 
 /** 未读消息总数（所有会话聚合） */
@@ -20,6 +19,9 @@ async function refreshUnread(): Promise<void> {
   lastRefreshAt = now;
 
   try {
+    // 动态 import：本 store 在首屏链（global-tabbar 30s 轮询）上，
+    // 静态依赖会把 wukongimjssdk（utils-wukongim chunk）拉进首屏
+    const { getConversations } = await import("@/utils/wukongim");
     const conversations = await getConversations();
     const total = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
     unreadCount.value = total;

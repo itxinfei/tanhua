@@ -22,6 +22,18 @@ import {
 } from "wukongimjssdk";
 import { BASE_URL, get } from "./request";
 import { warn, warnAlways } from "@/utils/logger";
+import {
+  emitMatch,
+  emitMessage,
+  emitSystemNotice,
+  type MatchEvent,
+  type ReceivedMessage,
+  type SystemNotice,
+} from "./im-events";
+
+/** 事件类型统一由零 SDK 依赖的 im-events 总线定义，此处 re-export 保持既有类型导入路径兼容；
+ *  type-only 导入在编译期擦除，不会让类型消费方产生对 wukongimjssdk 的运行时依赖 */
+export type { MatchEvent, ReceivedMessage, SystemNotice } from "./im-events";
 
 /** 会话摘要（聊天列表展示用） */
 export interface ChatSession {
@@ -33,33 +45,6 @@ export interface ChatSession {
   lastTime: number;
   /** 未读消息数 */
   unreadCount: number;
-}
-
-/** 收到的业务消息（已从 JSON 契约解析） */
-export interface ReceivedMessage {
-  from: string;
-  content: string;
-  type: "text" | "image" | "voice" | "location" | "card";
-  extra?: Record<string, unknown>;
-  time?: number;
-  /** 消息序号（WuKongIM messageSeq）：续拉更旧历史用（M-K4） */
-  seq?: number;
-}
-
-/** 匹配事件（互喜时后端经 IM 透传触发） */
-export interface MatchEvent {
-  from: string;
-  nickname: string;
-  avatar: string;
-}
-
-/** 系统通知（后端 PushService 经 IM 旁路透传，覆盖 H5 及在线端的点赞/评论提醒） */
-export interface SystemNotice {
-  /** 通知类别：like | comment */
-  category: "like" | "comment";
-  title: string;
-  content: string;
-  time?: number;
 }
 
 /** 服务端下发的 IM 接入凭证（GET /messages/im/credential） */
@@ -88,14 +73,6 @@ export async function getImCredential(): Promise<ImCredential | null> {
     return null;
   }
 }
-
-type MessageHandler = (msg: ReceivedMessage) => void;
-type MatchHandler = (event: MatchEvent) => void;
-type SystemHandler = (notice: SystemNotice) => void;
-
-const messageHandlers: MessageHandler[] = [];
-const matchHandlers: MatchHandler[] = [];
-const systemHandlers: SystemHandler[] = [];
 
 /** 登录状态 */
 let isLoggedIn = false;
@@ -468,22 +445,22 @@ function toReceivedMessage(message: Message): ReceivedMessage | null {
   return { from, content: text, type: "text", time };
 }
 
-/** 全局消息监听：分发给业务回调（先注册，connect 后由 SDK 触发） */
+/** 全局消息监听：SDK 事件归一化后转发到 im-events 总线（先注册，connect 后由 SDK 触发） */
 function registerMessageListener(): void {
   WKSDK.shared().chatManager.addMessageListener((message) => {
     const systemNotice = extractSystemNotice(message);
     if (systemNotice) {
-      systemHandlers.forEach((h) => h(systemNotice));
+      emitSystemNotice(systemNotice);
       return;
     }
     const matchEvent = extractMatchEvent(message);
     if (matchEvent) {
-      matchHandlers.forEach((h) => h(matchEvent));
+      emitMatch(matchEvent);
       return;
     }
     const biz = toReceivedMessage(message);
     if (biz) {
-      messageHandlers.forEach((h) => h(biz));
+      emitMessage(biz);
     }
   });
 }
@@ -637,33 +614,6 @@ export async function getConversations(): Promise<ChatSession[]> {
   } catch {
     return [];
   }
-}
-
-/** 注册匹配事件回调，返回取消注册函数 */
-export function onMatchReceived(handler: MatchHandler): () => void {
-  matchHandlers.push(handler);
-  return () => {
-    const i = matchHandlers.indexOf(handler);
-    if (i >= 0) matchHandlers.splice(i, 1);
-  };
-}
-
-/** 注册消息到达回调，返回取消注册函数 */
-export function onMessageReceived(handler: MessageHandler): () => void {
-  messageHandlers.push(handler);
-  return () => {
-    const i = messageHandlers.indexOf(handler);
-    if (i >= 0) messageHandlers.splice(i, 1);
-  };
-}
-
-/** 注册系统通知回调（点赞/评论 IM 旁路提醒），返回取消注册函数 */
-export function onSystemNoticeReceived(handler: SystemHandler): () => void {
-  systemHandlers.push(handler);
-  return () => {
-    const i = systemHandlers.indexOf(handler);
-    if (i >= 0) systemHandlers.splice(i, 1);
-  };
 }
 
 /** 发送单聊文本消息（含 JSON 结构化契约） */
