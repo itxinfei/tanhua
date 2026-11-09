@@ -92,12 +92,12 @@ export interface ChatMessage {
 
 /** 分页查询用户 */
 export function getUserPageApi(params: UserQuery) {
-  return request.get<any, PageResult<UserItem>>('/admin/users', { params })
+  return request.get<unknown, PageResult<UserItem>>('/admin/users', { params })
 }
 
 /** 获取用户详情 */
 export function getUserDetailApi(id: number) {
-  return request.get<any, UserDetail>(`/admin/users/${id}`)
+  return request.get<unknown, UserDetail>(`/admin/users/${id}`)
 }
 
 /** 封禁用户 */
@@ -117,12 +117,12 @@ export function resetUserPasswordApi(id: number) {
 
 /** 获取用户会话列表 */
 export function getUserChatSessionsApi(id: number) {
-  return request.get<any, PageResult<ChatSession>>(`/admin/users/${id}/chat-sessions`)
+  return request.get<unknown, PageResult<ChatSession>>(`/admin/users/${id}/chat-sessions`)
 }
 
 /** 获取与某用户的聊天记录 */
 export function getUserChatMessagesApi(id: number, contactId: string, pageSize?: number) {
-  return request.get<any, { messages: ChatMessage[]; cursor: string }>(
+  return request.get<unknown, { messages: ChatMessage[]; cursor: string }>(
     `/admin/users/${id}/chat-messages`,
     { params: { contactId, pageSize } }
   )
@@ -130,7 +130,7 @@ export function getUserChatMessagesApi(id: number, contactId: string, pageSize?:
 
 /** 导出用户列表（CSV） */
 export function exportUsersApi(params: { keyword?: string; gender?: string; status?: string; startDate?: string; endDate?: string }) {
-  return request.get<any, Blob>('/admin/users/export', { params, responseType: 'blob' })
+  return request.get<unknown, Blob>('/admin/users/export', { params, responseType: 'blob' })
 }
 
 /** 客服代改用户资料（白名单字段部分更新） */
@@ -140,7 +140,7 @@ export function updateUserProfileApi(id: number, data: AdminProfileUpdate) {
 
 /** 获取用户资料编辑历史 */
 export function getProfileLogsApi(id: number, params: { page: number; pageSize: number }) {
-  return request.get<any, PageResult<ProfileLogItem>>(`/admin/users/${id}/profile-logs`, { params })
+  return request.get<unknown, PageResult<ProfileLogItem>>(`/admin/users/${id}/profile-logs`, { params })
 }
 
 /** 关系链类型：follow 关注 / fans 粉丝 / match 匹配 */
@@ -162,5 +162,5 @@ export function getUserRelationsApi(
   id: number,
   params: { type: RelationType; page: number; pageSize: number }
 ) {
-  return request.get<any, PageResult<RelationUserItem>>(`/admin/users/${id}/relations`, { params })
+  return request.get<unknown, PageResult<RelationUserItem>>(`/admin/users/${id}/relations`, { params })
 }

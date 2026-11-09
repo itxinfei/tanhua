@@ -30,12 +30,12 @@ export interface ReportQuery {
 
 /** 分页查询举报 */
 export function getReportPageApi(params: ReportQuery) {
-  return request.get<any, PageResult<ReportItem>>('/admin/reports', { params })
+  return request.get<unknown, PageResult<ReportItem>>('/admin/reports', { params })
 }
 
 /** 获取举报详情 */
 export function getReportDetailApi(id: number) {
-  return request.get<any, ReportItem>(`/admin/reports/${id}`)
+  return request.get<unknown, ReportItem>(`/admin/reports/${id}`)
 }
 
 /** 处理举报（封禁目标用户 / 驳回） */

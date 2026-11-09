@@ -30,7 +30,7 @@ export function getMovementPageApi(params: {
   userId?: number
   seeType?: number
 }) {
-  return request.get<any, MovementPageResult>('/admin/movements', { params })
+  return request.get<unknown, MovementPageResult>('/admin/movements', { params })
 }
 
 /** 删除（下架）动态 */

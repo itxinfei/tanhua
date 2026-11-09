@@ -16,7 +16,7 @@ export interface UploadResult {
 export function uploadImageApi(file: File) {
   const formData = new FormData()
   formData.append('file', file)
-  return request.post<any, UploadResult>('/admin/upload/image', formData, {
+  return request.post<unknown, UploadResult>('/admin/upload/image', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
 }

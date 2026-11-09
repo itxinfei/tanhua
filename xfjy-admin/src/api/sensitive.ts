@@ -35,7 +35,7 @@ export interface PageResult<T> {
 
 /** 分页查询敏感词 */
 export function getSensitiveWordPageApi(params: SensitiveWordQuery) {
-  return request.get<any, PageResult<SensitiveWordItem>>('/admin/sensitive-words', { params })
+  return request.get<unknown, PageResult<SensitiveWordItem>>('/admin/sensitive-words', { params })
 }
 
 /** 新增敏感词 */
@@ -65,7 +65,7 @@ export function refreshSensitiveWordApi() {
 
 /** 敏感词命中测试 */
 export function testSensitiveWordApi(text: string) {
-  return request.post<any, {
+  return request.post<unknown, {
     action: string
     filteredText: string
     hitWords: string[]
@@ -75,7 +75,7 @@ export function testSensitiveWordApi(text: string) {
 
 /** 批量导入敏感词 */
 export function batchImportSensitiveWordsApi(words: string[], category: string, level: number) {
-  return request.post<any, { total: number; success: number; failed: number }>(
+  return request.post<unknown, { total: number; success: number; failed: number }>(
     '/admin/sensitive-words/batch-import',
     { words, category, level }
   )
@@ -83,5 +83,5 @@ export function batchImportSensitiveWordsApi(words: string[], category: string, 
 
 /** 导出敏感词（CSV） */
 export function exportSensitiveWordsApi() {
-  return request.get<any, Blob>('/admin/sensitive-words/export', { responseType: 'blob' })
+  return request.get<unknown, Blob>('/admin/sensitive-words/export', { responseType: 'blob' })
 }

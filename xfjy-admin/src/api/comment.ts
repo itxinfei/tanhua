@@ -23,7 +23,7 @@ export function getCommentPageApi(params: {
   keyword?: string
   userId?: number
 }) {
-  return request.get<any, CommentPageResult>('/admin/comments', { params })
+  return request.get<unknown, CommentPageResult>('/admin/comments', { params })
 }
 
 /** 删除评论 */

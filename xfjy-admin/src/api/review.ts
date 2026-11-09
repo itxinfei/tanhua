@@ -25,7 +25,7 @@ export interface ReviewQuery {
 
 /** 分页查询待审核/已审核内容 */
 export function getReviewPageApi(params: ReviewQuery) {
-  return request.get<any, PageResult<ReviewItem>>('/admin/reviews', { params })
+  return request.get<unknown, PageResult<ReviewItem>>('/admin/reviews', { params })
 }
 
 /** 通过审核（单个） */

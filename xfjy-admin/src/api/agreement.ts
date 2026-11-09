@@ -31,12 +31,12 @@ export interface AgreementForm {
 
 /** 分页查询协议 */
 export function getAgreementPageApi(params: AgreementQuery) {
-  return request.get<any, PageResult<AgreementItem>>('/admin/agreements', { params })
+  return request.get<unknown, PageResult<AgreementItem>>('/admin/agreements', { params })
 }
 
 /** 协议详情 */
 export function getAgreementDetailApi(id: number) {
-  return request.get<any, AgreementItem>(`/admin/agreements/${id}`)
+  return request.get<unknown, AgreementItem>(`/admin/agreements/${id}`)
 }
 
 /** 新增协议 */

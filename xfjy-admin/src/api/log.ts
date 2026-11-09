@@ -28,15 +28,15 @@ export interface PageResult<T> {
 
 /** 分页查询操作日志 */
 export function getLogPageApi(params: OperationLogQuery) {
-  return request.get<any, PageResult<OperationLogItem>>('/admin/operation-logs', { params })
+  return request.get<unknown, PageResult<OperationLogItem>>('/admin/operation-logs', { params })
 }
 
 /** 查询日志详情 */
 export function getLogDetailApi(id: number) {
-  return request.get<any, OperationLogItem>(`/admin/operation-logs/${id}`)
+  return request.get<unknown, OperationLogItem>(`/admin/operation-logs/${id}`)
 }
 
 /** 导出日志（CSV） */
 export function exportLogsApi(params: { module?: string; adminUsername?: string; startDate?: string; endDate?: string }) {
-  return request.get<any, Blob>('/admin/operation-logs/export', { params, responseType: 'blob' })
+  return request.get<unknown, Blob>('/admin/operation-logs/export', { params, responseType: 'blob' })
 }

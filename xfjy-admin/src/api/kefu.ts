@@ -48,7 +48,7 @@ export interface FaqForm {
 
 /** 分页查询反馈列表 */
 export function getFeedbackPageApi(params: FeedbackQuery) {
-  return request.get<any, PageResult<FeedbackItem>>('/admin/kefu/feedback', { params })
+  return request.get<unknown, PageResult<FeedbackItem>>('/admin/kefu/feedback', { params })
 }
 
 /** 回复反馈 */
@@ -63,7 +63,7 @@ export function closeFeedbackApi(id: number) {
 
 /** 分页查询 FAQ */
 export function getFaqPageApi(params: FaqQuery) {
-  return request.get<any, PageResult<FaqItem>>('/admin/kefu/faq', { params })
+  return request.get<unknown, PageResult<FaqItem>>('/admin/kefu/faq', { params })
 }
 
 /** 新增 FAQ */
@@ -100,7 +100,7 @@ export interface KefuCredential {
 
 /** 获取客服 IM 登录凭证 */
 export function getAgentCredentialApi() {
-  return request.get<any, KefuCredential>('/admin/kefu/agent/credential')
+  return request.get<unknown, KefuCredential>('/admin/kefu/agent/credential')
 }
 
 /** 工作台用户基础信息（会话列表昵称/头像展示） */
@@ -112,5 +112,5 @@ export interface KefuUserInfo {
 
 /** 批量查询用户基础信息（IM uid = userId，conversationId 即对端 userId） */
 export function getKefuUsersInfoApi(userIds: number[]) {
-  return request.post<any, KefuUserInfo[]>('/admin/kefu/users/info', { userIds })
+  return request.post<unknown, KefuUserInfo[]>('/admin/kefu/users/info', { userIds })
 }

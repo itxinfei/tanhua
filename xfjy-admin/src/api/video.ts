@@ -28,7 +28,7 @@ export function getVideoPageApi(params: {
   keyword?: string
   userId?: number
 }) {
-  return request.get<any, VideoPageResult>('/admin/videos', { params })
+  return request.get<unknown, VideoPageResult>('/admin/videos', { params })
 }
 
 /** 删除（下架）视频 */

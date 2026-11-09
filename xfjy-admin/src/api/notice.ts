@@ -31,12 +31,12 @@ export interface NoticeForm {
 
 /** 分页查询公告 */
 export function getNoticePageApi(params: NoticeQuery) {
-  return request.get<any, PageResult<NoticeItem>>('/admin/notices', { params })
+  return request.get<unknown, PageResult<NoticeItem>>('/admin/notices', { params })
 }
 
 /** 获取公告详情 */
 export function getNoticeDetailApi(id: number) {
-  return request.get<any, NoticeItem>(`/admin/notices/${id}`)
+  return request.get<unknown, NoticeItem>(`/admin/notices/${id}`)
 }
 
 /** 新增公告 */

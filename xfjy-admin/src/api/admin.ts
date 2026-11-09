@@ -18,7 +18,7 @@ export function getAdminPageApi(params: {
   pageSize: number
   keyword?: string
 }) {
-  return request.get<any, AdminPageResult>('/admin/accounts', { params })
+  return request.get<unknown, AdminPageResult>('/admin/accounts', { params })
 }
 
 /** 新增管理员 */

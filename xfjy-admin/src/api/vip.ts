@@ -62,7 +62,7 @@ export interface PageResult<T> {
 
 /** 分页查询 VIP 套餐 */
 export function getVipPackagePageApi(params: VipQuery) {
-  return request.get<any, PageResult<VipPackageItem>>('/admin/vip/packages', { params })
+  return request.get<unknown, PageResult<VipPackageItem>>('/admin/vip/packages', { params })
 }
 
 /** 新增 VIP 套餐 */
@@ -82,7 +82,7 @@ export function toggleVipPackageApi(id: number, status: number) {
 
 /** 分页查询增值权益 */
 export function getBenefitPageApi(params: VipQuery) {
-  return request.get<any, PageResult<BenefitItem>>('/admin/vip/benefits', { params })
+  return request.get<unknown, PageResult<BenefitItem>>('/admin/vip/benefits', { params })
 }
 
 /** 编辑权益（serviceCode 不可改） */

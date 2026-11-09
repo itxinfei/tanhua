@@ -184,57 +184,57 @@ export interface ModerationData {
 
 /** 看板概览 */
 export function getStatOverviewApi() {
-  return request.get<any, StatOverview>('/admin/dashboard/overview')
+  return request.get<unknown, StatOverview>('/admin/dashboard/overview')
 }
 
 /** 新增注册趋势 */
 export function getTrendDataApi(days: number = 7) {
-  return request.get<any, RegisterTrend>('/admin/dashboard/trend', { params: { days } })
+  return request.get<unknown, RegisterTrend>('/admin/dashboard/trend', { params: { days } })
 }
 
 /** 今日实时发送行为 */
 export function getRealtimeStatsApi() {
-  return request.get<any, RealtimeStats>('/admin/dashboard/realtime-stats')
+  return request.get<unknown, RealtimeStats>('/admin/dashboard/realtime-stats')
 }
 
 /** 热门内容 */
 export function getHotContentApi() {
-  return request.get<any, HotContent>('/admin/dashboard/hot-content')
+  return request.get<unknown, HotContent>('/admin/dashboard/hot-content')
 }
 
 /** 实时在线概览（当前在线 / 峰值 / DAU） */
 export function getOnlineOverviewApi() {
-  return request.get<any, OnlineOverview>('/admin/dashboard/online-overview')
+  return request.get<unknown, OnlineOverview>('/admin/dashboard/online-overview')
 }
 
 /** 活跃与留存 */
 export function getActivityApi(days: number = 30) {
-  return request.get<any, ActivityData>('/admin/dashboard/activity', { params: { days } })
+  return request.get<unknown, ActivityData>('/admin/dashboard/activity', { params: { days } })
 }
 
 /** 匹配统计 */
 export function getMatchStatsApi(days: number = 7) {
-  return request.get<any, MatchStats>('/admin/dashboard/match-stats', { params: { days } })
+  return request.get<unknown, MatchStats>('/admin/dashboard/match-stats', { params: { days } })
 }
 
 /** 人口属性（性别/年龄/城市） */
 export function getDemographicsApi() {
-  return request.get<any, Demographics>('/admin/dashboard/demographics')
+  return request.get<unknown, Demographics>('/admin/dashboard/demographics')
 }
 
 /** 收入与付费 */
 export function getRevenueApi(days: number = 7) {
-  return request.get<any, RevenueData>('/admin/dashboard/revenue', { params: { days } })
+  return request.get<unknown, RevenueData>('/admin/dashboard/revenue', { params: { days } })
 }
 
 /** 内容安全（审核/举报） */
 export function getModerationApi(days: number = 7) {
-  return request.get<any, ModerationData>('/admin/dashboard/moderation', { params: { days } })
+  return request.get<unknown, ModerationData>('/admin/dashboard/moderation', { params: { days } })
 }
 
 /** 内容发布趋势（动态 / 小视频） */
 export function getDimensionTrendApi(days: number = 7) {
-  return request.get<any, DimensionTrend>('/admin/dashboard/trend-by-dimension', {
+  return request.get<unknown, DimensionTrend>('/admin/dashboard/trend-by-dimension', {
     params: { days },
   })
 }

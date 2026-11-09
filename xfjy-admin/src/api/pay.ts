@@ -40,15 +40,15 @@ export interface PageResult<T> {
 
 /** 分页查询支付订单 */
 export function getPayOrderPageApi(params: PayOrderQuery) {
-  return request.get<any, PageResult<PayOrderItem>>('/admin/pay-orders', { params })
+  return request.get<unknown, PageResult<PayOrderItem>>('/admin/pay-orders', { params })
 }
 
 /** 查询订单汇总 */
 export function getPayOrderSummaryApi(params: { status?: string; startDate?: string; endDate?: string }) {
-  return request.get<any, PayOrderSummary>('/admin/pay-orders/summary', { params })
+  return request.get<unknown, PayOrderSummary>('/admin/pay-orders/summary', { params })
 }
 
 /** 导出订单（CSV） */
 export function exportPayOrdersApi(params: { orderNo?: string; status?: string; userId?: number; startDate?: string; endDate?: string }) {
-  return request.get<any, Blob>('/admin/pay-orders/export', { params, responseType: 'blob' })
+  return request.get<unknown, Blob>('/admin/pay-orders/export', { params, responseType: 'blob' })
 }

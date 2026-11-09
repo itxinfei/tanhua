@@ -12,7 +12,7 @@ export interface SysConfigItem {
 
 /** 列出全部系统配置 */
 export function getSysConfigListApi() {
-  return request.get<any, SysConfigItem[]>('/admin/sys-config')
+  return request.get<unknown, SysConfigItem[]>('/admin/sys-config')
 }
 
 /** 更新系统配置（存在则更新，不存在则插入；约 30 秒内全节点生效） */
@@ -21,7 +21,7 @@ export function updateSysConfigApi(data: {
   configValue: string
   description?: string
 }) {
-  return request.post<any, void>('/admin/sys-config/update', data)
+  return request.post<unknown, void>('/admin/sys-config/update', data)
 }
 
 /** 网关限流配置 */
@@ -34,10 +34,10 @@ export interface RateLimitConfig {
 
 /** 查询当前网关限流配置 */
 export function getRateLimitConfigApi() {
-  return request.get<any, RateLimitConfig>('/admin/rate-limit')
+  return request.get<unknown, RateLimitConfig>('/admin/rate-limit')
 }
 
 /** 更新网关限流配置（约 30 秒内全节点生效） */
 export function updateRateLimitConfigApi(data: { limit: number; windowSeconds: number }) {
-  return request.put<any, void>('/admin/rate-limit', data)
+  return request.put<unknown, void>('/admin/rate-limit', data)
 }

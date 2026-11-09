@@ -8,12 +8,12 @@ export interface LoginResult {
 
 /** 管理员登录 */
 export function loginApi(username: string, password: string) {
-  return request.post<any, LoginResult>('/admin/login', { username, password })
+  return request.post<unknown, LoginResult>('/admin/login', { username, password })
 }
 
 /** 获取当前管理员信息 */
 export function getAdminInfoApi() {
-  return request.get<any, AdminInfo>('/admin/info')
+  return request.get<unknown, AdminInfo>('/admin/info')
 }
 
 /** 退出登录（服务端注销 token） */
