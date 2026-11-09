@@ -48,7 +48,9 @@ export function formatDateTime(val: string | number | null | undefined): string 
  */
 export function formatShortTime(val: string | number | null | undefined): string {
   if (val == null || val === '') return '-'
-  const str = typeof val === 'number' ? formatDateTime(val) : val
+  // 字符串也先过 formatDateTime：后端可能给 ISO 8601（T 分隔，如 2026-11-07T10:57:35.000Z），
+  // 下方正则只认空格分隔，不归一化会把 ISO 原样透出
+  const str = formatDateTime(val)
   const match = str.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}:\d{2})/)
   if (!match) return str
   const now = new Date()
