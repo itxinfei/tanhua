@@ -590,7 +590,7 @@ onMounted(() => {
     justify-content: center;
     flex-direction: column;
     gap: var(--xfjy-space-1);
-    color: var(--xfjy-text-disabled);
+    color: var(--xfjy-text-secondary);
     background: var(--xfjy-bg-hover);
     font-size: var(--xfjy-font-size-xs);
   }
@@ -693,7 +693,7 @@ onMounted(() => {
 
 .no-media {
   font-size: var(--xfjy-font-size-xs);
-  color: var(--xfjy-text-disabled);
+  color: var(--xfjy-text-secondary);
 }
 
 .stat-text {

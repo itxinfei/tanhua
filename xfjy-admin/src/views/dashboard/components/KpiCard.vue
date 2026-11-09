@@ -8,13 +8,13 @@
     @keydown.enter="handleClick"
   >
     <div class="kpi-card__top">
+      <span class="kpi-card__label">{{ label }}</span>
       <span
         class="kpi-card__icon"
-        :style="{ color: iconColor, background: iconBg }"
+        :class="{ 'kpi-card__icon--live': live }"
       >
-        <el-icon :size="15"><component :is="icon" /></el-icon>
+        <el-icon :size="17"><component :is="icon" /></el-icon>
       </span>
-      <span class="kpi-card__label">{{ label }}</span>
     </div>
     <div class="kpi-card__value">
       {{ formattedValue }}
@@ -53,20 +53,6 @@
         <el-icon :size="11"><ArrowRight /></el-icon>
       </span>
     </div>
-    <div class="kpi-card__spark">
-      <BaseChart
-        v-if="hasSpark"
-        :option="sparkOption"
-        height="24px"
-      />
-      <div
-        v-else-if="pulse"
-        class="kpi-card__live"
-      >
-        <span class="kpi-card__live-dot"><span class="kpi-card__live-wave" /></span>
-        <span>实时心跳统计</span>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -74,26 +60,19 @@
 import { computed, type Component } from 'vue'
 import { CaretTop, CaretBottom, Minus, ArrowRight } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
-import { BaseChart } from '@/components'
-import { sparklineOption } from '../chartOptions'
 import { useCountUp } from '../composables/useCountUp'
 
 const props = defineProps<{
   label: string
   value: number | null
   icon: Component
-  iconColor: string
-  iconBg: string
+  /** 实时在线卡：图标走品牌玫红，其余卡统一中性灰 */
+  live?: boolean
   /** 环比差值；null/undefined 时显示 hint */
   delta?: number | null
   hint?: string
   /** 数值与差值的自定义格式化（如分→元），默认千分位整数 */
   formatter?: (n: number) => string
-  /** 迷你趋势数据；少于 2 个有效点时不渲染 */
-  spark?: Array<number | null> | null
-  sparkColor?: string
-  /** 实时模式：spark 区显示呼吸点而非趋势线 */
-  pulse?: boolean
   /** 点击跳转路由地址；不传则为纯展示卡 */
   to?: string
 }>()
@@ -115,20 +94,13 @@ const formattedValue = computed(() => {
 })
 
 function formatDelta(n: number) {
+  // 0 值不再渲染 "-0"（负数歧义），改为中性文案
+  if (n === 0) return '持平'
   const abs = Math.abs(n)
   return `${n > 0 ? '+' : '-'}${formatValue(abs)}`
 }
 
 const hasDelta = computed(() => props.delta !== null && props.delta !== undefined)
-
-const hasSpark = computed(() => {
-  if (!props.spark) return false
-  return props.spark.filter((v) => v !== null).length >= 2
-})
-
-const sparkOption = computed(() =>
-  sparklineOption(props.spark ?? [], props.sparkColor ?? 'var(--xfjy-chart-1)')
-)
 </script>
 
 <style scoped>
@@ -136,15 +108,15 @@ const sparkOption = computed(() =>
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: var(--xfjy-space-2);
+  gap: var(--xfjy-space-3);
+  padding: var(--xfjy-space-5);
   background: var(--xfjy-bg-card);
   border: 1px solid var(--xfjy-border);
   border-radius: var(--xfjy-radius-lg);
-  box-shadow: var(--xfjy-shadow-card);
-  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
-/* 可点击指标卡：hover 上浮 + 品牌色描边（AntD Pro 指标卡交互规范） */
+/* 可点击指标卡：hover 上浮 + 品牌色描边（去阴影，仅细边框表达层级） */
 .kpi-card--link {
   cursor: pointer;
 }
@@ -152,14 +124,14 @@ const sparkOption = computed(() =>
 .kpi-card--link:hover,
 .kpi-card--link:focus-visible {
   transform: translateY(-2px);
-  border-color: var(--xfjy-primary);
-  box-shadow: var(--xfjy-shadow-hover);
+  border-color: var(--xfjy-primary-mist);
   outline: none;
 }
 
 .kpi-card__top {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--xfjy-space-2);
   min-width: 0;
 }
@@ -169,9 +141,18 @@ const sparkOption = computed(() =>
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--xfjy-radius-md);
+  /* 默认中性灰图标，消除四色图标带来的色相噪音 */
+  color: var(--xfjy-text-regular);
+  background: var(--xfjy-bg-hover);
+}
+
+/* 唯一保留品牌色的图标：当前在线（实时语义） */
+.kpi-card__icon--live {
+  color: var(--xfjy-primary);
+  background: var(--xfjy-primary-50);
 }
 
 .kpi-card__label {
@@ -183,18 +164,16 @@ const sparkOption = computed(() =>
 }
 
 .kpi-card__value {
-  margin-top: var(--xfjy-space-1);
-  font-size: var(--xfjy-font-size-xl);
-  font-weight: 600;
-  line-height: 1.15;
-  letter-spacing: -0.3px; /* 大数字字距光学收紧，不归栅格（AGENTS.md §11 存量豁免） */
+  font-size: var(--xfjy-font-size-3xl);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.5px; /* 大数字字距光学收紧 */
   color: var(--xfjy-text-primary);
   font-variant-numeric: tabular-nums;
 }
 
 .kpi-card__foot {
-  margin-top: var(--xfjy-space-1);
-  min-height: 18px;
+  min-height: 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -226,12 +205,15 @@ const sparkOption = computed(() =>
 .kpi-card__chip {
   display: inline-flex;
   align-items: center;
-  gap: 2px; /* chip 微间距为光学修正，不归 8px 栅格（AGENTS.md §11 存量豁免） */
-  padding: 1px var(--xfjy-space-2); /* 1px 为光学贴边修正 */
-  border-radius: var(--xfjy-radius-sm);
+  gap: 3px;
+  padding: 0 var(--xfjy-space-2);
+  /* chip 高 20px，3xl(28px) 已过半高，渲染即全圆角胶囊；admin 无 pill token，不裸写 999px */
+  border-radius: var(--xfjy-radius-3xl);
   font-size: var(--xfjy-font-size-xs);
   font-weight: 500;
-  line-height: 18px;
+  line-height: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
   font-variant-numeric: tabular-nums;
 }
 
@@ -240,12 +222,12 @@ const sparkOption = computed(() =>
 }
 
 .kpi-card__chip--up {
-  color: var(--xfjy-success);
+  color: var(--xfjy-success-deep);
   background: var(--xfjy-success-50);
 }
 
 .kpi-card__chip--down {
-  color: var(--xfjy-danger);
+  color: var(--xfjy-danger-deep);
   background: var(--xfjy-danger-50);
 }
 
@@ -255,53 +237,12 @@ const sparkOption = computed(() =>
 }
 
 .kpi-card__hint {
-  font-size: var(--xfjy-font-size-xs);
+  margin-left: var(--xfjy-space-2);
+  font-size: var(--xfjy-font-size-sm);
+  /* 辅助文案非禁用态：disabled 灰仅 1.9:1，secondary 4.6:1 过 AA */
   color: var(--xfjy-text-secondary);
-}
-
-.kpi-card__spark {
-  margin-top: var(--xfjy-space-1);
-  min-height: 24px;
-}
-
-.kpi-card__live {
-  display: flex;
-  align-items: center;
-  gap: var(--xfjy-space-2);
-  height: 24px;
-  font-size: var(--xfjy-font-size-xs);
-  color: var(--xfjy-text-secondary);
-}
-
-.kpi-card__live-dot {
-  position: relative;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--xfjy-success);
-}
-
-/* 脉冲波纹：用子元素缩放+淡出，避免在 .vue 内写 rgba 字面量（§7.2） */
-.kpi-card__live-wave {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: var(--xfjy-success);
-  animation: kpi-wave 1.6s ease-out infinite;
-}
-
-@keyframes kpi-wave {
-  0% {
-    transform: scale(1);
-    opacity: 0.35;
-  }
-  70% {
-    transform: scale(2.4);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(2.4);
-    opacity: 0;
-  }
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

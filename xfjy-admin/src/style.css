@@ -28,13 +28,13 @@
   --xfjy-text-secondary: #6b7280; /* 次级文字：白底对比度 4.6:1，满足 WCAG AA */
   --xfjy-text-disabled: #c9cdd4;
 
-  /* ===== 中性色 - 边框/分割 ===== */
-  --xfjy-border: #e5e6eb;
+  /* ===== 中性色 - 边框/分割（暖调，与暖玫红主色同色温） ===== */
+  --xfjy-border: #ececef;
   --xfjy-border-light: #f2f3f5;
   --xfjy-border-hover: #d4d6db;
 
-  /* ===== 中性色 - 背景 ===== */
-  --xfjy-bg-page: #f5f7fa;
+  /* ===== 中性色 - 背景（页面底换暖灰，消除冷灰与玫红的色温割裂） ===== */
+  --xfjy-bg-page: #f8f7f8;
   --xfjy-bg-card: #ffffff;
   --xfjy-bg-hover: #f7f8fa;
   --xfjy-bg-header: #fafafa;
@@ -44,6 +44,13 @@
   --xfjy-warning: #ff7d00;
   --xfjy-danger: #f53f3f;
   --xfjy-info: #86909c;
+
+  /* ===== 状态色深档（文字/实心控件专用，WCAG AA 4.5:1 达标）=====
+     本色在白底仅 2.46~3.71:1，深档用于：浅底 tag 文字、实心按钮/徽标底色（白字）。
+     实测对比度（on white）：success-deep 4.79、danger-deep 5.45、warning-deep 4.91。 */
+  --xfjy-success-deep: #008520;
+  --xfjy-danger-deep: #c43232;
+  --xfjy-warning-deep: #b35700;
 
   /* ===== 状态色浅底（仅用于图标底色/标签背景，不做大面积铺色） ===== */
   --xfjy-success-50: #f0fdf4;
@@ -64,7 +71,9 @@
   --xfjy-sidebar-text-secondary: #86909c;
   --xfjy-sidebar-hover: #f7f8fa;
   --xfjy-sidebar-active-bg: rgba(254, 60, 114, 0.08);
-  --xfjy-sidebar-active-text: #fe3c72;
+  /* 激活文字走深档（6.82:1 达标）；主色 #fe3c72 on white 仅 3.44:1 不满足正文 4.5:1 */
+  --xfjy-sidebar-active-text: #a8284d;
+  /* 3px 左边条是非文字图形，3:1 门槛下主色 3.44:1 已达标，保留品牌色 */
   --xfjy-sidebar-active-border: #fe3c72;
   --xfjy-sidebar-sub-bg: #fafafa;
   --xfjy-sidebar-font-size: 15px;
@@ -90,15 +99,17 @@
   --xfjy-header-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
   --xfjy-header-height: 56px;
 
-  /* ===== 图表色板（CVD 验证通过） ===== */
-  --xfjy-chart-1: #fe3c72;
-  --xfjy-chart-2: #7c3aed;
-  --xfjy-chart-3: #00b894;
-  --xfjy-chart-4: #f59e0b;
-  --xfjy-chart-5: #3b82f6;
-  --xfjy-chart-6: #ef4444;
-  --xfjy-chart-7: #8b5cf6;
-  --xfjy-chart-8: #10b981;
+  /* ===== 图表色板：玫红单色体系（1/2/4 同色系明度阶）+ 青绿正向语义 + 中性灰阶 =====
+     收敛原彩虹板（含 4 个近似紫/蓝），色相从 7 个降到 3 个：玫红、青绿、灰；
+     红 #f53f3f 仅承载拒绝/危险语义。多系列图靠明度阶区分，CVD 下仍可辨。 */
+  --xfjy-chart-1: #fe3c72; /* 主玫红 */
+  --xfjy-chart-2: #ff8fb1; /* 浅玫红 */
+  --xfjy-chart-3: #00b894; /* 青绿：唯一对比色，仅表正向 */
+  --xfjy-chart-4: #ffc8de; /* 玫红 mist */
+  --xfjy-chart-5: #86909c; /* 中性灰（深） */
+  --xfjy-chart-6: #f53f3f; /* 语义红：拒绝/危险 */
+  --xfjy-chart-7: #a9aeb8; /* 中性灰（中，与 NEUTRAL #c9cdd4 拉开明度） */
+  --xfjy-chart-8: #4e5969; /* 中性灰（墨） */
 
   /* ===== 图表墨色 ===== */
   --xfjy-chart-ink: #1f2329;
@@ -146,6 +157,7 @@
   --xfjy-font-size-lg: 20px;
   --xfjy-font-size-xl: 24px;
   --xfjy-font-size-2xl: 28px;
+  --xfjy-font-size-3xl: 30px; /* KPI 核心数字 */
   --xfjy-line-height: 1.5;
 
   /* ===== 覆盖 Element Plus 默认主色（默认蓝 #409EFF），统一全站按钮/链接/高亮态 ===== */
@@ -373,12 +385,18 @@ textarea {
 /* 纯展示容器（搜索栏/表格卡/统计卡）不设 hover 抬升——§7.2 列表卡片禁止 hover 抬升；
  * hover 反馈仅保留给可交互元素（表格行、按钮、链接） */
 
-/* 链接型按钮 hover：玫红加深 + 轻微位移，强化可点感 */
+/* 链接型按钮：白底粉字默认态即走深档（6.82:1），主色 3.44:1 不满足正文对比度。
+   选择器带 --primary 与 EP 同特异性 (0,2,0)，本文件后加载生效；
+   :not 保护禁用态，禁用灰由 EP disabled 变量接管（WCAG 豁免对比度） */
+.el-button--primary.is-link:not(.is-disabled):not([disabled]) {
+  color: var(--xfjy-primary-dark);
+}
 .el-button.is-link {
   transition: color 0.2s ease, transform 0.15s ease;
 }
 .el-button.is-link:hover {
-  color: var(--xfjy-primary);
+  /* 链接文字 hover 走深档（6.82:1），主色 3.44:1 不满足正文对比度 */
+  color: var(--xfjy-primary-dark);
   transform: translateX(2px);
 }
 .el-button.is-link:active {
@@ -476,31 +494,32 @@ textarea {
    - 浅色阶（light-3/5/7/8/9、dark-2）是 EP 组件内部消费的派生色，必须显式给出。
    ====================================================================== */
 :root {
-  /* 功能色 */
-  --el-color-success: var(--xfjy-success);
-  --el-color-success-light-3: #4cc76a;
-  --el-color-success-light-5: #80d694;
-  --el-color-success-light-7: #b3e4bf;
-  --el-color-success-light-8: #ccecd3;
-  --el-color-success-light-9: #e6f5e9;
-  --el-color-success-dark-2: #009022;
+  /* 功能色：EP 主映射走深档（实心控件白字与浅底 tag 文字均满足 4.5:1），
+     light-N 为深档与白色按 EP 官方比例（30/50/70/80/90%）混色，dark-2 为混 20% 黑 */
+  --el-color-success: var(--xfjy-success-deep);
+  --el-color-success-light-3: #4daa63;
+  --el-color-success-light-5: #80c290;
+  --el-color-success-light-7: #b3dabc;
+  --el-color-success-light-8: #cce7d2;
+  --el-color-success-light-9: #e6f3e9;
+  --el-color-success-dark-2: #006a1a;
 
-  --el-color-warning: var(--xfjy-warning);
-  --el-color-warning-light-3: #ff9b40;
-  --el-color-warning-light-5: #ffb673;
-  --el-color-warning-light-7: #ffd0a6;
-  --el-color-warning-light-8: #ffdec0;
-  --el-color-warning-light-9: #ffeedb;
-  --el-color-warning-dark-2: #cc6400;
+  --el-color-warning: var(--xfjy-warning-deep);
+  --el-color-warning-light-3: #ca894d;
+  --el-color-warning-light-5: #d9ab80;
+  --el-color-warning-light-7: #e8cdb3;
+  --el-color-warning-light-8: #f0ddcc;
+  --el-color-warning-light-9: #f7eee6;
+  --el-color-warning-dark-2: #8f4600;
 
-  --el-color-danger: var(--xfjy-danger);
-  --el-color-danger-light-3: #f76a6a;
-  --el-color-danger-light-5: #f99696;
-  --el-color-danger-light-7: #fbc0c0;
-  --el-color-danger-light-8: #fdd2d2;
-  --el-color-danger-light-9: #fee9e9;
-  --el-color-danger-dark-2: #c43232;
-  --el-color-error: var(--xfjy-danger);
+  --el-color-danger: var(--xfjy-danger-deep);
+  --el-color-danger-light-3: #d67070;
+  --el-color-danger-light-5: #e29999;
+  --el-color-danger-light-7: #edc2c2;
+  --el-color-danger-light-8: #f3d6d6;
+  --el-color-danger-light-9: #f9ebeb;
+  --el-color-danger-dark-2: #9d2828;
+  --el-color-error: var(--xfjy-danger-deep);
 
   --el-color-info: var(--xfjy-info);
   --el-color-info-light-3: #a9b0ba;
@@ -582,6 +601,38 @@ textarea {
 .el-message {
   /* 顶部提示条按小元素处理 */
   border-radius: var(--xfjy-radius-sm);
+}
+
+/* primary 浅底 tag：文字走深档（6.82:1）。只覆盖 tag 文字变量，
+   el-button--primary 实心按钮仍用主色 #fe3c72（品牌决策，登记豁免）。
+   选择器必须带 .el-tag 前缀凑够 (0,2,0)：EP 源码用 .el-tag.el-tag--primary
+   声明同名变量，单类选择器会因特异性不足被覆盖 */
+.el-tag.el-tag--primary {
+  --el-tag-text-color: var(--xfjy-primary-dark);
+}
+
+/* success/warning 浅底 tag：deep 档文字在同源 light-9 浅底上仅 4.20/4.28:1，
+   升到 dark-2 档（5.97/6.02:1）。danger deep 在浅底 4.70:1 已达标，不覆盖。
+   (0,3,0) 特异性压过 EP 的 .el-tag.el-tag--{type} (0,2,0) */
+.el-tag.el-tag--success.el-tag--light {
+  --el-tag-text-color: var(--el-color-success-dark-2);
+}
+.el-tag.el-tag--warning.el-tag--light {
+  --el-tag-text-color: var(--el-color-warning-dark-2);
+}
+
+/* 分页激活页是粉字白底（EP 默认透明底），主色 3.44:1 不满足正文 4.5:1，走深档 */
+.el-pagination .el-pager li.is-active {
+  color: var(--xfjy-primary-dark);
+}
+
+/* tabs 激活/悬停文字走深档（EP 直接用主色，3.44:1 不达标）；激活下划线是图形
+   （3:1 非文本标准，主色 3.44:1 已过），保留主色不动。:not 保护禁用态 */
+.el-tabs__item.is-active {
+  color: var(--xfjy-primary-dark);
+}
+.el-tabs__item:hover:not(.is-disabled) {
+  color: var(--xfjy-primary-dark);
 }
 
 /* ==================== 无障碍：reduced-motion 降级 + 键盘焦点环 ==================== */

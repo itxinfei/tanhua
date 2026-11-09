@@ -24,7 +24,6 @@
         </span>
       </div>
       <div class="dash-toolbar__right">
-        <span class="dash-toolbar__clock">{{ formatClock(now) }}</span>
         <el-radio-group
           v-model="days"
           size="small"
@@ -96,14 +95,10 @@
             :label="kpi.label"
             :value="kpi.value"
             :icon="kpi.icon"
-            :icon-color="kpi.iconColor"
-            :icon-bg="kpi.iconBg"
+            :live="kpi.live"
             :delta="kpi.delta"
             :hint="kpi.hint"
             :formatter="kpi.formatter"
-            :spark="kpi.spark"
-            :spark-color="kpi.sparkColor"
-            :pulse="kpi.pulse"
             :to="kpi.to"
           />
         </el-col>
@@ -227,16 +222,18 @@
                 :key="level.name"
                 class="funnel-level"
               >
-                <div class="funnel-level__track">
+                <div class="funnel-level__bar-wrap">
                   <div
                     class="funnel-level__bar"
-                    :class="level.cls"
-                    :style="{ width: level.pct + '%' }"
-                  />
+                    :class="[`funnel-level__bar--${level.id}`, { 'funnel-level__bar--zero': level.zero }]"
+                    :style="level.zero ? undefined : { width: level.pct + '%' }"
+                  >
+                    {{ formatCount(level.value) }}
+                  </div>
                 </div>
                 <div class="funnel-level__meta">
                   <span class="funnel-level__name">{{ level.name }}</span>
-                  <span class="funnel-level__count">{{ formatCount(level.value) }}</span>
+                  <span class="funnel-level__rate">{{ level.rateText }}</span>
                 </div>
               </div>
               <div class="rate-grid">
@@ -743,7 +740,6 @@ const {
   days,
   autoRefresh,
   countdown,
-  now,
   overview,
   registerTrend,
   online,
@@ -811,22 +807,16 @@ function typeLabel(code: string): string {
 // ==================== KPI ====================
 const newUsersDelta = computed(() => lastDiff(registerTrend.value?.newUserList))
 const revenueDelta = computed(() => lastDiff(revenue.value?.trend.amountList))
-const revenueSpark = computed<Array<number | null> | null>(() =>
-  revenue.value ? revenue.value.trend.amountList.map((v) => v / 100) : null,
-)
 
 interface KpiItem {
   label: string
   value: number | null
   icon: Component
-  iconColor: string
-  iconBg: string
+  /** 实时在线卡图标走品牌玫红，其余卡统一中性灰 */
+  live?: boolean
   delta?: number | null
   hint?: string
   formatter?: (n: number) => string
-  spark?: Array<number | null> | null
-  sparkColor?: string
-  pulse?: boolean
   /** 点击跳转路由地址；不传则为纯展示卡 */
   to?: string
 }
@@ -836,44 +826,30 @@ const kpiList = computed<KpiItem[]>(() => [
     label: '今日收入',
     value: revenue.value ? revenue.value.overview.todayAmount : null,
     icon: Wallet,
-    iconColor: 'var(--xfjy-success)',
-    iconBg: 'var(--xfjy-success-50)',
     delta: revenueDelta.value,
     formatter: formatFen,
-    spark: revenueSpark.value,
-    sparkColor: PALETTE[7],
     to: '/commercial/pay',
   },
   {
     label: '今日新增',
     value: overview.value?.newUsers ?? null,
     icon: CirclePlus,
-    iconColor: 'var(--xfjy-primary-violet)',
-    iconBg: 'var(--xfjy-deep-50)',
     delta: newUsersDelta.value,
     hint: `累计注册 ${formatCount(overview.value?.totalUsers)}`,
-    spark: registerTrend.value?.newUserList ?? null,
-    sparkColor: PALETTE[1],
     to: '/user/list',
   },
   {
     label: '今日活跃',
     value: online.value?.todayActive ?? null,
     icon: Histogram,
-    iconColor: 'var(--xfjy-chart-3)',
-    iconBg: 'var(--xfjy-chart-3-50)',
     hint: 'DAU · 日活埋点',
-    spark: activity.value?.dauList ?? null,
-    sparkColor: PALETTE[2],
   },
   {
     label: '当前在线',
     value: online.value?.onlineUsers ?? null,
     icon: Connection,
-    iconColor: 'var(--xfjy-chart-5)',
-    iconBg: 'var(--xfjy-chart-5-50)',
+    live: true,
     hint: `今日峰值 ${formatCount(online.value?.peakToday)}`,
-    pulse: true,
   },
 ])
 
@@ -1004,9 +980,17 @@ const hasTodo = computed(() => todoActions.value.some((a) => a.count > 0))
 interface FunnelLevel {
   name: string
   value: number
+  /** 条宽度百分比；zero 层不绑定宽度，走 CSS 固定空态 */
   pct: number
-  cls: string
+  /** 层序号，对应 CSS 梯形斜切档（1 最宽、3 最窄） */
+  id: 1 | 2 | 3
+  /** 0 值空态：斜纹灰条 */
+  zero: boolean
+  /** 右侧转化率文案 */
+  rateText: string
 }
+/** 非首层梯形宽度下限，保证小数据下漏斗形态不塌缩 */
+const FUNNEL_MIN_WIDTH = 40
 const funnel = computed<{
   levels: FunnelLevel[]
   likeRate: number | null
@@ -1014,17 +998,28 @@ const funnel = computed<{
 } | null>(() => {
   const t = match.value?.today
   if (!t) return null
-  // 以最大层（滑动数）为 100% 宽度基准；无滑动时全部 0 宽
-  const base = t.swipes > 0 ? t.swipes : 1
-  const widthOf = (v: number) => (v > 0 ? Math.max((v / base) * 100, 6) : 0)
+  const likeRate = t.swipes > 0 ? (t.likes / t.swipes) * 100 : null
+  const matchRate = t.likes > 0 ? (t.matches / t.likes) * 100 : null
+  // 每层宽度相对上一层（与率口径一致），设下限保持收窄梯形视觉
+  const widthOf = (v: number, base: number) =>
+    v > 0 && base > 0 ? Math.max((v / base) * 100, FUNNEL_MIN_WIDTH) : 0
   return {
     levels: [
-      { name: '滑动浏览', value: t.swipes, pct: widthOf(t.swipes), cls: 'funnel-level__bar--blue' },
-      { name: '右滑喜欢', value: t.likes, pct: widthOf(t.likes), cls: 'funnel-level__bar--violet' },
-      { name: '互喜匹配', value: t.matches, pct: widthOf(t.matches), cls: 'funnel-level__bar--rose' },
+      {
+        name: '滑动浏览', value: t.swipes, pct: 100, id: 1, zero: t.swipes === 0,
+        rateText: '占比 100%',
+      },
+      {
+        name: '右滑喜欢', value: t.likes, pct: widthOf(t.likes, t.swipes), id: 2, zero: t.likes === 0,
+        rateText: `喜欢率 ${ratePercent(likeRate)}`,
+      },
+      {
+        name: '互喜匹配', value: t.matches, pct: widthOf(t.matches, t.likes), id: 3, zero: t.matches === 0,
+        rateText: `匹配率 ${ratePercent(matchRate)}`,
+      },
     ],
-    likeRate: t.swipes > 0 ? (t.likes / t.swipes) * 100 : null,
-    matchRate: t.likes > 0 ? (t.matches / t.likes) * 100 : null,
+    likeRate,
+    matchRate,
   }
 })
 
@@ -1139,15 +1134,16 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
 
 <style scoped>
 .dashboard {
-  /* page-container 已提供 24px 内边距，这里只约束纵向节奏 */
+  /* page-container 已提供 24px 内边距，这里只约束纵向节奏；
+     区块间距 16px 必须大于卡内间距，避免视觉倒挂 */
   display: flex;
   flex-direction: column;
-  gap: var(--xfjy-space-2);
+  gap: var(--xfjy-space-4);
 }
 
 .dash-row {
   margin-bottom: 0;
-  row-gap: var(--xfjy-space-2);
+  row-gap: var(--xfjy-space-4);
 }
 
 /* ==================== 顶部控制条 ==================== */
@@ -1161,7 +1157,6 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
   background: var(--xfjy-bg-card);
   border: 1px solid var(--xfjy-border);
   border-radius: var(--xfjy-radius-lg);
-  box-shadow: var(--xfjy-shadow-card);
 }
 
 .dash-toolbar__left,
@@ -1173,21 +1168,15 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
 }
 
 .dash-toolbar__title {
-  font-size: var(--xfjy-font-size-md);
-  font-weight: 600;
+  /* H1 与面板标题（16px）拉开层级 */
+  font-size: var(--xfjy-font-size-lg);
+  font-weight: 700;
   color: var(--xfjy-text-primary);
 }
 
 .dash-toolbar__meta {
   font-size: var(--xfjy-font-size-xs);
   color: var(--xfjy-text-secondary);
-  font-variant-numeric: tabular-nums;
-}
-
-.dash-toolbar__clock {
-  font-size: var(--xfjy-font-size-sm);
-  font-weight: 600;
-  color: var(--xfjy-text-regular);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1208,7 +1197,7 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
   gap: var(--xfjy-space-1);
   font-size: var(--xfjy-font-size-xs);
   font-weight: 500;
-  color: var(--xfjy-success);
+  color: var(--xfjy-success-deep);
 }
 
 .live-badge__dot {
@@ -1216,7 +1205,8 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--xfjy-success);
+  /* 信息图形需过 WCAG 1.4.11 非文本 3:1，旧 success 仅 2.46:1，走 deep 4.79:1 */
+  background: var(--xfjy-success-deep);
 }
 
 .live-badge__dot--sm {
@@ -1229,7 +1219,8 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: var(--xfjy-success);
+  /* 与 live-badge__dot 同色，同步走 deep 档 */
+  background: var(--xfjy-success-deep);
   animation: live-wave 1.6s ease-out infinite;
 }
 
@@ -1328,15 +1319,15 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
 }
 
 .todo-item--warning .todo-item__icon {
-  color: var(--xfjy-warning);
+  color: var(--xfjy-warning-deep);
 }
 
 .todo-item--danger .todo-item__icon {
-  color: var(--xfjy-danger);
+  color: var(--xfjy-danger-deep);
 }
 
 .todo-item--ok .todo-item__icon {
-  color: var(--xfjy-success);
+  color: var(--xfjy-success-deep);
 }
 
 .todo-item__body {
@@ -1367,7 +1358,7 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
   flex-shrink: 0;
   font-size: var(--xfjy-font-size-xs);
   font-weight: 500;
-  color: var(--xfjy-primary);
+  color: var(--xfjy-primary-dark);
   opacity: 0;
   transition: opacity 0.2s ease;
 }
@@ -1384,45 +1375,75 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
   gap: var(--xfjy-space-2);
   padding: var(--xfjy-space-2) var(--xfjy-space-3);
   font-size: var(--xfjy-font-size-sm);
-  color: var(--xfjy-success);
+  color: var(--xfjy-success-deep);
   background: var(--xfjy-success-50);
   border-radius: var(--xfjy-radius-lg);
 }
 
 
-/* ==================== 匹配漏斗 ==================== */
+/* ==================== 匹配漏斗（居中收窄梯形，单色三档表达衰减） ==================== */
 .funnel {
   display: flex;
   flex-direction: column;
 }
 
 .funnel-level {
-  margin-bottom: var(--xfjy-space-3);
+  margin-bottom: var(--xfjy-space-2);
 }
 
-.funnel-level__track {
-  height: 28px;
-  background: var(--xfjy-bg-hover);
-  border-radius: var(--xfjy-radius-md);
-  overflow: hidden;
+.funnel-level:last-child {
+  margin-bottom: 0;
+}
+
+.funnel-level__bar-wrap {
+  display: flex;
+  justify-content: center;
 }
 
 .funnel-level__bar {
-  height: 100%;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: var(--xfjy-radius-md);
+  font-size: var(--xfjy-font-size-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   transition: width 0.5s ease;
 }
 
-.funnel-level__bar--blue {
-  background: var(--xfjy-chart-5);
+/* 梯形斜切档：越下层收口越明显，clip-path 零依赖 */
+.funnel-level__bar--1 {
+  background: linear-gradient(135deg, var(--xfjy-primary), var(--xfjy-primary-soft));
+  color: var(--xfjy-text-inverse);
+  clip-path: polygon(0 0, 100% 0, 94% 100%, 6% 100%);
 }
 
-.funnel-level__bar--violet {
-  background: var(--xfjy-chart-2);
+.funnel-level__bar--2 {
+  /* 浅底用深玫红字，保证对比度达标（白字在 #ff8fb1 上仅 2.4:1） */
+  background: linear-gradient(135deg, var(--xfjy-primary-200), var(--xfjy-primary-soft));
+  color: var(--xfjy-primary-darker);
+  clip-path: polygon(6% 0, 94% 0, 90% 100%, 10% 100%);
 }
 
-.funnel-level__bar--rose {
-  background: var(--xfjy-chart-1);
+.funnel-level__bar--3 {
+  background: var(--xfjy-border);
+  color: var(--xfjy-text-secondary);
+  clip-path: polygon(10% 0, 90% 0, 86% 100%, 14% 100%);
+}
+
+/* 0 值空态：斜纹灰条，固定宽度不参与数据比例；zero 时模板未绑内联 width，普通声明即生效，无需 !important */
+.funnel-level__bar--zero {
+  width: 52%;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--xfjy-border-light) 0,
+    var(--xfjy-border-light) 8px,
+    var(--xfjy-bg-hover) 8px,
+    var(--xfjy-bg-hover) 16px
+  );
+  /* 条内数字是真实文本，secondary 保证可读，不用 disabled 灰 */
+  color: var(--xfjy-text-secondary);
 }
 
 .funnel-level__meta {
@@ -1430,14 +1451,15 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
   align-items: center;
   justify-content: space-between;
   margin-top: var(--xfjy-space-1);
-  font-size: var(--xfjy-font-size-xs);
+  padding: 0 var(--xfjy-space-1);
+  font-size: var(--xfjy-font-size-sm);
 }
 
 .funnel-level__name {
   color: var(--xfjy-text-secondary);
 }
 
-.funnel-level__count {
+.funnel-level__rate {
   font-weight: 600;
   color: var(--xfjy-text-primary);
   font-variant-numeric: tabular-nums;
@@ -1446,21 +1468,22 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
 .rate-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--xfjy-space-2);
-  margin-top: var(--xfjy-space-1);
+  gap: var(--xfjy-space-3);
+  margin-top: var(--xfjy-space-4);
 }
 
 .rate-item {
   display: flex;
   flex-direction: column;
   gap: var(--xfjy-space-1);
-  padding: var(--xfjy-space-3);
-  background: var(--xfjy-bg-hover);
+  padding: var(--xfjy-space-3) var(--xfjy-space-4);
+  border: 1px solid var(--xfjy-border);
   border-radius: var(--xfjy-radius-md);
 }
 
 .rate-item__label {
-  font-size: var(--xfjy-font-size-xs);
+  font-size: var(--xfjy-font-size-sm);
+  /* 辅助标签非禁用态，走 secondary 4.6:1；disabled 灰仅 1.9:1 不达标 */
   color: var(--xfjy-text-secondary);
 }
 
@@ -1472,7 +1495,7 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
 }
 
 .rate-item__value--rose {
-  color: var(--xfjy-primary);
+  color: var(--xfjy-primary-dark);
 }
 
 /* ==================== 留存 ==================== */
@@ -1544,15 +1567,15 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
 }
 
 .mini-stat__value--green {
-  color: var(--xfjy-success);
+  color: var(--xfjy-success-deep);
 }
 
 .mini-stat__value--red {
-  color: var(--xfjy-danger);
+  color: var(--xfjy-danger-deep);
 }
 
 .mini-stat__value--amber {
-  color: var(--xfjy-warning);
+  color: var(--xfjy-warning-deep);
 }
 
 /* ==================== 内容安全 ==================== */
@@ -1628,7 +1651,7 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
 
 .type-empty {
   font-size: var(--xfjy-font-size-xs);
-  color: var(--xfjy-text-disabled);
+  color: var(--xfjy-text-secondary);
 }
 
 /* ==================== 热门内容 ==================== */
@@ -1661,8 +1684,9 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
 }
 
 .hot-item__rank--top {
+  /* 圆内是排名数字（12px 文本），白字 on 主色 3.44:1 不达标，走深档 6.82:1 */
   color: var(--xfjy-text-inverse);
-  background: var(--xfjy-primary);
+  background: var(--xfjy-primary-dark);
 }
 
 .hot-item__text {
@@ -1759,7 +1783,8 @@ const hotVideos = computed(() => hot.value?.hotVideos ?? [])
 }
 
 .dash-skeleton__kpi {
-  height: 108px;
+  /* 与重构后 KpiCard 实际高度对齐：padding 40 + 图标 32 + 数字 33 + 脚注 20 + 间距 24 */
+  height: 150px;
   border-radius: var(--xfjy-radius-lg);
   background: var(--xfjy-bg-card);
   border: 1px solid var(--xfjy-border);

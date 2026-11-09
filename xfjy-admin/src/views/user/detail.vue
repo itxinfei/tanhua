@@ -1610,7 +1610,7 @@ watch(activeTab, async (tab) => {
 }
 
 .freeze-reason {
-  color: var(--xfjy-danger);
+  color: var(--xfjy-danger-deep);
   font-size: var(--xfjy-font-size-sm);
   margin-top: var(--xfjy-space-1);
 }
@@ -1703,7 +1703,8 @@ watch(activeTab, async (tab) => {
 }
 
 .session-item.active {
-  background: var(--xfjy-primary);
+  /* 选中态为多行文字容器，白字 on 主色仅 3.44:1，改深档 6.82:1（品牌 CTA 按钮豁免不适用于此） */
+  background: var(--xfjy-primary-dark);
   color: var(--xfjy-text-inverse);
 }
 
@@ -1738,8 +1739,9 @@ watch(activeTab, async (tab) => {
 }
 
 .session-id {
-  font-size: 11px;
-  color: var(--xfjy-text-disabled);
+  /* 未登记 11px 违反字号下限（AGENTS §7.2 正文 ≥13px、辅助 ≥xs 12px），收口到 xs token */
+  font-size: var(--xfjy-font-size-xs);
+  color: var(--xfjy-text-secondary);
   font-weight: 400;
   flex-shrink: 0;
 }
@@ -1754,8 +1756,8 @@ watch(activeTab, async (tab) => {
 }
 
 .session-time {
-  font-size: 11px;
-  color: var(--xfjy-text-disabled);
+  font-size: var(--xfjy-font-size-xs);
+  color: var(--xfjy-text-secondary);
 }
 
 .loading-tip {
@@ -1796,8 +1798,8 @@ watch(activeTab, async (tab) => {
 }
 
 .message-time {
-  font-size: 11px;
-  color: var(--xfjy-text-disabled);
+  font-size: var(--xfjy-font-size-xs);
+  color: var(--xfjy-text-secondary);
   margin-bottom: var(--xfjy-space-1);
 }
 
@@ -1813,7 +1815,8 @@ watch(activeTab, async (tab) => {
 }
 
 .message-item.mine .bubble {
-  background: var(--xfjy-primary);
+  /* 气泡是正文文本容器，白字 on 主色 3.44:1 不达标，走深档 6.82:1 */
+  background: var(--xfjy-primary-dark);
   color: var(--xfjy-text-inverse);
 }
 
@@ -1870,7 +1873,7 @@ watch(activeTab, async (tab) => {
 }
 
 .text-muted {
-  color: var(--xfjy-text-disabled);
+  color: var(--xfjy-text-secondary);
 }
 
 /* 资料编辑 */
@@ -1941,7 +1944,8 @@ watch(activeTab, async (tab) => {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--xfjy-danger);
+  /* 删除圆钮：白图标 on 旧 danger 3.71:1，改 deep 档 5.45:1，与未读角标收口同逻辑 */
+  background: var(--xfjy-danger-deep);
   color: var(--xfjy-text-inverse);
   display: flex;
   align-items: center;
@@ -1963,7 +1967,7 @@ watch(activeTab, async (tab) => {
 
 .photo-add:hover {
   border-color: var(--xfjy-primary);
-  color: var(--xfjy-primary);
+  color: var(--xfjy-primary-dark);
 }
 
 .photo-tip {

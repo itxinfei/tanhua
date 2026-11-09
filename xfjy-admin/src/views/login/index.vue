@@ -345,7 +345,8 @@ async function handleLogin() {
   text-align: center;
   margin-top: 28px;
   font-size: var(--xfjy-font-size-xs);
-  color: var(--xfjy-text-disabled);
+  /* 版本号/版权是真实信息，disabled 灰 1.59:1 不可读，改 secondary（4.6:1） */
+  color: var(--xfjy-text-secondary);
 }
 
 /* ==================== 响应式 ==================== */

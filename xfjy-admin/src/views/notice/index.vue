@@ -698,7 +698,8 @@ onMounted(() => {
   outline: none;
   &:empty::before {
     content: attr(data-placeholder);
-    color: var(--xfjy-text-disabled);
+    /* placeholder 与 EP --el-text-color-placeholder 映射口径一致，用 secondary 不用 disabled 灰 */
+    color: var(--xfjy-text-secondary);
     pointer-events: none;
   }
   &:focus {
@@ -709,7 +710,7 @@ onMounted(() => {
     padding-left: 1.5em;
   }
   :deep(a) {
-    color: var(--xfjy-primary);
+    color: var(--xfjy-primary-dark);
   }
 }
 </style>

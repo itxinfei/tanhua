@@ -761,7 +761,7 @@ onMounted(() => {
 }
 
 .text-muted {
-  color: var(--xfjy-text-disabled);
+  color: var(--xfjy-text-secondary);
 }
 
 /* 批量处理栏 */
@@ -778,7 +778,7 @@ onMounted(() => {
 
 .batch-count {
   font-size: var(--xfjy-font-size-sm);
-  color: var(--xfjy-warning);
+  color: var(--xfjy-warning-deep);
   margin-right: auto;
 }
 

@@ -42,7 +42,8 @@ export interface BrandColors {
 }
 
 export function getBrandColors(): BrandColors {
-  const fallback = ['#fe3c72', '#7c3aed', '#00b894', '#f59e0b', '#3b82f6', '#ef4444', '#8b5cf6', '#10b981']
+  // 与 style.css --xfjy-chart-1..8 同源：玫红单色体系 + 青绿正向 + 中性灰阶（2026-11 色板收敛）
+  const fallback = ['#fe3c72', '#ff8fb1', '#00b894', '#ffc8de', '#86909c', '#f53f3f', '#a9aeb8', '#4e5969']
   return {
     primary: readCssVar('--xfjy-primary', '#fe3c72'),
     primaryDeep: readCssVar('--xfjy-primary-deep', '#b13bff'),
@@ -50,9 +51,9 @@ export function getBrandColors(): BrandColors {
     primaryLight7: readCssVar('--el-color-primary-light-7', '#ffc9d5'),
     primaryLight9: readCssVar('--el-color-primary-light-9', '#ffe7ed'),
     violet: readCssVar('--xfjy-primary-violet', '#8a5cf6'),
-    // CVD 安全图表色（与品牌主色区分度足够，通过色盲模拟验证）
+    // 单色体系：玫红/浅玫红/青绿，多系列靠明度阶区分，青绿仅表正向语义
     chartPrimary: readCssVar('--xfjy-chart-1', '#fe3c72'),    // 暖玫红
-    chartSecondary: readCssVar('--xfjy-chart-2', '#7c3aed'),  // CVD 安全紫（比 #b13bff 更深）
+    chartSecondary: readCssVar('--xfjy-chart-2', '#ff8fb1'),  // 浅玫红（单色体系第二阶）
     chartThird: readCssVar('--xfjy-chart-3', '#00b894'),      // 青绿
     chartPalette: fallback.map((hex, i) => readCssVar(`--xfjy-chart-${i + 1}`, hex)),
     success: readCssVar('--xfjy-success', '#00b42a'),

@@ -472,7 +472,8 @@ onMounted(() => {
 
 .no-media {
   font-size: var(--xfjy-font-size-xs);
-  color: var(--xfjy-text-disabled);
+  /* 无媒体占位是可读引导文案而非禁用态，用 secondary（4.6:1 达标）而非 disabled 灰 */
+  color: var(--xfjy-text-secondary);
 }
 
 .stat-text {

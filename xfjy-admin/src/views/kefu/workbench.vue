@@ -524,7 +524,8 @@ onUnmounted(() => {
   .user-avatar {
     width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; object-fit: cover;
     &.placeholder {
-      background: var(--xfjy-primary); color: var(--xfjy-text-inverse); font-size: var(--xfjy-font-size-sm);
+      /* 占位头像内含文字，白字 on 主色 3.44:1 不达标，走深档 6.82:1 */
+      background: var(--xfjy-primary-dark); color: var(--xfjy-text-inverse); font-size: var(--xfjy-font-size-sm);
       display: flex; align-items: center; justify-content: center;
     }
   }
@@ -532,7 +533,7 @@ onUnmounted(() => {
     font-size: var(--xfjy-font-size-base); font-weight: 500; color: var(--xfjy-text-primary);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .last-time { font-size: var(--xfjy-font-size-xs); color: var(--xfjy-text-disabled); flex-shrink: 0; }
+  .last-time { font-size: var(--xfjy-font-size-xs); color: var(--xfjy-text-secondary); flex-shrink: 0; }
 }
 .session-bottom {
   display: flex;
@@ -544,14 +545,15 @@ onUnmounted(() => {
     max-width: 180px;
   }
   .unread-badge {
-    background: var(--xfjy-danger); color: var(--xfjy-text-inverse);
+    /* 底色走 deep 档：白字 on #c43232 = 5.45:1（旧 --xfjy-danger #f53f3f 仅 3.71:1） */
+    background: var(--xfjy-danger-deep); color: var(--xfjy-text-inverse);
     /* 角标微尺寸（11px 字号 / 18px 高度）为徽标光学规格，不归 8px 栅格（AGENTS.md §11 存量豁免） */
     font-size: 11px; min-width: 18px; height: 18px; line-height: 18px;
     border-radius: var(--xfjy-radius-sm); text-align: center; padding: 0 var(--xfjy-space-1);
   }
 }
 .empty-tip {
-  padding: 40px 0; text-align: center; color: var(--xfjy-text-disabled); font-size: var(--xfjy-font-size-sm);
+  padding: 40px 0; text-align: center; color: var(--xfjy-text-secondary); font-size: var(--xfjy-font-size-sm);
 }
 
 /* 右侧聊天窗 */
@@ -603,7 +605,7 @@ onUnmounted(() => {
 }
 .chat-empty {
   flex: 1; display: flex; align-items: center; justify-content: center;
-  color: var(--xfjy-text-disabled); font-size: var(--xfjy-font-size-base);
+  color: var(--xfjy-text-secondary); font-size: var(--xfjy-font-size-base);
 }
 .chat-header {
   padding: var(--xfjy-space-4) var(--xfjy-space-5);
@@ -631,7 +633,8 @@ onUnmounted(() => {
     color: var(--xfjy-text-primary);
   }
   &.mine .bubble {
-    background: var(--xfjy-primary);
+    /* 气泡是正文文本容器，白字 on 主色 3.44:1 不达标，走深档 6.82:1 */
+    background: var(--xfjy-primary-dark);
     color: var(--xfjy-text-inverse);
   }
 }

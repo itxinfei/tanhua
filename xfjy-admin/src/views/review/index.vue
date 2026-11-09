@@ -224,7 +224,8 @@
               :status="currentItem.type"
               :mapping="typeMapping"
             />
-            <span class="detail-time">{{ currentItem.submittedAt }}</span>
+            <!-- 后端可能给 ISO 8601，统一格式化为本地时区 yyyy-MM-dd HH:mm（AGENTS §5 时间契约） -->
+            <span class="detail-time">{{ formatDateTime(currentItem.submittedAt) }}</span>
           </div>
 
           <div class="detail-body">
@@ -416,7 +417,7 @@ import {
 } from '@/api/review'
 import type { ReviewItem, ReviewQuery } from '@/api/review'
 import { freezeUserApi } from '@/api/user'
-import { formatShortTime } from '@/utils/format'
+import { formatShortTime, formatDateTime } from '@/utils/format'
 
 // 响应式：移动端纵向堆叠 + 禁用键盘快捷键
 const { isMobile } = useResponsive()
@@ -754,7 +755,8 @@ onUnmounted(() => {
   background: var(--xfjy-primary-50);
   border: 1px solid var(--xfjy-primary-100);
   border-radius: var(--xfjy-radius-md);
-  color: var(--xfjy-primary);
+  /* 快捷键提示是正文文字，主色 3.44:1 不达标，走深档 6.82:1 */
+  color: var(--xfjy-primary-dark);
   font-size: var(--xfjy-font-size-sm);
 }
 
@@ -874,13 +876,15 @@ kbd {
 }
 
 .queue-id {
-  color: var(--xfjy-text-disabled);
+  /* 队列编号/时间是真实业务信息，disabled 灰 1.59:1 不可读，改 secondary（4.6:1） */
+  color: var(--xfjy-text-secondary);
   font-size: var(--xfjy-font-size-xs);
 }
 
 .queue-time {
   margin-left: auto;
-  color: var(--xfjy-text-disabled);
+  /* 队列编号/时间是真实业务信息，disabled 灰 1.59:1 不可读，改 secondary（4.6:1） */
+  color: var(--xfjy-text-secondary);
   font-size: var(--xfjy-font-size-xs);
   flex-shrink: 0;
 }

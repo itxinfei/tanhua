@@ -162,6 +162,7 @@
           prop="mobile"
           label="手机号"
           width="130"
+          show-overflow-tooltip
         />
         <el-table-column
           prop="gender"
@@ -190,6 +191,7 @@
           prop="city"
           label="城市"
           width="90"
+          show-overflow-tooltip
         />
         <el-table-column
           v-if="!isMobile"
@@ -228,12 +230,14 @@
           prop="createdAt"
           label="注册时间"
           width="170"
+          show-overflow-tooltip
         />
         <el-table-column
           v-if="!isMobile"
           prop="lastActiveAt"
           label="最后活跃"
           width="170"
+          show-overflow-tooltip
         />
         <el-table-column
           label="操作"

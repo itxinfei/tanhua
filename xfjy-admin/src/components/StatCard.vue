@@ -113,12 +113,12 @@ const formattedValue = computed(() => {
 }
 
 .stat-card__change.up {
-  color: var(--xfjy-success);
+  color: var(--xfjy-success-deep);
   background: var(--xfjy-success-tint);
 }
 
 .stat-card__change.down {
-  color: var(--xfjy-danger);
+  color: var(--xfjy-danger-deep);
   background: var(--xfjy-danger-tint);
 }
 </style>
