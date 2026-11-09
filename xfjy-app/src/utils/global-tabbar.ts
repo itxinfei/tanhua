@@ -26,13 +26,34 @@ import { useUnreadStore } from "@/store/unread";
 /** 挂载目标容器 id */
 const BAR_ID = "xfjy-global-tabbar";
 
-/** AppTabbar 实例（通过 setupState.setActive / setUnreadCount 调用） */
-let vm: {
+/** AppTabbar 实例暴露面（defineExpose 的 setActive / setUnreadCount） */
+type TabbarVm = {
   setActive?: (i: number) => void;
   setUnreadCount?: (count: number) => void;
-} | null = null;
+};
+
 /** 挂载目标 div */
 let bar: HTMLElement | null = null;
+
+/**
+ * 从挂载容器现场解析 AppTabbar 暴露面（懒解析，不做安装时一次性捕获）。
+ * 背景：实测 uni-h5-vue 在 createApp().mount() 返回瞬间，instance.exposed 可能尚未填充，
+ * 此时一次性捕获会落到空的 setupState（{}），之后 exposed 就绪也与闭包无关，
+ * setActive 静默 no-op 且永不自愈（页面间表现为概率性高亮失效）。
+ * 每帧经 DOM 容器现取，本帧取不到就跳过，1.5s 兜底轮询下一帧自愈。
+ */
+function resolveVm(): TabbarVm | null {
+  const host = document.getElementById(BAR_ID) as
+    | (HTMLElement & {
+        __vue_app__?: {
+          _instance?: { exposed?: TabbarVm; setupState?: TabbarVm };
+        };
+      })
+    | null;
+  const instance = host?.__vue_app__?._instance;
+  // exposed 优先（defineExpose 标准通道），setupState 兜底（兼容 dev 构建）
+  return instance?.exposed ?? instance?.setupState ?? null;
+}
 
 /** 当前路由（去掉 #/ 前缀与查询串），如 pages/mine/vip */
 function currentRoute(): string {
@@ -87,11 +108,11 @@ function applyWindowBottom(value: string): void {
 function startUnreadRefresh(): void {
   const unreadStore = useUnreadStore();
   unreadStore.refreshUnread().then(() => {
-    vm?.setUnreadCount?.(unreadStore.unreadCount);
+    resolveVm()?.setUnreadCount?.(unreadStore.unreadCount);
   });
   setInterval(() => {
     unreadStore.refreshUnread().then(() => {
-      vm?.setUnreadCount?.(unreadStore.unreadCount);
+      resolveVm()?.setUnreadCount?.(unreadStore.unreadCount);
     });
   }, 30_000);
 }
@@ -104,12 +125,12 @@ function refresh(): void {
   const show = !!route && !isExcluded(route);
   bar.style.display = show ? "flex" : "none";
   // display 变更后立即读取高度可能仍是旧值，下一帧再写变量；
-  // 轮询 400ms 会兜底纠正，这里先写一次避免首帧抖动。
+  // 1.5s 兜底轮询会纠正，这里先写一次避免首帧抖动。
   const height = show ? currentTabBarHeight() : "0px";
   applyWindowBottom(height);
-  if (show && vm) {
+  if (show) {
     const active = activeTabIndex(route);
-    vm.setActive?.(active);
+    resolveVm()?.setActive?.(active);
   }
 }
 
@@ -130,18 +151,10 @@ export function installGlobalTabbar(): void {
   bar.id = BAR_ID;
   document.body.appendChild(bar);
 
-  // 用 createApp 挂载统一 AppTabbar 组件（替代原手写 DOM + 内联 CSS）
-  const app = createApp(AppTabbar);
-  app.mount(bar);
-  // app.mount() 返回的 proxy 不暴露 defineExpose 的方法（uni-app 编译机制），
-  // 需通过 _instance.setupState 访问 setActive。
-  const instance = app._instance as unknown as {
-    setupState?: {
-      setActive?: (i: number) => void;
-      setUnreadCount?: (count: number) => void;
-    };
-  };
-  vm = instance?.setupState ?? null;
+  // 用 createApp 挂载统一 AppTabbar 组件（替代原手写 DOM + 内联 CSS）。
+  // 不在 mount 后捕获实例：uni-h5-vue 在 mount 返回瞬间 instance.exposed 可能尚未填充，
+  // 一次性捕获会落到空 setupState（{}）且之后永不自愈；改由 resolveVm() 每帧懒解析。
+  createApp(AppTabbar).mount(bar);
 
   // 启动未读数刷新：每 30s 拉一次 IM 会话未读数，更新 tabbar badge
   startUnreadRefresh();
