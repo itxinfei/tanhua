@@ -20,7 +20,7 @@
     </SearchBar>
 
     <TableCard :skeleton="loading && !tableData.length">
-      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
+      <el-table v-loading="loading" :data="tableData" stripe border style="width: 100%">
         <el-table-column v-if="!isMobile" prop="id" label="ID" width="70" align="center" />
         <el-table-column v-if="!isMobile" prop="userId" label="用户ID" width="100" align="center" />
         <el-table-column prop="content" label="反馈内容" min-width="220" show-overflow-tooltip />
@@ -82,7 +82,7 @@
 
     <!-- 回复弹窗 -->
     <el-dialog v-model="replyVisible" title="回复反馈" width="520px">
-      <el-descriptions :column="2" border v-if="currentItem" class="reply-context">
+      <el-descriptions v-if="currentItem" :column="2" border class="reply-context">
         <el-descriptions-item label="反馈ID">{{ currentItem.id }}</el-descriptions-item>
         <el-descriptions-item label="用户ID">{{ currentItem.userId }}</el-descriptions-item>
         <el-descriptions-item label="反馈内容" :span="2">{{ currentItem.content }}</el-descriptions-item>

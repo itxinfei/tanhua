@@ -208,10 +208,10 @@
                   style="width: 200px"
                 >
                   <el-option
-                    v-for="h in heightOptions"
-                    :key="h"
-                    :label="`${h}cm`"
-                    :value="h"
+                    v-for="height in heightOptions"
+                    :key="height"
+                    :label="`${height}cm`"
+                    :value="height"
                   />
                 </el-select>
               </el-form-item>

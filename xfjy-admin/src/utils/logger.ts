@@ -43,7 +43,8 @@ export const error = reportError;
  */
 export function installErrorHandler(app: { config: { errorHandler?: unknown } }): void {
   type VueErrorHandler = (err: unknown, instance: unknown, info: string) => void;
-  (app.config as { errorHandler?: VueErrorHandler }).errorHandler = (err: unknown, _instance: unknown, _info: string) => {
+  // 仅消费 err：errorHandler 签名的 instance/info 占位参数省略，避免未使用参数告警
+  (app.config as { errorHandler?: VueErrorHandler }).errorHandler = (err: unknown) => {
     reportError("Vue error:", err);
   };
   if (typeof window !== "undefined") {

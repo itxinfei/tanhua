@@ -29,28 +29,28 @@
         router
         class="sidebar-menu"
       >
-        <template v-for="route in menuRoutes" :key="route.path">
+        <template v-for="menuRoute in menuRoutes" :key="menuRoute.path">
           <!-- 可见子项为 0：跳过（防御空菜单） -->
-          <template v-if="visibleChildrenOf(route).length > 0">
+          <template v-if="visibleChildrenOf(menuRoute).length > 0">
             <!-- 单可见子项：顶级菜单项（若依单路由平铺） -->
             <el-menu-item
-              v-if="visibleChildrenOf(route).length === 1"
-              :index="joinPath(route.path, visibleChildrenOf(route)[0].path || '')"
+              v-if="visibleChildrenOf(menuRoute).length === 1"
+              :index="joinPath(menuRoute.path, visibleChildrenOf(menuRoute)[0].path || '')"
             >
-              <el-icon><component :is="visibleChildrenOf(route)[0].meta?.icon || route.meta?.icon" /></el-icon>
-              <template #title>{{ visibleChildrenOf(route)[0].meta?.title }}</template>
+              <el-icon><component :is="visibleChildrenOf(menuRoute)[0].meta?.icon || menuRoute.meta?.icon" /></el-icon>
+              <template #title>{{ visibleChildrenOf(menuRoute)[0].meta?.title }}</template>
             </el-menu-item>
 
             <!-- 多可见子项：el-sub-menu 分组（若依风格，折叠后 hover 弹出 popup） -->
-            <el-sub-menu v-else :index="route.path">
+            <el-sub-menu v-else :index="menuRoute.path">
               <template #title>
-                <el-icon><component :is="route.meta?.icon" /></el-icon>
-                <span>{{ route.meta?.title }}</span>
+                <el-icon><component :is="menuRoute.meta?.icon" /></el-icon>
+                <span>{{ menuRoute.meta?.title }}</span>
               </template>
               <el-menu-item
-                v-for="child in visibleChildrenOf(route)"
+                v-for="child in visibleChildrenOf(menuRoute)"
                 :key="child.path"
-                :index="joinPath(route.path, child.path)"
+                :index="joinPath(menuRoute.path, child.path)"
               >
                 <el-icon><component :is="child.meta?.icon" /></el-icon>
                 <template #title>{{ child.meta?.title }}</template>
