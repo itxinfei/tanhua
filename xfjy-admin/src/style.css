@@ -5,22 +5,12 @@
   --xfjy-coral: #ff655b;
   --xfjy-primary-deep: #b13bff;
   --xfjy-primary-soft: #ff8fb1;
-  --xfjy-primary-violet: #8a5cf6;
   --xfjy-primary-mist: #ffd1e8;
 
   /* ===== 品牌色阶（用于背景/边框/文字渐变） ===== */
   --xfjy-primary-50: #fff5f9;
   --xfjy-primary-100: #ffe4f0;
   --xfjy-primary-200: #ffc8de;
-  --xfjy-deep-50: #f5f0ff;
-  --xfjy-deep-100: #e8d5ff;
-  --xfjy-deep-200: #d4b3ff;
-
-  /* ===== 品牌渐变 ===== */
-  --xfjy-gradient-brand: linear-gradient(135deg, #fe3c72, #ff655b);
-  --xfjy-gradient-rose: linear-gradient(135deg, #ff8fb1, #fe3c72);
-  --xfjy-gradient-purple: linear-gradient(135deg, #8a5cf6, #b13bff);
-  --xfjy-gradient-soft: linear-gradient(135deg, #ffd1e8, #e8d5ff);
 
   /* ===== 中性色 - 文字 ===== */
   --xfjy-text-primary: #1f2329;
@@ -112,10 +102,6 @@
   --xfjy-chart-ink-2: #4e5969;
   --xfjy-chart-ink-3: #86909c;
   --xfjy-chart-grid: #f2f3f5;
-
-  /* ===== 图表色浅底（仅用于 KPI 图标衬底等小面积，不做大面积铺色） ===== */
-  --xfjy-chart-3-50: #e6faf4;
-  --xfjy-chart-5-50: #eff6ff;
 
   /* ===== 间距 Token（8px 基准） ===== */
   --xfjy-space-1: 4px;

@@ -24,7 +24,6 @@ export interface BrandColors {
   primarySoft: string
   primaryLight7: string
   primaryLight9: string
-  violet: string
   chartPrimary: string
   chartSecondary: string
   chartThird: string
@@ -50,7 +49,6 @@ export function getBrandColors(): BrandColors {
     primarySoft: readCssVar('--xfjy-primary-soft', '#ff8fb1'),
     primaryLight7: readCssVar('--el-color-primary-light-7', '#ffc9d5'),
     primaryLight9: readCssVar('--el-color-primary-light-9', '#ffe7ed'),
-    violet: readCssVar('--xfjy-primary-violet', '#8a5cf6'),
     // 单色体系：玫红/浅玫红/青绿，多系列靠明度阶区分，青绿仅表正向语义
     chartPrimary: readCssVar('--xfjy-chart-1', '#fe3c72'),    // 暖玫红
     chartSecondary: readCssVar('--xfjy-chart-2', '#ff8fb1'),  // 浅玫红（单色体系第二阶）
