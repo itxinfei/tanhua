@@ -10,6 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -121,23 +122,40 @@ public class UserService {
             return null;
         }
 
-        // 查询用户，不存在则注册
+        // 取用户，不存在则注册。
+        // 并发首次登录不靠"先查后插"保证唯一：tb_user.mobile 上有唯一索引 uk_user_mobile，
+        // 同一手机号只有一个 insert 能成功，失败方捕获 DuplicateKeyException 后按手机号回查，
+        // 从而只会产生一个账号，也不会因为 selectOne 命中多行抛 TooManyResultsException。
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("mobile", phone);
         User user = this.userMapper.selectOne(queryWrapper);
 
         boolean isNew = (user == null);
         if (isNew) {
-            user = new User();
-            user.setMobile(phone);
+            User created = new User();
+            created.setMobile(phone);
             // 验证码登录不设置可用密码，写入随机值锁死密码登录
-            user.setPassword(DigestUtils.md5Hex(String.valueOf(RANDOM.nextLong())));
-            user.setStatus("NORMAL");
-            user.setCreated(new java.util.Date());
-            user.setUpdated(new java.util.Date());
-            this.userMapper.insert(user);
-        } else if (!"NORMAL".equals(user.getStatus())) {
-            // 已封禁(FROZEN)：返回 403 + 封禁原因（FR-AUTH-01 验收口径）；已注销(DELETED)：按验证码错误同等响应，不暴露账号状态
+            created.setPassword(DigestUtils.md5Hex(String.valueOf(RANDOM.nextLong())));
+            created.setStatus("NORMAL");
+            created.setCreated(new java.util.Date());
+            created.setUpdated(new java.util.Date());
+            try {
+                this.userMapper.insert(created);
+                user = created;
+            } catch (DuplicateKeyException e) {
+                // 另一并发请求已插入同一手机号：回查已存在用户，按老用户继续登录
+                QueryWrapper<User> requery = new QueryWrapper<>();
+                requery.eq("mobile", phone);
+                user = this.userMapper.selectOne(requery);
+                if (user == null) {
+                    throw e;
+                }
+                isNew = false;
+            }
+        }
+
+        // 已封禁(FROZEN)：返回 403 + 封禁原因（FR-AUTH-01 验收口径）；已注销(DELETED)：按验证码错误同等响应，不暴露账号状态
+        if (!"NORMAL".equals(user.getStatus())) {
             if ("FROZEN".equals(user.getStatus())) {
                 Map<String, Object> frozen = new HashMap<>();
                 frozen.put("error", "FROZEN");
@@ -214,7 +232,14 @@ public class UserService {
                 .apply("NOT EXISTS (SELECT 1 FROM tb_user u2 WHERE u2.mobile = {0} AND u2.id != {1})", newPhone, userId)
                 .set("mobile", newPhone)
                 .set("updated", new java.util.Date());
-        int updated = this.userMapper.update(null, updateWrapper);
+        int updated;
+        try {
+            updated = this.userMapper.update(null, updateWrapper);
+        } catch (DuplicateKeyException e) {
+            // 唯一索引 uk_user_mobile 兜底：并发换绑同一手机号时，NOT EXISTS 也可能同时通过，
+            // 后到的那条会撞唯一键，按"手机号已被占用"返回，而不是 500
+            return 2;
+        }
         if (updated == 0) {
             // 并发场景下手机号被他人抢先占用，或用户状态已变更
             return 2;
