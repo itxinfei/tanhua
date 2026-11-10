@@ -202,6 +202,13 @@ const inputText = ref('')
 const sending = ref(false)
 const msgListRef = ref<HTMLElement | null>(null)
 
+/** 会话打开序号：历史响应回来时序号不匹配直接丢弃，避免旧会话串到当前窗口 */
+let historySeq = 0
+/** 正在拉取历史的会话 id：期间的实时消息先缓冲，历史写入后再合并 */
+let historyLoadingId = ''
+/** 历史加载期间到达的实时消息缓冲（按会话隔离，合并后清空） */
+const pendingRealtime = new Map<string, ChatMessage[]>()
+
 const totalUnread = computed(() =>
   sessions.value.reduce((sum, s) => sum + s.unreadCount, 0)
 )
@@ -268,9 +275,38 @@ async function refreshSessions(): Promise<void> {
   await ensureUserInfos()
 }
 
+/** 消息唯一标识：同会话内 messageSeq 唯一，缺失时退回本地 id */
+function messageKey(msg: ChatMessage): string {
+  return msg.messageSeq ? `seq-${msg.messageSeq}` : `id-${msg.id}`
+}
+
+/** 追加消息：按唯一标识去重，避免历史与实时消息重复出泡 */
+function appendMessage(msg: ChatMessage): void {
+  const key = messageKey(msg)
+  if (messages.value.some((m) => messageKey(m) === key)) return
+  messages.value.push(msg)
+}
+
+/** 合并历史与历史加载期间到达的实时消息：先去重，再按时间与序号稳定排序 */
+function mergeHistoryAndRealtime(history: ChatMessage[], realtime: ChatMessage[]): ChatMessage[] {
+  const seen = new Set<string>()
+  const merged: ChatMessage[] = []
+  for (const msg of [...history, ...realtime]) {
+    const key = messageKey(msg)
+    if (seen.has(key)) continue
+    seen.add(key)
+    merged.push(msg)
+  }
+  return merged.sort((a, b) => a.timestamp - b.timestamp || a.messageSeq - b.messageSeq)
+}
+
 /** 打开会话：清零未读并加载历史消息 */
 async function openSession(conversationId: string): Promise<void> {
+  const seq = ++historySeq
   activeId.value = conversationId
+  historyLoadingId = conversationId
+  // 切换会话先清空对话视图，避免上一会话内容在新会话加载期间残留
+  messages.value = []
   // 移动端打开会话后自动切换到聊天 tab
   if (isMobile.value) {
     activePane.value = 'chat'
@@ -279,19 +315,33 @@ async function openSession(conversationId: string): Promise<void> {
   markConversationRead(conversationId)
   try {
     const history = await getChatHistory(conversationId)
-    messages.value = history.map((msg) => ({
-      id: `hist-${msg.messageSeq}-${msg.time}`,
-      messageSeq: msg.messageSeq,
-      content: msg.content,
-      type: msg.type,
-      extra: msg.extra,
-      isMine: msg.from === agentId.value,
-      timestamp: msg.time,
-    }))
+    // 期间又切换了会话：丢弃旧响应，绝不写入当前会话
+    if (seq !== historySeq) return
+    // 历史加载期间已到达的实时消息与已发送消息，一并合并，避免被历史覆盖
+    const buffered = [...(pendingRealtime.get(conversationId) ?? []), ...messages.value]
+    pendingRealtime.delete(conversationId)
+    historyLoadingId = ''
+    messages.value = mergeHistoryAndRealtime(
+      history.map((msg) => ({
+        id: `hist-${msg.messageSeq}-${msg.time}`,
+        messageSeq: msg.messageSeq,
+        content: msg.content,
+        type: msg.type,
+        extra: msg.extra,
+        isMine: msg.from === agentId.value,
+        timestamp: msg.time,
+      })),
+      buffered
+    )
     scrollToBottom()
   } catch {
-    messages.value = []
-    ElMessage.error('加载聊天记录失败')
+    if (seq !== historySeq) return
+    const buffered = [...(pendingRealtime.get(conversationId) ?? []), ...messages.value]
+    pendingRealtime.delete(conversationId)
+    historyLoadingId = ''
+    // 历史失败也不能丢掉期间已到达的实时消息
+    messages.value = mergeHistoryAndRealtime([], buffered)
+    ElMessage.error(buffered.length > 0 ? '加载聊天记录失败，已展示新消息' : '加载聊天记录失败')
   }
 }
 
@@ -303,7 +353,7 @@ async function send(): Promise<void> {
   try {
     const message = await sendTextMessage(activeId.value, text)
     if (message) {
-      messages.value.push({
+      appendMessage({
         id: `send-${message.messageSeq}-${Date.now()}`,
         messageSeq: message.messageSeq,
         content: text,
@@ -392,7 +442,7 @@ async function handleImageChange(e: Event): Promise<void> {
     }
     const message = await sendImageMessage(activeId.value, res.name)
     if (message) {
-      messages.value.push({
+      appendMessage({
         id: `send-${message.messageSeq}-${Date.now()}`,
         messageSeq: message.messageSeq,
         content: res.name,
@@ -454,7 +504,7 @@ onMounted(async () => {
     // 实时消息：当前会话追加展示，其余会话刷新会话列表（未读由 SDK 累计）
     unregisterMessage = onMessageReceived((msg: ReceivedMessage) => {
       if (msg.from === activeId.value) {
-        messages.value.push({
+        const item: ChatMessage = {
           id: `recv-${msg.messageSeq}-${msg.time}`,
           messageSeq: msg.messageSeq,
           content: msg.content,
@@ -462,7 +512,18 @@ onMounted(async () => {
           extra: msg.extra,
           isMine: false,
           timestamp: msg.time,
-        })
+        }
+        if (historyLoadingId === msg.from) {
+          // 历史未返回：先缓冲，等历史写入后统一合并，避免被覆盖丢失
+          const buffered = pendingRealtime.get(msg.from) ?? []
+          const key = messageKey(item)
+          if (!buffered.some((m) => messageKey(m) === key)) {
+            buffered.push(item)
+          }
+          pendingRealtime.set(msg.from, buffered)
+        } else {
+          appendMessage(item)
+        }
         scrollToBottom()
       }
       refreshSessions()
