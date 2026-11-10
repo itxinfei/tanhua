@@ -66,6 +66,21 @@ x-common-env: &common-env
 
 services:
 
+  # ---- healthcheck 口径（所有 Java 服务统一） ----
+  # 镜像内实际进程由 deploy/docker/Dockerfile.java 决定：
+  #   ENTRYPOINT sh -c "java $JAVA_OPTS -jar /app/app.jar"
+  # 即 cmdline 为 `java -Xms.. -Xmx.. -jar /app/app.jar`；jar 在暂存时已重命名为
+  # app.jar，容器内不存在 `xfjy-<svc>-1.0-SNAPSHOT.jar`。
+  # 旧写法 `pgrep -f '<jar 名>'` 有两种失效方式（均已实测）：
+  #   1) 镜像基于 ubuntu:jammy，只装 ca-certificates/fontconfig/locales 等，
+  #      不含 procps（25 连 curl/wget 也不装）→ pgrep 不存在 → exit 127 → 永远 unhealthy；
+  #   2) 即使 pgrep 存在，healthcheck 以 `/bin/sh -c "<test>"` 执行，该 sh 自身
+  #      cmdline 含同样的字符串，pgrep -f 会匹配到自己 → 恒真、永远 healthy。
+  # 因此统一改为端口探测（与 xfjy-gateway 同口径）：能连上服务自身端口才算可用。
+  # 只用 /bin/sh + bash(/dev/tcp) + timeout(coreutils)，三者在 ubuntu base 镜像里都有。
+  # start_period 120s 覆盖 Spring Boot 冷启动（Nacos 注册 + 数据源初始化），
+  # 最坏判定 unhealthy 需 120s + 3×15s = 165s，仍在 manage.sh 的 --wait-timeout 240s 内。
+
   xfjy-gateway:
     build:
       context: build/xfjy-gateway
@@ -108,10 +123,11 @@ services:
       <<: *common-env
       JAVA_OPTS: "-Xms128m -Xmx256m"
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'xfjy-sso-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
-      interval: 30s
+      test: ["CMD-SHELL", "timeout 3 bash -c '</dev/tcp/127.0.0.1/18080' >/dev/null 2>&1 || exit 1"]
+      interval: 15s
       timeout: 5s
       retries: 3
+      start_period: 120s
 
   xfjy-user-service:
     build:
@@ -128,10 +144,11 @@ services:
     mem_limit: 384m
     environment: *common-env
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'xfjy-user-service-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
-      interval: 30s
+      test: ["CMD-SHELL", "timeout 3 bash -c '</dev/tcp/127.0.0.1/18090' >/dev/null 2>&1 || exit 1"]
+      interval: 15s
       timeout: 5s
       retries: 3
+      start_period: 120s
 
   xfjy-circle-service:
     build:
@@ -148,10 +165,11 @@ services:
     mem_limit: 384m
     environment: *common-env
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'xfjy-circle-service-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
-      interval: 30s
+      test: ["CMD-SHELL", "timeout 3 bash -c '</dev/tcp/127.0.0.1/18084' >/dev/null 2>&1 || exit 1"]
+      interval: 15s
       timeout: 5s
       retries: 3
+      start_period: 120s
 
   xfjy-video-service:
     build:
@@ -168,10 +186,11 @@ services:
     mem_limit: 384m
     environment: *common-env
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'xfjy-video-service-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
-      interval: 30s
+      test: ["CMD-SHELL", "timeout 3 bash -c '</dev/tcp/127.0.0.1/18085' >/dev/null 2>&1 || exit 1"]
+      interval: 15s
       timeout: 5s
       retries: 3
+      start_period: 120s
 
   xfjy-match-service:
     build:
@@ -188,10 +207,11 @@ services:
     mem_limit: 384m
     environment: *common-env
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'xfjy-match-service-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
-      interval: 30s
+      test: ["CMD-SHELL", "timeout 3 bash -c '</dev/tcp/127.0.0.1/18082' >/dev/null 2>&1 || exit 1"]
+      interval: 15s
       timeout: 5s
       retries: 3
+      start_period: 120s
 
   xfjy-message-service:
     build:
@@ -208,10 +228,11 @@ services:
     mem_limit: 384m
     environment: *common-env
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'xfjy-message-service-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
-      interval: 30s
+      test: ["CMD-SHELL", "timeout 3 bash -c '</dev/tcp/127.0.0.1/18086' >/dev/null 2>&1 || exit 1"]
+      interval: 15s
       timeout: 5s
       retries: 3
+      start_period: 120s
 
   xfjy-server:
     build:
@@ -230,10 +251,11 @@ services:
       <<: *common-env
       JAVA_OPTS: "-Xms128m -Xmx384m"
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'xfjy-server-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
-      interval: 30s
+      test: ["CMD-SHELL", "timeout 3 bash -c '</dev/tcp/127.0.0.1/18081' >/dev/null 2>&1 || exit 1"]
+      interval: 15s
       timeout: 5s
       retries: 3
+      start_period: 120s
 
   xfjy-recommend:
     build:
@@ -250,10 +272,11 @@ services:
     mem_limit: 384m
     environment: *common-env
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'xfjy-recommend-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
-      interval: 30s
+      test: ["CMD-SHELL", "timeout 3 bash -c '</dev/tcp/127.0.0.1/18087' >/dev/null 2>&1 || exit 1"]
+      interval: 15s
       timeout: 5s
       retries: 3
+      start_period: 120s
 
   xfjy-elasticsearch:
     build:
@@ -270,10 +293,11 @@ services:
     mem_limit: 384m
     environment: *common-env
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'xfjy-elasticsearch-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
-      interval: 30s
+      test: ["CMD-SHELL", "timeout 3 bash -c '</dev/tcp/127.0.0.1/18088' >/dev/null 2>&1 || exit 1"]
+      interval: 15s
       timeout: 5s
       retries: 3
+      start_period: 120s
 
   xfjy-pay-service:
     build:
@@ -290,7 +314,8 @@ services:
     mem_limit: 384m
     environment: *common-env
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'xfjy-pay-service-1.0-SNAPSHOT.jar' >/dev/null || exit 1"]
-      interval: 30s
+      test: ["CMD-SHELL", "timeout 3 bash -c '</dev/tcp/127.0.0.1/18089' >/dev/null 2>&1 || exit 1"]
+      interval: 15s
       timeout: 5s
       retries: 3
+      start_period: 120s
