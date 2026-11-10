@@ -8,10 +8,8 @@ import com.xfjy.service.api.UserInfoApi;
 import com.xfjy.service.api.VideoApi;
 import com.xfjy.service.api.WuKongImApi;
 import com.xfjy.service.pojo.Publish;
-import com.xfjy.service.pojo.UserInfo;
 import com.xfjy.service.pojo.Video;
 import com.xfjy.service.vo.PageInfo;
-import com.xfjy.service.vo.UserInfoQueryParam;
 import com.xfjy.server.mapper.ReportMapper;
 import com.xfjy.server.mapper.ReviewMapper;
 import com.xfjy.server.mapper.UserMapper;
@@ -147,52 +145,39 @@ public class AdminDashboardService {
 
     /**
      * 性别比例
+     *
+     * 走 user-service 的 SQL 聚合（/admin/demographics），不再把 tb_user_info 全表拉回 BFF 内存计数。
      */
     public Map<String, Object> genderRatio() {
-        UserInfoQueryParam maleParam = new UserInfoQueryParam();
-        maleParam.setSex(1);
-        Long male = (long) this.userInfoApi.queryUserInfoList(maleParam).size();
-        UserInfoQueryParam femaleParam = new UserInfoQueryParam();
-        femaleParam.setSex(2);
-        Long female = (long) this.userInfoApi.queryUserInfoList(femaleParam).size();
-
+        Map<String, Object> demographics = this.userInfoApi.adminDemographics();
         Map<String, Object> result = new HashMap<>();
-        result.put("male", male);
-        result.put("female", female);
+        result.put("male", toLong(demographics.get("male")));
+        result.put("female", toLong(demographics.get("female")));
         return result;
     }
 
     /**
      * 年龄分布
+     *
+     * 同上：分段口径由 user-service 在 SQL 里 CASE WHEN 聚合，BFF 只做字段映射。
+     * 分段口径与原实现保持一致：age 为 NULL 或 <=0 不计入，18/24/30/40/50 边界值落在低一档。
      */
     public Map<String, Object> ageDistribution() {
-        List<UserInfo> allUsers = this.userInfoApi.queryUserInfoList(new UserInfoQueryParam());
+        Map<String, Object> demographics = this.userInfoApi.adminDemographics();
 
-        // 分段统计
-        int[] buckets = new int[6]; //18以下/18-24/25-30/31-40/41-50/50以上
-        for (UserInfo info : allUsers) {
-            Integer age = info.getAge();
-            if (age == null || age <= 0) {
-                continue;
-            }
-            if (age < 18) buckets[0]++;
-            else if (age <= 24) buckets[1]++;
-            else if (age <= 30) buckets[2]++;
-            else if (age <= 40) buckets[3]++;
-            else if (age <= 50) buckets[4]++;
-            else buckets[5]++;
-        }
-
-        List<String> ranges = Arrays.asList("18岁以下", "18-24岁", "25-30岁", "31-40岁", "41-50岁", "50岁以上");
-        List<Integer> counts = new ArrayList<>();
-        for (int b : buckets) {
-            counts.add(b);
-        }
+        Object ranges = demographics.get("ageRanges");
+        Object counts = demographics.get("ageCounts");
 
         Map<String, Object> result = new HashMap<>();
-        result.put("ranges", ranges);
-        result.put("counts", counts);
+        result.put("ranges", ranges != null ? ranges
+                : Arrays.asList("18岁以下", "18-24岁", "25-30岁", "31-40岁", "41-50岁", "50岁以上"));
+        result.put("counts", counts != null ? counts : Collections.nCopies(6, 0L));
         return result;
+    }
+
+    /** 聚合列在不同驱动版本下可能返回 Long/BigInteger/BigDecimal，统一转 long */
+    private static long toLong(Object value) {
+        return value instanceof Number number ? number.longValue() : 0L;
     }
 
     /**
