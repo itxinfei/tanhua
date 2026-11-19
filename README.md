@@ -30,6 +30,14 @@
 ![Neo4j](https://img.shields.io/badge/Neo4j-5.x%20图数据库-008CC1?logo=neo4j&logoColor=white)
 ![PyTorch](https://img.shields.io/badge/PyTorch-双塔模型-EE4C2C?logo=pytorch&logoColor=white)
 
+<br>
+
+[![Gitee Star](https://gitee.com/itxinfei/xfjy/badge/star.svg?theme=gvp)](https://gitee.com/itxinfei/xfjy/stargazers)
+[![Gitee Fork](https://gitee.com/itxinfei/xfjy/badge/fork.svg?theme=gvp)](https://gitee.com/itxinfei/xfjy/members)
+![License](https://img.shields.io/badge/license-Apache--2.0-blue)
+![Business](https://img.shields.io/badge/business-social%20networking-important)
+![Deploy](https://img.shields.io/badge/deploy-self--hosted-success)
+
 </div>
 
 ---
