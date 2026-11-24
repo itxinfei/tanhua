@@ -10,7 +10,7 @@
 #
 # 所有连接信息均为 默认值 形式：
 #   - 默认值已按服务器实际部署填好：
-#     · 中间件地址 192.168.20.133（容器走 bridge 网络，用宿主机 LAN IP 访问中间件）
+#     · 间间件地址 192.168.20.133（容器走 bridge 网络，用宿主机 LAN IP 访问间间件）
 #     · MySQL root/123456、Neo4j itxinfei123456
 #     即使运行时未注入环境变量，jar 也能直接连上库；
 #   - 如需覆盖，部署时通过容器环境变量传入同名变量即可（优先级最高）。
@@ -44,13 +44,13 @@ spring:
         server-addr: 192.168.20.88:8848
         username: nacos
         password:
-        # base application.yml 默认不注册（本地裸跑避免污染共享注册中心）；
+        # base application.yml 默认不注册（本地裸跑避免污染共享注册间心）；
         # CI/容器部署必须注册，否则网关无法发现 BFF、各服务也无法互相发现。
         register-enabled: true
 
 xfjy:
   neo4j:
-    # 覆盖 base application.yml 的空默认值，直连运行中 Neo4j 的真实密码
+    # 覆盖 base application.yml 的空默认值，直连运行间 Neo4j 的真实密码
     password: ${NEO4J_PASSWORD:itxinfei123456}
   # 领域服务 base 里默认 127.0.0.1（本地裸跑用）；容器内 127.0.0.1 指向 BFF 自身会
   # Connection refused，必须覆盖。
@@ -74,7 +74,7 @@ xfjy:
     service:
       url: http://192.168.20.88:18086
   sso:
-    # sso 的 18080 在 docker-compose.app.yml 中仍以 "18080:18080" 发布到宿主机，
+    # sso 的 18080 在 docker-compose.app.yml 间仍以 "18080:18080" 发布到宿主机，
     # 但仅限内网访问（不对外网暴露）；容器内经宿主 IP 访问该映射端口需 ufw 放行
     # 172.16.0.0/12 后才可达（与其余服务同口径）。
     url: http://192.168.20.88:18080
