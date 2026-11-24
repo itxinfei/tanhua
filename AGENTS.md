@@ -327,3 +327,11 @@ Test-Path pnpm-lock.yaml          # 期望 False
 - 网关 CORS 配置必须唯一来源：`CorsConfig.java` 与 `application.yml` 的 `globalcors` **不得同时存在**（重复会产生双重 `Access-Control-Allow-*` 响应头，行为不可预期）。
 
 校验：`rg -F 'addAllowedOriginPattern("*")' xfjy-gateway/src` → 0；`rg -F 'allowedOriginPatterns: "*"' xfjy-gateway/src` → 0（存量 yml 死配置 `globalcors` 段随网关修复一并清理）
+
+## 中间件地址约定（2026-11-24，禁改回）
+
+dev/local 与共享默认配置统一指向共用中间件栈 **192.168.20.88** + 默认端口：MySQL 3306、Redis 6379、Nacos 8848/9848、MinIO 9000/9001、RabbitMQ 5672/15672、Elasticsearch 9200。
+
+以下历史值已废弃，**禁止改回**：`192.168.20.130`、`192.168.20.131`、`192.168.20.133`、`172.168.20.222`、`192.168.200.128`、`localhost`、`127.0.0.1`；以及端口 `3307`、`3308`、`6380`、`6381`、`8858`、`9858`、`19200`、`9005`、`19005`、`19006`、`9100`、`9101`、`18080`。
+
+原因与地址/端口映射表见 `D:\MyCode\部署手册-中间件与数据.md` §14。prod 配置由环境变量覆盖，不在此约定内。
