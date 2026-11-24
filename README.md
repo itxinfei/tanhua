@@ -2,7 +2,7 @@
 
 <img src="docs/logo/logo-horizontal-transparent.png" width="360" alt="心飞交友">
 
-**心飞交友（xfjy）**
+<h1>心飞交友（xfjy）</h1>
 
 陌生人社交平台，自托管部署。匹配、圈子、短视频、IM、会员、内容审核都在里面，IM 和音视频用的开源方案，不按连接数付授权费。
 
