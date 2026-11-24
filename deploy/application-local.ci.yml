@@ -18,7 +18,7 @@
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://192.168.20.133:3306/xfjy?useUnicode=true&characterEncoding=utf8&autoReconnect=true&allowMultiQueries=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://192.168.20.88:3306/xfjy?useUnicode=true&characterEncoding=utf8&autoReconnect=true&allowMultiQueries=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
     username: root
     password: 123456
     hikari:
@@ -29,7 +29,7 @@ spring:
       max-lifetime: 1800000
   data:
     redis:
-      host: 192.168.20.133
+      host: 192.168.20.88
       port: 6379
       password: 
       timeout: 10s
@@ -41,7 +41,7 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: 192.168.20.133:8848
+        server-addr: 192.168.20.88:8848
         username: nacos
         password:
         # base application.yml 默认不注册（本地裸跑避免污染共享注册中心）；
@@ -60,24 +60,24 @@ xfjy:
   #     172.16.0.0/12（已在 deploy/setup.sh L31-43 固化，宝塔防火墙服务接管）
   match:
     service:
-      url: http://192.168.20.133:18082
+      url: http://192.168.20.88:18082
   user:
     service:
-      url: http://192.168.20.133:18090
+      url: http://192.168.20.88:18090
   circle:
     service:
-      url: http://192.168.20.133:18084
+      url: http://192.168.20.88:18084
   video:
     service:
-      url: http://192.168.20.133:18085
+      url: http://192.168.20.88:18085
   message:
     service:
-      url: http://192.168.20.133:18086
+      url: http://192.168.20.88:18086
   sso:
     # sso 的 18080 在 docker-compose.app.yml 中仍以 "18080:18080" 发布到宿主机，
     # 但仅限内网访问（不对外网暴露）；容器内经宿主 IP 访问该映射端口需 ufw 放行
     # 172.16.0.0/12 后才可达（与其余服务同口径）。
-    url: http://192.168.20.133:18080
+    url: http://192.168.20.88:18080
     default:
       user: 2
   pay:

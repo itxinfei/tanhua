@@ -7,7 +7,7 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: 192.168.20.133:8848
+        server-addr: 192.168.20.88:8848
         username: nacos
         password: nacos
         namespace:
@@ -19,16 +19,16 @@ spring:
   profiles:
     active: local
   mongodb:
-    uri: mongodb://192.168.20.133:27017/xfjy
+    uri: mongodb://192.168.20.88:27017/xfjy
   data:
     redis:
-      host: 192.168.20.133
+      host: 192.168.20.88
       port: 6379
       password: 
       timeout: 10s
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://192.168.20.133:3306/xfjy?useUnicode=true&characterEncoding=utf8&autoReconnect=true&allowMultiQueries=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://192.168.20.88:3306/xfjy?useUnicode=true&characterEncoding=utf8&autoReconnect=true&allowMultiQueries=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
     username: root
     password: 123456
     hikari:

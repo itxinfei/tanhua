@@ -9,14 +9,14 @@ spring:
     name: xfjy-gateway
   data:
     redis:
-      host: 192.168.20.133
+      host: 192.168.20.88
       port: 6379
       password: 
       timeout: 3s
   cloud:
     nacos:
       discovery:
-        server-addr: 192.168.20.133:8848
+        server-addr: 192.168.20.88:8848
         username: nacos
         password: nacos
         namespace:

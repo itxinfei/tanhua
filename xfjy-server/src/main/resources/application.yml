@@ -12,7 +12,7 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: 192.168.20.133:8848
+        server-addr: 192.168.20.88:8848
         username: nacos
         password: nacos
         namespace:
@@ -89,7 +89,7 @@ xfjy:
   # Qdrant 向量检索（T3-1 互惠匹配增强，不可用时自动降级空召回）
   qdrant:
     enabled: false  # 内网开发环境默认关闭，接入核心链路后改 true
-    host: 192.168.20.133
+    host: 192.168.20.88
     port: 6333
     collection: user_embedding
     vector-size: 64
@@ -98,9 +98,9 @@ xfjy:
   neo4j:
     enabled: true
     # Bolt 协议 Neo4j Java Driver 端点（Neo4jClient 使用）
-    bolt-uri: bolt://192.168.20.133:7687
+    bolt-uri: bolt://192.168.20.88:7687
     # HTTP REST 事务端点（GraphRecommendService 使用，拼接 /db/neo4j/tx/commit）
-    uri: http://192.168.20.133:7474
+    uri: http://192.168.20.88:7474
     username: neo4j
     password: ${NEO4J_PASSWORD:itxinfei123456}
   # 极光推送 JPush（凭证环境变量外置，留空走 mock 模式仅打日志不实际推送）

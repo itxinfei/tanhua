@@ -7,7 +7,7 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: 192.168.20.133:8848
+        server-addr: 192.168.20.88:8848
         username: nacos
         password: nacos
         namespace:
@@ -27,4 +27,4 @@ internal:
 # WuKongIM 开源 IM 服务端配置（REST API 对接）
 # API 无需鉴权（内部系统专用），仅需服务地址；端口 5001 与 docker-compose.middleware.yml 对应
 wukongim:
-  api-host: http://192.168.20.133:5001
+  api-host: http://192.168.20.88:5001

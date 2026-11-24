@@ -7,7 +7,7 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: 192.168.20.133:8848
+        server-addr: 192.168.20.88:8848
         username: nacos
         password: nacos
         namespace:
@@ -19,11 +19,11 @@ spring:
   profiles:
     active: local
   mongodb:
-    uri: mongodb://192.168.20.133:27017/xfjy
+    uri: mongodb://192.168.20.88:27017/xfjy
     auto-index-creation: true
   data:
     redis:
-      host: 192.168.20.133
+      host: 192.168.20.88
       port: 6379
       password: 
       database: 0
@@ -35,7 +35,7 @@ internal:
 
 # RocketMQ：圈子评分事件生产（xfjy-quanzi topic，消费方为 xfjy-recommend）
 rocketmq:
-  name-server: 192.168.20.133:9876
+  name-server: 192.168.20.88:9876
   producer:
     group: xfjy-circle
     send-message-timeout: 3000
