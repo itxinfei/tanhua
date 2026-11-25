@@ -76,7 +76,7 @@ services:
       - xfjy-net
 
   mongo:
-    image: docker.m.daocloud.io/library/mongo:8.0.38
+    image: docker.m.daocloud.io/library/mongo:8.2.12
     container_name: xfjy-mongo
     restart: unless-stopped
     mem_limit: 512m
