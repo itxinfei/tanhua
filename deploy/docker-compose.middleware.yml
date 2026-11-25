@@ -58,7 +58,7 @@ services:
       - xfjy-net
 
   redis:
-    image: docker.m.daocloud.io/library/redis:7-alpine
+    image: docker.m.daocloud.io/library/redis:8.10.3-alpine
     container_name: xfjy-redis
     restart: unless-stopped
     mem_limit: 384m
@@ -76,7 +76,7 @@ services:
       - xfjy-net
 
   mongo:
-    image: docker.m.daocloud.io/library/mongo:7
+    image: docker.m.daocloud.io/library/mongo:8.2.12
     container_name: xfjy-mongo
     restart: unless-stopped
     mem_limit: 512m
@@ -97,7 +97,7 @@ services:
       - xfjy-net
 
   elasticsearch:
-    image: docker.m.daocloud.io/docker.elastic.co/elasticsearch/elasticsearch:9.5.6
+    image: docker.m.daocloud.io/docker.elastic.co/elasticsearch/elasticsearch:9.5.7
     container_name: xfjy-es
     restart: unless-stopped
     mem_limit: 768m
@@ -121,7 +121,7 @@ services:
       - xfjy-net
 
   nacos:
-    image: docker.m.daocloud.io/nacos/nacos-server:v3.0.0
+    image: docker.m.daocloud.io/nacos/nacos-server:v3.3.0
     container_name: xfjy-nacos
     restart: unless-stopped
     mem_limit: 512m
@@ -153,7 +153,7 @@ services:
       - xfjy-net
 
   rocketmq-namesrv:
-    image: docker.m.daocloud.io/apache/rocketmq:5.3.1
+    image: docker.m.daocloud.io/apache/rocketmq:5.5.1
     container_name: xfjy-rocketmq-namesrv
     restart: unless-stopped
     mem_limit: 384m
@@ -168,7 +168,7 @@ services:
       - xfjy-net
 
   rocketmq-broker:
-    image: docker.m.daocloud.io/apache/rocketmq:5.3.1
+    image: docker.m.daocloud.io/apache/rocketmq:5.5.1
     container_name: xfjy-rocketmq-broker
     restart: unless-stopped
     mem_limit: 768m
@@ -188,7 +188,7 @@ services:
       - xfjy-net
 
   qdrant:
-    image: docker.m.daocloud.io/qdrant/qdrant:v1.12.0
+    image: docker.m.daocloud.io/qdrant/qdrant:v1.20.0
     container_name: xfjy-qdrant
     restart: unless-stopped
     mem_limit: 384m
@@ -200,7 +200,7 @@ services:
       - xfjy-net
 
   neo4j:
-    image: docker.m.daocloud.io/library/neo4j:5
+    image: docker.m.daocloud.io/library/neo4j:2026.10.2
     container_name: xfjy-neo4j
     restart: unless-stopped
     mem_limit: 768m
@@ -226,7 +226,7 @@ services:
 
   minio:
     # 对象存储（替代阿里云 OSS）：S3 API 9000，管理控制台 9001
-    image: docker.m.daocloud.io/minio/minio:${MINIO_VERSION:-RELEASE.2025-04-22T23-22-57Z}
+    image: docker.m.daocloud.io/minio/minio:${MINIO_VERSION:-RELEASE.2026-06-06T02-44-06Z}
     container_name: xfjy-minio
     restart: unless-stopped
     mem_limit: 384m
@@ -251,7 +251,7 @@ services:
 
   minio-init:
     # 一次性任务：创建业务桶 test-media 并设为公开下载（匿名可读），与 server minio.bucketName 对齐
-    image: docker.m.daocloud.io/minio/mc:${MINIO_VERSION:-RELEASE.2025-04-22T23-22-57Z}
+    image: docker.m.daocloud.io/minio/mc:${MINIO_VERSION:-RELEASE.2026-06-06T02-44-06Z}
     container_name: xfjy-minio-init
     depends_on:
       minio:
