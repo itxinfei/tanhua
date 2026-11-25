@@ -153,7 +153,7 @@ services:
       - xfjy-net
 
   rocketmq-namesrv:
-    image: docker.m.daocloud.io/apache/rocketmq:5.5.1
+    image: docker.m.daocloud.io/apache/rocketmq:5.5.0
     container_name: xfjy-rocketmq-namesrv
     restart: unless-stopped
     mem_limit: 384m
@@ -168,7 +168,7 @@ services:
       - xfjy-net
 
   rocketmq-broker:
-    image: docker.m.daocloud.io/apache/rocketmq:5.5.1
+    image: docker.m.daocloud.io/apache/rocketmq:5.5.0
     container_name: xfjy-rocketmq-broker
     restart: unless-stopped
     mem_limit: 768m
